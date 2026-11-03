@@ -71,7 +71,13 @@
       achievements: {},
       stats: { riffs: 0, kills: 0, battles: 0, wins: 0, playSec: 0 },
       avatar: null,
-      settings: { master: CF_CONFIG.volume.master, music: CF_CONFIG.volume.music, sfx: CF_CONFIG.volume.sfx, trial: false, quality: 'high', bgmStyle: {}, bgmBpm: {}, rotateChoice: '' },
+      hero: 'xs',
+      tutorial: { done: false },
+      quick: { best: 0, runs: 0, bestRank: '' },
+      city: null,
+      boosts: 0,
+      heroStats: {},
+      settings: { master: CF_CONFIG.volume.master, music: CF_CONFIG.volume.music, sfx: CF_CONFIG.volume.sfx, trial: false, quality: 'high', bgmStyle: {}, bgmBpm: {}, rotateChoice: '', reduceMotion: false },
     };
   }
   function merge(base, over) {
@@ -96,7 +102,7 @@
     exportText() { return JSON.stringify(this.data, null, 1); },
     importText(txt) {
       const obj = JSON.parse(txt);
-      if (!obj || obj.version !== 1) throw new Error('不是有效的 Claude战线 存档');
+      if (!obj || obj.version !== 1) throw new Error('不是有效的 X-S战线 存档');
       this.data = merge(defaults(), obj);
       this.save();
     },
@@ -118,10 +124,12 @@
   let onCloseFn = null;
   CF.modal = {
     isOpen: () => !CF.$('#modal').classList.contains('hidden'),
-    open({ title = '', body = '', foot = null, wide = false, onClose = null, closable = true }) {
+    open({ title = '', body = '', foot = null, wide = false, onClose = null, closable = true, hero = 'current' }) {
       const card = CF.$('#modalCard');
+      if (CF.modal._stage) { CF.modal._stage.destroy(); CF.modal._stage = null; }
       card.className = 'modal-card' + (wide ? ' wide' : '');
-      card.innerHTML = `<div class="modal-head"><h3>${title}</h3>${closable ? '<button class="x" data-x>✕</button>' : ''}</div><div class="modal-body"></div>`;
+      card.innerHTML = `<div class="modal-head"><canvas class="mh-fx"></canvas><h3>${title}</h3>${closable ? '<button class="x" data-x>✕</button>' : ''}</div><div class="modal-body"></div>`;
+      if (CF.PixelFX) CF.modal._stage = new CF.PixelFX.Stage(card.querySelector('.mh-fx'), { mode: 'bar', fx: closable ? 0.86 : 0.93, fy: 0.56, cell: 10, hero });
       const bd = card.querySelector('.modal-body');
       if (typeof body === 'string') bd.innerHTML = body; else if (body) bd.appendChild(body);
       if (foot && foot.length) {
@@ -146,6 +154,7 @@
       if (!CF.modal.isOpen()) return;
       CF.$('#modal').classList.add('hidden');
       CF.$('#modalCard').innerHTML = '';
+      if (CF.modal._stage) { CF.modal._stage.destroy(); CF.modal._stage = null; }
       const fn = onCloseFn; onCloseFn = null;
       CF.bus.emit('modal:closed');
       if (fn) fn();

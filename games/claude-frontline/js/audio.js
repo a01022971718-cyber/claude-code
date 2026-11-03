@@ -7,6 +7,7 @@
     Am: [57, [0, 3, 7]], F: [53, [0, 4, 7]], C: [48, [0, 4, 7]], G: [55, [0, 4, 7]], Em: [52, [0, 3, 7]], D: [50, [0, 4, 7]],
     Dm: [50, [0, 3, 7]], E: [52, [0, 4, 7]], Bb: [58, [0, 4, 7]], B7: [47, [0, 4, 7, 10]],
     Fmaj7: [53, [0, 4, 7, 11]], Em7: [52, [0, 3, 7, 10]], Dm7: [50, [0, 3, 7, 10]], Cmaj7: [48, [0, 4, 7, 11]], Am7: [57, [0, 3, 7, 10]], G6: [55, [0, 4, 7, 9]],
+    Dmaj7: [50, [0, 4, 7, 11]], Bm: [47, [0, 3, 7]], A: [57, [0, 4, 7]], Gsus: [55, [0, 5, 7]], Csus: [48, [0, 2, 7]],
   };
   const STYLES = {
     arp: { name: '原声分解和弦', bpm: 96, prog: ['Am', 'F', 'C', 'G'], swing: 0.06 },
@@ -16,9 +17,20 @@
     metal: { name: '金属 Boss', bpm: 144, prog: ['Em', 'Em', 'C', 'B7'], swing: 0 },
     fanfare: { name: '胜利号角', bpm: 120, prog: ['C', 'G', 'Am', 'F'], swing: 0 },
     sad: { name: '低吟', bpm: 72, prog: ['Am', 'Dm', 'E', 'Am'], swing: 0 },
+    // 英雄主题曲：hero 字段决定主奏乐器与动机
+    xs: { name: 'X-S · 电吉他「破晓」', bpm: 112, prog: ['Em', 'C', 'G', 'D'], swing: 0, hero: 'xs', root: 64, scale: [0, 3, 5, 7, 10], motif: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 4], [5, 2], [6, 2], [7, 8], [null, 8]] },
+    omni: { name: '万象 · 钢琴「八十八层」', bpm: 100, prog: ['C', 'G', 'Am', 'F'], swing: 0, hero: 'omni', gain: 1.5, root: 72, scale: [0, 2, 4, 5, 7, 9, 11], motif: [[4, 2], [2, 2], [0, 2], [2, 2], [4, 2], [7, 4], [6, 2], [7, 8], [null, 8]] },
+    twin: { name: '双子 · 竖琴「星河两岸」', bpm: 88, prog: ['Dmaj7', 'E', 'Bm', 'A'], swing: 0, hero: 'twin', gain: 2.4, root: 74, scale: [0, 2, 4, 6, 7, 9, 11], motif: [[0, 2], [4, 2], [6, 4], [null, 2], [7, 2], [6, 2], [4, 2], [5, 6], [null, 10]] },
+    riot: { name: '狂想 · 架子鼓「没有规则」', bpm: 150, prog: ['Em', 'Em', 'G', 'A'], swing: 0, hero: 'riot', root: 52, scale: [0, 3, 5, 6, 7, 10], motif: [[0, 1], [0, 1], [3, 2], [0, 2], [5, 2], [4, 2], [3, 2], [1, 4], [null, 16]] },
+    llama: { name: '羊驼 · 排箫「云上牧场」', bpm: 112, prog: ['Am', 'G', 'F', 'E'], swing: 0.05, hero: 'llama', gain: 0.5, root: 69, scale: [0, 3, 5, 7, 10], motif: [[4, 2], [2, 2], [1, 2], [0, 2], [1, 2], [2, 2], [4, 4], [3, 4], [null, 12]] },
+    abyss: { name: '鲸歌 · 古琴「万米之下」', bpm: 66, prog: ['C', 'Am', 'F', 'G'], swing: 0, hero: 'abyss', gain: 1.7, root: 60, scale: [0, 2, 4, 7, 9], motif: [[0, 4], [null, 2], [4, 2], [3, 4], [2, 2], [1, 2], [0, 8], [null, 8]] },
+    luna: { name: '月弦 · 二胡「暗面长夜」', bpm: 72, prog: ['Am', 'Em', 'F', 'G'], swing: 0, hero: 'luna', gain: 1.2, root: 69, scale: [0, 3, 5, 7, 10], motif: [[4, 6], [3, 2], [2, 4], [3, 2], [4, 2], [5, 8], [4, 4], [null, 4]] },
+    pearl: { name: '珠问 · 琵琶「玉盘落珠」', bpm: 126, prog: ['Dm', 'F', 'C', 'Dm'], swing: 0, hero: 'pearl', gain: 1.7, root: 62, scale: [0, 2, 5, 7, 10], motif: [[0, 1], [0, 1], [0, 1], [0, 1], [1, 2], [0, 2], [3, 2], [2, 2], [1, 4], [2, 2], [3, 2], [4, 4], [null, 8]] },
+    bun: { name: '团团 · 唢呐「天天过节」', bpm: 132, prog: ['C', 'F', 'G', 'C'], swing: 0, hero: 'bun', root: 72, scale: [0, 2, 4, 7, 9], motif: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [3, 2], [2, 2], [1, 2], [2, 4], [0, 4], [null, 8]] },
   };
-  const DEFAULT_STYLE = { menu: 'arp', academy: 'lofi', lab: 'ambient', battle: 'rock', boss: 'metal', victory: 'fanfare', defeat: 'sad' };
-  const SCREENS = { menu: '主菜单', academy: '学院 / 档案', lab: '实验室', battle: '战斗', boss: 'Boss 战', victory: '胜利', defeat: '失败' };
+  const DEFAULT_STYLE = { menu: 'hero', academy: 'lofi', lab: 'ambient', battle: 'hero', boss: 'metal', victory: 'fanfare', defeat: 'sad', quick: 'hero', city: 'hero' };
+  const SCREENS = { menu: '大厅', academy: '学院 / 档案', lab: '实验室', battle: '战斗', boss: 'Boss 战', victory: '胜利', defeat: '失败', quick: '快速模式', city: '主城' };
+  const INTENSITY = { battle: 1, boss: 1, quick: 1, victory: 0.8 };
   const PENTA = [0, 3, 5, 7, 10];
   const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
@@ -41,7 +53,7 @@
   };
 
   const A = (CF.Audio = {
-    ctx: null, unlocked: false, screen: null, STYLES, SCREENS, DEFAULT_STYLE, DB,
+    ctx: null, unlocked: false, screen: null, STYLES, SCREENS, DEFAULT_STYLE, INTENSITY, DB,
     beats: [], fallbackNext: 0, fallbackStep: 0,
     customMeta: {}, // screen -> {name}
   });
@@ -102,9 +114,8 @@
     const key = midi + kind;
     if (A.strings[key]) return A.strings[key];
     const ctx = A.ctx, sr = ctx.sampleRate, f = mtof(midi);
-    const dur = kind === 'm' ? 0.28 : kind === 'b' ? 1.0 : 1.7;
-    const damp = kind === 'm' ? 0.965 : 0.9965;
-    const bright = kind === 'b' ? 0.75 : kind === 'm' ? 0.45 : 0.6;
+    const K = { m: [0.28, 0.965, 0.45], b: [1.0, 0.9965, 0.75], h: [2.2, 0.998, 0.88], q: [2.6, 0.9975, 0.38], p: [0.7, 0.988, 0.95], c: [1.7, 0.9965, 0.6] }[kind] || [1.7, 0.9965, 0.6];
+    const dur = K[0], damp = K[1], bright = K[2];
     const N = Math.max(2, Math.round(sr / f)), len = Math.floor(sr * dur);
     const buf = ctx.createBuffer(1, len, sr), out = buf.getChannelData(0);
     const ring = new Float32Array(N);
@@ -131,6 +142,8 @@
     src.connect(g);
     const dest = opts.bus || A.music;
     if (opts.dist) { g.connect(dest === A.sfxBus ? A.distS : A.dist); } else { g.connect(dest); if (opts.verb !== false) g.connect(A.verb); }
+    if (opts.slide) { src.playbackRate.setValueAtTime(Math.pow(2, -opts.slide / 12), t); src.playbackRate.linearRampToValueAtTime(1, t + 0.18); }
+    if (opts.bend) { src.playbackRate.setValueAtTime(1, t + 0.35); src.playbackRate.linearRampToValueAtTime(Math.pow(2, opts.bend / 12), t + 0.9); }
     src.start(t);
     if (opts.len) { g.gain.setValueAtTime(vel * 0.32, t + opts.len); g.gain.linearRampToValueAtTime(0, t + opts.len + 0.06); src.stop(t + opts.len + 0.08); }
   }
@@ -179,10 +192,178 @@
     return v.map((m) => (m < 40 ? m + 12 : m));
   }
 
+  // ---------- 更多乐器 ----------
+  function piano(m, t, v, dest, dur = 1.4) {
+    const f = mtof(m);
+    [0.5, 0.24, 0.12, 0.06].forEach((am, i) => { const h = i + 1; osc('sine', f * h * (1 + 0.0005 * h * h), 0, t, dur * (1 - i * 0.2), v * am * 0.55, dest, { atk: 0.003 }); });
+    noise(t, 0.02, v * 0.04, dest, 'bandpass', 3000, 1);
+  }
+  // 弓弦 / 簧管 / 气鸣：振荡器 + 共振峰 + 颤音 + 滑音
+  function voice(m, t, dur, v, dest, o = {}) {
+    const ctx = A.ctx, f = mtof(m), g = ctx.createGain(), lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = o.lp || 4200;
+    const oscs = (o.types || ['sawtooth']).map((tp) => { const x = ctx.createOscillator(); x.type = tp; return x; });
+    const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = o.vib || 5.5; lg.gain.value = f * (o.vibDepth || 0.006);
+    lfo.connect(lg);
+    oscs.forEach((x, i) => {
+      const fi = f * (i === 1 && o.oct2 ? 2 : 1);
+      if (o.from) { x.frequency.setValueAtTime(mtof(o.from) * (fi / f), t); x.frequency.exponentialRampToValueAtTime(fi, t + (o.glide || 0.12)); }
+      else if (o.scoop) { x.frequency.setValueAtTime(fi * Math.pow(2, -o.scoop / 12), t); x.frequency.exponentialRampToValueAtTime(fi, t + 0.07); }
+      else x.frequency.setValueAtTime(fi, t);
+      lg.connect(x.frequency);
+      const xg = ctx.createGain(); xg.gain.value = (o.mix || [1, 0.4])[i] || 0.3; x.connect(xg);
+      (o.formants || [[o.formant || 1100, o.q || 2]]).forEach(([ff, q]) => { const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = ff; bp.Q.value = q; xg.connect(bp); bp.connect(lp); });
+      if (o.body) xg.connect(lp);
+      x.start(t); x.stop(t + dur + 0.15);
+    });
+    if (o.breath) { const nb = ctx.createBufferSource(), bf = ctx.createBiquadFilter(), bg = ctx.createGain(); nb.buffer = A.noise; bf.type = 'bandpass'; bf.frequency.value = f * 2; bf.Q.value = 3; bg.gain.value = v * o.breath; nb.connect(bf); bf.connect(bg); bg.connect(g); nb.start(t, Math.random() * 0.5); nb.stop(t + dur + 0.1); }
+    const atk = o.atk || 0.08, rel = o.rel || 0.12;
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v, t + atk); g.gain.setValueAtTime(v * 0.92, t + Math.max(atk, dur - rel)); g.gain.linearRampToValueAtTime(0.0001, t + dur + rel);
+    lp.connect(g); g.connect(dest); if (o.verb !== false) g.connect(A.verb);
+    lfo.start(t); lfo.stop(t + dur + 0.15);
+  }
+  const erhu = (m, t, dur, v, d, from) => voice(m, t, dur, v * 0.55, d, { types: ['sawtooth'], formants: [[1000, 2.2], [2600, 3]], vib: 5.6, vibDepth: 0.009, from, glide: 0.14, atk: 0.09, lp: 3800, body: false });
+  const suona = (m, t, dur, v, d) => voice(m, t, dur, v * 0.42, d, { types: ['sawtooth', 'square'], mix: [1, 0.5], formants: [[1250, 3], [2700, 4]], vib: 6.2, vibDepth: 0.008, scoop: 1, atk: 0.03, lp: 5200 });
+  const panflute = (m, t, dur, v, d) => voice(m, t, dur, v * 0.5, d, { types: ['sine', 'triangle'], mix: [1, 0.18], oct2: true, formants: [[mtof(m), 1]], body: true, vib: 4.5, vibDepth: 0.004, breath: 0.35, atk: 0.06, rel: 0.18 });
+  const harp = (m, t, v, d) => pluck(m, t, v, { bus: d, kind: 'h' });
+  const guqin = (m, t, v, d, slide) => { pluck(m, t, v * 1.1, { bus: d, kind: 'q', slide: slide || 0, bend: Math.random() < 0.3 ? -1 : 0 }); if (Math.random() < 0.25) osc('sine', mtof(m + 24), 0, t + 0.02, 1.4, v * 0.08, d); };
+  const pipa = (m, t, v, d, trem) => { const n = trem || 1; for (let i = 0; i < n; i++) pluck(m, t + i * 0.045, v * (i ? 0.7 : 1), { bus: d, kind: 'p', verb: false }); };
+  const tom = (t, f, v, d) => osc('sine', f, f * 0.6, t, 0.28, 0.7 * v, d);
+  const tanggu = (t, v, d) => { osc('sine', 120, 62, t, 0.4, 0.85 * v, d); noise(t, 0.08, 0.2 * v, d, 'lowpass', 500); };
+  const bo = (t, v, d) => { noise(t, 0.7, 0.32 * v, d, 'highpass', 3200); noise(t, 0.3, 0.2 * v, d, 'bandpass', 6500, 2); };
+  const wood = (t, v, d) => { osc('sine', 1600, 1450, t, 0.06, 0.25 * v, d); noise(t, 0.02, 0.1 * v, d, 'bandpass', 2600, 4); };
+  const shaker = (t, v, d) => noise(t, 0.05, 0.1 * v, d, 'highpass', 7000);
+  function gong(t, v, d) {
+    const ctx = A.ctx, c = ctx.createOscillator(), mo = ctx.createOscillator(), mg = ctx.createGain(), g = ctx.createGain();
+    c.frequency.value = 170; mo.frequency.value = 271; mg.gain.setValueAtTime(400, t); mg.gain.exponentialRampToValueAtTime(10, t + 2);
+    mo.connect(mg); mg.connect(c.frequency); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.32 * v, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 2.4);
+    c.connect(g); g.connect(d); g.connect(A.verb); c.start(t); mo.start(t); c.stop(t + 2.5); mo.stop(t + 2.5);
+    noise(t, 0.5, 0.12 * v, d, 'bandpass', 900, 2);
+  }
+  function whale(t, v, d) {
+    const ctx = A.ctx, o = ctx.createOscillator(), g = ctx.createGain(), lp = ctx.createBiquadFilter();
+    o.type = 'sine'; o.frequency.setValueAtTime(260, t); o.frequency.exponentialRampToValueAtTime(420, t + 0.6); o.frequency.exponentialRampToValueAtTime(170, t + 1.8);
+    lp.type = 'lowpass'; lp.frequency.value = 900;
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.12 * v, t + 0.4); g.gain.linearRampToValueAtTime(0.0001, t + 2);
+    o.connect(lp); lp.connect(g); g.connect(d); g.connect(A.verb); o.start(t); o.stop(t + 2.1);
+  }
+  A.inst = { piano, voice, erhu, suona, panflute, harp, guqin, pipa, gong, tanggu, bo, wood, whale };
+
+  // 旋律时间线：8 小节一循环；第 1、5 小节是动机（记忆点），其余小节是围绕调式的级进变奏
+  function buildTimeline(st, seed) {
+    const rnd = CF.rng(seed), ev = [];
+    const put = (start, notes) => { let p = start; notes.forEach(([d, len]) => { if (d !== null) ev.push({ s: p, d, len }); p += len; }); };
+    const motifLen = st.motif.reduce((a, n) => a + n[1], 0);
+    put(0, st.motif); put(64, st.motif.map(([d, l]) => [d === null ? null : d + (st.hero === 'xs' ? 1 : 0), l]));
+    [32, 96].forEach((start, k) => {
+      let d = 2, p = start; const end = start + 32;
+      while (p < end - 4) { const len = [2, 2, 4, 2, 1, 1, 6][Math.floor(rnd() * 7)] || 2; d = CF.clamp(d + [-1, 1, -2, 2, 0, 1][Math.floor(rnd() * 6)], -1, st.scale.length + 2); if (rnd() < 0.85) ev.push({ s: p, d, len: Math.min(len, end - p) }); p += len; }
+      ev.push({ s: end - 4, d: k ? 0 : 4, len: 4 });
+    });
+    st.tl = {}; ev.forEach((e) => (st.tl[e.s] = e)); st.motifLen = motifLen;
+  }
+  const degMidi = (st, d) => { const n = st.scale.length, o = Math.floor(d / n), i = ((d % n) + n) % n; return st.root + st.scale[i] + 12 * o; };
+
+  function heroNote(id, m, t, dur, v, d) {
+    switch (id) {
+      case 'xs': pluck(m, t, v, { bus: d, kind: 'b', verb: false }); break;
+      case 'omni': piano(m, t, v, d, Math.max(0.5, dur * 1.6)); break;
+      case 'twin': harp(m, t, v, d); break;
+      case 'riot': kick(t, 0.8 * v, d); snare(t + dur * 0.5, 0.6 * v, d); break;
+      case 'llama': panflute(m, t, dur, v, d); break;
+      case 'abyss': guqin(m, t, v, d, 2); break;
+      case 'luna': erhu(m, t, dur * 1.3, v, d); break;
+      case 'pearl': pipa(m, t, v, d, 2); break;
+      case 'bun': suona(m, t, dur, v, d); break;
+    }
+  }
+  // 英雄「招牌乐句」：选英雄、放技能时播放动机的前几个音
+  A.lick = function (heroId, fast) {
+    if (!A.ctx || A.ctx.state !== 'running' || !CF.Heroes) return;
+    const h = CF.Heroes.get(heroId), st = STYLES[h.music.style], d = A.sfxBus, unit = fast ? 0.06 : 0.1;
+    let t = A.ctx.currentTime + 0.01;
+    st.motif.slice(0, fast ? 4 : 7).forEach(([deg, len]) => { if (deg !== null) heroNote(st.hero, degMidi(st, deg), t, unit * Math.min(len, 3), 0.8, d); t += unit * Math.min(len, 2); });
+  };
+
+  function heroStep(st, step, t, spb, out, I) {
+    const s = step % 16, bar = Math.floor(step / 16), ch = st.prog[bar % st.prog.length], [root] = CH[ch], v = voicing(ch);
+    const rnd = CF.rng(P.seed + bar * 977 + s * 31), e = st.tl[step % 128], hi = I >= 0.8;
+    const len = e ? e.len * spb : 0, m = e ? degMidi(st, e.d) : 0;
+    let strumHit = false;
+    switch (st.hero) {
+      case 'xs':
+        if (s % 2 === 0) { const pat = [0, 2, 3, 4, 5, 4, 3, 2]; pluck(v[pat[s / 2]], t, hi ? 0.4 : 0.5, { bus: out }); }
+        if (hi && s % 8 === 0) strum([root - 12, root - 5, root], t, 0.6, { bus: out, dist: true, gap: 0.006, len: spb * 3 });
+        if (e) { pluck(m, t, 0.7, { bus: out, kind: 'b', dist: hi, len: Math.min(len, spb * 6) }); strumHit = true; }
+        if (s === 0) bass(root - 12, t, spb * 8, 0.7, out);
+        break;
+      case 'omni':
+        if (s % 2 === 0) { const lh = [0, 1, 2, 1, 3, 2, 1, 2]; piano(v[lh[s / 2] % 4] - 12, t, 0.5, out, 1.2); }
+        if (s === 0 || s === 8) piano(v[2], t, 0.35, out, 1.8);
+        if (e) { piano(m, t, 0.8, out, Math.max(0.6, len * 1.3)); strumHit = true; }
+        if (s === 0) bass(root - 12, t, spb * 8, 0.6, out);
+        break;
+      case 'twin':
+        if (s === 0) { pad(ch, t, spb * 16, 0.9, out); v.concat(v.map((x) => x + 12)).forEach((x, i) => harp(x, t + i * 0.028, 0.35, out)); strumHit = true; }
+        if (s % 4 === 2) harp(v[1 + (s / 4 | 0) % 4] + 12, t, 0.3, out);
+        if (e) { harp(m, t, 0.7, out); strumHit = true; }
+        { const e2 = st.tl[(step - 16 + 128) % 128]; if (e2 && bar % 2 === 1) harp(degMidi(st, e2.d) - 12, t, 0.35, out); }
+        break;
+      case 'riot':
+        { const K = [0, 3, 7, 10, 11], S = [4, 12], H = s % 2 === 0;
+          if (K.includes(s)) kick(t, 0.95, out); if (S.includes(s)) snare(t, 1.05, out); if (H) hat(t, 0.55, out); if (s === 14 && rnd() < 0.5) snare(t, 0.5, out);
+          if (bar % 4 === 3 && s >= 8) tom(t, [220, 200, 170, 150, 130, 120, 110, 100][s - 8], 0.8, out);
+          if (s === 0 && bar % 2 === 0) crash(t, 0.6, out); }
+        if (s % 2 === 0) bass(root - 24 + (s === 6 ? 3 : 0), t, spb * 1.6, 0.8, out);
+        if (e) { pluck(m, t, 0.65, { bus: out, kind: 'b', dist: true, len: Math.min(len, spb * 3) }); }
+        strumHit = s % 4 === 0;
+        break;
+      case 'llama':
+        if (s % 2 === 0) { const up = s % 4 === 2; strum(v.slice(1, 5).map((x) => x + 12), t, up ? 0.22 : 0.32, { bus: out, kind: 'h', gap: 0.01, up }); }
+        if (s === 0 || s === 6 || s === 8) tanggu(t, s === 0 ? 0.7 : 0.45, out);
+        if (hi && s % 2 === 1) shaker(t, 0.8, out);
+        if (e) { panflute(m, t, len * 0.95, 0.7, out); strumHit = true; }
+        if (s === 0) bass(root - 12, t, spb * 7, 0.55, out);
+        break;
+      case 'abyss':
+        if (s === 0 && bar % 2 === 0) { pad(ch, t, spb * 32, 1.2, out); bass(root - 24, t, spb * 28, 0.5, out); }
+        if (s === 8 && bar % 2 === 1) whale(t, 1, out);
+        if (s % 8 === 4 && rnd() < 0.5) osc('sine', mtof(v[2] + 24), 0, t, 1.6, 0.05, out);
+        if (e) { guqin(m, t, 0.85, out, rnd() < 0.5 ? 2 : 0); strumHit = true; }
+        if (hi && (s === 0 || s === 8)) tanggu(t, 0.5, out);
+        break;
+      case 'luna':
+        if (s === 0) pad(ch, t, spb * 16, 0.9, out);
+        if (s % 2 === 0) pluck(v[[0, 2, 4, 2, 3, 2, 4, 5][s / 2] % 6] + 12, t, 0.18, { bus: out, kind: 'p', verb: true });
+        if (e) { const prev = st._lastM; erhu(m, t, Math.max(len, spb * 2), 0.75, out, prev && Math.abs(prev - m) <= 5 ? prev : null); st._lastM = m; strumHit = true; }
+        if (hi && s === 0) tanggu(t, 0.45, out); if (hi && s % 4 === 2) wood(t, 0.5, out);
+        if (s === 0) bass(root - 12, t, spb * 14, 0.45, out);
+        break;
+      case 'pearl':
+        if (s === 0 || s === 8) { strum(v.slice(0, 5).map((x) => x + 12), t, 0.4, { bus: out, kind: 'p', gap: 0.012 }); strumHit = true; }
+        if (s % 2 === 1) wood(t, 0.45, out);
+        if (e) { pipa(m, t, 0.65, out, e.len <= 1 ? 2 : 3); strumHit = true; }
+        if (hi && (s === 0 || s === 10)) tanggu(t, 0.6, out); if (hi && s === 4 || hi && s === 12) bo(t, 0.5, out);
+        if (s === 0) bass(root - 12, t, spb * 7, 0.5, out);
+        break;
+      case 'bun':
+        if (s % 4 === 0 || s === 6 || s === 14) tanggu(t, s % 8 === 0 ? 0.85 : 0.55, out);
+        if (s === 4 || s === 12) bo(t, 0.7, out);
+        if (s === 0 && bar % 2 === 0) gong(t, 0.8, out);
+        if (s % 2 === 1) wood(t, 0.4, out);
+        if (e) { suona(m, t, len * 0.95, 0.7, out); strumHit = true; }
+        if (s === 0) bass(root - 12, t, spb * 7, 0.55, out);
+        break;
+    }
+    if (s % 4 === 0) beat(t, s === 0 ? 1 : 0.55, strumHit || s % 8 === 0);
+    else if (strumHit && e) beat(t, 0.4, true);
+  }
+
   // ---------- 程序音乐播放器 ----------
   const P = { on: false, style: null, step: 0, next: 0, timer: null, gain: null, seed: 1 };
   function beat(t, s, strum) { A.beats.push({ t, s, strum: !!strum }); }
   function scheduleStep(st, step, t, spb, out) {
+    if (st.hero) return heroStep(st, step, t, spb, out, st.int || 0.5);
     const s = step % 16, bar = Math.floor(step / 16), ch = st.prog[bar % st.prog.length], [root] = CH[ch], v = voicing(ch);
     const rnd = CF.rng(P.seed + bar * 977 + s * 31);
     const sw = s % 2 === 1 ? st.swing * spb : 0; t += sw;
@@ -262,12 +443,15 @@
       }
     }
   }
-  function startProc(styleId, bpmOverride) {
+  A.resolveStyle = (id) => (id === 'hero' ? (CF.Heroes ? CF.Heroes.current().music.style : 'xs') : id);
+  function startProc(styleId, bpmOverride, intensity) {
     stopProc(0.5);
+    styleId = A.resolveStyle(styleId);
     const base = STYLES[styleId] || STYLES.arp;
-    const st = Object.assign({ id: styleId }, base, { bpm: bpmOverride || base.bpm });
+    const st = Object.assign({ id: styleId }, base, { bpm: bpmOverride || base.bpm, int: intensity || 0.5 });
+    if (st.hero) buildTimeline(st, CF.randi(1, 99999));
     const ctx = A.ctx;
-    const out = ctx.createGain(); out.gain.setValueAtTime(0.0001, ctx.currentTime); out.gain.exponentialRampToValueAtTime(1, ctx.currentTime + 0.8);
+    const out = ctx.createGain(); out.gain.setValueAtTime(0.0001, ctx.currentTime); out.gain.exponentialRampToValueAtTime(st.gain || 1, ctx.currentTime + 0.8);
     out.connect(A.music);
     A.distGain.disconnect(); A.distGain.connect(out);
     A.verbOut.disconnect(); A.verbOut.connect(out);
@@ -339,15 +523,22 @@
       } catch (e) {
         if (src.kind === 'url') { // file:// 下 fetch 不可用，退回 <audio>
           const h = new Audio(src.url); h.loop = true; h.volume = s.master * s.music;
-          h.play().then(() => { if (token === playToken) { A.htmlAudio = h; A.curBpm = bpmUser || src.bpm || 100; } else h.pause(); }).catch(() => startProc((s.bgmStyle || {})[screen] || DEFAULT_STYLE[screen]));
+          h.play().then(() => { if (token === playToken) { A.htmlAudio = h; A.curBpm = bpmUser || src.bpm || 100; } else h.pause(); }).catch(() => startProc((s.bgmStyle || {})[screen] || DEFAULT_STYLE[screen], null, INTENSITY[screen]));
           return;
         }
         console.warn('自定义音乐播放失败，改用程序吉他', e);
       }
     }
-    startProc((s.bgmStyle || {})[screen] || DEFAULT_STYLE[screen] || 'arp', bpmUser);
+    startProc((s.bgmStyle || {})[screen] || DEFAULT_STYLE[screen] || 'arp', bpmUser, INTENSITY[screen]);
   };
   A.restart = function () { const s = A.screen; A.screen = null; A.play(s); };
+  // 试听某个曲风（英雄详情页）；再次调用 A.play(页面) 即恢复
+  A.preview = function (styleId, intensity) {
+    if (!A.ctx) A.unlock();
+    if (!A.ctx) return;
+    playToken++; stopCustom(0.4); A.screen = 'preview:' + styleId; A.beats.length = 0;
+    startProc(styleId, null, intensity || 0.7);
+  };
   A.stopAll = function () { stopProc(0.3); stopCustom(0.3); };
 
   // ---------- 节拍事件（供像素动效使用） ----------

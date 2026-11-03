@@ -521,7 +521,7 @@
   L.pixel = function () {
     const grid = (CF.Save.data.avatar && CF.Save.data.avatar.slice()) || new Array(256).fill(0);
     let col = 1, painting = false;
-    const body = CF.h(`<div class="lab"><div class="lab-msg">美也是一种能力。画一个 16×16 的指挥官头像，它会出现在战场通讯框里。用到 4 种以上颜色得 3 星。</div><div class="lab-main" style="align-items:flex-start"><div class="pix-grid" id="pg"></div><div class="lab-side"><div class="swatches" id="sw"></div><div class="row wrap"><button class="btn sm" id="pTpl">载入 Claude 模板</button><button class="btn sm ghost" id="pClr">清空</button></div><button class="btn primary" id="pSave">保存为指挥官头像</button><div class="lab-msg small" id="pMsg">按住拖动可以连续涂色；选透明色当橡皮擦。</div></div></div></div>`);
+    const body = CF.h(`<div class="lab"><div class="lab-msg">美也是一种能力。画一个 16×16 的指挥官头像，它会出现在战场通讯框里。用到 4 种以上颜色得 3 星。</div><div class="lab-main" style="align-items:flex-start"><div class="pix-grid" id="pg"></div><div class="lab-side"><div class="swatches" id="sw"></div><div class="row wrap"><button class="btn sm" id="pTpl">载入 X-S 模板</button><button class="btn sm ghost" id="pClr">清空</button></div><button class="btn primary" id="pSave">保存为指挥官头像</button><div class="lab-msg small" id="pMsg">按住拖动可以连续涂色；选透明色当橡皮擦。</div></div></div></div>`);
     CF.modal.open({ title: '🎨 实验室 · 像素工坊', body, wide: true });
     const pg = body.querySelector('#pg'), sw = body.querySelector('#sw');
     const cells = [];

@@ -214,7 +214,9 @@
   P.battleBonus = function () {
     const d = S(), r = P.ratio();
     const dailyBonus = d.daily.date === CF.today() && d.daily.bonus ? 50 : 0;
+    const cb = CF.City ? CF.City.bonus() : { atkMul: 1, bldMul: 1, heroMul: 1, extraCoders: 0, startChip: 0 };
     return {
+      atkMul: cb.atkMul, bldMul: cb.bldMul, cityHero: cb.heroMul, extraCoders: cb.extraCoders, startChip: cb.startChip,
       chips: Math.min(200, Math.floor(r.k / 5)),
       corp: Math.min(150, Math.floor(r.p / 10)),
       comp: dailyBonus,
@@ -225,9 +227,9 @@
         `知识经验 → 起始晶片 +${Math.min(200, Math.floor(r.k / 5))}`,
         `实操经验 → 起始语料 +${Math.min(150, Math.floor(r.p / 10))}`,
         `完成 ${P.labsDoneCount()} 个实验、${P.codeDone()} 个代码挑战 → 算力产出 +${(0.15 * P.labsDoneCount() + 0.05 * P.codeDone()).toFixed(2)}/s`,
-        `线下任务 ${P.questCount()} 个 → Claude 弦振伤害 +${Math.round(Math.min(0.6, P.questCount() * 0.03) * 100)}%`,
-        `「体」${Math.round(d.dims.ti || 0)} 点 → Claude 耐久 +${Math.round(Math.min(0.5, (d.dims.ti || 0) / 200) * 100)}%`,
-      ].concat(dailyBonus ? ['今日修炼全部完成 → 起始算力 +50'] : []),
+        `线下任务 ${P.questCount()} 个 → 英雄技能伤害 +${Math.round(Math.min(0.6, P.questCount() * 0.03) * 100)}%`,
+        `「体」${Math.round(d.dims.ti || 0)} 点 → 英雄耐久 +${Math.round(Math.min(0.5, (d.dims.ti || 0) / 200) * 100)}%`,
+      ].concat(dailyBonus ? ['今日修炼全部完成 → 起始算力 +50'] : []).concat(CF.City ? [`主城：研究所 → 伤害与建筑耐久 +${Math.round((cb.atkMul - 1) * 100)}% · 英雄殿 → 英雄 +${Math.round((cb.heroMul - 1) * 100)}% · 兵营 → 开局 ${cb.extraCoders} 个编码 Agent · 大本营 → 起始晶片 +${cb.startChip}`] : []),
     };
   };
 

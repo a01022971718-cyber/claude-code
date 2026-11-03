@@ -3,73 +3,114 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#0b0a12">
+<meta name="theme-color" content="#140c2c">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Claude战线 · 造物者之路</title>
+<title>X-S战线 · 造物者之路</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <div id="app">
 
-  <!-- ============ 主菜单 ============ -->
-  <section id="scr-menu" class="screen active">
-    <canvas class="stage-bg" id="menuStage"></canvas>
-    <div class="menu-wrap">
-      <div class="brand big"><span class="spark"></span><span><b>Claude</b>战线</span></div>
-      <div class="tagline">造物者之路 · AI × 具身智能 × 航空航天</div>
-      <nav class="menu-list" id="menuList"></nav>
+  <!-- ============ 大厅：功能分区散落四周，中央展示英雄 ============ -->
+  <section id="scr-lobby" class="screen active">
+    <canvas class="stage-bg" id="lobbyStage"></canvas>
+    <div class="lob lob-tl">
+      <div class="lob-logo" id="lobbyLogo"></div>
+      <div class="lob-sub">新生 · 向上 · 探索未知</div>
+      <div class="lob-prof" id="lobbyProfile" title="成长档案"></div>
     </div>
-    <div class="menu-profile" id="menuProfile"></div>
-    <div class="menu-foot">点击任意处开启声音 · 设置里可为每个页面换背景音乐</div>
+    <div class="lob lob-tr">
+      <div class="lob-res" id="lobbyRes" title="主城仓库"></div>
+      <button class="icon-btn" id="lobbyHelp" title="玩法说明">?</button>
+      <button class="icon-btn" id="lobbySettings" title="设置">⚙</button>
+    </div>
+    <button class="hero-arrow" id="heroPrev" style="left:12px" title="上一位英雄">‹</button>
+    <button class="hero-arrow" id="heroNext" style="left:calc(min(60vw,900px))" title="下一位英雄">›</button>
+    <div class="lob lob-hero" id="heroPlate"></div>
+    <div class="lob lob-side" id="lobbySide"></div>
+    <div class="lob lob-modes" id="lobbyModes"></div>
+    <nav class="lob lob-nav" id="lobbyNav"></nav>
+    <div class="menu-foot" style="position:absolute;right:16px;bottom:6px;z-index:3;font-size:10px;color:#ffffff88">点击任意处开启声音</div>
   </section>
 
-  <!-- ============ 通用子页面（由 JS 填充） ============ -->
-  <section id="scr-campaign" class="screen"><div class="ultrabar" data-title="征程" data-sub="战役五关 · 遭遇战"></div><div class="scr-body scroll" id="campaignBody"></div></section>
+  <!-- ============ 子页面 ============ -->
+  <section id="scr-heroes" class="screen"><div class="ultrabar" data-title="英雄" data-sub="九位乐手 · 九种乐器 · 九首主题曲"></div><div class="scr-body scroll" id="heroesBody"></div></section>
+  <section id="scr-hero" class="screen"><div class="ultrabar" data-title="英雄档案" data-sub="" data-back="heroes"></div><div class="scr-body scroll" id="heroBody"></div></section>
+  <section id="scr-campaign" class="screen"><div class="ultrabar" data-title="征程" data-sub="战役五关 · 遭遇战 · 沉浸模式"></div><div class="scr-body scroll" id="campaignBody"></div></section>
   <section id="scr-academy" class="screen"><div class="ultrabar" data-title="学院" data-sub="知识 30% · 实操 70%"></div><div class="tabs" id="academyTabs"></div><div class="scr-body scroll" id="academyBody"></div></section>
   <section id="scr-labs" class="screen"><div class="ultrabar" data-title="实验室" data-sub="动手做，才是真的会"></div><div class="scr-body scroll" id="labsBody"></div></section>
   <section id="scr-profile" class="screen"><div class="ultrabar" data-title="成长档案" data-sub="德 · 智 · 体 · 美 · 实操 · 企业家"></div><div class="scr-body scroll" id="profileBody"></div></section>
   <section id="scr-achievements" class="screen"><div class="ultrabar" data-title="成就" data-sub=""></div><div class="scr-body scroll" id="achBody"></div></section>
-  <section id="scr-settings" class="screen"><div class="ultrabar" data-title="设置" data-sub="声音 · 背景音乐 · 存档"></div><div class="scr-body scroll" id="settingsBody"></div></section>
-  <section id="scr-help" class="screen"><div class="ultrabar" data-title="玩法说明" data-sub=""></div><div class="scr-body scroll" id="helpBody"></div></section>
+  <section id="scr-settings" class="screen"><div class="ultrabar" data-title="设置" data-sub="声音 · 背景音乐 · 画面 · 存档"></div><div class="scr-body scroll" id="settingsBody"></div></section>
+  <section id="scr-help" class="screen"><div class="ultrabar" data-title="操作说明" data-sub="点一下就能完成的事，不需要按钮"></div><div class="scr-body scroll" id="helpBody"></div></section>
 
-  <!-- ============ 战斗 ============ -->
+  <!-- ============ 战斗：UI 只占四角，中央全部留给战场 ============ -->
   <section id="scr-battle" class="screen">
-    <header id="hud-top">
-      <div class="brand"><span class="spark"></span><span class="t"><b>Claude</b>战线</span></div>
-      <div class="res">
-        <div class="r" title="晶片：建造主要货币，矿机在晶片矿上采集"><span class="diamond bg-chip"></span><b class="c-chip" id="rChip">0</b><i id="rChipR">+0/s</i></div>
-        <div class="r" title="语料：训练单位与升级，矿机在语料泉上采集"><span class="diamond bg-corp"></span><b class="c-corp" id="rCorp">0</b><i id="rCorpR">+0/s</i></div>
-        <div class="r" title="算力：技能与高级单位。主脑产出，完成实验永久提高"><span class="diamond bg-comp"></span><b class="c-comp" id="rComp">0</b><i id="rCompR">+0/s</i></div>
-      </div>
-      <div class="wave"><span class="muted">波次</span><span class="wn" id="waveNo">0</span><span class="cd" id="waveCd"></span><span class="pill warn tagx hidden" id="waveTag"></span></div>
-      <div class="cores">
-        <div class="corebar mine"><div class="row between"><span class="lbl">主脑</span><span class="mono" id="coreTxt"></span></div><div class="bar"><i id="coreBar"></i></div></div>
-        <div class="corebar foe" id="foeCoreBox"><div class="row between"><span class="lbl" style="color:var(--pink)">乱码主脑</span><span class="mono" id="foeTxt"></span></div><div class="bar"><i id="foeBar"></i></div></div>
-      </div>
-      <div class="hud-ctl">
-        <button id="bPause" title="暂停 (空格)">❚❚</button>
-        <button id="bSpeed" title="速度">1×</button>
-        <button id="bMenu" title="菜单：简报 / 声音 / 退出">☰</button>
-      </div>
-    </header>
     <div id="field">
       <canvas id="gameCanvas"></canvas>
-      <div class="obj collapsed" id="objPanel" title="点击展开/收起"></div>
-      <div class="bossbar hidden" id="bossBar"><span id="bossName"></span><div class="bar"><i id="bossHp"></i></div></div>
-      <div class="comms hidden" id="comms"><canvas id="commsCv" width="112" height="112"></canvas><div><div class="who" id="commsWho"></div><div class="say" id="commsSay"></div></div></div>
-      <div class="pausebadge hidden" id="pauseBadge">已暂停</div>
-      <button class="fab hidden" id="fabBox" style="bottom:66px">框选</button>
-      <button class="fab hidden" id="fabAll" style="bottom:14px">全军</button>
-      <div class="confirm hidden" id="buildConfirm"><button class="btn primary sm" id="bcOk">✓ 建造</button><button class="btn sm" id="bcRot">换位置</button><button class="btn sm" id="bcNo">✕ 取消</button></div>
-    </div>
-    <footer id="deck">
-      <div class="mm"><canvas id="miniCanvas" width="320" height="200"></canvas><div class="legend"><span><i style="background:var(--orange)"></i>我方</span><span><i style="background:var(--pink)"></i>乱码</span></div></div>
-      <div class="info" id="selInfo"></div>
-      <div class="cmds">
-        <div class="cmd-tabs"><button id="tabBuild" class="on">建造</button><button id="tabCmd">指令</button></div>
-        <div class="cmd-grid" id="cmdGrid"></div>
+      <div class="hud hud-tl">
+        <div class="glass hud-res">
+          <div class="r" title="晶片"><span class="diamond bg-chip"></span><b class="c-chip t-num" id="rChip">0</b><i id="rChipR"></i></div>
+          <div class="r" title="语料"><span class="diamond bg-corp"></span><b class="c-corp t-num" id="rCorp">0</b><i id="rCorpR"></i></div>
+          <div class="r" title="算力"><span class="diamond bg-comp"></span><b class="c-comp t-num" id="rComp">0</b><i id="rCompR"></i></div>
+          <span class="sup hidden" id="supTxt"></span>
+        </div>
+        <div class="glass hud-cores">
+          <div class="cb2 mine"><div class="row between"><span>主脑</span><span class="mono" id="coreTxt"></span></div><div class="bar"><i id="coreBar"></i></div></div>
+          <div class="cb2 foe" id="foeCoreBox"><div class="row between"><span style="color:var(--pink)">乱码主脑</span><span class="mono" id="foeTxt"></span></div><div class="bar"><i id="foeBar"></i></div></div>
+        </div>
       </div>
-    </footer>
+      <div class="hud hud-tc">
+        <div class="hud-wave"><span id="waveLbl">波次</span> <b id="waveNo">0</b> <span id="waveCd"></span> <span class="pill warn hidden" id="waveTag"></span></div>
+        <div class="hud-obj" id="objPanel" title="点击展开任务目标"></div>
+      </div>
+      <div class="hud hud-tr">
+        <div class="hud-btns">
+          <button class="glass hb" id="bResearch" title="战地研究：答题换资源 (K)">🔬</button>
+          <button class="glass hb" id="bPause" title="暂停 (空格)">❚❚</button>
+          <button class="glass hb" id="bSpeed" title="速度 (F)">1×</button>
+          <button class="glass hb" id="bMini" title="小地图">◱</button>
+          <button class="glass hb" id="bMenu" title="简报 / 声音 / 退出">☰</button>
+        </div>
+        <div class="mm" id="mmBox"><canvas id="miniCanvas" width="320" height="200"></canvas></div>
+      </div>
+      <div class="glass comms hidden" id="comms"><canvas id="commsCv" width="112" height="112"></canvas><div><div class="who" id="commsWho"></div><div class="say" id="commsSay"></div></div></div>
+      <div class="bossbar hidden" id="bossBar"><span id="bossName"></span><div class="bar"><i id="bossHp"></i></div></div>
+      <div class="pausebadge hidden" id="pauseBadge">已暂停</div>
+      <div class="hud hud-bl">
+        <button class="glass fabx" id="fabBuild" title="建造（也可以长按 / 右键空地）">⚒<small>建造</small></button>
+        <button class="glass fabx" id="fabAll" title="选中全部军队 (Q)">⚑<small>全军</small></button>
+        <div class="glass selchip hidden" id="selChip"></div>
+      </div>
+      <div class="hud hud-br">
+        <div class="items hidden" id="itemBar"></div>
+        <div class="portrait" id="portrait" title="点击选中英雄，双击聚焦"><canvas id="portraitCv" width="132" height="132"></canvas><span class="lv" id="heroLv"></span></div>
+        <div class="skills" id="skillBar"></div>
+      </div>
+      <div id="radial" class="radial hidden"></div>
+      <div id="tutBox"></div>
+    </div>
+  </section>
+
+  <!-- ============ 快速模式 ============ -->
+  <section id="scr-quick" class="screen">
+    <canvas id="quickCanvas"></canvas>
+    <div class="q-top"><span class="q-score t-num" id="qScore">0</span><span class="q-time" id="qTime">1:30</span></div>
+    <div class="q-xp"><i id="qXp"></i></div>
+    <div class="q-combo"><b id="qCombo"></b><span id="qComboLbl"></span></div>
+    <button class="glass hb q-pause" id="qPause">❚❚</button>
+    <button class="q-fever" id="qFever"><span id="qFeverTxt">FEVER</span></button>
+  </section>
+
+  <!-- ============ 主城 ============ -->
+  <section id="scr-city" class="screen">
+    <canvas id="cityCanvas"></canvas>
+    <div class="city-top">
+      <div class="row" style="gap:6px"><button class="glass hb" id="cityBack" title="返回大厅">←</button><div class="glass city-res" id="cityRes"></div></div>
+      <div class="row" style="gap:6px"><button class="glass btn sm" id="cityRaid">⚔ 乱码入侵</button><button class="glass btn sm" id="cityBoost">⚡ 学习加速</button></div>
+    </div>
+    <div class="glass city-panel hidden" id="cityPanel"></div>
+    <div class="glass city-bottom" id="cityShop"></div>
   </section>
 
   <div id="modal" class="modal hidden"><div class="modal-card" id="modalCard"></div></div>
@@ -79,7 +120,7 @@
 <div id="rotateHint">
   <div class="phone"></div>
   <h2>请横屏游玩</h2>
-  <p>战场需要更宽的视野。把手机横过来，或者让游戏替你旋转画面。</p>
+  <p>战场需要更宽的视野。把手机横过来，或者让游戏替你旋转画面。<br>（快速模式支持竖屏单手玩）</p>
   <button class="btn primary" id="rhRotate">旋转画面横屏游玩</button>
   <button class="btn ghost" id="rhStay">仍然竖屏继续</button>
 </div>
@@ -87,14 +128,22 @@
 <script src="js/config.js"></script>
 <script src="js/core.js"></script>
 <script src="js/audio.js"></script>
+<script src="js/heroes.js"></script>
 <script src="js/pixelfx.js"></script>
+<script src="js/brand.js"></script>
 <script src="js/content.js"></script>
 <script src="js/progress.js"></script>
 <script src="js/labs.js"></script>
 <script src="js/academy.js"></script>
 <script src="js/levels.js"></script>
 <script src="js/game.js"></script>
+<script src="js/skills.js"></script>
+<script src="js/immersive.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/lobby.js"></script>
+<script src="js/tutorial.js"></script>
+<script src="js/quick.js"></script>
+<script src="js/city.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>
