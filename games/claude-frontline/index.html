@@ -3,13 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#140c2c">
+<meta name="theme-color" content="#05121f">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>X-S战益 · 造物者之路</title>
+<title>造月之路</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <div id="app">
+  <div id="learnTimer" class="learn-timer hidden" title="学习不消耗体力；连续 25 分钟或零散累计 40 分钟可换无限体力"></div>
 
   <!-- ============ 大厅：功能分区散落四周，中央展示英雄 ============ -->
   <section id="scr-lobby" class="screen active">
@@ -20,6 +21,7 @@
       <div class="lob-prof" id="lobbyProfile" title="成长档案"></div>
     </div>
     <div class="lob lob-tr">
+      <button class="lob-stam" id="lobbyStamina" title="体力"></button>
       <div class="lob-res" id="lobbyRes" title="主城仓库"></div>
       <button class="icon-btn" id="lobbyHelp" title="玩法说明">?</button>
       <button class="icon-btn" id="lobbySettings" title="设置">⚙</button>
@@ -41,6 +43,7 @@
   <section id="scr-labs" class="screen"><div class="ultrabar" data-title="实验室" data-sub="动手做，才是真的会"></div><div class="scr-body scroll" id="labsBody"></div></section>
   <section id="scr-profile" class="screen"><div class="ultrabar" data-title="成长档案" data-sub="德 · 智 · 体 · 美 · 实操 · 企业家"></div><div class="scr-body scroll" id="profileBody"></div></section>
   <section id="scr-achievements" class="screen"><div class="ultrabar" data-title="成就" data-sub=""></div><div class="scr-body scroll" id="achBody"></div></section>
+  <section id="scr-shop" class="screen"><div class="ultrabar" data-title="商城" data-sub="英雄碎片 · 法宝 · 补给（只用晶片）"></div><div class="scr-body scroll" id="shopBody"></div></section>
   <section id="scr-settings" class="screen"><div class="ultrabar" data-title="设置" data-sub="声音 · 背景音乐 · 画面 · 存档"></div><div class="scr-body scroll" id="settingsBody"></div></section>
   <section id="scr-help" class="screen"><div class="ultrabar" data-title="操作说明" data-sub="点一下就能完成的事，不需要按钮"></div><div class="scr-body scroll" id="helpBody"></div></section>
 
@@ -130,12 +133,15 @@
 <script src="js/icons.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/heroes.js"></script>
+<script src="js/voice.js"></script>
 <script src="js/roster.js"></script>
+<script src="js/collect.js"></script>
 <script src="js/pixelfx.js"></script>
 <script src="js/brand-glyphs.js"></script>
 <script src="js/brand.js"></script>
 <script src="js/content.js"></script>
 <script src="js/progress.js"></script>
+<script src="js/stamina.js"></script>
 <script src="js/labs.js"></script>
 <script src="js/academy.js"></script>
 <script src="js/levels.js"></script>
@@ -148,6 +154,7 @@
 <script src="js/tutorial.js"></script>
 <script src="js/quick.js"></script>
 <script src="js/city.js"></script>
+<script src="js/shop.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

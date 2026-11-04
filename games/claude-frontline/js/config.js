@@ -14,8 +14,10 @@
  *   优先级：设置里上传的文件 > 这里填的文件 > 程序生成吉他曲
  */
 window.CF_CONFIG = {
-  // 游戏名的中文部分（主标题会自动用矢量字形重排）。v4 起为《X-S战益》；想换回可改成 '战线' / '战役'
-  title: '战益',
+  // 游戏名（v5 起为《造月之路》，主标题使用主创设计稿的矢量描摹，见 js/brand-glyphs.js 的 CF.LOGO）
+  title: '造月之路',
+  // 公开发布模式（见 design/03-compliance.md）：true 时界面里不出现真实 AI 产品与公司的名字，只保留「灵感取自公开特点，均为原创」
+  publicRelease: false,
   bgm: {
     menu:     { file: '', bpm: 112 },  // 大厅 / 英雄 / 征程 / 成就 / 设置（默认：当前英雄主题曲）
     academy:  { file: '', bpm: 84 },   // 学院 / 成长档案

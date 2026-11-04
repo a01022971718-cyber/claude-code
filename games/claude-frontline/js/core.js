@@ -105,7 +105,7 @@
     exportText() { return JSON.stringify(this.data, null, 1); },
     importText(txt) {
       const obj = JSON.parse(txt);
-      if (!obj || obj.version !== 1) throw new Error('不是有效的 X-S战益 存档');
+      if (!obj || obj.version !== 1) throw new Error('不是有效的《造月之路》存档');
       this.data = merge(defaults(), obj);
       this.save();
     },

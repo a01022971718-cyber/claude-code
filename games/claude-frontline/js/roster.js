@@ -23,15 +23,15 @@
   const trial = () => !!(CF.P && CF.P.trial && CF.P.trial());
 
   // 获取途径（显示在锁定的英雄卡上）
-  const HOW = { riot: '初始英雄', xs: '特殊渠道：高等级 VIP · 限时活动（后续版本开放）', omni: '第一章 · 第 3 个小关首通赠送', pearl: '第一章 · 第 5 个小关首通赠送' };
+  const HOW = { riot: '初始英雄', zaole: '主角 · 特殊渠道：高等级 VIP · 限时活动（后续版本开放）', omni: '第一章章节掉落碎片（第 3 个小关首通时集齐）', pearl: '第一章 · 第 5 个小关首通赠送', xs: '第四章章节掉落碎片', abyss: '第五章章节掉落碎片' };
   const R = (CF.Roster = {
     FRAG_NEED, STARTER,
-    special: (id) => id === 'xs',
+    special: (id) => id === 'zaole',
     owns: (id) => trial() || data().owned.includes(id),
     ownsReal: (id) => data().owned.includes(id),
     ownedList: () => CF.Heroes.list.filter((h) => R.owns(h.id)),
     frags: (id) => data().frags[id] || 0,
-    how: (id) => HOW[id] || `组队副本第 5 波掉落英雄碎片（${R.frags(id)}/${FRAG_NEED}）`,
+    how: (id) => (HOW[id] || '商城每日轮换出售碎片') + (id !== STARTER && id !== 'zaole' && id !== 'pearl' ? `（${Math.min(FRAG_NEED, R.frags(id))}/${FRAG_NEED}）` : ''),
     // 碎片只对普通英雄有效；X-S 不进入任何掉落池
     grant(id, why) {
       const r = data();
@@ -58,7 +58,7 @@
   CF.Treasure = {
     has: (id) => trial() || data().treasures.includes(id),
     name: (id) => '法宝 · ' + CF.Heroes.get(id).instrument,
-    how: (id) => (id === STARTER ? '通关第一章终章「原型机护送」获得' : id === 'xs' ? '随 X-S 一起通过特殊渠道获得' : '带该英雄出战，打完一次组队副本 5 波获得'),
+    how: (id) => (id === STARTER ? '通关第一章终章「原型机护送」获得' : id === 'zaole' ? '指挥棒随造乐一起通过特殊渠道获得' : '带该英雄打完一次组队副本 5 波，或用 10 片赐福法宝碎片兑换'),
     grant(id) {
       const r = data();
       if (r.treasures.includes(id)) return false;
@@ -66,7 +66,7 @@
       const h = CF.Heroes.get(id);
       setTimeout(() => {
         CF.Audio.sfx('unlock'); CF.Audio.preview(h.music.style, 0.7);
-        CF.modal.open({ title: `获得法宝 · ${h.instrument}`, body: `<div class="grant"><canvas width="220" height="150"></canvas><p class="t-quote">「${CF.esc(h.name)}」的${h.instrument}觉醒了</p><p class="small">终极技能「${h.skills[2].name}」已解锁；形象、演奏动画与专属粒子同步出现。</p></div>`, foot: [{ text: '收下', cls: 'primary' }] });
+        CF.modal.open({ title: `获得法宝 · ${h.instrument}`, body: `<div class="grant"><canvas width="220" height="150"></canvas><p class="t-quote">${CF.esc(h.name)}的${h.instrument}觉醒了</p><p class="small">终极技能「${h.skills[2].name}」已解锁；形象、演奏动画与专属粒子同步出现。</p></div>`, foot: [{ text: '收下', cls: 'primary' }] });
         const cv = document.querySelector('.modal .grant canvas');
         if (cv) { const x = cv.getContext('2d'); x.fillStyle = h.pal.bg[1]; x.fillRect(0, 0, 220, 150); h.draw(x, 40, 60, 6.5, { t: 0, strum: 1 }); }
       }, 500);

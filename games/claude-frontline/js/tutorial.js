@@ -88,6 +88,6 @@
       ${CF.Immersive ? CF.Immersive.tableHtml() : ''}
       <div class="sec-title">学习 → 战力</div>
       <p class="small muted" style="line-height:1.9">知识经验 → 起始晶片；实操经验 → 起始语料；完成实验 → 算力产出；线下任务 → 英雄技能伤害；「体」→ 英雄耐久；主城研究所 → 全军伤害 / 护甲；主城英雄殿 → 英雄属性。真正的成长发生在游戏之外——线下任务要真的去做。</p>`;
-    $('#startTut').onclick = () => { CF.Save.data.tutorial.done = false; CF.UI.startBattle(CF.Levels.get('L1')); };
+    $('#startTut').onclick = () => { CF.Save.data.tutorial.done = false; CF.UI.startBattle(CF.Levels.get('L1'), true); };
   };
 })();

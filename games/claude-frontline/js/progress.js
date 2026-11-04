@@ -229,7 +229,7 @@
         `完成 ${P.labsDoneCount()} 个实验、${P.codeDone()} 个代码挑战 → 算力产出 +${(0.15 * P.labsDoneCount() + 0.05 * P.codeDone()).toFixed(2)}/s`,
         `线下任务 ${P.questCount()} 个 → 英雄技能伤害 +${Math.round(Math.min(0.6, P.questCount() * 0.03) * 100)}%`,
         `「体」${Math.round(d.dims.ti || 0)} 点 → 英雄耐久 +${Math.round(Math.min(0.5, (d.dims.ti || 0) / 200) * 100)}%`,
-      ].concat(dailyBonus ? ['今日修炼全部完成 → 起始算力 +50'] : []).concat(CF.City ? [`主城：研究所 → 伤害与建筑耐久 +${Math.round((cb.atkMul - 1) * 100)}% · 英雄殿 → 英雄 +${Math.round((cb.heroMul - 1) * 100)}% · 兵营 → 开局 ${cb.extraCoders} 个编码 Agent · 大本营 → 起始晶片 +${cb.startChip}`] : []),
+      ].concat(dailyBonus ? ['今日修炼全部完成 → 起始算力 +50'] : []).concat(CF.City ? [`电路工坊完成 ${cb.solved || 0} 个实验 → 伤害与建筑耐久 +${Math.round((cb.atkMul - 1) * 100)}% · 英雄耐久 +${Math.round((cb.heroMul - 1) * 100)}% · 起始晶片 +${cb.startChip}${cb.extraCoders ? ' · 开局 1 个编码 Agent' : ''}`] : []),
     };
   };
 

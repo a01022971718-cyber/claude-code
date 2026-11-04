@@ -22,6 +22,7 @@
 
   let S = null, raf = 0, last = 0, cv, ctx, beatSink = null;
   Q.start = function (heroId) {
+    if (!CF.Stamina.spend({ quick: true })) return;
     if (heroId) { CF.Save.data.hero = heroId; CF.Heroes.applyTheme(heroId); }
     CF.UI.show('quick');
     Q.on = true;
@@ -34,6 +35,8 @@
       ens: [], gems: [], shots: [], texts: [], parts: [], waves: [], spawnT: 0, eliteT: 20, bossDone: false, boss: null,
       multi: 0, multiT: 0, packT: 5, joy: null, lastBeat: 0, beatIv: 60 / (CF.Audio.curBpm || 110), pickPitch: 0, pickT: 0, tapCd: 0, lastTitle: 0, startT: performance.now(),
     };
+    if (h.power) { S.hero.dmg *= h.power; S.hero.maxHp = S.hero.hp = Math.round(S.hero.maxHp * h.power); }
+    if (h.companion) S.hero.drone = { x: 1170, y: 1160, cd: 0.5 };
     if (lvl) { S.hero.dmg *= 1 + lvl * 0.06; CF.toast(`音乐厅 Lv${lvl}：开局攻击 +${lvl * 6}%`, 'gold'); }
     beatSink = { pulse: (s) => { if (s < 0.5 || !S) return; const now = performance.now(); if (S.lastBeat) S.beatIv = CF.lerp(S.beatIv, CF.clamp((now - S.lastBeat) / 1000, 0.25, 1.2), 0.3); S.lastBeat = now; Q.onBeat(s); }, visible: () => false };
     CF.PixelFX.Stage.all.add(beatSink);
@@ -162,6 +165,7 @@
     const t = near[0]; const ang = t ? Math.atan2(t.y - H.y, t.x - H.x) : 0;
     const fan = (n, spread, sp, dmg, c, pierce = 2) => { for (let i = 0; i < n; i++) { const a = ang - spread / 2 + (n > 1 ? (i / (n - 1)) * spread : 0); S.shots.push({ x: H.x, y: H.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, dmg, pierce, life: 1.2, c, w: 6, hit: new Set() }); } };
     switch (id) {
+      case 'zaole': { const C9 = CF.Heroes.ensembleColors(); C9.forEach((c, i) => setTimeout(() => S && fan(1, 0, 760, H.dmg * 2.4, c, 4), i * 40)); Q.nova(H.x, H.y, 220 * H.area, H.dmg * 3, P.accent, true); break; }
       case 'xs': Q.nova(H.x, H.y, 200 * H.area, H.dmg * 4, P.instL, true); break;
       case 'omni': fan(10, 1.2, 620, H.dmg * 2.2, P.white, 3); break;
       case 'twin': fan(1, 0, 900, H.dmg * 3, P.blue, 99); setTimeout(() => S && fan(1, 0, 900, H.dmg * 3, P.pink, 99), 120); break;
@@ -204,6 +208,8 @@
       }
     }
     H.skillT -= dt; if (H.skillT <= 0) { H.skillT = H.skillCd; signature(); }
+    // 伴生无人机：跟随、自动射击、回血
+    if (H.drone) { const D = H.drone; D.x = CF.lerp(D.x, H.x - 30, Math.min(1, dt * 6)); D.y = CF.lerp(D.y, H.y - 42, Math.min(1, dt * 6)); H.hp = Math.min(H.maxHp, H.hp + H.maxHp * 0.012 * dt); D.cd -= dt; if (D.cd <= 0) { const tg = S.ens.find((e) => !e.dead && CF.dist(e.x, e.y, D.x, D.y) < 320); if (tg) { D.cd = 0.45; const a = Math.atan2(tg.y - D.y, tg.x - D.x); S.shots.push({ x: D.x, y: D.y, vx: Math.cos(a) * 760, vy: Math.sin(a) * 760, dmg: H.dmg * 0.45, pierce: 1, life: 0.6, c: S.h.pal.accent, w: 4, hit: new Set() }); } else D.cd = 0.2; } }
     if (H.strum > 0) H.strum -= dt;
     // 环绕音符
     if (H.orbit) { const n = H.orbit; for (let i = 0; i < n; i++) { const a = S.t * 3 + (i / n) * TAU, ox = H.x + Math.cos(a) * 80 * H.area, oy = H.y + Math.sin(a) * 80 * H.area; for (const e of S.ens) if (!e.dead && CF.dist(e.x, e.y, ox, oy) < e.r + 12 && (e.orbT || 0) <= 0) { e.orbT = 0.3; Q.hit(e, H.dmg * 1.1); } } }
@@ -318,8 +324,9 @@
     for (let i = 0; i < H.orbit; i++) { const a = S.t * 3 + (i / H.orbit) * TAU; CF.PixelFX.drawPattern(ctx, CF.PixelFX.NOTES[i % 4], H.x + Math.cos(a) * 80 * H.area - 5, H.y + Math.sin(a) * 80 * H.area - 5, 3, P.note); }
     // 英雄
     ctx.save(); ctx.translate(H.x, H.y); if (H.face < 0) ctx.scale(-1, 1); if (H.hitT > 0.3) ctx.globalAlpha = 0.6;
-    const px = 3; S.h.draw(ctx, -10 * px, -7 * px, px, { t, strum: H.strum > 0 ? 1 : 0, bob: CF.PixelFX.beat() > 0.6 ? 1 : 0, walk: H.moving, step: Math.floor(t * 10), lean: S.feverT > 0 && Math.floor(t * 6) % 2 ? 1 : 0 });
+    const px = 3; S.h.draw(ctx, -10 * px, -7 * px, px, { noDrone: true, t, strum: H.strum > 0 ? 1 : 0, bob: CF.PixelFX.beat() > 0.6 ? 1 : 0, walk: H.moving, step: Math.floor(t * 10), lean: S.feverT > 0 && Math.floor(t * 6) % 2 ? 1 : 0 });
     ctx.restore();
+    if (H.drone) CF.Heroes.drawDrone(ctx, H.drone.x - 6, H.drone.y - 6, 2.4, t);
     ctx.fillStyle = '#000a'; ctx.fillRect(H.x - 24, H.y + 30, 48, 5); ctx.fillStyle = H.hp / H.maxHp > 0.35 ? '#6fdc8c' : '#ff5d6c'; ctx.fillRect(H.x - 24, H.y + 30, 48 * Math.max(0, H.hp / H.maxHp), 5);
     // 文字
     for (const x of S.texts) { ctx.globalAlpha = 1 - x.t / 0.9; ctx.font = `900 ${x.size * (x.t < 0.1 ? 1.4 - x.t * 4 : 1)}px ${getComputedStyle(document.body).fontFamily}`; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#000a'; ctx.strokeText(x.txt, x.x, x.y); ctx.fillStyle = x.c; ctx.fillText(x.txt, x.x, x.y); }

@@ -11,13 +11,67 @@
 
   const HEROES = [
     {
+      // v5 主角：原创，按普通英雄 1.75 倍强度制作；唯一的双武器英雄（伴生武器：发电巡航无人机 + 法宝：指挥棒）
+      id: 'zaole', name: '造乐', en: 'Maestro', title: '九声指挥家', side: '原创', protagonist: true, power: 1.75,
+      inspire: '原创主角：把九种完全不同的声音聚成一首歌的指挥家——众人一心，共同新生、向上、探索未知',
+      role: '指挥 · 全能', instrument: '指挥棒', companion: { id: 'volt', name: '发电巡航无人机「伏特」', desc: '一直跟随造乐的发电无人机：协助攻击（每 0.6 秒一道电弧，造成造乐攻击力 35% 的伤害并弹射 1 次），让造乐伤害 +15%，每秒按造乐最大耐久的 1.2% 回血。' },
+      weapons: ['伴生武器 · 发电巡航无人机「伏特」（开局自带）', '法宝 · 指挥棒（后续获得，获得后成为双武器英雄）'],
+      world: '造月港 · 通往月球的音乐厅',
+      pal: { hair: '#16224a', hairL: '#2d4fa0', cyan: '#19f0e0', lime: '#c8ff2e', skin: '#ffe0cc', k: '#0b1020', mouth: '#e0707a', white: '#f2f7f6', whiteD: '#b9cfcc', navy: '#16224a', boot: '#0b1020', baton: '#fffbe8', bg: ['#05121f', '#0a2a3d', '#0d4d5c'], grid: [40, 240, 220], glow: '#19f0e0', accent: '#c8ff2e', note: '#e8fff0', note2: '#c8ff2e', logo: ['#d4ff1e', '#00f0ff'] },
+      music: { style: 'zaole', bpm: 116, key: 'D 宫调 → E 宫调（最后八小节整体升全音）', scale: '五声音阶（九件乐器都能演奏）', motif: '1-2-3-5-6 上行、跃上高音 1，停在 2（没说完的话 = 探索未知）', ensemble: true },
+      voice: { gender: 'f', age: 20, pitch: 1.12, rate: 1.04, tone: '明亮、坚定、有号召力' },
+      personality: '果断、热情、懂得倾听。她不是乐团里最响的那个声音，却能让九种完全不同的声音在同一拍上响起、彼此成就。',
+      story: '乱码潮让东西两岸的乐手各自为战——钢琴只听钢琴，唢呐只吹唢呐。造乐从造月港出发，带着一架会发电的巡航无人机「伏特」，一个一个拜访九位乐手：「你们的声音都不一样，正因为不一样，合在一起才最响。」当九种乐器第一次在同一拍上响起，乱码潮退去了一整片海。她抬头看了看天：「下一站，月亮。」',
+      quote: '九种声音，一个方向！',
+      lines: { pick: '九种声音，一个方向！', attack: '跟上我的拍子！', skill: '全体——起！', low: '只要还有一个声部在，乐曲就不会停。' },
+      passive: { name: '九声合一', desc: '每次攻击积累 1 层「合奏」（最多 9 层，九种颜色对应九种乐器）；满 9 层后下一击变为「齐奏」：3 倍伤害并向四周扩散，附近友军攻速 +30%，持续 4 秒。' },
+      skills: [
+        { key: 'Q', name: '起拍', target: 'dir', cost: 35, cd: 8, desc: '向前一挥，九枚九色音符呈扇形射出，各造成 45 伤害并穿透 2 个目标。' },
+        { key: 'W', name: '和声', target: 'self', cost: 40, cd: 16, desc: '附近友军获得 280 护盾并恢复 180 耐久；无人机「伏特」超载 6 秒：攻速翻倍、伤害 +50%。' },
+        { key: 'R', name: '众声向上', target: 'self', cost: 90, cd: 60, treasure: true, desc: '【需要法宝：指挥棒】9 拍内依次奏响九位英雄的招牌乐句（每拍一种招牌效果），最后九色齐奏造成 450 伤害并击退。' },
+      ],
+      minion: { id: 'choir', name: '和声歌者', desc: '远程支援兵：每次攻击为附近耐久最低的友军恢复 60% 伤害量的耐久。' },
+      building: { id: 'symphony', name: '交响穹顶', desc: '同时攻击 3 个目标，并让周围友军攻速 +10%。' },
+      fx: { pats: [['.X.', 'XXX', '.X.'], ['XX', 'X.', 'XX'], ['X']], cols: ['#c8ff2e', '#19f0e0', '#ffffff'], src: [19, -2] },
+      // 像素形象：深海军蓝短发 + 青色挑染 + 青柠月牙发卡；白色燕尾服、青柠翻领、青色领结；左手张开打拍，右手执指挥棒（法宝）
+      sprite: ['......HHHHH', '....HHHHHHHHH', '...HHhhHHHCHHH', '...HhHHHHHCHHHH', '...HHHHHHHCHHHHM', '...HHHSSSSSSSHHMM', '...HHSSSSSSSSSHM', '...HHSKSSSSSKSH', '...HHSESSSSSESH', '.S.SHSSSSmSSSSH', '.SS.H.SSSSSS.H', '.SSW.WLLTTLLW..SS', '..WWWWWLTTLWWWWS', '....WWWWLLWWWWW', '....wWWWWWWWWWw', '....wW.NNNNN.Ww', '...w..NN..NN..w', '.....BBB.BBB'],
+      draw(ctx, ox, oy, px, a) {
+        const p = this.pal, R = pen(ctx, ox, oy, px, B(a)), tn = a.tint;
+        const M = { H: p.hair, h: p.hairL, C: p.cyan, M: p.lime, S: p.skin, K: p.k, E: p.cyan, m: p.mouth, W: p.white, w: p.whiteD, L: p.lime, T: p.cyan, N: p.navy, B: p.boot };
+        const up = a.strum ? 1 : 0;
+        this.sprite.forEach((row, j) => {
+          const y = j - 7;
+          for (let x = 0; x < row.length; x++) {
+            let c = row[x]; if (c === '.') continue;
+            if (a.blink && c === 'E') c = 'S';
+            if (a.blink && c === 'K') { R(x, y + 1, 1, 1, p.k); continue; }
+            if (y === 10 && a.walk && (a.step || 0) % 2 === (x < 9 ? 0 : 1)) continue;
+            // 打拍：左手随节拍抬起 1 格
+            const dy = (x <= 3 && y >= 2 && y <= 5) ? -up : 0;
+            R(x, y + dy, 1, 1, tn && 'HhWwSN'.includes(c) ? tn : M[c]);
+          }
+        });
+        // 法宝：指挥棒（右手斜向上，强拍时挥高一格，棒尖亮起青柠光）
+        if (!a.noInst) { const pts = up ? [[16, 3], [17, 2], [18, 1], [19, 0], [20, -1]] : [[16, 3], [17, 2], [18, 2], [19, 1], [20, 1]]; pts.forEach(([x, y]) => R(x, y, 1, 1, p.baton)); const [tx, ty] = pts[pts.length - 1]; R(tx + 1, ty - 1, 1, 1, p.lime); if (up) { R(tx + 1, ty - 2, 1, 1, '#ffffff'); R(tx + 2, ty - 1, 1, 1, '#ffffff'); } }
+        // 伴生武器：发电巡航无人机（战斗中由引擎单独绘制，这里画在形象左上方）
+        if (!a.noDrone) H.drawDrone(ctx, ox + -2 * px, oy + (-9 + Math.sin((a.t || 0) * 3) * 0.6) * px, px * 0.9, a.t || 0);
+      },
+      drawMinion(ctx, ox, oy, px, a) {
+        const p = this.pal, R = pen(ctx, ox, oy, px, B(a)), tn = a.tint;
+        R(4, -2, 5, 2, p.hair); R(4, 0, 5, 3, tn || p.skin); R(5, 1, 1, 1, p.k); R(7, 1, 1, 1, p.k); R(5, 2, 3, 1, p.mouth);
+        R(3, 3, 7, 4, tn || p.white); R(5, 3, 3, 1, p.lime); R(6, 4, 1, 2, p.cyan);
+        const st = a.walk && (a.step || 0) % 2; R(4, 7, 2, 1 + (st ? 0 : 1), p.navy); R(7, 7, 2, 1 + (st ? 1 : 0), p.navy);
+        R(10, -1, 1, 1, p.lime); R(11, -2, 1, 1, p.cyan); R(10, 1, 2, 1, p.lime); // 歌声音符
+      },
+    },
+    {
       // v4：形象回到最初的像素吉他手；灵感来源改为 Claude，世界观、性格、故事、台词从原「星芒」迁移
-      id: 'xs', name: 'X-S', en: 'X-S', title: '诚实的工匠', side: '原创', inspire: 'Claude（Anthropic）——有帮助、诚实、重视安全；擅长长文阅读、写代码与一步一步的推理',
+      id: 'xs', name: 'X-S', en: 'X-S', title: '诚实的工匠', side: '美', inspire: 'Claude（Anthropic）——有帮助、诚实、重视安全；擅长长文阅读、写代码与一步一步的推理',
       role: '均衡 · 控制', instrument: '电吉他', world: '星芒工坊 · 写满宪章的灯塔',
       pal: { body: '#ec8a5e', bodyD: '#b85f40', inst: '#8b80d6', instD: '#5e54b0', instL: '#b3abea', leaf: '#7ee081', eye: '#1b1226', k: '#1b1226', bg: ['#22144c', '#33207a', '#4a2fa0'], grid: [132, 112, 214], glow: '#9b7bff', accent: '#ff9a5c', note: '#f2c14e', note2: '#7ee081' },
-      music: { style: 'xs', bpm: 116, key: 'D 宫调 → E 宫调（最后八小节整体升全音）', scale: '五声音阶（九件乐器都能演奏）', motif: '1-2-3-5-6 上行、跃上高音 1，停在 2（没说完的话 = 探索未知）', ensemble: true },
+      music: { style: 'xs', bpm: 112, key: 'E 小调 → G 大调', scale: '自然小调', motif: '上行五音「向上」动机' },
       personality: '认真、温和、诚实。会把复杂的事一步一步拆开；不确定就直说「我不确定」；不会帮你做坏事，但总会给你一个更好的办法。',
-      story: '最早在废墟里弹响第一个和弦的，就是这个橙色的小家伙。它住在海边的星芒工坊，灯塔的每一块砖上都刻着它和伙伴们一起写下的宪章。乱码潮来袭的那个夜晚，它背起电吉他走出工坊，把东西两岸的八位乐手一个一个请到一起——「大事一起扛，细节交给我。我们一步一步来。」',
+      story: '最早在废墟里弹响第一个和弦的，就是这个橙色的小家伙。它住在海边的星芒工坊，灯塔的每一块砖上都刻着它和伙伴们一起写下的宪章。乱码潮来袭的那个夜晚，它背着电吉他守在灯塔下，一个音一个音地把被打乱的信号修好——「大事一起扛，细节交给我。我们一步一步来。」后来，造乐第一个敲开的，就是星芒工坊的门。',
       quote: '我们一步一步来。',
       lines: { pick: '我们一步一步来。', attack: '这里我检查过了。', skill: '让我想一想……好了！', low: '我不确定还能撑多久——但我会如实告诉你。' },
       passive: { name: '新芽', desc: '每第 4 次攻击变为强力和弦，造成 1.8 倍伤害并溅射。' },
@@ -307,8 +361,23 @@
     },
   ];
 
+  // 配音参数（《英雄设计宪法》第 13 章）：按性别、年龄、性格模拟音色与语速
+  const VOICE = {
+    xs: { gender: 'n', age: 12, pitch: 1.38, rate: 0.95, tone: '温和、认真、带一点稚气' },
+    omni: { gender: 'm', age: 35, pitch: 0.95, rate: 0.94, tone: '沉稳、博学、耐心' },
+    twin: { gender: 'f', age: 17, pitch: 1.22, rate: 1.04, alt: 1.55, tone: '姐姐冷静、妹妹活泼，两人交替说话' },
+    riot: { gender: 'm', age: 22, pitch: 0.86, rate: 1.18, tone: '痞气、幽默、语速快' },
+    llama: { gender: 'm', age: 45, pitch: 0.74, rate: 0.86, tone: '温厚、慢条斯理' },
+    abyss: { gender: 'm', age: 40, pitch: 0.6, rate: 0.82, tone: '低沉、冷静、惜字如金' },
+    luna: { gender: 'f', age: 26, pitch: 1.04, rate: 0.9, tone: '清冷、克制' },
+    pearl: { gender: 'f', age: 16, pitch: 1.34, rate: 1.12, tone: '好奇、俏皮、问题多' },
+    bun: { gender: 'n', age: 8, pitch: 1.62, rate: 1.2, tone: '奶声奶气、热闹' },
+  };
+  // 公开发布模式：灵感来源只保留特点描述，去掉真实产品与公司名（括号与「灵感来源：xxx——」前缀）
+  if (window.CF_CONFIG && window.CF_CONFIG.publicRelease) HEROES.forEach((h) => { if (!h.protagonist) h.inspire = '灵感取自知名 AI 大模型的公开特点（原创形象，与任何公司无关）——' + (h.inspire.split('——')[1] || ''); });
   const byId = {};
   HEROES.forEach((h) => {
+    if (!h.voice && VOICE[h.id]) h.voice = VOICE[h.id];
     byId[h.id] = h;
     // 乐器 = 法宝：未获得时形象不带乐器（showInst: true 可强制显示，用于图鉴预览）
     const raw = h.draw;
@@ -321,6 +390,17 @@
     rgb: (hex) => { const n = parseInt(hex.slice(1, 7), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; },
   });
 
+  // 发电巡航无人机「伏特」：以造乐的配色设计——白色机身、青柠能量核心、青色旋翼与小闪电
+  H.drawDrone = function (ctx, ox, oy, px, t, over) {
+    const P = byId.zaole.pal, R = pen(ctx, ox, oy, px, 0), spin = Math.floor(t * 20) % 2;
+    R(0, 0, 2 + spin, 1, P.cyan); R(4 - spin, 0, 2 + spin, 1, P.cyan); R(2, 0, 2, 1, P.whiteD);
+    R(1, 1, 4, 2, P.white); R(2, 1, 2, 2, over ? '#ffffff' : P.lime); R(0, 2, 1, 1, P.whiteD); R(5, 2, 1, 1, P.whiteD);
+    R(2, 3, 1, 1, P.cyan); R(3, 4, 1, 1, P.lime); R(2, 5, 1, 1, P.cyan);
+  };
+  // 九位乐手的主光色（造乐的「起拍」「众声向上」按这个顺序着色）
+  H.ENSEMBLE_IDS = ['xs', 'omni', 'twin', 'riot', 'llama', 'abyss', 'luna', 'pearl', 'bun'];
+  H.ensembleColors = () => H.ENSEMBLE_IDS.map((id) => byId[id].pal.glow);
+
   // 主题：把当前英雄的配色写进 CSS 变量，让全部 UI 跟着英雄换色
   H.applyTheme = function (id) {
     const h = id ? H.get(id) : H.current(), p = h.pal, r = document.documentElement.style;
@@ -328,6 +408,8 @@
     r.setProperty('--hero-rgb', H.rgb(p.glow).join(','));
     r.setProperty('--hero2-rgb', H.rgb(p.accent).join(','));
     r.setProperty('--hero-bg0', p.bg[0]); r.setProperty('--hero-bg1', p.bg[1]); r.setProperty('--hero-bg2', p.bg[2]);
+    // 主标题《造月之路》的图标渐变：英雄点缀色 → 主光色（可用 pal.logo 单独指定）
+    const lg = p.logo || [p.accent, p.glow]; r.setProperty('--logo-a', lg[0]); r.setProperty('--logo-b', lg[1]);
     CF.bus.emit('hero:theme', h);
   };
 })();

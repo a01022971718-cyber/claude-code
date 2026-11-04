@@ -17,7 +17,7 @@
     CF.$$('.screen').forEach((s) => s.classList.toggle('active', s.id === 'scr-' + name));
     UI.cur = name;
     if (name !== 'hero') CF.Audio.play(MUSIC[name] || 'menu');
-    const R = { lobby: () => CF.Lobby.render(), heroes: () => CF.Lobby.renderHeroes(), hero: () => CF.Lobby.renderHero(arg), campaign: UI.renderCampaign, academy: () => CF.Academy.render(), labs: () => CF.Academy.renderLabs(), profile: () => CF.Academy.renderProfile(), achievements: () => CF.Academy.renderAch(), settings: UI.renderSettings, help: () => CF.Tutorial.renderHelp(), city: () => CF.City.enter() };
+    const R = { lobby: () => CF.Lobby.render(), heroes: () => CF.Lobby.renderHeroes(), hero: () => CF.Lobby.renderHero(arg), campaign: UI.renderCampaign, academy: () => CF.Academy.render(), labs: () => CF.Academy.renderLabs(), profile: () => CF.Academy.renderProfile(), achievements: () => CF.Academy.renderAch(), settings: UI.renderSettings, shop: () => CF.Shop.render(), help: () => CF.Tutorial.renderHelp(), city: () => CF.City.enter() };
     (R[name] || (() => {}))();
     UI.checkRotate();
   };
@@ -52,30 +52,32 @@
   const tierPill = (P) => { const [n, c] = CF.Chapters.Diff.tier(P); return `<span class="dpill" style="--dc:${c}">D${Math.round(P)} · ${n}</span>`; };
   UI.renderCampaign = function () {
     const body = $('#campaignBody'), d = CF.Save.data, C = CF.Chapters;
-    body.innerHTML = `<div id="chapList"></div><div class="sec-title">沉浸模式 · 烧脑策略</div><div class="grid g2" id="imGrid"></div><div class="sec-title">遭遇战</div><div class="grid g3" id="skGrid"></div><p class="small muted" style="margin-top:14px;line-height:1.7">次级关是剧情关，需要完成对应的学习才能解锁，通关后不能重复挑战；小关可以反复挑战，积攒长期补给。想先体验全部内容，可在「设置」里打开体验模式。</p>`;
+    body.innerHTML = `<div id="chapList"></div><div class="sec-title">沉浸模式 · 烧脑策略</div><div class="grid g2" id="imGrid"></div><div class="sec-title">遭遇战</div><div class="grid g3" id="skGrid"></div><p class="small muted" style="margin-top:14px;line-height:1.7">次级关（剧情关、第三章起为首领关）通关后不能重复挑战，剧情关还需要完成对应的学习才能解锁；小关可以反复挑战，积攒长期补给。每章固定掉落一种碎片或道具，已拥有的英雄碎片会自动转化为晶片。想先体验全部内容，可在「设置」里打开体验模式。</p>`;
     const host = $('#chapList');
+    const afterName = (id) => { const L = CF.Levels.get(id); if (L) return L.name; const f = C.find(id); return f ? f.st.name : id; };
     C.CHAPTERS.forEach((ch) => {
-      const list = C.stages(ch), won = list.filter((s) => C.cleared(s.id)).length;
-      const sec = CF.h(`<section class="chap"><div class="chap-hd"><canvas></canvas><div class="chap-t"><span class="t-tag">CHAPTER 0${ch.no} · ${ch.en}</span><b>第${['', '一', '二'][ch.no]}章「${ch.name}」</b><span class="small">${ch.sub}</span></div><div class="chap-p"><b class="t-num">${won}/${list.length}</b><span class="small">普通关</span></div></div><div class="stage-path"></div></section>`);
+      const list = C.stages(ch), won = list.filter((s) => C.cleared(s.id)).length, open = C.unlocked(ch, list[0]);
+      const sec = CF.h(`<section class="chap ${open ? '' : 'shut'}"><div class="chap-hd"><canvas></canvas><div class="chap-t"><span class="t-tag">CHAPTER 0${ch.no} · ${ch.en}</span><b>第${'一二三四五六七'[ch.no - 1]}章「${ch.name}」</b><span class="small">${ch.sub}</span></div><div class="chap-drop"><span class="small">本章掉落</span><b>${C.fragName(ch)}</b><span class="small t-num">${C.fragProgress(ch)}</span></div><div class="chap-p"><b class="t-num">${won}/${list.length}</b><span class="small">普通关</span></div></div><div class="stage-path"></div></section>`);
       new CF.PixelFX.Stage(sec.querySelector('canvas'), { mode: 'bar', fx: 0.9, fy: 0.55, cell: 12 });
       const path = sec.querySelector('.stage-path');
+      if (!open) { path.appendChild(CF.h(`<p class="small muted" style="grid-column:1/-1">通关第${'一二三四五六七'[ch.no - 2]}章全部普通关后开放（共 ${list.length} 关：${list.filter((x) => x.kind !== 'minor').length} 个次级关 + ${list.filter((x) => x.kind === 'minor').length} 个小关 + 1 个组队副本）。</p>`)); host.appendChild(sec); return; }
       list.forEach((st) => {
-        const r = d.campaign[st.id] || {}, un = C.unlocked(ch, st), story = st.kind === 'story', L = story ? st.L : null;
-        const name = story ? L.name : ch.names[(st.minorNo - 1) % ch.names.length];
+        const r = d.campaign[st.id] || {}, un = C.unlocked(ch, st), story = st.kind !== 'minor', L = st.kind === 'story' ? st.L : null;
+        const name = L ? L.name : st.kind === 'boss' ? st.name : ch.names[(st.minorNo - 1) % ch.names.length];
         const gift = ch.no === 1 && !story && (st.minorNo === 3 || st.minorNo === 5) ? (st.minorNo === 3 ? 'omni' : 'pearl') : null;
-        const el = CF.h(`<button class="stg ${story ? 'story' : 'minor'} ${un ? '' : 'locked'} ${r.won ? 'won' : ''}"><span class="stg-no t-num">${ch.no}-${st.i + 1}</span><span class="stg-kind">${story ? '次级关' : '小关 ' + st.minorNo}</span><b>${name}</b><span class="stars">${'★'.repeat(r.stars || 0)}<i>${'★'.repeat(3 - (r.stars || 0))}</i></span>${tierPill(st.P)}${gift && !CF.Roster.owns(gift) ? `<span class="gift">首通送「${CF.Heroes.get(gift).name}」</span>` : ''}${story && r.won ? '<span class="stamp">已通关</span>' : ''}${!un ? `<span class="lock">${CF.Icons ? CF.Icons.svg('lock') : '🔒'}</span>` : ''}</button>`);
+        const el = CF.h(`<button class="stg ${story ? 'story' : 'minor'} ${un ? '' : 'locked'} ${r.won ? 'won' : ''}"><span class="stg-no t-num">${ch.no}-${st.i + 1}</span><span class="stg-kind">${st.kind === 'boss' ? '次级关 · 首领' : story ? '次级关' : '小关 ' + st.minorNo}</span><b>${name}</b><span class="stars">${'★'.repeat(r.stars || 0)}<i>${'★'.repeat(3 - (r.stars || 0))}</i></span>${tierPill(st.P)}${gift && !CF.Roster.owns(gift) ? `<span class="gift">${gift === 'omni' ? '首通集齐「万象」碎片' : '首通送「珠问」'}</span>` : ''}${story && r.won ? '<span class="stamp">已通关</span>' : ''}${!un ? `<span class="lock">${CF.Icons ? CF.Icons.svg('lock') : '🔒'}</span>` : ''}</button>`);
         el.onclick = () => {
           CF.Audio.sfx('click');
-          if (!un) { const req = story ? C.storyReqs(st).filter((x) => !x.ok).map((x) => x.text) : []; CF.toast(req.length ? '解锁条件：' + req.join('；') : '先通关上一关', 'bad', 3200); CF.Audio.sfx('error'); return; }
+          if (!un) { const req = st.kind === 'story' ? C.storyReqs(st).filter((x) => !x.ok).map((x) => x.text) : []; CF.toast(req.length ? '解锁条件：' + req.join('；') : '先通关上一关', 'bad', 3200); CF.Audio.sfx('error'); return; }
           if (story && r.won && !CF.P.trial()) { CF.toast('次级关通关后不能重复挑战——去小关积攒补给吧'); return; }
           UI.briefing(C.level(ch, st));
         };
         path.appendChild(el);
       });
       // 组队副本
-      const du = C.dungeonUnlocked(ch), left = C.attempts(ch), fe = C.featured(ch), rw = C.dungeonRewards(ch);
-      const dg = CF.h(`<button class="stg dungeon ${du ? '' : 'locked'}"><span class="stg-no t-num">${ch.no}-副本</span><span class="stg-kind">组队副本 · 5 波</span><b>${ch.dungeon.name}</b>${tierPill(ch.dungeon.P)}<span class="small">${du ? `今日剩余 ${left}/${C.ATTEMPTS} 次` : `通关「${CF.Levels.get(ch.dungeon.after).name}」后开放`}</span><span class="drw">${rw.map((x) => `<i title="${C.rewardText(x, ch)}">${x.wave}</i>`).join('')}</span>${fe ? `<span class="gift">碎片：${CF.Heroes.get(fe).name} ${CF.Roster.frags(fe)}/${CF.Roster.FRAG_NEED}</span>` : ''}${!du ? `<span class="lock">${CF.Icons ? CF.Icons.svg('lock') : '🔒'}</span>` : ''}</button>`);
-      dg.onclick = () => { CF.Audio.sfx('click'); if (!du) { CF.toast(`先通关「${CF.Levels.get(ch.dungeon.after).name}」`, 'bad'); return; } if (left <= 0 && !CF.P.trial()) { CF.toast('今天的挑战次数用完了，明天再来（稀缺性规则：每天 3 次）'); return; } UI.briefing(C.dungeonLevel(ch, [])); };
+      const du = C.dungeonUnlocked(ch), left = C.attempts(ch), rw = C.dungeonRewards(ch);
+      const dg = CF.h(`<button class="stg dungeon ${du ? '' : 'locked'}"><span class="stg-no t-num">${ch.no}-副本</span><span class="stg-kind">组队副本 · 5 波</span><b>${ch.dungeon.name}</b>${tierPill(ch.dungeon.P)}<span class="small">${du ? `今日剩余 ${left}/${C.ATTEMPTS} 次` : `通关「${afterName(ch.dungeon.after)}」后开放`}</span><span class="drw">${rw.map((x) => `<i title="${C.rewardText(x, ch)}">${x.wave}</i>`).join('')}</span><span class="gift">第 5 波：${C.fragName(ch)} ×3</span>${!du ? `<span class="lock">${CF.Icons ? CF.Icons.svg('lock') : '🔒'}</span>` : ''}</button>`);
+      dg.onclick = () => { CF.Audio.sfx('click'); if (!du) { CF.toast(`先通关「${afterName(ch.dungeon.after)}」`, 'bad'); return; } if (left <= 0 && !CF.P.trial()) { CF.toast('今天的挑战次数用完了，明天再来（稀缺性规则：每天 3 次）'); return; } UI.briefing(C.dungeonLevel(ch, [])); };
       path.appendChild(dg);
       host.appendChild(sec);
     });
@@ -133,22 +135,26 @@
     const waves = L.waves && !L.immersive ? L.waves : null, maxT = waves ? Math.max(...waves.map(C.Diff.threatOf)) : 1;
     const kind = L.dungeon ? '组队副本 · 5 波 · 每波都有奖励' : L.story ? '次级关 · 3 波 · 通关后不可重复挑战' : L.minor ? '小关 · 3 波 · 可重复挑战' : '';
     const rewards = L.dungeon ? C.dungeonRewards(ch).map((r) => `<div class="small" style="line-height:1.9"><span class="c-chip">第 ${r.wave} 波</span> ${C.rewardText(r, ch)}</div>`).join('') : L.minor ? `<div class="small" style="line-height:1.9">每次通关：主城补给（晶片 / 语料 / 算力，按难度与星级）；首通双倍 + 学习加速 ×1</div>` : L.story ? `<div class="small" style="line-height:1.9">首通：主城补给${L.id === 'L3' ? ` + ${CF.Heroes.get(CF.Roster.STARTER).name}的法宝「${CF.Heroes.get(CF.Roster.STARTER).instrument}」` : ''}</div>` : '';
-    const body = CF.h(`<div>${kind ? `<div class="row wrap" style="gap:6px;margin-bottom:8px"><span class="pill">${kind}</span>${L.P ? tierPill(L.P) : ''}</div>` : ''}<p style="line-height:1.8">${L.brief}</p><div class="sec-title">出战英雄</div><div id="bfPick"></div><p class="small muted" id="bfHero" style="margin-top:6px"></p>${L.dungeon ? '<div class="sec-title">队友（最多 2 位，AI 控制）</div><div id="bfMates"></div>' : ''}${waves ? `<div class="sec-title">波次强度</div><div class="wv">${waves.map((w, i) => `<div><i style="height:${Math.max(8, (C.Diff.threatOf(w) / maxT) * 100)}%"></i><span>${i + 1}${w.boss ? '★' : ''}</span></div>`).join('')}</div>` : ''}<div class="sec-title">任务目标</div>${L.objectives.map((o) => `<div class="small" style="line-height:1.9">◇ ${o.text}</div>`).join('')}${rewards ? `<div class="sec-title">奖励</div>${rewards}` : ''}<div class="sec-title">三星评价</div>${L.stars.map((s, i) => `<div class="small" style="line-height:1.9"><span class="c-chip">${'★'.repeat(i + 1)}</span> ${s[0]}</div>`).join('')}<div class="sec-title">你的学习与主城带来的加成</div>${b.lines.map((l) => `<div class="small muted" style="line-height:1.9">▸ ${l}</div>`).join('')}<div class="explain" style="margin-top:12px">💡 ${L.tip}</div></div>`);
+    const body = CF.h(`<div>${kind ? `<div class="row wrap" style="gap:6px;margin-bottom:8px"><span class="pill">${kind}</span>${L.P ? tierPill(L.P) : ''}</div>` : ''}<p style="line-height:1.8">${L.brief}</p><div class="sec-title">出战英雄</div><div id="bfPick"></div><p class="small muted" id="bfHero" style="margin-top:6px"></p>${L.dungeon ? '<div class="sec-title">队友（最多 2 位，AI 控制）</div><div id="bfMates"></div>' : ''}${waves ? `<div class="sec-title">波次强度</div><div class="wv">${waves.map((w, i) => `<div><i style="height:${Math.max(8, (C.Diff.threatOf(w) / maxT) * 100)}%"></i><span>${i + 1}${w.boss ? '★' : ''}</span></div>`).join('')}</div>` : ''}<div class="sec-title">任务目标</div>${L.objectives.map((o) => `<div class="small" style="line-height:1.9">◇ ${o.text}</div>`).join('')}${rewards ? `<div class="sec-title">奖励</div>${rewards}` : ''}<div class="sec-title">三星评价</div>${L.stars.map((s, i) => `<div class="small" style="line-height:1.9"><span class="c-chip">${'★'.repeat(i + 1)}</span> ${s[0]}</div>`).join('')}<div class="sec-title">你的学习与主城带来的加成</div>${b.lines.map((l) => `<div class="small muted" style="line-height:1.9">▸ ${l}</div>`).join('')}<div class="explain" style="margin-top:12px">💡 ${L.tip}</div><p class="small muted" style="margin-top:8px">消耗体力 ⚡ ${CF.Stamina.costOf(L)}（当前 ${CF.Stamina.unlimited() ? '无限' : CF.Stamina.cur()}）</p></div>`);
     let mates = null;
     const info = () => { const h = CF.Heroes.current(); body.querySelector('#bfHero').innerHTML = `<b style="color:var(--hero2)">${h.name}</b> · ${h.role} · 专属小兵「${h.minion.name}」· 专属建筑「${h.building.name}」${CF.Treasure.has(h.id) ? '' : ` · <span style="color:var(--pink)">未获得法宝「${h.instrument}」，终极技能不可用</span>`}`; if (mates) mates.redraw(); };
     body.querySelector('#bfPick').appendChild(UI.heroPicker(info));
     if (L.dungeon) { mates = UI.matePicker(L); body.querySelector('#bfMates').appendChild(mates); }
     info();
     const start = () => {
-      if (L.dungeon && !CF.P.trial()) { if (C.attempts(ch) <= 0) return CF.toast('今天的挑战次数用完了', 'bad'); CF.Save.data.dungeon[L.id].used++; CF.Save.save(); }
-      CF.modal.close(); UI.startBattle(L);
+      if (L.dungeon && !CF.P.trial() && C.attempts(ch) <= 0) return CF.toast('今天的挑战次数用完了', 'bad');
+      CF.modal.close();
+      if (!CF.Stamina.spend(L)) return;
+      if (L.dungeon && !CF.P.trial()) { CF.Save.data.dungeon[L.id].used++; CF.Save.save(); }
+      UI.startBattle(L, true);
     };
     CF.modal.open({ title: `${L.no ? (/^\d/.test(L.no) ? '' : 'MISSION ') + L.no + ' · ' : ''}${L.name}`, body, foot: [{ text: '返回', cls: 'ghost' }, { text: '开始作战 ▶', cls: 'primary', onClick: start }] });
   };
 
   // ================= 战斗：开始 / 离开 =================
   let raf = 0, lastT = 0, frameN = 0;
-  UI.startBattle = function (L) {
+  UI.startBattle = function (L, paid) {
+    if (!paid && !CF.Stamina.spend(L)) return; // 体力：开战前扣除（学习类内容不消耗）
     if (CF.Game.current) CF.Game.current.destroy();
     UI.show('battle');
     const g = (CF.Game.current = new CF.Game.Game(L));
@@ -629,6 +635,8 @@
       <div id="bgmRows"></div>
       <div class="sec-title">画面与玩法</div>
       <div class="set-row"><span class="nm">画质</span><div class="ctl"><select id="setQ"><option value="high">高（推荐）</option><option value="low">低（旧手机更流畅）</option></select></div></div>
+      <div class="set-row"><span class="nm">英雄配音</span><div class="ctl"><select id="setVoice"><option value="auto">自动（系统中文语音，没有时用像素音）</option><option value="pixel">像素音</option><option value="off">关闭</option></select><span class="small muted" id="setVoiceEng"></span><button class="btn sm ghost" id="setVoiceTry">试听</button></div></div>
+      <div class="set-row"><span class="nm">英雄音效</span><div class="ctl"><label class="check" style="padding:0"><input type="checkbox" id="setHeroSfx"><span>点击、打击音效使用主英雄的乐器（连续点击会弹出主题曲动机）</span></label></div></div>
       <div class="set-row"><span class="nm">减少动效</span><div class="ctl"><label class="check" style="padding:0"><input type="checkbox" id="setRM"><span>关闭转场与大部分闪烁、波纹（对光敏感或晕动时建议开启）</span></label></div></div>
       <div class="set-row"><span class="nm">体验模式</span><div class="ctl"><label class="check" style="padding:0"><input type="checkbox" id="setTrial"><span>解锁全部关卡与建筑（适合先看看全貌；学习进度照常记录）</span></label></div></div>
       <div class="sec-title">存档</div>
@@ -647,7 +655,7 @@
       const row = CF.h(`<div class="set-row"><span class="nm">${A.SCREENS[key]}</span><div class="ctl">
         <select class="sty">${['hero'].concat(Object.keys(A.STYLES)).map((k) => `<option value="${k}" ${k === style ? 'selected' : ''}>${k === 'hero' ? '当前英雄主题曲' : A.STYLES[k].name}</option>`).join('')}</select>
         <span class="src">${src ? '🎵 ' + CF.esc(src.name) : '程序吉他曲'}</span>
-        <button class="btn sm up">上传</button>${src && src.kind === 'blob' ? '<button class="btn sm ghost clr">清除</button>' : ''}<button class="btn sm ghost tr">▶ 试听</button>
+        <button class="btn sm up">本地文件</button>${src && src.kind === 'blob' ? '<button class="btn sm ghost clr">清除</button>' : ''}<button class="btn sm ghost tr">▶ 试听</button>
         <input type="file" accept="audio/*" class="hidden"></div></div>`);
       const file = row.querySelector('input[type=file]');
       row.querySelector('.sty').onchange = (e) => { s.bgmStyle = Object.assign({}, s.bgmStyle, { [key]: e.target.value }); CF.Save.save(); if (A.screen === key) A.restart(); };
@@ -663,6 +671,9 @@
       row.querySelector('.tr').onclick = () => { A.unlock(); const prev = A.screen; A.screen = null; A.play(key); CF.toast(`试听：${A.SCREENS[key]}（离开设置页恢复）`); UI._restoreMusic = prev; };
       rows.appendChild(row);
     }
+    $('#setVoice').value = s.voice || 'auto'; $('#setVoiceEng').textContent = '当前：' + CF.Voice.engine(); $('#setVoice').onchange = (e) => { s.voice = e.target.value; CF.Save.save(); $('#setVoiceEng').textContent = '当前：' + CF.Voice.engine(); };
+    $('#setVoiceTry').onclick = () => { CF.Audio.unlock(); CF.Voice.line(CF.Heroes.current()); };
+    $('#setHeroSfx').checked = s.heroSfx !== false; $('#setHeroSfx').onchange = (e) => { s.heroSfx = e.target.checked; CF.Save.save(); };
     $('#setRM').checked = !!s.reduceMotion; $('#setRM').onchange = (e) => { s.reduceMotion = e.target.checked; document.body.classList.toggle('reduce-motion', s.reduceMotion); CF.Save.save(); };
     $('#setQ').value = s.quality; $('#setQ').onchange = (e) => { s.quality = e.target.value; CF.Save.save(); };
     $('#setTrial').checked = !!s.trial; $('#setTrial').onchange = (e) => { s.trial = e.target.checked; CF.Save.save(); CF.P._unlockSnapshot = CF.P.unlockSnapshot(); CF.toast(s.trial ? '体验模式已开启' : '体验模式已关闭'); };
@@ -744,7 +755,7 @@
     const app = $('#app'), portrait = window.innerHeight > window.innerWidth, coarse = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
     if (!portrait) app.classList.remove('rotated');
     UI.compact();
-    const need = (UI.cur === 'battle' || UI.cur === 'city') && portrait && coarse && !app.classList.contains('rotated') && !stayPortrait;
+    const need = UI.cur === 'battle' && portrait && coarse && !app.classList.contains('rotated') && !stayPortrait;
     $('#rotateHint').classList.toggle('show', need);
     if (UI.cur === 'battle') setTimeout(UI.resizeBattle, 60); else UI.compact();
   };

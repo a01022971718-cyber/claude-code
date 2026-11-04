@@ -6,10 +6,10 @@
   const MODES = [
     ['quick', '快速模式', '90 秒节奏爽局 · 通勤一局', 'COMMUTE', true],
     ['immersive', '沉浸模式', '迷雾 · 野怪 · 英雄成长 · AI 对手', 'STRATEGY'],
-    ['campaign', '征程', '两大章 · 组队副本 · 遭遇战', 'CAMPAIGN'],
-    ['city', '主城', '建造大本营 · 研究科技 · 防守入侵', 'BASE'],
+    ['campaign', '征程', '七章 · 组队副本 · 遭遇战', 'CAMPAIGN'],
+    ['city', '主城 · 电路工坊', '高中到大学电路 · 电网产出', 'CIRCUIT'],
   ];
-  const NAV = [['heroes', '🎸', '英雄'], ['city', '🏰', '主城'], ['academy', '📚', '学院'], ['labs', '🧪', '实验室'], ['profile', '📈', '档案'], ['achievements', '🏆', '成就'], ['settings', '⚙', '设置'], ['help', '❔', '说明']];
+  const NAV = [['heroes', '🎸', '英雄'], ['city', '🏰', '主城'], ['academy', '📚', '学院'], ['labs', '🧪', '实验室'], ['profile', '📈', '档案'], ['achievements', '🏆', '成就'], ['shop', '🛒', '商城'], ['help', '❔', '说明']];
   let active = 0, stage = null;
 
   function go(id) {
@@ -38,6 +38,7 @@
     const nav = $('#lobbyNav');
     NAV.forEach(([id, ic, n]) => { const b = CF.h(`<button><span>${ic}</span>${n}</button>`); b.onclick = () => go(id); nav.appendChild(b); });
     $('#lobbyHelp').onclick = () => go('help');
+    $('#lobbyStamina').onclick = () => { CF.Audio.sfx('click'); CF.Stamina.open(); };
     $('#lobbySettings').onclick = () => go('settings');
     $('#lobbyProfile').onclick = () => go('profile');
     $('#heroPrev').onclick = () => L.cycle(-1);
@@ -60,7 +61,8 @@
     CF.Audio.unlock(); CF.Audio.lick(h.id);
     stage.pulse(1, true); setTimeout(() => stage.pulse(0.8, true), 180);
     const old = document.querySelector('#scr-lobby .bubble'); if (old) old.remove();
-    const b = CF.h(`<div class="bubble">${CF.esc(CF.pick([h.lines.pick, h.lines.attack, h.lines.skill, h.quote]))}</div>`);
+    const line = CF.Voice.pick(h); CF.Voice.say(h, line); // 配音：多次点击随机切换，不连续重复
+    const b = CF.h(`<div class="bubble">${CF.esc(line)}</div>`);
     const r = $('#lobbyStage').getBoundingClientRect();
     b.style.left = r.width * stage.o.fx - 30 + 'px'; b.style.top = r.height * stage.o.fy - stage.charPx() * 14 + 'px';
     $('#scr-lobby').appendChild(b); setTimeout(() => b.remove(), 2600);
@@ -81,7 +83,7 @@
   };
   L.render = function () {
     const h = CF.Heroes.current(), rk = CF.P.rank(), d = CF.Save.data, plan = CF.P.dailyPlan(), r = CF.P.ratio();
-    $('#heroPlate').innerHTML = `<div class="side">${h.side === '原创' ? 'X-S ORIGINAL' : h.side === '中' ? 'CN · 中国' : 'US · 美国'} · ${h.instrument}</div><div class="nm">${CF.Brand.rise(h.name)}<small>${h.title}</small></div><div class="t-quote q">${CF.esc(h.quote)}</div><div class="row wrap"><span class="pill">${h.role}</span><span class="pill">♪ ${CF.Audio.STYLES[h.music.style].name.split('·')[1] || ''}</span><button class="btn sm" id="lobHeroInfo">英雄档案</button></div>`;
+    $('#heroPlate').innerHTML = `<div class="side">${h.protagonist ? '主角 · PROTAGONIST' : h.side === '中' ? 'CN · 中国' : 'US · 美国'} · ${h.instrument}</div><div class="nm">${CF.Brand.rise(h.name)}<small>${h.title}</small></div><div class="t-quote q">${CF.esc(h.quote)}</div><div class="row wrap"><span class="pill">${h.role}</span><span class="pill">♪ ${CF.Audio.STYLES[h.music.style].name.split('·')[1] || ''}</span><button class="btn sm" id="lobHeroInfo">英雄档案</button></div>`;
     $('#lobHeroInfo').onclick = () => CF.UI.show('hero', h.id);
     const pc = document.createElement('canvas'); pc.width = pc.height = 80; const x = pc.getContext('2d');
     if (!CF.Labs.drawAvatar(x, 4, 4, 72)) h.draw(x, 6, 26, 3.2, { t: 0, noInst: true });
@@ -105,12 +107,13 @@
     const grid = $('#hGrid');
     CF.Heroes.list.forEach((h) => {
       const cur = h.id === CF.Heroes.current().id, own = CF.Roster.owns(h.id);
-      const c = CF.h(`<div class="hcard ${own ? '' : 'locked'}" style="border-color:${cur ? h.pal.glow : ''}"><canvas></canvas>${cur ? '<span class="cur">主英雄</span>' : ''}${own ? (CF.Treasure.has(h.id) ? '' : '<span class="nofb">法宝未得</span>') : `<span class="how">${CF.Roster.how(h.id)}</span>`}<span class="side">${h.side === '原创' ? 'X-S' : h.side}</span><div class="hbody"><div class="hn" style="color:${h.pal.glow}">${h.name}<small>${h.title}</small></div><div class="hi">${h.instrument} · ${h.role}</div><div class="sw">${[h.pal.bg[0], h.pal.bg[2], h.pal.glow, h.pal.accent, h.pal.note].map((x) => `<i style="background:${x}"></i>`).join('')}</div></div></div>`);
+      const c = CF.h(`<div class="hcard ${own ? '' : 'locked'}" style="border-color:${cur ? h.pal.glow : ''}"><canvas></canvas>${cur ? '<span class="cur">主英雄</span>' : ''}${own ? (CF.Treasure.has(h.id) ? '' : '<span class="nofb">法宝未得</span>') : `<span class="how">${CF.Roster.how(h.id)}</span>`}<span class="side">${h.protagonist ? '主角' : h.side}</span><div class="hbody"><div class="hn" style="color:${h.pal.glow}">${h.name}<small>${h.title}</small></div><div class="hi">${h.instrument} · ${h.role}</div><div class="sw">${[h.pal.bg[0], h.pal.bg[2], h.pal.glow, h.pal.accent, h.pal.note].map((x) => `<i style="background:${x}"></i>`).join('')}</div></div></div>`);
       new CF.PixelFX.Stage(c.querySelector('canvas'), { mode: 'portrait', fx: 0.42, fy: 0.55, cell: 10, hero: h.id, radius: 26, charPx: 4 });
       c.onclick = () => { CF.Audio.sfx('click'); CF.UI.show('hero', h.id); };
       c.onmouseenter = () => CF.Audio.lick(h.id, true);
       grid.appendChild(c);
     });
+    if (CF.Collect) CF.Collect.renderPlants(body);
   };
   let heroStage = null;
   L.renderHero = function (id) {
@@ -121,9 +124,9 @@
     const ms = CF.Audio.STYLES[h.music.style], BT = CF.Game.BT, UT = CF.Game.UT;
     const bKey = Object.keys(BT).find((k) => BT[k].hero === h.id), uKey = Object.keys(UT).find((k) => UT[k].hero === h.id && UT[k].cost);
     body.innerHTML = `<div class="hd">
-      <div class="hd-stage"><canvas id="hdCv"></canvas><div class="nm"><div class="t-tag">${h.side === '原创' ? 'X-S ORIGINAL' : h.side === '中' ? 'CHINA' : 'USA'} · ${h.en}</div><div class="t-h1" style="text-shadow:0 3px 0 #0008">${h.name}</div><div class="t-quote">${CF.esc(h.quote)}</div></div></div>
+      <div class="hd-stage"><canvas id="hdCv"></canvas><div class="nm"><div class="t-tag">${h.protagonist ? 'PROTAGONIST' : h.side === '中' ? 'CHINA' : 'USA'} · ${h.en}</div><div class="t-h1" style="text-shadow:0 3px 0 #0008">${h.name}</div><div class="t-quote">${CF.esc(h.quote)}</div></div></div>
       <div class="hd-info">${CF.Roster.owns(h.id) ? '' : `<div class="explain" style="margin:0 0 10px">获取方式：${CF.Roster.how(h.id)}</div>`}${CF.Treasure.has(h.id) ? '' : `<div class="explain" style="margin:0 0 10px;border-color:#ff4f9a55;background:#ff4f9a12">法宝「${h.instrument}」未获得：${CF.Treasure.how(h.id)}。获得后形象出现乐器、终极技能「${h.skills[2].name}」解锁。</div>`}
-        <div class="row wrap" style="margin-bottom:10px"><button class="btn primary" id="hdPick" ${CF.Roster.owns(h.id) ? '' : 'disabled'}>${!CF.Roster.owns(h.id) ? '未获得' : h.id === CF.Heroes.current().id ? '✓ 当前主英雄' : '设为主英雄'}</button><button class="btn" id="hdMusic">▶ 试听主题曲</button><button class="btn ghost" id="hdLick">🎵 招牌乐句</button></div>
+        <div class="row wrap" style="margin-bottom:10px"><button class="btn primary" id="hdPick" ${CF.Roster.owns(h.id) ? '' : 'disabled'}>${!CF.Roster.owns(h.id) ? '未获得' : h.id === CF.Heroes.current().id ? '✓ 当前主英雄' : '设为主英雄'}</button><button class="btn" id="hdMusic">▶ 试听主题曲</button><button class="btn ghost" id="hdLick">🎵 招牌乐句</button><button class="btn ghost" id="hdVoice">💬 台词</button></div>
         <div class="tabs" id="hdTabs" style="padding:0"></div>
         <div id="hdTab" style="margin-top:10px"></div>
       </div></div>`;
@@ -138,14 +141,14 @@
       art: () => `<div class="card"><div class="t-tag">乐器（法宝${CF.Treasure.has(h.id) ? ' · 已获得' : ' · 未获得'}）</div><p class="t-body" style="color:var(--text)">${h.instrument} —— 主题曲《${ms.name.split('·')[1] || ms.name}》 · ${h.music.bpm} BPM · ${h.music.key} · ${h.music.scale}</p><p class="t-cap">记忆点：${h.music.motif}</p><div class="t-tag" style="margin-top:10px">配色（宪法第 2 章：背景三段 · 网格 · 主光 · 点缀 · 音符）</div><div class="swatches-big" style="margin-top:6px">${[['背景暗', h.pal.bg[0]], ['背景中', h.pal.bg[1]], ['背景亮', h.pal.bg[2]], ['网格', 'rgb(' + h.pal.grid.join(',') + ')'], ['主光', h.pal.glow], ['点缀', h.pal.accent], ['音符', h.pal.note]].map(([n, c]) => `<div><i style="background:${c}"></i>${n}<br>${c.startsWith('rgb') ? '' : c}</div>`).join('')}</div><div class="t-tag" style="margin-top:10px">特效语言</div><p class="t-cap">节拍时从角色处扩散像素方格波纹；乐器发声点飘出专属粒子（${h.fx.pats.length} 种像素形状），重拍时整片网格亮起、角色做强拍动作。</p></div>`,
     };
     // 主角的合奏主题曲：分轨试听（每件乐器可以单独开关，四个段落可以直接跳转）
-    tabs.ens = () => `<div class="card"><div class="t-tag">九乐器合奏 · 《${(ms.name.match(/「(.+)」/) || [, ms.name])[1]}》</div><p class="t-cap" style="margin-top:4px">一首 32 小节的曲子分四段。点段落跳过去听；点乐器把它关掉，听听少了谁会怎样。贝斯与和声垫是「地基」，始终保留。</p>
+    tabs.ens = () => `<div class="card"><div class="t-tag">九乐器合奏 · 《${(ms.name.match(/「(.+)」/) || [, ms.name])[1]}》</div><p class="t-cap" style="margin-top:4px">一首 32 小节的曲子分四段。点段落跳过去听；点乐器把它关掉，听听少了谁会怎样。贝斯与和声垫是「地基」，始终保留；每段开始前的四下「嗒嗒嗒嗒」是造乐的指挥棒起拍。</p>
       <div class="ens-secs">${CF.Audio.SECTIONS.map(([n, b, d], i) => `<button class="ens-sec" data-bar="${b}"><b>${i + 1} · ${n}</b><span>${d}</span></button>`).join('')}</div>
       <div class="ens-inst">${CF.Audio.ENSEMBLE.map(([k, n, hid]) => `<button class="ens-i ${CF.Audio.mute.has(k) ? '' : 'on'}" data-k="${k}"><canvas width="96" height="72"></canvas><span>${n}</span><small>${CF.Heroes.get(hid).name}</small></button>`).join('')}</div>
-      <div class="row wrap" style="gap:6px;margin-top:8px"><button class="btn sm" id="ensAll">全部乐器</button><button class="btn sm ghost" id="ensSolo">只听电吉他（主角）</button><button class="btn sm ghost" id="ensNone">只听地基</button></div>
+      <div class="row wrap" style="gap:6px;margin-top:8px"><button class="btn sm" id="ensAll">全部乐器</button><button class="btn sm ghost" id="ensSolo">只听电吉他</button><button class="btn sm ghost" id="ensNone">只听地基</button></div>
       <p class="t-cap" style="margin-top:8px">正在播放：<b id="ensNow">—</b></p></div>`;
     const bindEns = () => {
       const box = body.querySelector('#hdTab');
-      const play = () => { if (!CF.Audio.ctx || !CF.Audio.P_on || CF.Audio.curStyle !== 'xs') { CF.Audio.unlock(); CF.Audio.preview('xs', 0.9); } };
+      const play = () => { if (!CF.Audio.ctx || !CF.Audio.P_on || CF.Audio.curStyle !== 'zaole') { CF.Audio.unlock(); CF.Audio.preview('zaole', 0.9); } };
       box.querySelectorAll('.ens-i').forEach((b) => { const hd = CF.Heroes.get(CF.Audio.ENSEMBLE.find((x) => x[0] === b.dataset.k)[2]); const x = b.querySelector('canvas').getContext('2d'); x.fillStyle = hd.pal.bg[1]; x.fillRect(0, 0, 96, 72); hd.draw(x, 12, 26, 3, { t: 0, showInst: true }); b.onclick = () => { const k = b.dataset.k; if (CF.Audio.mute.has(k)) CF.Audio.mute.delete(k); else CF.Audio.mute.add(k); b.classList.toggle('on', !CF.Audio.mute.has(k)); play(); }; });
       box.querySelectorAll('.ens-sec').forEach((b) => (b.onclick = () => { play(); CF.Audio.seek(+b.dataset.bar); CF.Audio.sfx('click'); }));
       const setAll = (keep) => { CF.Audio.mute.clear(); CF.Audio.ENSEMBLE.forEach(([k]) => { if (!keep(k)) CF.Audio.mute.add(k); }); box.querySelectorAll('.ens-i').forEach((b) => b.classList.toggle('on', !CF.Audio.mute.has(b.dataset.k))); play(); };
@@ -160,6 +163,8 @@
     body.querySelector('#hdPick').onclick = () => { if (!CF.Roster.owns(h.id)) return; L.setHero(h.id); L.renderHero(h.id); CF.toast(`主英雄：${h.name}`, 'gold'); };
     body.querySelector('#hdMusic').onclick = () => { CF.Audio.preview(h.music.style, 0.7); CF.toast(`♪ ${ms.name}`); };
     body.querySelector('#hdLick').onclick = () => { CF.Audio.unlock(); CF.Audio.lick(h.id); heroStage.pulse(1, true); };
+    body.querySelector('#hdVoice').onclick = () => { CF.Audio.unlock(); const l = CF.Voice.line(h); CF.toast(`「${l}」`); heroStage.pulse(0.8, true); };
+    body.querySelector('#hdCv').addEventListener('click', () => { CF.Audio.unlock(); const l = CF.Voice.line(h); CF.toast(`「${l}」`); heroStage.pulse(0.8, true); });
     CF.Audio.unlock(); CF.Audio.preview(h.music.style, 0.6);
   };
 })();

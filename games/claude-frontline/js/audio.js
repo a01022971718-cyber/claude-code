@@ -18,9 +18,10 @@
     fanfare: { name: '胜利号角', bpm: 120, prog: ['C', 'G', 'Am', 'F'], swing: 0 },
     sad: { name: '低吟', bpm: 72, prog: ['Am', 'Dm', 'E', 'Am'], swing: 0 },
     // 英雄主题曲：hero 字段决定主奏乐器与动机
-    // X-S 主题《众声向上》：九位英雄的九件乐器合奏（见《英雄设计宪法》第 5.9 节）。
+    // 主角造乐的主题《众声向上》：九位乐手的九件乐器合奏，造乐是指挥（每段开始前有指挥棒的起拍声）（见《英雄设计宪法》第 5.9 节）。
     // 32 小节四段：新生（电吉他独奏）→ 相遇（每件乐器用自己的动机回应）→ 同行（各司其职）→ 向上（整体升全音，全员齐奏同一条动机）
-    xs: { name: 'X-S · 九乐器合奏「众声向上」', bpm: 116, prog: ['D', 'Bm', 'G', 'A'], swing: 0, hero: 'xs', ensemble: true, gain: 0.9, gainLo: 0.95, root: 62, scale: [0, 2, 4, 7, 9], motif: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 4], [5, 6], [6, 6], [null, 8]] },
+    xs: { name: 'X-S · 电吉他「破晓」', bpm: 112, prog: ['Em', 'C', 'G', 'D'], swing: 0, hero: 'xs', root: 64, scale: [0, 3, 5, 7, 10], motif: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 4], [5, 2], [6, 2], [7, 8], [null, 8]] },
+    zaole: { name: '造乐 · 九乐器合奏「众声向上」', bpm: 116, prog: ['D', 'Bm', 'G', 'A'], swing: 0, hero: 'zaole', ensemble: true, gain: 0.9, gainLo: 0.95, root: 62, scale: [0, 2, 4, 7, 9], motif: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 4], [5, 6], [6, 6], [null, 8]] },
     omni: { name: '万象 · 钢琴「八十八层」', bpm: 100, prog: ['C', 'G', 'Am', 'F'], swing: 0, hero: 'omni', gain: 1.5, root: 72, scale: [0, 2, 4, 5, 7, 9, 11], motif: [[4, 2], [2, 2], [0, 2], [2, 2], [4, 2], [7, 4], [6, 2], [7, 8], [null, 8]] },
     twin: { name: '双子 · 竖琴「星河两岸」', bpm: 88, prog: ['Dmaj7', 'E', 'Bm', 'A'], swing: 0, hero: 'twin', gain: 2.4, root: 74, scale: [0, 2, 4, 6, 7, 9, 11], motif: [[0, 2], [4, 2], [6, 4], [null, 2], [7, 2], [6, 2], [4, 2], [5, 6], [null, 10]] },
     riot: { name: '狂想 · 架子鼓「没有规则」', bpm: 150, prog: ['Em', 'Em', 'G', 'A'], swing: 0, hero: 'riot', root: 52, scale: [0, 3, 5, 6, 7, 10], motif: [[0, 1], [0, 1], [3, 2], [0, 2], [5, 2], [4, 2], [3, 2], [1, 4], [null, 16]] },
@@ -256,7 +257,7 @@
     const rnd = CF.rng(seed), ev = [];
     const put = (start, notes) => { let p = start; notes.forEach(([d, len]) => { if (d !== null) ev.push({ s: p, d, len }); p += len; }); };
     const motifLen = st.motif.reduce((a, n) => a + n[1], 0);
-    put(0, st.motif); put(64, st.motif);
+    put(0, st.motif); put(64, st.motif.map(([d, l]) => [d === null ? null : d + (st.hero === 'xs' ? 1 : 0), l]));
     [32, 96].forEach((start, k) => {
       let d = 2, p = start; const end = start + 32;
       while (p < end - 4) { const len = [2, 2, 4, 2, 1, 1, 6][Math.floor(rnd() * 7)] || 2; d = CF.clamp(d + [-1, 1, -2, 2, 0, 1][Math.floor(rnd() * 6)], -1, st.scale.length + 2); if (rnd() < 0.85) ev.push({ s: p, d, len: Math.min(len, end - p) }); p += len; }
@@ -269,6 +270,7 @@
   function heroNote(id, m, t, dur, v, d) {
     switch (id) {
       case 'xs': pluck(m, t, v, { bus: d, kind: 'b', verb: false }); break;
+      case 'zaole': osc('sine', mtof(m + 12), 0, t, Math.max(0.4, dur * 2), v * 0.16, d); osc('triangle', mtof(m + 24), 0, t, 0.3, v * 0.05, d); pluck(m, t, v * 0.6, { bus: d, kind: 'h' }); break;
       case 'omni': piano(m, t, v, d, Math.max(0.5, dur * 1.6)); break;
       case 'twin': harp(m, t, v, d); break;
       case 'riot': kick(t, 0.8 * v, d); snare(t + dur * 0.5, 0.6 * v, d); break;
@@ -309,7 +311,10 @@
     // ---- 地基：贝斯 + 和声垫（不参与分轨）
     if (s === 0) { bass(root - 12, t, spb * 7, sec ? 0.65 : 0.45, out); pad(ch, t, spb * 16, sec === 0 ? 0.7 : 0.45, out, tr); }
     if (s === 8 && sec) bass(root - 12 + 7, t, spb * 6, 0.45, out);
-    // ---- 电吉他（X-S）：主角，第一段独奏、第二段发问、第四段领奏
+    // ---- 指挥（造乐）：每段最后一小节敲四下谱架起拍，进入下一段时一声钟琴
+    if (bar % 8 === 7 && s >= 8 && s % 2 === 0) wood(t, 0.5 + (s - 8) * 0.06, out);
+    if (bar % 8 === 0 && s === 0) osc('sine', mtof(root + 24), 0, t, 1.2, 0.07, out);
+    // ---- 电吉他（X-S）：第一段独奏、第二段发问、第四段领奏
     if (on('guitar')) {
       if (s % 2 === 0 && (sec === 0 || sec === 1)) { const pat = [0, 2, 3, 4, 5, 4, 3, 2]; pluck(v[pat[s / 2]], t, 0.32, { bus: out }); }
       if (sec >= 2 && s % 2 === 0) pluck(root - 12, t, hi ? 0.42 : 0.28, { bus: out, kind: 'm', dist: hi, len: spb * 1.2 });
@@ -376,7 +381,13 @@
     const len = e ? e.len * spb : 0, m = e ? degMidi(st, e.d) : 0;
     let strumHit = false;
     switch (st.hero) {
-      case 'xs': strumHit = ensembleStep(st, step, t, spb, out, I, root, v, ch); break;
+      case 'zaole': strumHit = ensembleStep(st, step, t, spb, out, I, root, v, ch); break;
+      case 'xs':
+        if (s % 2 === 0) { const pat = [0, 2, 3, 4, 5, 4, 3, 2]; pluck(v[pat[s / 2]], t, hi ? 0.4 : 0.5, { bus: out }); }
+        if (hi && s % 8 === 0) strum([root - 12, root - 5, root], t, 0.6, { bus: out, dist: true, gap: 0.006, len: spb * 3 });
+        if (e) { pluck(m, t, 0.7, { bus: out, kind: 'b', dist: hi, len: Math.min(len, spb * 6) }); strumHit = true; }
+        if (s === 0) bass(root - 12, t, spb * 8, 0.7, out);
+        break;
       case 'omni':
         if (s % 2 === 0) { const lh = [0, 1, 2, 1, 3, 2, 1, 2]; piano(v[lh[s / 2] % 4] - 12, t, 0.5, out, 1.2); }
         if (s === 0 || s === 8) piano(v[2], t, 0.35, out, 1.8);
@@ -535,7 +546,7 @@
     out.connect(A.music);
     A.distGain.disconnect(); A.distGain.connect(out);
     A.verbOut.disconnect(); A.verbOut.connect(out);
-    P.on = true; P.style = st; P.step = 0; A.P_on = true; A.curStyle = st.id; if (st.id !== 'xs') A.mute.clear(); P.next = ctx.currentTime + 0.08; P.gain = out; P.seed = CF.randi(1, 99999);
+    P.on = true; P.style = st; P.step = 0; A.P_on = true; A.curStyle = st.id; if (st.id !== 'zaole') A.mute.clear(); P.next = ctx.currentTime + 0.08; P.gain = out; P.seed = CF.randi(1, 99999);
     A.curBpm = st.bpm;
     const spb = 60 / st.bpm / 4;
     P.timer = setInterval(() => {
@@ -646,6 +657,34 @@
 
   // ---------- 音效 ----------
   const lastSfx = {};
+  // 点击音效：用当前主英雄的乐器，按主题曲动机一个音一个音往下弹（连续点击 = 弹出整句动机）
+  let clickI = 0;
+  A.heroClick = function (vol = 1) {
+    const h = CF.Heroes.current(), st = STYLES[h.music.style], notes = st.motif.filter((n) => n[0] !== null), [deg] = notes[clickI++ % notes.length];
+    const t = A.ctx.currentTime + 0.005, d = A.sfxBus, m = degMidi(st, deg);
+    if (st.hero === 'riot') { hat(t, 0.9 * vol, d); noise(t, 0.04, 0.12 * vol, d, 'bandpass', 2200, 2); return; }
+    heroNote(st.hero, m, t, 0.12, 0.42 * vol, d);
+  };
+  // 打击音效：每位英雄按自己的乐器发出一记短促的「击中」声；暴击叠一层亮音
+  let hitT = 0;
+  A.heroHit = function (id, crit) {
+    if (!A.ctx || A.ctx.state !== 'running' || CF.Save.data.settings.heroSfx === false) return;
+    const now = performance.now(); if (!crit && now - hitT < 90) return; hitT = now;
+    const t = A.ctx.currentTime + 0.003, d = A.sfxBus, v = crit ? 0.6 : 0.32, r = [0, 2, 4, 7, 9][Math.floor(Math.random() * 5)];
+    switch (id) {
+      case 'zaole': osc('sine', mtof(84 + r), 0, t, 0.18, 0.09 * v * 2, d); wood(t, 0.4 * v, d); break;
+      case 'xs': pluck(52 + r, t, v, { bus: d, kind: 'm', dist: true, len: 0.08 }); break;
+      case 'omni': piano(79 + r, t, v * 0.8, d, 0.25); break;
+      case 'twin': harp(76 + r, t, v * 0.9, d); break;
+      case 'riot': snare(t, v * 0.8, d); if (crit) kick(t, 0.6, d); break;
+      case 'llama': wood(t, v, d); shaker(t + 0.02, v, d); break;
+      case 'abyss': guqin(48 + r, t, v, d, 0); break;
+      case 'luna': erhu(69 + r, t, 0.12, v * 0.8, d); break;
+      case 'pearl': pipa(74 + r, t, v * 0.8, d, 1); break;
+      case 'bun': bo(t, v * 0.6, d); wood(t, v * 0.6, d); break;
+    }
+    if (crit) noise(t, 0.12, 0.12, d, 'highpass', 6000);
+  };
   A.sfx = function (name, vol = 1) {
     if (!A.ctx || A.ctx.state !== 'running') return;
     const ctx = A.ctx, t = ctx.currentTime + 0.005, d = A.sfxBus;
@@ -654,7 +693,7 @@
     if (gap && now - (lastSfx[name] || 0) < gap) return;
     lastSfx[name] = now;
     switch (name) {
-      case 'click': osc('sine', 900, 650, t, 0.06, 0.25 * vol, d); break;
+      case 'click': if (CF.Heroes && CF.Save.data.settings.heroSfx !== false) { A.heroClick(vol); break; } osc('sine', 900, 650, t, 0.06, 0.25 * vol, d); break;
       case 'hover': osc('sine', 1300, 1200, t, 0.025, 0.06 * vol, d); break;
       case 'place': osc('square', 330, 660, t, 0.1, 0.12 * vol, d, { lp: 2000 }); osc('square', 660, 990, t + 0.08, 0.1, 0.1 * vol, d, { lp: 2000 }); break;
       case 'train': osc('triangle', 520, 1040, t, 0.15, 0.2 * vol, d); break;
