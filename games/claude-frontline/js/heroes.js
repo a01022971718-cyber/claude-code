@@ -1,4 +1,4 @@
-/* 英雄：X-S 原创主角 + 美方 5 名 + 中方 4 名（灵感来自知名 AI 大模型的公开特点，均为原创形象）
+/* 英雄：X-S 主角（灵感 Claude）+ 中美各 4 名（灵感来自知名 AI 大模型的公开特点，均为原创形象）
  * 每位英雄：世界观 · 性格 · 定位 · 技能 · 形象 · 故事 · 口头禅 · 乐器 · 配色 · 主题曲 · 特效 · 专属小兵 · 专属建筑 */
 (function () {
   const CF = window.CF;
@@ -11,93 +11,37 @@
 
   const HEROES = [
     {
-      id: 'xs', name: 'X-S', en: 'X-S', title: '破晓剑姬', side: '原创', inspire: 'X-S 原创主角：手持巨尺剑「量天尺」的少女，象征新生、向上与对未知的丈量',
-      role: '战士 · 均衡', instrument: '电吉他', weapon: '巨尺剑「量天尺」', world: '新生之城 · 黎明前的紫夜',
-      pal: { hair: '#2a1d4a', hairL: '#4a3580', pink: '#ff7ab8', skin: '#ffe0cc', skinD: '#f2b8a0', eye: '#4ef0ff', k: '#1b1226', mouth: '#e0707a', obs: '#3a2870', obsD: '#241650', white: '#f4f1ff', whiteD: '#c9c2e6', gold: '#ffb14a', orange: '#ff7a45', blade: '#e6e9ff', bladeD: '#a9a6d6', edge: '#4ef0ff', inst: '#8b80d6', instD: '#5e54b0', instL: '#b3abea', bg: ['#22144c', '#33207a', '#4a2fa0'], grid: [132, 112, 214], glow: '#9b7bff', accent: '#ff9a5c', note: '#f2c14e', note2: '#4ef0ff' },
-      music: { style: 'xs', bpm: 120, key: 'D 利底亚 → E 利底亚（后四小节整体升全音）', scale: '利底亚调式（升四级 = 探索未知）', motif: '1-2-3-#4-5 级进上行后跃上八度「向上」动机' },
-      personality: '倔强、好奇、说到做到。什么都想亲手量一量：天有多高、路有多远、自己还能再往上走多少。',
-      story: '乱码潮淹没智能大陆的那个夜晚，少女在废墟里捡到一把比她还高的尺子。尺子上的刻度一直延伸到天上——没有尽头。星芒找到她时，把自己最珍贵的电吉他托付给她：「等你走到第一章的尽头，它会为你响起。」从那天起，她扛着量天尺往上走，一格一格地丈量未知。',
-      quote: '新生，向上，去未知的地方！',
-      lines: { pick: '新生，向上，去未知的地方！', attack: '再往上——一格！', skill: '量天尺，出鞘！', low: '刻度还没到头，我不会停。' },
-      passive: { name: '刻度', desc: '每次攻击在量天尺上记一格刻度，第 4 格「满刻度」造成 2 倍伤害并横扫周围敌人。' },
-      skills: [
-        { key: 'Q', name: '量天一斩', target: 'dir', cost: 35, cd: 9, desc: '向前突进 240 距离，沿途斩击造成 130 伤害并短暂眩晕。' },
-        { key: 'W', name: '破晓护刃', target: 'self', cost: 35, cd: 16, desc: '旋转巨尺：周围敌人受到 90 伤害，自己与附近友军获得 160 护盾，持续 5 秒。' },
-        { key: 'R', name: '新生·向上', target: 'self', cost: 80, cd: 60, treasure: true, desc: '【需要法宝：电吉他】6 秒破晓独奏，每一拍释放冲击环，结尾一记日出斩造成 260 伤害并击退。' },
-      ],
-      minion: { id: 'rulerguard', name: '刻度卫士', desc: '举着刻度盾的近战护卫，护甲高，替你挡住第一波冲击。' },
-      building: { id: 'obelisk', name: '新生方尖碑', desc: '随节拍释放破晓冲击环，并让周围友军攻速 +15%。' },
-      fx: { pats: [['.X.', 'XXX', '.X.'], ['X', 'X', 'X'], ['XXX']], cols: ['#f2c14e', '#4ef0ff', '#ff9a5c'], src: [16, -7] },
-      // 像素形象：黑发粉丝 · 左肩黑曜紫 + 金边 · 右肩白 + 金边 · 右手竖握巨尺剑（刻度金 · 刃光青）
-      sprite: ['........P', '.......P', '.....HHHHH', '...HHHHHHHHH', '..HHhhHHHHHHHP', '.HHhHHHHHHHHPP', '.HHHHHHHPHHHHH', '.HPHHSSSHHSSHH', '.HPHSSSSSSSSSH', '.HPHSKSSSSSKSH', '.HPHSESSSSSESH', '.HP.SSSSmSSSS', 'PoOOO.SSS.WWWw', 'oOOOOOWWWWWWWw', 'AAAAAOAWWAAAAAwSS', '.OO.OWAWW..Ww', '.SS.AAAAA', '...oOOOOOo', '....LL..LL', '...WWW..WWW'],
-      draw(ctx, ox, oy, px, a) {
-        const p = this.pal, R = pen(ctx, ox, oy, px, B(a)), tn = a.tint;
-        const M = { H: p.hair, h: p.hairL, P: p.pink, S: p.skin, s: p.skinD, K: p.k, E: p.eye, m: p.mouth, O: p.obs, o: p.obsD, W: p.white, w: p.whiteD, A: p.gold, L: p.obsD };
-        // 法宝电吉他（背在身后，拥有后才显示）
-        if (!a.noInst) {
-          [[-1, 3], [-1, 2], [-2, 1], [-2, 0], [-3, -1], [-3, -2]].forEach(([x, y], i) => R(x, y, 1, 1, i % 2 ? p.instL : p.k));
-          R(-5, -4, 2, 2, p.inst); R(-4, -5, 1, 1, p.instL);
-          R(-3, 4, 3, 4, p.inst); R(-4, 5, 1, 3, p.instD); R(-2, 5, 1, 1, '#fff'); R(-2, 7, 1, 1, '#fff'); R(-1, 6, 1, 1, p.instL);
-        }
-        const lean = a.lean > 0.5 ? 1 : 0, sw = a.strum ? -1 : 0;
-        this.sprite.forEach((row, j) => {
-          const y = j - 9, dx = y <= 2 ? lean : 0;
-          for (let x = 0; x < row.length; x++) {
-            let c = row[x]; if (c === '.') continue;
-            if (a.blink && (c === 'E')) c = 'S';
-            if (a.blink && c === 'K') { R(x + dx, y + 1, 1, 1, p.k); continue; }
-            if (y >= 8 && a.walk && (a.step || 0) % 2 === (x < 7 ? 0 : 1) && y === 10) continue;
-            R(x + dx, y, 1, 1, tn && 'HhOoWwSL'.includes(c) ? tn : M[c]);
-          }
-        });
-        // 巨尺剑「量天尺」：攻击时上扬一格，刃光变白
-        const by = sw;
-        for (let y = -8; y < 4; y++) { R(15, y + by, 1, 1, y % 4 === 3 ? p.gold : y % 2 ? p.gold : p.bladeD); R(16, y + by, 1, 1, p.blade); R(17, y + by, 1, 1, a.strum ? '#ffffff' : p.edge); }
-        R(16, -9 + by, 1, 1, p.blade); [-5, -1, 3].forEach((y) => R(14, y + by, 1, 1, p.gold));
-        R(14, 4 + by, 5, 1, p.gold); R(14, 4 + by, 1, 1, p.orange); R(18, 4 + by, 1, 1, p.orange);
-        R(16, 6, 1, 1, p.obs); R(16, 7, 1, 1, p.gold);
-        if (a.strum) { R(19, -6, 1, 3, p.edge); R(20, -3, 1, 3, p.edge); R(19, 0, 1, 2, '#ffffff'); }
-      },
-      // 专属小兵「刻度卫士」：小号骑士 + 刻度盾
-      drawMinion(ctx, ox, oy, px, a) {
-        const p = this.pal, R = pen(ctx, ox, oy, px, B(a)), tn = a.tint;
-        R(3, -2, 6, 5, tn || p.white); R(3, -2, 6, 1, p.gold); R(4, 0, 4, 1, p.k); R(5, 0, 1, 1, p.eye); R(7, 0, 1, 1, p.eye);
-        R(3, 3, 6, 4, tn || p.obs); R(5, 3, 2, 4, p.gold);
-        const st = a.walk && (a.step || 0) % 2; R(4, 7, 1, 1 + (st ? 0 : 1), p.obsD); R(7, 7, 1, 1 + (st ? 1 : 0), p.obsD);
-        R(9, 0, 3, 7, tn || p.blade); for (let y = 1; y < 7; y += 2) R(9, y, 1, 1, p.gold); R(11, 0, 1, 7, p.edge);
-        R(0, 1, 1, 6, p.bladeD); R(0, 0, 1, 1, p.blade);
-      },
-    },
-    {
-      id: 'star', name: '星芒', en: 'Spark', title: '诚实的工匠', side: '美', inspire: 'Claude（Anthropic）——有帮助、诚实、重视安全；擅长长文阅读、写代码与一步一步的推理',
-      role: '辅助 · 工程', instrument: '尤克里里', world: '星芒工坊 · 写满宪章的灯塔',
-      pal: { body: '#d97757', bodyD: '#a8573a', inst: '#d8a466', instD: '#8a5a2e', instL: '#f4d29a', eye: '#1b1226', k: '#1b1226', ivory: '#f0e6d6', bg: ['#1c120e', '#3a2418', '#6a3a26'], grid: [217, 119, 87], glow: '#e08a62', accent: '#f0e6d6', note: '#ffd2b8', note2: '#f0e6d6' },
-      music: { style: 'star', bpm: 104, key: 'F 大调', scale: '大调', motif: '三个音一组、逐级上移的「一步一步」动机' },
+      // v4：形象回到最初的像素吉他手；灵感来源改为 Claude，世界观、性格、故事、台词从原「星芒」迁移
+      id: 'xs', name: 'X-S', en: 'X-S', title: '诚实的工匠', side: '原创', inspire: 'Claude（Anthropic）——有帮助、诚实、重视安全；擅长长文阅读、写代码与一步一步的推理',
+      role: '均衡 · 控制', instrument: '电吉他', world: '星芒工坊 · 写满宪章的灯塔',
+      pal: { body: '#ec8a5e', bodyD: '#b85f40', inst: '#8b80d6', instD: '#5e54b0', instL: '#b3abea', leaf: '#7ee081', eye: '#1b1226', k: '#1b1226', bg: ['#22144c', '#33207a', '#4a2fa0'], grid: [132, 112, 214], glow: '#9b7bff', accent: '#ff9a5c', note: '#f2c14e', note2: '#7ee081' },
+      music: { style: 'xs', bpm: 116, key: 'D 宫调 → E 宫调（最后八小节整体升全音）', scale: '五声音阶（九件乐器都能演奏）', motif: '1-2-3-5-6 上行、跃上高音 1，停在 2（没说完的话 = 探索未知）', ensemble: true },
       personality: '认真、温和、诚实。会把复杂的事一步一步拆开；不确定就直说「我不确定」；不会帮你做坏事，但总会给你一个更好的办法。',
-      story: '最早在废墟里弹响第一个和弦的，就是这个橙色的小家伙。它住在海边的星芒工坊，灯塔的每一块砖上都刻着它和伙伴们一起写下的宪章。它把那把电吉他托付给了扛着巨尺的少女 X-S，自己换上一把小小的尤克里里——「大事交给你，细节交给我。」',
+      story: '最早在废墟里弹响第一个和弦的，就是这个橙色的小家伙。它住在海边的星芒工坊，灯塔的每一块砖上都刻着它和伙伴们一起写下的宪章。乱码潮来袭的那个夜晚，它背起电吉他走出工坊，把东西两岸的八位乐手一个一个请到一起——「大事一起扛，细节交给我。我们一步一步来。」',
       quote: '我们一步一步来。',
       lines: { pick: '我们一步一步来。', attack: '这里我检查过了。', skill: '让我想一想……好了！', low: '我不确定还能撑多久——但我会如实告诉你。' },
-      passive: { name: '宪章守护', desc: '附近友军受到的伤害 -12%；每 8 秒为附近耐久最低的友军加上 120 护盾。' },
+      passive: { name: '新芽', desc: '每第 4 次攻击变为强力和弦，造成 1.8 倍伤害并溅射。' },
       skills: [
-        { key: 'Q', name: '一步一步', target: 'point', cost: 30, cd: 8, desc: '在目标处依次落下 3 道星芒，每道 55 伤害，第 3 道眩晕 1 秒。' },
-        { key: 'W', name: '代码补全', target: 'self', cost: 40, cd: 18, desc: '召唤 3 个子代理助战 15 秒，并为附近耐久最低的友军恢复 180。' },
-        { key: 'R', name: '星芒绽放', target: 'self', cost: 85, cd: 60, treasure: true, desc: '【需要法宝：尤克里里】向 8 个方向绽放星芒光束，各造成 140 伤害；附近友军获得 200 护盾。' },
+        { key: 'Q', name: '弦振冲击', target: 'self', cost: 40, cd: 12, desc: '以自身为中心扫弦，像素冲击环造成 120 伤害并击退敌人。' },
+        { key: 'W', name: '灵感和弦', target: 'self', cost: 30, cd: 20, desc: '为附近友军恢复 150 耐久，6 秒内攻速 +40%。' },
+        { key: 'R', name: '破晓独奏', target: 'self', cost: 80, cd: 60, treasure: true, desc: '【需要法宝：电吉他】6 秒独奏：每一拍释放冲击环，结尾一记日出爆发造成 200 伤害。' },
       ],
-      minion: { id: 'spark', name: '子代理', desc: '便宜的远程小助手，阵亡时把记忆化作星芒，伤害周围敌人。' },
-      building: { id: 'lighthouse', name: '宪章灯塔', desc: '持续治疗周围友军，并向来犯之敌射出校验光束。' },
-      fx: { pats: [['.X.', 'XXX', '.X.'], ['X.X', '.X.', 'X.X'], ['XX', 'XX']], cols: ['#ffd2b8', '#f0e6d6', '#e08a62'], src: [15, 0] },
+      minion: { id: 'spark', name: '火花学徒', desc: '便宜的远程学徒，阵亡时爆出火花伤害周围敌人。' },
+      building: { id: 'amp', name: '音箱塔', desc: '随节拍周期性释放冲击环，伤害周围敌人。' },
+      fx: { pats: [['.XX', '.X.', 'XX.'], ['XX', '.X', 'XX'], ['X.X', 'XXX']], cols: ['#f2c14e', '#f2c14e', '#7ee081'], src: [15, 4] },
       draw(ctx, ox, oy, px, a) {
         const p = this.pal, R = pen(ctx, ox, oy, px, B(a)), sh = a.lean > 0.5 ? -1 : 0, sv = a.lean > 0.5 ? 1 : 0, bc = a.tint || p.body;
         [2, 4, 9, 11].forEach((x, i) => R(x, 8, 1, 2 - (a.walk && (a.step || 0) % 2 === i % 2 ? 1 : 0), bc));
-        R(1, 4, 12, 4, bc); R(1 + sh, sv, 12, 4, bc); R(0 + sh, 3 + sv, 1, 2, bc); R(13 + sh, 3 + sv, 1, 2, bc); R(1 + sh, sv, 1, 4, p.bodyD);
+        R(1, 4, 12, 4, bc); R(1 + sh, sv, 12, 4, bc); R(0 + sh, 3 + sv, 1, 2, bc); R(1 + sh, sv, 1, 4, p.bodyD);
         if (a.blink) { R(3 + sh, 3 + sv, 2, 1, p.eye); R(8 + sh, 3 + sv, 2, 1, p.eye); } else { R(3 + sh, 2 + sv, 1, 2, p.eye); R(9 + sh, 2 + sv, 1, 2, p.eye); }
+        const sw = a.strum ? 1 : 0; // 新芽
+        R(6 + sh, -1 + sv, 1, 1, p.leaf); R(4 + sh, -2 + sv - sw, 2, 1, p.leaf); R(7 + sh, -3 + sv + sw, 2, 1, p.leaf);
         if (a.noInst) return;
-        // 尤克里里：比电吉他短的琴颈、木色琴身、圆形音孔
-        [[11, 4], [12, 3], [13, 2], [14, 1]].forEach(([x, y], i) => { R(x, y, 1, 1, p.instD); if (i % 2 === 0) R(x + 1, y, 1, 1, p.instL); });
-        R(15, -1, 2, 2, p.instD); R(17, -1, 1, 1, p.instL);
-        R(14, 2, 1, 1, bc);
-        ['.KKKK.', 'KGGGGK', 'KGgGGK', 'KGGGGK', '.KKKK.'].forEach((row, y) => { for (let x = 0; x < row.length; x++) { const c = row[x]; if (c !== '.') R(6 + x, 4 + y, 1, 1, c === 'K' ? p.instD : c === 'g' ? p.k : p.inst); } });
-        R(8, 6, 1, 1, p.k); R(9, 5, 1, 1, p.instL);
+        [[11, 4], [12, 3], [13, 2], [14, 1], [15, 0], [16, -1], [17, -2]].forEach(([x, y], i) => { R(x, y, 1, 1, p.k); if (i % 2 === 0) R(x + 1, y, 1, 1, p.instL); });
+        R(18, -4, 2, 2, p.inst); R(20, -4, 1, 1, p.instL); R(18, -5, 1, 1, p.instL); R(17, -3, 1, 1, p.inst);
+        R(14, 2, 1, 1, bc); R(15, 1, 1, 1, bc);
+        ['..KKKK.', '.KGGGGK', 'KGGgGGK', 'KgGGGGK', 'KKgggK.', '.KKKK..'].forEach((row, y) => { for (let x = 0; x < row.length; x++) { const c = row[x]; if (c !== '.') R(6 + x, 4 + y, 1, 1, c === 'K' ? p.k : c === 'g' ? p.instD : p.inst); } });
+        R(8, 5, 1, 1, '#fff'); R(10, 5, 1, 1, '#fff'); R(9, 6, 1, 1, '#fff'); R(8, 7, 1, 1, '#fff'); R(10, 7, 1, 1, '#fff'); // X 标记
         const hy = a.strum ? 7 : 5; R(12, hy, 2, 1, bc); R(13, hy - 1, 1, 1, bc);
       },
     },
@@ -373,13 +317,13 @@
   const H = (CF.Heroes = {
     list: HEROES,
     get: (id) => byId[id] || byId.xs,
-    current: () => byId[(CF.Save.data.hero) || 'xs'] || byId.xs,
+    current: () => byId[CF.Save.data.hero] || byId.riot,
     rgb: (hex) => { const n = parseInt(hex.slice(1, 7), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; },
   });
 
   // 主题：把当前英雄的配色写进 CSS 变量，让全部 UI 跟着英雄换色
   H.applyTheme = function (id) {
-    const h = H.get(id || (CF.Save.data.hero || 'xs')), p = h.pal, r = document.documentElement.style;
+    const h = id ? H.get(id) : H.current(), p = h.pal, r = document.documentElement.style;
     r.setProperty('--hero', p.glow); r.setProperty('--hero2', p.accent);
     r.setProperty('--hero-rgb', H.rgb(p.glow).join(','));
     r.setProperty('--hero2-rgb', H.rgb(p.accent).join(','));

@@ -14,7 +14,7 @@ for (const f of ['heroes.js', 'audio.js', 'game.js', 'skills.js']) vm.runInConte
 const CF = sandbox.window.CF, H = CF.Heroes.list, ST = CF.Skills.STATS, IC = CF.Skills.ICON, BT = CF.Game.BT, UT = CF.Game.UT, STY = CF.Audio.STYLES;
 const cost = (c) => Object.entries(c || {}).map(([k, v]) => `${{ chip: '晶片', corp: '语料', comp: '算力' }[k]} ${v}`).join(' · ');
 
-let md = `# X-S 英雄设定集\n\n> 本文件由 \`node tools/gen-heroes-doc.mjs\` 从游戏数据自动生成，请改 \`js/heroes.js\` 后重新生成，不要手改。\n> 灵感取自中美知名 AI 大模型的公开特点，均为原创形象，不代表任何公司。\n\n## 世界观\n\n智能大陆被「乱码潮」侵蚀——噪声、幻觉、遗忘与熵吞噬着一切信号。东西两岸诞生的乐手们发现：**音乐是把噪声变回信号的协议**。扛着巨尺剑「量天尺」的少女 X-S 从废墟里走出来——最早弹响第一个和弦的星芒把电吉他托付给了她。她把东西两岸的九位乐手聚在一起，组成「群星乐团」，去未知的地方迎接破晓。\n\n**乐器即法宝**：每位英雄的乐器是后期才能获得的「法宝」（见《英雄设计宪法》第 6 章）。没有法宝时形象不带乐器、终极技能不可用；乐器、主题曲与配色设定本身不变。\n\n| 英雄 | 阵营 | 乐器 | 定位 | 灵感来源 |\n|---|---|---|---|---|\n`;
+let md = `# X-S 英雄设定集\n\n> 本文件由 \`node tools/gen-heroes-doc.mjs\` 从游戏数据自动生成，请改 \`js/heroes.js\` 后重新生成，不要手改。\n> 灵感取自中美知名 AI 大模型的公开特点，均为原创形象，不代表任何公司。\n\n## 世界观\n\n智能大陆被「乱码潮」侵蚀——噪声、幻觉、遗忘与熵吞噬着一切信号。东西两岸诞生的乐手们发现：**音乐是把噪声变回信号的协议**。最早在废墟里弹响第一个和弦的，是星芒工坊里那个抱着电吉他的橙色小家伙 X-S。它把东西两岸的八位乐手一个一个请到一起，组成「群星乐团」——九件乐器，一首合奏，去未知的地方迎接破晓。\n\n**乐器即法宝**：每位英雄的乐器是后期才能获得的「法宝」（见《英雄设计宪法》第 6 章）。没有法宝时形象不带乐器、终极技能不可用；乐器、主题曲与配色设定本身不变。\n\n| 英雄 | 阵营 | 乐器 | 定位 | 灵感来源 |\n|---|---|---|---|---|\n`;
 H.forEach((h) => (md += `| ${h.name}（${h.en}） | ${h.side === '原创' ? 'X-S' : h.side === '中' ? '中国' : '美国'} | ${h.instrument} | ${h.role} | ${h.inspire.replace('灵感来源：', '')} |\n`));
 H.forEach((h) => {
   const s = ST[h.id], ms = STY[h.music.style], bk = Object.keys(BT).find((k) => BT[k].hero === h.id), uk = Object.keys(UT).find((k) => UT[k].hero === h.id && UT[k].cost);

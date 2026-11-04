@@ -2,11 +2,13 @@
 (function () {
   const CF = window.CF;
   const CELL = 40, TICK = 1 / 30;
+  // 建造网格（《地图与网格宪法》）：1 格 = 64 世界像素；建筑按占位格吸附，目前除主脑类为 2×2 外都是 1×1
+  const GRID = 64;
   const TAU = Math.PI * 2;
 
   // ---------- 建筑 ----------
   const BT = {
-    core: { name: '主脑', hp: 2200, r: 46, desc: 'X-S 的主脑。被摧毁即失败。每秒产出晶片与算力，自带防御脉冲。', atk: { range: 210, dmg: 12, rate: 0.8, air: true } },
+    core: { name: '主脑', size: 2, hp: 2200, r: 46, desc: 'X-S 的主脑。被摧毁即失败。每秒产出晶片与算力，自带防御脉冲。', atk: { range: 210, dmg: 12, rate: 0.8, air: true } },
     miner: { name: '矿机', key: '1', cost: { chip: 50 }, hp: 260, r: 22, build: 4, desc: '必须建在晶片矿或语料泉上，每秒采集 3 单位资源。', yield: 3 },
     turret: { name: '炮塔', key: '2', cost: { chip: 80, corp: 20 }, hp: 450, r: 20, build: 5, desc: '对地对空的自动防御。附近有雷达站时射程 +20%。', atk: { range: 230, dmg: 16, rate: 0.7, air: true } },
     barrier: { name: '屏障', key: '3', cost: { chip: 30 }, hp: 1000, r: 19, build: 2, desc: '高耐久的墙，乱码军团会绕行或被迫攻击它。' },
@@ -15,11 +17,10 @@
     workshop: { name: 'Agent 工坊', key: '6', cost: { chip: 100, corp: 60 }, hp: 750, r: 30, build: 7, desc: '训练地面 Agent。右键地面设置集结点。', trains: ['scout', 'coder', 'refactor'] },
     port: { name: '无人机空港', key: '7', cost: { chip: 120, corp: 60, comp: 30 }, hp: 650, r: 30, build: 8, desc: '训练无人机。空中单位无视断崖地形。', trains: ['interceptor', 'bomber'] },
     ctx: { name: '上下文节点', hp: 1500, r: 26, desc: '保存关键记忆的节点。4 秒未受攻击会自我修复，也能被修复站修复。' },
-    gcore: { name: '乱码主脑', hp: 5000, r: 52, desc: '乱码军团的核心，源源不断地制造混乱。', atk: { range: 250, dmg: 20, rate: 1, air: true } },
+    gcore: { name: '乱码主脑', size: 2, hp: 5000, r: 52, desc: '乱码军团的核心，源源不断地制造混乱。', atk: { range: 250, dmg: 20, rate: 1, air: true } },
     gtower: { name: '噪声塔', hp: 650, r: 20, desc: '乱码军团的防御塔。', atk: { range: 220, dmg: 14, rate: 0.8, air: true } },
     // 英雄专属建筑（第 8 个建造位）
-    obelisk: { name: '新生方尖碑', key: '8', hero: 'xs', cost: { chip: 110, corp: 50 }, hp: 520, r: 20, build: 5, desc: '随节拍释放破晓冲击环，并让周围友军攻速 +15%。', pulse: { r: 170, dmg: 22, every: 1.4 }, aura: { range: 200, haste: 0.15 } },
-    lighthouse: { name: '宪章灯塔', key: '8', hero: 'star', cost: { chip: 110, corp: 50 }, hp: 520, r: 20, build: 5, desc: '持续治疗周围友军，并向来犯之敌射出校验光束。', heal: { range: 200, amt: 7 }, atk: { range: 220, dmg: 11, rate: 0.8, air: true } },
+    amp: { name: '音箱塔', key: '8', hero: 'xs', cost: { chip: 110, corp: 50 }, hp: 480, r: 20, build: 5, desc: '随节拍周期性释放冲击环，伤害周围敌人。', pulse: { r: 170, dmg: 22, every: 1.4 } },
     hall: { name: '琴房', key: '8', hero: 'omni', cost: { chip: 120, corp: 60 }, hp: 520, r: 22, build: 6, desc: '同时向 3 个目标发射音符。', atk: { range: 230, dmg: 12, rate: 0.7, air: true, multi: 3 } },
     prism: { name: '双星棱镜', key: '8', hero: 'twin', cost: { chip: 120, corp: 60 }, hp: 460, r: 20, build: 6, desc: '分叉光束同时攻击 2 个目标。', atk: { range: 240, dmg: 15, rate: 0.6, air: true, multi: 2 } },
     drumtower: { name: '鼓楼', key: '8', hero: 'riot', cost: { chip: 100, corp: 60 }, hp: 540, r: 22, build: 5, desc: '周围友军攻速 +25%，每 4 秒震地并眩晕敌人。', aura: { range: 220, haste: 0.25 }, pulse: { r: 130, dmg: 25, every: 4, stun: 0.4 } },
@@ -37,8 +38,7 @@
   const UT = {
     hero: { name: '英雄', hp: 650, r: 17, speed: 100, atk: { range: 160, dmg: 20, rate: 0.6, air: true }, desc: '英雄。阵亡 20 秒后在主脑重生。' },
     // 英雄专属小兵（在 Agent 工坊训练）
-    rulerguard: { name: '刻度卫士', hero: 'xs', cost: { chip: 55, corp: 30 }, hp: 460, r: 12, speed: 92, time: 5, armor: 5, atk: { range: 24, dmg: 13, rate: 0.7, melee: true }, desc: '举着刻度盾的近战护卫，护甲高。' },
-    spark: { name: '子代理', hero: 'star', cost: { chip: 40, corp: 20 }, hp: 160, r: 10, speed: 110, time: 4, atk: { range: 140, dmg: 10, rate: 0.6, air: true }, death: { dmg: 45, r: 70 }, desc: '便宜的远程小助手，阵亡时化作星芒伤害周围敌人。' },
+    spark: { name: '火花学徒', hero: 'xs', cost: { chip: 40, corp: 20 }, hp: 160, r: 10, speed: 110, time: 4, atk: { range: 140, dmg: 10, rate: 0.6, air: true }, death: { dmg: 45, r: 70 }, desc: '便宜的远程学徒，阵亡时爆出火花。' },
     keyguard: { name: '琴键卫士', hero: 'omni', cost: { chip: 60, corp: 40 }, hp: 560, r: 13, speed: 80, time: 6, armor: 4, atk: { range: 22, dmg: 14, rate: 0.8, melee: true }, desc: '近战重甲兵。' },
     starling: { name: '星灵', hero: 'twin', cost: { chip: 45, corp: 30 }, hp: 150, r: 10, speed: 105, time: 5, split: 'starlet', atk: { range: 150, dmg: 9, rate: 0.55, air: true }, desc: '被击破时分裂成两颗小星灵。' },
     starlet: { name: '小星灵', hero: 'twin', hp: 60, r: 7, speed: 120, atk: { range: 120, dmg: 5, rate: 0.5, air: true }, desc: '' },
@@ -797,13 +797,22 @@
 
     // ---------- 建造 ----------
     buildRangeOk(x, y) { return this.ents.some((e) => e.team === 0 && e.kind === 'b' && e.done !== false && e.type !== 'ctx' && CF.dist(e.x, e.y, x, y) <= (e.type === 'radar' ? 460 : e.type === 'core' ? 340 : 260)); }
+    // 把任意位置吸附到建造网格：1×1 吸到格子中心，2×2 吸到格线交点；矿机吸到附近的资源点
+    snapBuild(type, x, y) {
+      if (type === 'miner') { const n = this.nodes.filter((q) => !q.miner).sort((a, b) => CF.dist(a.x, a.y, x, y) - CF.dist(b.x, b.y, x, y))[0]; return n && CF.dist(n.x, n.y, x, y) < GRID * 1.3 ? [n.x, n.y] : [x, y]; }
+      const sz = (BT[type] && BT[type].size) || 1;
+      return sz % 2 ? [(Math.floor(x / GRID) + 0.5) * GRID, (Math.floor(y / GRID) + 0.5) * GRID] : [Math.round(x / GRID) * GRID, Math.round(y / GRID) * GRID];
+    }
+    // 一个建筑占用的格子（用于网格高亮）：格子中心落在建筑半径内的都算
+    cellsOf(e) { const out = [], r = e.r; for (let cy = Math.floor((e.y - r) / GRID); cy <= Math.floor((e.y + r) / GRID); cy++) for (let cx = Math.floor((e.x - r) / GRID); cx <= Math.floor((e.x + r) / GRID); cx++) { const px = (cx + 0.5) * GRID, py = (cy + 0.5) * GRID; if (Math.abs(px - e.x) < r + GRID * 0.15 && Math.abs(py - e.y) < r + GRID * 0.15) out.push(cx + ',' + cy); } return out; }
     checkBuild(type, x, y) {
       const d = BT[type];
+      [x, y] = this.snapBuild(type, x, y);
       if (type === 'miner') { const n = this.nodeAt(x, y); if (!n) return [false, '矿机必须建在资源点上']; if (n.miner) return [false, '这个资源点已有矿机']; if (n.camp !== undefined && this.campAlive && this.campAlive(n.camp)) return [false, '先清理守卫这里的野怪营地']; x = n.x; y = n.y; }
       if (x < d.r || y < d.r || x > this.W - d.r || y > this.H - d.r) return [false, '超出地图'];
       for (let a = 0; a < TAU; a += TAU / 8) if (!this.walkXY(x + Math.cos(a) * d.r * 0.8, y + Math.sin(a) * d.r * 0.8)) return [false, '不能建在数据断崖上'];
       if (!this.walkXY(x, y)) return [false, '不能建在数据断崖上'];
-      if (this.ents.some((e) => e.kind === 'b' && !e.dead && CF.dist(e.x, e.y, x, y) < e.r + d.r + 4)) return [false, '与其他建筑重叠'];
+      if (this.ents.some((e) => e.kind === 'b' && !e.dead && CF.dist(e.x, e.y, x, y) < e.r + d.r)) return [false, '这个格子已被占用'];
       if (type !== 'miner' && this.nodes.some((n) => CF.dist(n.x, n.y, x, y) < n.r + d.r)) return [false, '资源点只能放矿机'];
       if (!this.buildRangeOk(x, y)) return [false, '超出信号覆盖范围（靠近已有建筑，雷达站可扩展）'];
       if (!canPay(this.res, d.cost)) return [false, '资源不足'];
@@ -908,11 +917,24 @@
         if (n.type === 'chip') for (let k = 0; k < 5; k++) { const a = (k / 5) * TAU + 0.3; ctx.save(); ctx.translate(n.x + Math.cos(a) * 14, n.y + Math.sin(a) * 14); ctx.rotate(Math.PI / 4); ctx.fillRect(-5, -5, 10, 10); ctx.restore(); }
         else { ctx.font = '12px ui-monospace,monospace'; for (let k = 0; k < 4; k++) ctx.fillText('文语料字'[k], n.x - 18 + k * 10, n.y + 4 + Math.sin(t * 3 + k) * 6); }
       }
-      // 建造范围
+      // 建造网格（放置模式）：可建格亮起，被占用的格子暗红，断崖不画
       if (g.build) {
-        ctx.strokeStyle = '#9b7bff33'; ctx.fillStyle = '#9b7bff0a'; ctx.setLineDash([6, 6]);
-        g.ents.forEach((e) => { if (e.team === 0 && e.kind === 'b' && e.done && e.type !== 'ctx') { ctx.beginPath(); ctx.arc(e.x, e.y, e.type === 'radar' ? 460 : e.type === 'core' ? 340 : 260, 0, TAU); ctx.fill(); ctx.stroke(); } });
-        ctx.setLineDash([]);
+        const vx0 = Math.floor(g.cam.x / GRID), vy0 = Math.floor(g.cam.y / GRID), vx1 = Math.ceil((g.cam.x + g.viewW()) / GRID), vy1 = Math.ceil((g.cam.y + g.viewH()) / GRID);
+        const occ = new Set(); g.ents.forEach((e) => { if (e.kind === 'b' && !e.dead) g.cellsOf(e).forEach((k) => occ.add(k)); });
+        const pulse = 0.5 + 0.5 * this.beat;
+        for (let cy = vy0; cy < vy1; cy++) for (let cx = vx0; cx < vx1; cx++) {
+          const px = (cx + 0.5) * GRID, py = (cy + 0.5) * GRID;
+          if (px < 0 || py < 0 || px > g.W || py > g.H || !g.walkXY(px, py)) continue;
+          const inR = g.buildRangeOk(px, py), o = occ.has(cx + ',' + cy);
+          if (!inR && !o) continue;
+          ctx.fillStyle = o ? 'rgba(255,79,154,.10)' : `rgba(155,123,255,${0.07 + 0.05 * pulse})`; ctx.fillRect(cx * GRID + 2, cy * GRID + 2, GRID - 4, GRID - 4);
+          ctx.strokeStyle = o ? 'rgba(255,79,154,.22)' : 'rgba(155,123,255,.28)'; ctx.strokeRect(cx * GRID + 2.5, cy * GRID + 2.5, GRID - 5, GRID - 5);
+        }
+        const b = g.build, d = BT[b.type], gx = b.ok ? b.sx : g.snapBuild(b.type, b.x, b.y)[0], gy = b.ok ? b.sy : g.snapBuild(b.type, b.x, b.y)[1], sz = (d.size || 1) * GRID;
+        ctx.fillStyle = b.ok ? 'rgba(111,220,140,.22)' : 'rgba(255,93,108,.22)'; ctx.strokeStyle = b.ok ? '#6fdc8c' : '#ff5d6c'; ctx.lineWidth = 2;
+        ctx.fillRect(gx - sz / 2, gy - sz / 2, sz, sz); ctx.strokeRect(gx - sz / 2 + 1, gy - sz / 2 + 1, sz - 2, sz - 2); ctx.lineWidth = 1;
+        if (d.atk && d.atk.range) { ctx.strokeStyle = b.ok ? '#6fdc8c55' : '#ff5d6c55'; ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.arc(gx, gy, d.atk.range, 0, TAU); ctx.stroke(); ctx.setLineDash([]); }
+        ctx.save(); ctx.globalAlpha = 0.65; try { g.drawB(ctx, { type: b.type, def: d, x: gx, y: gy, r: d.r, done: true, hp: d.hp, maxHp: d.hp, team: 0, kind: 'b', queue: [], hit: 0, ghost: true, rally: { x: gx, y: gy } }, t); } catch (er) { ctx.fillStyle = '#9b7bff'; ctx.beginPath(); ctx.arc(gx, gy, d.r, 0, TAU); ctx.fill(); } ctx.restore();
       }
       // 选中圈与射程
       for (const id of g.sel) { const e = g.get(id); if (!e) continue; ctx.strokeStyle = e.team === 0 ? '#6fdc8c' : COLS.foe; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(e.x, e.y + (e.air ? 4 : e.r * 0.3), e.r + 5, (e.r + 5) * 0.6, 0, 0, TAU); ctx.stroke(); ctx.lineWidth = 1; if (e.kind === 'b' && (e.range || (e.def.atk && e.def.atk.range))) { ctx.strokeStyle = '#ffffff18'; ctx.beginPath(); ctx.arc(e.x, e.y, e.range || e.def.atk.range, 0, TAU); ctx.stroke(); } if (e.kind === 'b' && e.def.trains && e.team === 0) { ctx.strokeStyle = '#6fdc8c55'; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(e.rally.x, e.rally.y); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = '#6fdc8c'; ctx.fillRect(e.rally.x - 3, e.rally.y - 10, 2, 12); ctx.fillRect(e.rally.x - 1, e.rally.y - 10, 7, 5); } }
@@ -1049,14 +1071,13 @@
           ctx.fillStyle = COLS.foe; ctx.font = `bold ${r * 0.8}px ui-monospace,monospace`; ctx.textAlign = 'center'; ctx.fillText(GLYPH[Math.floor(t * 6) % GLYPH.length], 0, r * 0.28); ctx.textAlign = 'left';
           break;
         }
-        case 'obelisk': case 'lighthouse': case 'hall': case 'prism': case 'drumtower': case 'bazaar': case 'deepwell': case 'moonterrace': case 'jadeplate': case 'steamer': case 'jade': case 'depot': {
+        case 'amp': case 'hall': case 'prism': case 'drumtower': case 'bazaar': case 'deepwell': case 'moonterrace': case 'jadeplate': case 'steamer': case 'jade': case 'depot': {
           const hd = CF.Heroes.get(b.def.hero || (b.type === 'jade' ? 'pearl' : 'xs')), P = hd.pal, k = 1 + this.beat * 0.08;
           ctx.translate(x, y); ctx.scale(k, k);
           ctx.fillStyle = '#14112a'; ctx.strokeStyle = P.glow; ctx.lineWidth = 2;
           ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill(); ctx.stroke();
           const R2 = (a, b2, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(a, b2, w, h); };
-          if (b.type === 'obelisk') { ctx.fillStyle = P.obs; ctx.beginPath(); ctx.moveTo(0, -18); ctx.lineTo(7, -10); ctx.lineTo(6, 12); ctx.lineTo(-6, 12); ctx.lineTo(-7, -10); ctx.closePath(); ctx.fill(); R2(-1, -14, 2, 24, P.white); for (let i = 0; i < 5; i++) R2(-6, -8 + i * 4, i % 2 ? 3 : 5, 1, P.gold); ctx.fillStyle = P.gold; ctx.globalAlpha *= 0.6 + this.beat * 0.4; ctx.beginPath(); ctx.arc(0, -18, 4 + this.beat * 3, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; }
-          if (b.type === 'lighthouse') { R2(-6, -10, 12, 22, P.ivory); R2(-6, -2, 12, 3, P.body); R2(-6, 6, 12, 3, P.body); R2(-8, -14, 16, 4, P.bodyD); ctx.fillStyle = '#fff6d8'; ctx.globalAlpha *= 0.5 + this.beat * 0.5; ctx.beginPath(); ctx.arc(0, -18, 5 + this.beat * 3, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; }
+          if (b.type === 'amp') { R2(-11, -13, 22, 26, '#1b1226'); ctx.fillStyle = P.inst; ctx.beginPath(); ctx.arc(0, -5, 6 + this.beat * 2, 0, TAU); ctx.arc(0, 7, 4, 0, TAU); ctx.fill(); }
           if (b.type === 'hall') { R2(-14, -4, 28, 10, P.dark); for (let i = 0; i < 7; i++) R2(-13 + i * 4, 1, 3, 5, i % 2 ? P.white : '#cfd8d4'); R2(2, -12, 12, 8, P.dark); }
           if (b.type === 'prism') { ctx.fillStyle = P.blue; ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(10, 6); ctx.lineTo(-10, 6); ctx.closePath(); ctx.fill(); ctx.fillStyle = P.pink; ctx.fillRect(-2, -6, 4, 10); }
           if (b.type === 'drumtower') { ctx.fillStyle = P.red; ctx.beginPath(); ctx.ellipse(0, 0, 13, 9, 0, 0, TAU); ctx.fill(); R2(-13, -2, 26, 2, P.white); R2(-1, -14, 2, 8, P.steel); }
@@ -1178,5 +1199,5 @@
     }
   }
 
-  CF.Game = { Game, BT, UT, BUILD_ORDER, TRAIN_KEY, canPay, costHtml, current: null };
+  CF.Game = { Game, BT, UT, BUILD_ORDER, TRAIN_KEY, GRID, canPay, costHtml, current: null };
 })();

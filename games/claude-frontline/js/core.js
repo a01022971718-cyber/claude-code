@@ -71,7 +71,7 @@
       achievements: {},
       stats: { riffs: 0, kills: 0, battles: 0, wins: 0, playSec: 0 },
       avatar: null,
-      hero: 'xs',
+      hero: 'riot', // 开局英雄（主角 X-S 走特殊渠道获得）
       tutorial: { done: false },
       quick: { best: 0, runs: 0, bestRank: '' },
       city: null,
@@ -105,7 +105,7 @@
     exportText() { return JSON.stringify(this.data, null, 1); },
     importText(txt) {
       const obj = JSON.parse(txt);
-      if (!obj || obj.version !== 1) throw new Error('不是有效的 X-S战线 存档');
+      if (!obj || obj.version !== 1) throw new Error('不是有效的 X-S战益 存档');
       this.data = merge(defaults(), obj);
       this.save();
     },

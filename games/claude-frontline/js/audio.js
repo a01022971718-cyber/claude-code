@@ -18,9 +18,9 @@
     fanfare: { name: '胜利号角', bpm: 120, prog: ['C', 'G', 'Am', 'F'], swing: 0 },
     sad: { name: '低吟', bpm: 72, prog: ['Am', 'Dm', 'E', 'Am'], swing: 0 },
     // 英雄主题曲：hero 字段决定主奏乐器与动机
-    // X-S 主题：D 利底亚（升四级 = 对未知的好奇），后四小节整体升全音（向上），级进上行后跃上八度（新生）
-    xs: { name: 'X-S · 电吉他「破晓·向上」', bpm: 120, prog: ['D', 'E', 'Bm', 'A'], swing: 0, hero: 'xs', gain: 0.8, gainLo: 1.3, root: 62, lift: 2, scale: [0, 2, 4, 6, 7, 9, 11], motif: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 4], [7, 6], [6, 2], [7, 4], [null, 8]] },
-    star: { name: '星芒 · 尤克里里「一步一步」', bpm: 104, prog: ['F', 'C', 'Dm', 'Bb'], swing: 0.08, hero: 'star', gain: 2, root: 65, scale: [0, 2, 4, 5, 7, 9, 11], motif: [[0, 2], [1, 2], [2, 4], [1, 2], [2, 2], [3, 4], [2, 2], [3, 2], [4, 6], [null, 6]] },
+    // X-S 主题《众声向上》：九位英雄的九件乐器合奏（见《英雄设计宪法》第 5.9 节）。
+    // 32 小节四段：新生（电吉他独奏）→ 相遇（每件乐器用自己的动机回应）→ 同行（各司其职）→ 向上（整体升全音，全员齐奏同一条动机）
+    xs: { name: 'X-S · 九乐器合奏「众声向上」', bpm: 116, prog: ['D', 'Bm', 'G', 'A'], swing: 0, hero: 'xs', ensemble: true, gain: 0.9, gainLo: 0.95, root: 62, scale: [0, 2, 4, 7, 9], motif: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 4], [5, 6], [6, 6], [null, 8]] },
     omni: { name: '万象 · 钢琴「八十八层」', bpm: 100, prog: ['C', 'G', 'Am', 'F'], swing: 0, hero: 'omni', gain: 1.5, root: 72, scale: [0, 2, 4, 5, 7, 9, 11], motif: [[4, 2], [2, 2], [0, 2], [2, 2], [4, 2], [7, 4], [6, 2], [7, 8], [null, 8]] },
     twin: { name: '双子 · 竖琴「星河两岸」', bpm: 88, prog: ['Dmaj7', 'E', 'Bm', 'A'], swing: 0, hero: 'twin', gain: 2.4, root: 74, scale: [0, 2, 4, 6, 7, 9, 11], motif: [[0, 2], [4, 2], [6, 4], [null, 2], [7, 2], [6, 2], [4, 2], [5, 6], [null, 10]] },
     riot: { name: '狂想 · 架子鼓「没有规则」', bpm: 150, prog: ['Em', 'Em', 'G', 'A'], swing: 0, hero: 'riot', root: 52, scale: [0, 3, 5, 6, 7, 10], motif: [[0, 1], [0, 1], [3, 2], [0, 2], [5, 2], [4, 2], [3, 2], [1, 4], [null, 16]] },
@@ -269,7 +269,6 @@
   function heroNote(id, m, t, dur, v, d) {
     switch (id) {
       case 'xs': pluck(m, t, v, { bus: d, kind: 'b', verb: false }); break;
-      case 'star': pluck(m, t, v * 1.1, { bus: d, kind: 'u' }); osc('sine', mtof(m + 12), 0, t, 0.5, v * 0.05, d); break;
       case 'omni': piano(m, t, v, d, Math.max(0.5, dur * 1.6)); break;
       case 'twin': harp(m, t, v, d); break;
       case 'riot': kick(t, 0.8 * v, d); snare(t + dur * 0.5, 0.6 * v, d); break;
@@ -288,40 +287,96 @@
     st.motif.slice(0, fast ? 4 : 7).forEach(([deg, len]) => { if (deg !== null) heroNote(st.hero, degMidi(st, deg), t, unit * Math.min(len, 3), 0.8, d); t += unit * Math.min(len, 2); });
   };
 
+  // ================= X-S 九乐器合奏《众声向上》 =================
+  // 分轨开关：A.mute 里的乐器不发声（英雄档案页「分轨试听」使用）。地基（贝斯、和声垫）始终保留。
+  A.ENSEMBLE = [['guitar', '电吉他', 'xs'], ['piano', '钢琴', 'omni'], ['harp', '竖琴', 'twin'], ['drums', '架子鼓', 'riot'], ['panflute', '排箫', 'llama'], ['guqin', '古琴', 'abyss'], ['erhu', '二胡', 'luna'], ['pipa', '琵琶', 'pearl'], ['suona', '唢呐 · 锣鼓', 'bun']];
+  A.mute = new Set();
+  A.SECTIONS = [['新生', 0, '电吉他独自弹出动机：一个人的起点'], ['相遇', 8, '电吉他发问，八件乐器依次用自己的动机回应'], ['同行', 16, '各司其职：节奏、低音、和声、旋律一起推进'], ['向上', 24, '整体升高一个全音，九件乐器齐奏同一条动机']];
+  A.seek = (bar) => { if (P.on && P.style) P.step = bar * 16; }; // 跳到第几小节（分轨试听用）
+  A.section = () => { const b = Math.floor((P.step || 0) / 16) % 32; return A.SECTIONS.reduce((r, x) => (b >= x[1] ? x : r), A.SECTIONS[0]); };
+  const motifAt = (mo, k) => { let p = 0; for (const [d, l] of mo) { if (p === k) return d === null ? null : { d, l }; p += l; if (p > k) return undefined; } return undefined; };
+  // 某位英雄动机的前 n 步（用于「相遇」段的回应），映射到 X-S 的五声音阶上：各自的旋律，同一个调
+  const answerAt = (heroStyle, k, n) => { const mo = STYLES[heroStyle].motif; let p = 0; for (const [d, l] of mo) { if (p >= n) return undefined; if (p === k) return d === null ? null : { d: CF.clamp(d, 0, 7), l: Math.min(l, n - p) }; p += l; if (p > k) return undefined; } return undefined; };
+  function ensembleStep(st, step, t, spb, out0, I, root0, v0, ch) {
+    const on = (k) => !A.mute.has(k), s = step % 16, bar = Math.floor(step / 16) % 32, hi = I >= 0.8, lo = hi ? 1 : 0.7;
+    // 分段音量包络：独奏段抬高、齐奏段压低，整首的平均响度保持在宪法范围内（RMS 0.03–0.07），但仍然一路向上
+    if (!st._bus) { st._bus = A.ctx.createGain(); st._bus.connect(out0); }
+    const out = st._bus;
+    if (s === 0) out.gain.setTargetAtTime(bar < 12 ? 1.6 : bar < 16 ? 0.85 : bar < 24 ? 0.9 : 0.58, t, 0.25);
+    const sec = bar < 8 ? 0 : bar < 16 ? 1 : bar < 24 ? 2 : 3, tr = sec === 3 ? 2 : 0, root = root0 + tr, v = v0.map((x) => x + tr);
+    const M = (d) => degMidi(st, d) + tr, k2 = (bar % 2) * 16 + s; // 两小节动机内的位置
+    let hit = false;
+    // ---- 地基：贝斯 + 和声垫（不参与分轨）
+    if (s === 0) { bass(root - 12, t, spb * 7, sec ? 0.65 : 0.45, out); pad(ch, t, spb * 16, sec === 0 ? 0.7 : 0.45, out, tr); }
+    if (s === 8 && sec) bass(root - 12 + 7, t, spb * 6, 0.45, out);
+    // ---- 电吉他（X-S）：主角，第一段独奏、第二段发问、第四段领奏
+    if (on('guitar')) {
+      if (s % 2 === 0 && (sec === 0 || sec === 1)) { const pat = [0, 2, 3, 4, 5, 4, 3, 2]; pluck(v[pat[s / 2]], t, 0.32, { bus: out }); }
+      if (sec >= 2 && s % 2 === 0) pluck(root - 12, t, hi ? 0.42 : 0.28, { bus: out, kind: 'm', dist: hi, len: spb * 1.2 });
+      if (sec === 3 && (s === 0 || s === 10)) strum([root - 12, root - 5, root], t, 0.34 * lo, { bus: out, dist: hi, gap: 0.006, len: spb * 4 });
+      const lead = (sec === 0 && bar % 4 < 2) || (sec === 1 && bar < 10) || (sec === 2 && bar % 4 < 2) || (sec === 3 && bar % 4 < 2);
+      const e = lead ? motifAt(st.motif, k2) : undefined;
+      if (e) { pluck(M(e.d), t, sec === 3 ? 0.55 : 0.72, { bus: out, kind: 'b', dist: hi && sec === 3, len: Math.min(e.l, 6) * spb }); hit = true; }
+    }
+    // ---- 第二段「相遇」：每件乐器用自己的动机回应（各自的旋律，同一个调）
+    if (sec === 1) {
+      const A1 = (key, hs, fn, n = 16) => { if (!on(key)) return; const e = answerAt(hs, s, n); if (e) { fn(M(e.d), e.l * spb); hit = true; } };
+      if (bar === 10) A1('piano', 'omni', (m, d) => piano(m + 12, t, 0.7, out, Math.max(0.6, d * 1.3)));
+      if (bar === 11) A1('harp', 'twin', (m) => harp(m + 12, t, 0.7, out));
+      if (bar === 13 && s < 8) A1('panflute', 'llama', (m, d) => panflute(m + 12, t, d * 0.95, 0.65, out), 8);
+      if (bar === 13 && s >= 8) { const e = answerAt('abyss', s - 8, 8); if (on('guqin') && e) { guqin(M(e.d), t, 0.85, out, 2); hit = true; } }
+      if (bar === 14 && s < 8) A1('erhu', 'luna', (m, d) => erhu(m + 12, t, Math.max(d, spb * 2), 0.7, out), 8);
+      if (bar === 14 && s >= 8) { const e = answerAt('pearl', s - 8, 8); if (on('pipa') && e) { pipa(M(e.d) + 12, t, 0.65, out, 2); hit = true; } }
+      if (bar === 15) A1('suona', 'bun', (m, d) => suona(m + 12, t, d * 0.95, 0.55 * lo, out));
+      if (bar === 12 && on('drums')) { if (s % 2 === 0) snare(t, 0.35 + s * 0.04, out); if (s >= 8) tom(t, [220, 200, 170, 150, 130, 120, 110, 100][s - 8], 0.75, out); if (s === 0) kick(t, 0.9, out); hit = s % 4 === 0; }
+      if (bar === 15 && s === 15 && on('suona')) gong(t + spb * 0.5, 0.7, out);
+    }
+    // ---- 伴奏层：回应过的乐器留下来，各司其职（从「相遇」后半段开始逐个出现）
+    if (on('drums') && (bar > 12 || sec >= 2)) {
+      const K = sec === 3 ? [0, 6, 8, 10] : [0, 8], Sn = [4, 12];
+      if (K.includes(s)) kick(t, 0.68 * lo, out); if (Sn.includes(s)) snare(t, 0.62 * lo, out); if (s % 2 === 0) hat(t, 0.32 * lo, out);
+      if ((bar === 23 || bar === 31) && s >= 12) tom(t, [210, 175, 145, 120][s - 12], 0.7, out);
+      if (s === 0 && (bar === 16 || bar === 24 || bar === 28)) crash(t, 0.55 * lo, out);
+    }
+    if (on('piano') && (bar > 10 || sec >= 2)) { if (sec >= 2 && s % 4 === 2) piano(v[2 + ((s >> 2) % 3)], t, 0.26, out, 0.9); if (s === 0) piano(v[1], t, 0.3, out, 1.6); }
+    if (on('harp') && (bar > 11 || sec >= 2)) {
+      if (s === 0) v.concat(v.map((x) => x + 12)).slice(0, 8).forEach((x, i) => harp(x, t + i * 0.025, 0.22, out));
+      if (sec === 3 && (bar === 26 || bar === 30) && s >= 8) { const sc = st.scale, d = (s - 8) * 2; [0, 1].forEach((o) => { const dd = d + o; harp(root + 12 + sc[dd % 5] + 12 * Math.floor(dd / 5), t + o * spb * 0.5, 0.35, out); }); }
+    }
+    if (on('guqin') && (bar > 13 || sec >= 2) && s === 0 && bar % 2 === 0) guqin(root - 12, t, 0.6, out, 2);
+    if (on('pipa') && (bar > 14 || sec >= 2) && (s === 4 || s === 12)) strum(v.slice(1, 5).map((x) => x + 12), t, 0.26, { bus: out, kind: 'p', gap: 0.01 });
+    if (on('suona') && sec >= 2) { if (s === 0 && bar % 2 === 0) tanggu(t, 0.55 * lo, out); if (s === 8) tanggu(t, 0.35 * lo, out); if (s % 4 === 2 && hi) wood(t, 0.3, out); if (s === 0 && bar === 24) gong(t, 0.8, out); }
+    // ---- 第三段「同行」：电吉他 + 二胡齐奏动机，唢呐、排箫轮流应答
+    if (sec === 2) {
+      const e = bar % 4 < 2 ? motifAt(st.motif, k2) : undefined;
+      if (e && on('erhu')) { erhu(M(e.d) + 12, t, Math.max(e.l * spb, spb * 2), 0.55, out); hit = true; }
+      const ans = bar % 4 >= 2 ? answerAt(bar < 20 ? 'bun' : 'llama', k2, 32) : undefined;
+      if (ans) { if (bar < 20 && on('suona')) { suona(M(ans.d) + 12, t, ans.l * spb * 0.95, 0.42 * lo, out); hit = true; } if (bar >= 20 && on('panflute')) { panflute(M(ans.d) + 12, t, ans.l * spb * 0.95, 0.6, out); hit = true; } }
+    }
+    // ---- 第四段「向上」：升全音，九件乐器齐奏同一条动机（上下一心 = 齐奏）
+    if (sec === 3 && bar % 4 < 2) {
+      const e = motifAt(st.motif, k2);
+      if (e) {
+        const m = M(e.d), d = e.l * spb;
+        if (on('erhu')) erhu(m + 12, t, Math.max(d, spb * 2), 0.27, out);
+        if (on('suona')) suona(m + 12, t, d * 0.95, 0.2 * lo, out);
+        if (on('panflute')) panflute(m + 24, t, d * 0.95, 0.26, out);
+        if (on('piano')) piano(m + 12, t, 0.3, out, Math.max(0.6, d * 1.2));
+        if (on('pipa')) pipa(m + 12, t, 0.22, out, 2);
+        if (on('harp')) harp(m + 24, t, 0.2, out);
+        if (on('guqin')) guqin(m, t, 0.26, out, 0);
+        hit = true;
+      }
+    }
+    return hit;
+  }
   function heroStep(st, step, t, spb, out, I) {
     const s = step % 16, bar = Math.floor(step / 16), ch = st.prog[bar % st.prog.length], [root] = CH[ch], v = voicing(ch);
     const rnd = CF.rng(P.seed + bar * 977 + s * 31), e = st.tl[step % 128], hi = I >= 0.8;
     const len = e ? e.len * spb : 0, m = e ? degMidi(st, e.d) : 0;
     let strumHit = false;
     switch (st.hero) {
-      case 'xs': {
-        // 后四小节整体升全音：动机在更高处再出现一次 = 向上
-        const tr = st.lift && bar % 8 >= 4 ? st.lift : 0, Rt = root + tr, Vv = v.map((x) => x + tr);
-        if (s % 2 === 0) pluck(Rt - 12, t, hi ? 0.55 : 0.32, { bus: out, kind: 'm', dist: hi, len: spb * 1.3 });
-        if (s === 0 || (hi && s === 10)) strum([Rt - 12, Rt - 5, Rt], t, hi ? 0.75 : 0.45, { bus: out, dist: hi, gap: 0.006, len: spb * (s === 0 ? 5 : 3) });
-        if (s % 4 === 2) pluck(Vv[3 + ((s >> 2) % 3)] + 12, t, 0.2, { bus: out, kind: 'h' });
-        if (e) { pluck(m + tr, t, 0.72, { bus: out, kind: 'b', dist: hi, len: Math.min(len, spb * 6) }); strumHit = true; }
-        if (hi) {
-          if (s === 0 || s === 8 || s === 11) kick(t, 0.85, out); if (s === 4 || s === 12) snare(t, 0.9, out); if (s % 2 === 0) hat(t, 0.38, out);
-          if (bar % 4 === 3 && s >= 12) tom(t, [210, 175, 145, 120][s - 12], 0.7, out);
-          if (s === 0 && bar % 4 === 0) crash(t, 0.55, out);
-        } else { if (s === 0) kick(t, 0.45, out); if (s === 8) snare(t, 0.2, out); if (s % 4 === 2) hat(t, 0.2, out); }
-        if (s === 0) { bass(Rt - 24, t, spb * 7, 0.7, out); pad(ch, t, spb * 16, hi ? 0.5 : 0.8, out, tr); }
-        if (s === 8) bass(Rt - 24 + 7, t, spb * 6, 0.5, out);
-        break;
-      }
-      case 'star': {
-        // 尤克里里岛屿扫弦：下 · 下上 · 上下上
-        const U = v.slice(1, 5);
-        if ([0, 4, 6, 10, 12, 14].includes(s)) { const up = s === 6 || s === 10 || s === 14; strum(U, t + (s % 4 === 2 ? st.swing * spb : 0), up ? 0.24 : 0.34, { bus: out, kind: 'u', gap: 0.012, up }); }
-        if (e) { pluck(m, t, 0.75, { bus: out, kind: 'u' }); osc('sine', mtof(m + 12), 0, t, 0.6, 0.045, out); strumHit = true; }
-        if (hi) { if (s === 0 || s === 8) kick(t, 0.6, out); if (s === 4 || s === 12) { snare(t, 0.45, out); noise(t, 0.03, 0.16, out, 'bandpass', 1500, 1.5); } }
-        if (s % 2 === 1) shaker(t, hi ? 0.9 : 0.6, out);
-        if (s === 0) bass(root - 12, t, spb * 6, 0.55, out);
-        if (s === 8) bass(root - 12 + 7, t, spb * 6, 0.45, out);
-        if (s === 0 && bar % 2 === 1) osc('sine', mtof(v[4] + 24), 0, t, 1.2, 0.04, out);
-        break;
-      }
+      case 'xs': strumHit = ensembleStep(st, step, t, spb, out, I, root, v, ch); break;
       case 'omni':
         if (s % 2 === 0) { const lh = [0, 1, 2, 1, 3, 2, 1, 2]; piano(v[lh[s / 2] % 4] - 12, t, 0.5, out, 1.2); }
         if (s === 0 || s === 8) piano(v[2], t, 0.35, out, 1.8);
@@ -480,7 +535,7 @@
     out.connect(A.music);
     A.distGain.disconnect(); A.distGain.connect(out);
     A.verbOut.disconnect(); A.verbOut.connect(out);
-    P.on = true; P.style = st; P.step = 0; P.next = ctx.currentTime + 0.08; P.gain = out; P.seed = CF.randi(1, 99999);
+    P.on = true; P.style = st; P.step = 0; A.P_on = true; A.curStyle = st.id; if (st.id !== 'xs') A.mute.clear(); P.next = ctx.currentTime + 0.08; P.gain = out; P.seed = CF.randi(1, 99999);
     A.curBpm = st.bpm;
     const spb = 60 / st.bpm / 4;
     P.timer = setInterval(() => {
@@ -490,7 +545,7 @@
   }
   function stopProc(fade) {
     if (P.timer) clearInterval(P.timer);
-    P.timer = null; P.on = false;
+    P.timer = null; P.on = false; A.P_on = false;
     if (P.gain && A.ctx) { const g = P.gain; const t = A.ctx.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0.0001, t + (fade || 0.3)); setTimeout(() => g.disconnect(), (fade || 0.3) * 1000 + 600); }
     P.gain = null;
   }

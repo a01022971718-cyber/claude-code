@@ -9,6 +9,7 @@
 
   // ================= 页面切换 =================
   UI.show = function (name, arg) {
+    if (name !== 'hero' && CF.Audio.mute) CF.Audio.mute.clear(); // 离开英雄档案时恢复合奏的全部声部
     if (UI.cur === 'battle' && name !== 'battle') UI.leaveBattle();
     if (UI.cur === 'quick' && name !== 'quick' && CF.Quick) CF.Quick.stop();
     if (UI.cur === 'city' && name !== 'city' && CF.City) CF.City.leave();
@@ -96,7 +97,7 @@
   // 出征前选英雄：只能选已拥有的英雄（同时成为大厅的当前英雄与界面主题）
   UI.heroPicker = function (onPick) {
     const box = CF.h('<div class="hero-pick"></div>');
-    if (!CF.Roster.owns(CF.Save.data.hero)) { CF.Save.data.hero = 'xs'; CF.Heroes.applyTheme('xs'); }
+    if (!CF.Roster.owns(CF.Save.data.hero)) { CF.Save.data.hero = CF.Roster.STARTER; CF.Heroes.applyTheme(CF.Roster.STARTER); }
     CF.Heroes.list.forEach((h) => {
       const own = CF.Roster.owns(h.id);
       const b = CF.h(`<button class="${h.id === CF.Save.data.hero ? 'on' : ''} ${own ? '' : 'locked'}"><canvas width="144" height="112"></canvas>${h.name}${CF.Treasure.has(h.id) ? '' : '<small>无法宝</small>'}</button>`);
@@ -107,7 +108,7 @@
     return box;
   };
   // 组队副本：选 2 位队友（已拥有的英雄优先；不够时由「援军」试用英雄补位）
-  const GUESTS = ['star', 'twin', 'riot'];
+  const GUESTS = ['twin', 'llama', 'abyss'];
   UI.matePicker = function (L) {
     const box = CF.h('<div class="hero-pick mates"></div>');
     const draw = () => {
@@ -131,7 +132,7 @@
     const b = CF.P.battleBonus(), C = CF.Chapters, ch = L.chapter ? C.CHAPTERS.find((c) => c.id === L.chapter) : null;
     const waves = L.waves && !L.immersive ? L.waves : null, maxT = waves ? Math.max(...waves.map(C.Diff.threatOf)) : 1;
     const kind = L.dungeon ? '组队副本 · 5 波 · 每波都有奖励' : L.story ? '次级关 · 3 波 · 通关后不可重复挑战' : L.minor ? '小关 · 3 波 · 可重复挑战' : '';
-    const rewards = L.dungeon ? C.dungeonRewards(ch).map((r) => `<div class="small" style="line-height:1.9"><span class="c-chip">第 ${r.wave} 波</span> ${C.rewardText(r, ch)}</div>`).join('') : L.minor ? `<div class="small" style="line-height:1.9">每次通关：主城补给（晶片 / 语料 / 算力，按难度与星级）；首通双倍 + 学习加速 ×1</div>` : L.story ? `<div class="small" style="line-height:1.9">首通：主城补给${L.id === 'L3' ? ' + X-S 的法宝「电吉他」' : ''}</div>` : '';
+    const rewards = L.dungeon ? C.dungeonRewards(ch).map((r) => `<div class="small" style="line-height:1.9"><span class="c-chip">第 ${r.wave} 波</span> ${C.rewardText(r, ch)}</div>`).join('') : L.minor ? `<div class="small" style="line-height:1.9">每次通关：主城补给（晶片 / 语料 / 算力，按难度与星级）；首通双倍 + 学习加速 ×1</div>` : L.story ? `<div class="small" style="line-height:1.9">首通：主城补给${L.id === 'L3' ? ` + ${CF.Heroes.get(CF.Roster.STARTER).name}的法宝「${CF.Heroes.get(CF.Roster.STARTER).instrument}」` : ''}</div>` : '';
     const body = CF.h(`<div>${kind ? `<div class="row wrap" style="gap:6px;margin-bottom:8px"><span class="pill">${kind}</span>${L.P ? tierPill(L.P) : ''}</div>` : ''}<p style="line-height:1.8">${L.brief}</p><div class="sec-title">出战英雄</div><div id="bfPick"></div><p class="small muted" id="bfHero" style="margin-top:6px"></p>${L.dungeon ? '<div class="sec-title">队友（最多 2 位，AI 控制）</div><div id="bfMates"></div>' : ''}${waves ? `<div class="sec-title">波次强度</div><div class="wv">${waves.map((w, i) => `<div><i style="height:${Math.max(8, (C.Diff.threatOf(w) / maxT) * 100)}%"></i><span>${i + 1}${w.boss ? '★' : ''}</span></div>`).join('')}</div>` : ''}<div class="sec-title">任务目标</div>${L.objectives.map((o) => `<div class="small" style="line-height:1.9">◇ ${o.text}</div>`).join('')}${rewards ? `<div class="sec-title">奖励</div>${rewards}` : ''}<div class="sec-title">三星评价</div>${L.stars.map((s, i) => `<div class="small" style="line-height:1.9"><span class="c-chip">${'★'.repeat(i + 1)}</span> ${s[0]}</div>`).join('')}<div class="sec-title">你的学习与主城带来的加成</div>${b.lines.map((l) => `<div class="small muted" style="line-height:1.9">▸ ${l}</div>`).join('')}<div class="explain" style="margin-top:12px">💡 ${L.tip}</div></div>`);
     let mates = null;
     const info = () => { const h = CF.Heroes.current(); body.querySelector('#bfHero').innerHTML = `<b style="color:var(--hero2)">${h.name}</b> · ${h.role} · 专属小兵「${h.minion.name}」· 专属建筑「${h.building.name}」${CF.Treasure.has(h.id) ? '' : ` · <span style="color:var(--pink)">未获得法宝「${h.instrument}」，终极技能不可用</span>`}`; if (mates) mates.redraw(); };
@@ -171,6 +172,7 @@
       const dt = (now - lastT) / 1000; lastT = now;
       if (UI.keys.size && !CF.modal.isOpen()) { const sp = (700 * dt) / g2.cam.z; if (UI.keys.has('ArrowLeft')) g2.cam.x -= sp; if (UI.keys.has('ArrowRight')) g2.cam.x += sp; if (UI.keys.has('ArrowUp')) g2.cam.y -= sp; if (UI.keys.has('ArrowDown')) g2.cam.y += sp; g2.clampCam(); }
       g2.frame(dt);
+      if (UI.place) { UI.edgePan(dt); UI.updPlace(); }
       g2.render(UI.gctx, UI.dpr);
       frameN++;
       if (frameN % 3 === 0 && !$('#mmBox').classList.contains('min')) g2.renderMini(UI.mctx);
@@ -183,6 +185,7 @@
     raf = requestAnimationFrame(loop);
   };
   UI.leaveBattle = function () {
+    UI.buildMode(false);
     cancelAnimationFrame(raf);
     if (CF.Game.current) { CF.Game.current.destroy(); CF.Game.current = null; }
     UI.keys.clear(); UI.closeRadial();
@@ -256,7 +259,52 @@
     const c = $('#comms'); c.classList.remove('hidden'); c.style.opacity = 1;
     clearTimeout(commsT); commsT = setTimeout(() => { c.style.opacity = 0; setTimeout(() => c.classList.add('hidden'), 300); }, 4600);
   };
-  UI.buildMode = function () {};
+  // ================= 放置模式：拖拽建造 + 网格吸附 + 镜头跟随 =================
+  // 选好建筑后出现「虚影」：拖到任意格子（手指上方 48px 显示，避免被手指挡住），靠近屏幕边缘时镜头自动跟随；
+  // 触屏点 ✓ 放置 / ✗ 取消；鼠标直接左键放置、右键或 Esc 取消，按住 Shift 连续建造。
+  const TOUCH_LIFT = 48, EDGE = 64;
+  UI.place = null;
+  UI.startPlace = function (type, wx, wy, o = {}) {
+    const g = CF.Game.current; if (!g) return;
+    UI.closeRadial(); UI.aimKey = null; g.aim = null;
+    g.build = { type, x: wx, y: wy }; g.updateGhost(wx, wy);
+    UI.place = Object.assign({ type, dragging: false, pid: null, sx: null, sy: null, keep: false }, o);
+    let bar = $('#placeBar');
+    if (!bar) { bar = CF.h('<div id="placeBar" class="glass place-bar"><span class="pn"></span><button class="pb ok" title="放置">✓</button><button class="pb no" title="取消">✕</button></div>'); $('#field').appendChild(bar); bar.addEventListener('pointerdown', (e) => e.stopPropagation()); bar.querySelector('.ok').onclick = (e) => { e.stopPropagation(); UI.confirmPlace(); }; bar.querySelector('.no').onclick = (e) => { e.stopPropagation(); UI.cancelPlace(); }; }
+    const d = CF.Game.BT[type]; bar.querySelector('.pn').innerHTML = `${d.name} <span class="c">${CF.Game.costHtml(d.cost)}</span>`;
+    bar.classList.remove('hidden'); UI.updPlace();
+    CF.Audio.sfx('hover'); CF.bus.emit('placing', type);
+  };
+  UI.movePlace = function (clientX, clientY, touch) {
+    const g = CF.Game.current, P = UI.place; if (!g || !P || !g.build) return;
+    P.sx = clientX; P.sy = clientY; P.touch = touch;
+    const w = UI.worldAt(clientX, clientY, true); g.updateGhost(w[0], w[1] - (touch ? TOUCH_LIFT / g.cam.z : 0)); UI.updPlace();
+  };
+  UI.updPlace = function () {
+    const g = CF.Game.current, bar = $('#placeBar'); if (!g || !g.build || !bar) return;
+    const b = g.build, x = ((b.ok ? b.sx : b.x) - g.cam.x) * g.cam.z, y = ((b.ok ? b.sy : b.y) - g.cam.y) * g.cam.z;
+    bar.style.left = CF.clamp(x, 70, g.vw - 70) + 'px'; bar.style.top = CF.clamp(y + 40 * g.cam.z + 8, 40, g.vh - 40) + 'px';
+    bar.classList.toggle('bad', !b.ok); bar.title = b.ok ? '' : b.why;
+  };
+  // 拖到屏幕边缘时镜头跟随（每帧调用）
+  UI.edgePan = function (dt) {
+    const g = CF.Game.current, P = UI.place; if (!g || !P || !P.dragging || P.sx == null) return;
+    const r = CF.appRect($('#gameCanvas')), p = CF.appPoint(P.sx, P.sy), lx = p.x - r.left, ly = p.y - r.top;
+    let dx = 0, dy = 0; if (lx < EDGE) dx = -(EDGE - lx) / EDGE; else if (lx > r.width - EDGE) dx = (lx - r.width + EDGE) / EDGE; if (ly < EDGE) dy = -(EDGE - ly) / EDGE; else if (ly > r.height - EDGE) dy = (ly - r.height + EDGE) / EDGE;
+    if (!dx && !dy) return;
+    const sp = (620 * dt) / g.cam.z; g.cam.x += CF.clamp(dx, -1, 1) * sp; g.cam.y += CF.clamp(dy, -1, 1) * sp; g.clampCam(); UI.movePlace(P.sx, P.sy, P.touch);
+  };
+  UI.confirmPlace = function () {
+    const g = CF.Game.current; if (!g || !g.build) return;
+    const t = g.build.type; g.updateGhost(g.build.x, g.build.y);
+    if (!g.build.ok) { CF.Audio.sfx('error'); CF.toast(g.build.why, 'bad'); return false; }
+    g.placeBuild(UI.place && UI.place.keep); CF.bus.emit('built', t); return true;
+  };
+  UI.cancelPlace = function () { const g = CF.Game.current; if (g && g.build) g.cancelBuild(); else UI.buildMode(false); };
+  UI.buildMode = function (on) { if (on) return; UI.place = null; const bar = $('#placeBar'); if (bar) bar.classList.add('hidden'); };
+  // 放置模式下的全局拖动（从环形菜单拖出来时，手指已经不在画布上按下）
+  window.addEventListener('pointermove', (e) => { const P = UI.place; if (P && P.dragging && P.fromRadial && e.pointerId === P.pid) UI.movePlace(e.clientX, e.clientY, e.pointerType !== 'mouse'); });
+  window.addEventListener('pointerup', (e) => { const P = UI.place; if (!P || !P.dragging || !P.fromRadial || e.pointerId !== P.pid) return; P.dragging = false; P.fromRadial = false; if (e.pointerType === 'mouse' || (CF.Game.current && CF.Game.current.build && CF.Game.current.build.ok && !CF.UI.touch)) UI.confirmPlace(); });
 
   // ================= 英雄头像与技能（右下角，MOBA 式） =================
   UI.drawPortrait = function () {
@@ -339,8 +387,13 @@
       b.appendChild(CF.h(`<span>${it.label}</span>`));
       if (it.cost) b.appendChild(CF.h(`<span class="c">${CF.Game.costHtml(it.cost)}</span>`));
       if (it.q) b.appendChild(CF.h(`<span class="q">${it.q}</span>`));
-      b.addEventListener('pointerdown', (e) => e.stopPropagation());
-      b.onclick = (e) => { e.stopPropagation(); CF.Audio.sfx('click'); const keep = it.fn(); if (!keep) UI.closeRadial(); else UI.refreshRadial && UI.refreshRadial(); };
+      // 可拖出的条目（建造）：按住条目直接拖到战场上——参考金铲铲把英雄拖上棋盘、英雄联盟手游拖动插眼
+      let dn = null;
+      b.addEventListener('pointerdown', (e) => { e.stopPropagation(); if (!it.drag || it.lock) return; dn = { x: e.clientX, y: e.clientY, id: e.pointerId };
+        const mv = (ev) => { if (!dn || ev.pointerId !== dn.id) return; if (Math.hypot(ev.clientX - dn.x, ev.clientY - dn.y) > 14) { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up2); const d0 = dn; dn = null; b._dragged = true; UI.closeRadial(); it.drag(ev, d0); } };
+        const up2 = () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up2); dn = null; };
+        window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up2); });
+      b.onclick = (e) => { e.stopPropagation(); if (b._dragged) return; CF.Audio.sfx('click'); const keep = it.fn(); if (!keep) UI.closeRadial(); else UI.refreshRadial && UI.refreshRadial(); };
       el.appendChild(b);
     });
     UI.radial = { wx, wy, anchor, items };
@@ -360,10 +413,8 @@
       return { icon: UI.icon('b', t), label: d.name, cost: d.cost, na: !CF.Game.canPay(g.res, d.cost), lock: !un.ok || ng, tip: un.ok ? d.desc : un.why, fn: () => {
         if (!un.ok) { CF.toast('🔒 ' + un.why, 'bad', 3000); CF.Audio.sfx('error'); return; }
         if (ng) return CF.toast('本关地面工坊被干扰', 'bad');
-        const r = g.checkBuild(t, wx, wy);
-        if (!r[0]) { CF.toast(r[1], 'bad'); CF.Audio.sfx('error'); return true; }
-        g.build = { type: t, x: wx, y: wy }; g.placeBuild(false); CF.bus.emit('built', t);
-      } };
+        UI.startPlace(t, wx, wy);
+      }, drag: un.ok && !ng ? (ev) => UI.startPlace(t, ...UI.worldAt(ev.clientX, ev.clientY, true), { dragging: true, pid: ev.pointerId, fromRadial: true, mouse: ev.pointerType === 'mouse' }) : null };
     });
     UI.openRadial(wx, wy, items);
   };
@@ -386,11 +437,12 @@
   UI.selectHero = function () { const g = CF.Game.current; if (!g || g.hero.dead) return CF.toast(`${g ? g.heroDef.name : ''} 正在重生`); UI.sel([g.hero.id]); };
 
   // ================= 战斗输入：点一下就完成 =================
-  UI.worldAt = function (cx, cy) {
+  UI.worldAt = function (cx, cy, clampIn) {
     const g = CF.Game.current, cv = $('#gameCanvas'); if (!g) return null;
     const r = CF.appRect(cv), p = CF.appPoint(cx, cy);
-    const x = p.x - r.left, y = p.y - r.top;
-    if (x < 0 || y < 0 || x > r.width || y > r.height) return null;
+    let x = p.x - r.left, y = p.y - r.top;
+    if (clampIn) { x = CF.clamp(x, 0, r.width); y = CF.clamp(y, 0, r.height); }
+    else if (x < 0 || y < 0 || x > r.width || y > r.height) return null;
     return g.toWorld(x, y);
   };
   UI.bindBattle = function () {
@@ -437,6 +489,12 @@
       UI.touch = e.pointerType !== 'mouse';
       P.set(e.pointerId, { x: p.x, y: p.y });
       clearTimeout(hold && hold.t); hold = null;
+      // 放置模式：按下就把虚影带到手指处并开始拖动（第二根手指按下则改为双指缩放）
+      if (UI.place) {
+        if (e.pointerType === 'mouse' && e.button === 2) { UI.cancelPlace(); return; }
+        if (P.size === 1) { UI.place.dragging = true; UI.place.pid = e.pointerId; UI.place.fromRadial = false; UI.movePlace(e.clientX, e.clientY, e.pointerType !== 'mouse'); return; }
+        UI.place.dragging = false;
+      }
       if (e.pointerType === 'mouse') {
         if (e.button === 0) { box = { x0: p.x, y0: p.y, x1: p.x, y1: p.y, id: e.pointerId, drag: false }; hold = { id: e.pointerId, p, t: setTimeout(() => { if (box && !box.drag) { box = null; const w = g.toWorld(p.x, p.y); UI.buildRadial(w[0], w[1]); } }, 520) }; }
         else { pan = { id: e.pointerId, x: p.x, y: p.y, cx: g.cam.x, cy: g.cam.y, moved: false, btn: e.button }; if (e.button === 1) e.preventDefault(); }
@@ -451,6 +509,7 @@
       const g = G(); if (!g) return;
       const p = local(e);
       if (P.has(e.pointerId)) P.set(e.pointerId, { x: p.x, y: p.y });
+      if (UI.place && !pinch) { if ((UI.place.dragging && e.pointerId === UI.place.pid) || (e.pointerType === 'mouse' && !UI.place.dragging)) { UI.movePlace(e.clientX, e.clientY, e.pointerType !== 'mouse'); return; } }
       if (e.pointerType === 'mouse') { const w = g.toWorld(p.x, p.y); g.mouse = w; if (UI.aimKey && g.aim) { g.aim.x = w[0]; g.aim.y = w[1]; } }
       if (pinch && P.size >= 2) { const [a, b] = [...P.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, z = CF.clamp(pinch.z * (d / pinch.d), 0.4, 2.2), wx = pinch.cx + pinch.mx / pinch.z, wy = pinch.cy + pinch.my / pinch.z; g.cam.z = z; g.cam.x = wx - mx / z; g.cam.y = wy - my / z; g.clampCam(); CF.bus.emit('camera'); return; }
       if (box && box.id === e.pointerId) { box.x1 = p.x; box.y1 = p.y; if (Math.hypot(box.x1 - box.x0, box.y1 - box.y0) > 8) { box.drag = true; g.box = box; clearTimeout(hold && hold.t); } return; }
@@ -465,6 +524,7 @@
       const g = G(); P.delete(e.pointerId);
       clearTimeout(hold && hold.t);
       if (!g) return;
+      if (UI.place && UI.place.dragging && e.pointerId === UI.place.pid) { UI.place.dragging = false; if (e.pointerType === 'mouse') { UI.place.keep = e.shiftKey; UI.confirmPlace(); } return; }
       const p = local(e);
       if (pinch) { if (P.size < 2) pinch = null; pan = null; return; }
       const now = performance.now(), dbl = now - lastTap.t < 320 && Math.hypot(p.x - lastTap.x, p.y - lastTap.y) < 30;
@@ -504,7 +564,7 @@
       if (k === 'q' || k === 'w' || k === 'r') { g.heroCast(k.toUpperCase(), m[0], m[1]); return; }
       switch (k) {
         case ' ': case 'p': g.paused = !g.paused; e.preventDefault(); break;
-        case 'Escape': UI.aimKey = null; g.aim = null; if (UI.radial) UI.closeRadial(); else UI.sel([]); break;
+        case 'Escape': if (UI.place) { UI.cancelPlace(); break; } UI.aimKey = null; g.aim = null; if (UI.radial) UI.closeRadial(); else UI.sel([]); break;
         case 'a': UI.sel(g.allArmy()); break;
         case 's': if (units.length) g.orderStop(units); break;
         case 'h': if (units.length) g.orderHold(units); break;
@@ -520,8 +580,7 @@
           if (one && one.team === 0 && one.def.trains) { const t = g.trainList(one)[i]; if (t) g.train(one, t); if (UI.refreshRadial) UI.refreshRadial(); break; }
           const t = g.buildOrder()[i]; if (!t) break;
           const un = g.L.immersive ? g.imBuildOk(t) : CF.P.buildUnlocked(t); if (!un.ok) { CF.toast('🔒 ' + un.why, 'bad'); break; }
-          const r = g.checkBuild(t, m[0], m[1]); if (!r[0]) { CF.toast(r[1], 'bad'); CF.Audio.sfx('error'); break; }
-          g.build = { type: t, x: m[0], y: m[1] }; g.placeBuild(false); CF.bus.emit('built', t);
+          UI.startPlace(t, m[0], m[1]);
         }
       }
     });

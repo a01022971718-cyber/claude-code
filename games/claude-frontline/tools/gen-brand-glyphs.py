@@ -5,7 +5,7 @@
   pip install fonttools brotli
   python3 tools/gen-brand-glyphs.py <NotoSansSC-Black 子集> <NotoSans-Black 子集> [额外中文字符]
 下载子集示例（只取需要的字）：
-  https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@900&text=战线造物者之路役
+  https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@900&text=战线益造物者之路役
 坐标：每字 1000 单位，y 轴向下，基线 y=880。
 """
 import json, re, sys
@@ -14,7 +14,7 @@ from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
 from fontTools.pens.boundsPen import BoundsPen
 
-CJK = '战线造物者之路役新生向上探索未知' + (sys.argv[3] if len(sys.argv) > 3 else '')
+CJK = '战线益造物者之路役新生向上探索未知' + (sys.argv[3] if len(sys.argv) > 3 else '')
 out = {}
 for path, chars in [(sys.argv[1], CJK), (sys.argv[2], 'XS-')]:
     f = TTFont(path)

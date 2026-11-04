@@ -67,7 +67,7 @@
   };
   L.cycle = function (d) {
     const list = CF.Roster.ownedList(), i = list.findIndex((h) => h.id === CF.Heroes.current().id);
-    if (list.length < 2) { CF.toast('目前只拥有 X-S——第一章第 3 个小关送「万象」'); return; }
+    if (list.length < 2) { CF.toast(`目前只拥有${CF.Heroes.current().name}——第一章第 3 个小关送「万象」`); return; }
     const h = list[(i + d + list.length) % list.length];
     L.setHero(h.id);
   };
@@ -101,7 +101,7 @@
   // ================= 英雄图鉴 =================
   L.renderHeroes = function () {
     const body = $('#heroesBody');
-    body.innerHTML = `<p class="small muted" style="margin-bottom:12px;line-height:1.7">十位乐手：原创主角 X-S，加上来自智能大陆东西两岸的九位伙伴（灵感取自中美知名 AI 大模型的公开特点，均为原创形象）。开局只有 X-S，其他英雄靠征程与组队副本获得；乐器是后期才能拿到的「法宝」。</p><div class="hero-grid" id="hGrid"></div>`;
+    body.innerHTML = `<p class="small muted" style="margin-bottom:12px;line-height:1.7">九位乐手：主角 X-S（灵感来自 Claude），加上智能大陆东西两岸的八位伙伴（灵感取自中美知名 AI 大模型的公开特点，均为原创形象）。开局英雄是狂想；主角 X-S 只能通过特殊渠道获得；乐器是后期才能拿到的「法宝」。</p><div class="hero-grid" id="hGrid"></div>`;
     const grid = $('#hGrid');
     CF.Heroes.list.forEach((h) => {
       const cur = h.id === CF.Heroes.current().id, own = CF.Roster.owns(h.id);
@@ -137,8 +137,25 @@
       special: () => { const u = UT[uKey], b = BT[bKey]; return `<div class="skill"><div class="k">兵</div><div><h4>专属小兵 · ${u.name}</h4><p>${u.desc}</p><div class="meta">耐久 ${u.hp} · 伤害 ${u.atk.dmg} · 射程 ${u.atk.range} · ${CF.Game.costHtml(u.cost)}（在 Agent 工坊训练）</div></div></div><div class="skill"><div class="k">建</div><div><h4>专属建筑 · ${b.name}</h4><p>${b.desc}</p><div class="meta">耐久 ${b.hp} · ${CF.Game.costHtml(b.cost)}（建造菜单第 8 位）</div></div></div><p class="small muted">只有选择 ${h.name} 出战时才能训练与建造。</p>`; },
       art: () => `<div class="card"><div class="t-tag">乐器（法宝${CF.Treasure.has(h.id) ? ' · 已获得' : ' · 未获得'}）</div><p class="t-body" style="color:var(--text)">${h.instrument} —— 主题曲《${ms.name.split('·')[1] || ms.name}》 · ${h.music.bpm} BPM · ${h.music.key} · ${h.music.scale}</p><p class="t-cap">记忆点：${h.music.motif}</p><div class="t-tag" style="margin-top:10px">配色（宪法第 2 章：背景三段 · 网格 · 主光 · 点缀 · 音符）</div><div class="swatches-big" style="margin-top:6px">${[['背景暗', h.pal.bg[0]], ['背景中', h.pal.bg[1]], ['背景亮', h.pal.bg[2]], ['网格', 'rgb(' + h.pal.grid.join(',') + ')'], ['主光', h.pal.glow], ['点缀', h.pal.accent], ['音符', h.pal.note]].map(([n, c]) => `<div><i style="background:${c}"></i>${n}<br>${c.startsWith('rgb') ? '' : c}</div>`).join('')}</div><div class="t-tag" style="margin-top:10px">特效语言</div><p class="t-cap">节拍时从角色处扩散像素方格波纹；乐器发声点飘出专属粒子（${h.fx.pats.length} 种像素形状），重拍时整片网格亮起、角色做强拍动作。</p></div>`,
     };
+    // 主角的合奏主题曲：分轨试听（每件乐器可以单独开关，四个段落可以直接跳转）
+    tabs.ens = () => `<div class="card"><div class="t-tag">九乐器合奏 · 《${(ms.name.match(/「(.+)」/) || [, ms.name])[1]}》</div><p class="t-cap" style="margin-top:4px">一首 32 小节的曲子分四段。点段落跳过去听；点乐器把它关掉，听听少了谁会怎样。贝斯与和声垫是「地基」，始终保留。</p>
+      <div class="ens-secs">${CF.Audio.SECTIONS.map(([n, b, d], i) => `<button class="ens-sec" data-bar="${b}"><b>${i + 1} · ${n}</b><span>${d}</span></button>`).join('')}</div>
+      <div class="ens-inst">${CF.Audio.ENSEMBLE.map(([k, n, hid]) => `<button class="ens-i ${CF.Audio.mute.has(k) ? '' : 'on'}" data-k="${k}"><canvas width="96" height="72"></canvas><span>${n}</span><small>${CF.Heroes.get(hid).name}</small></button>`).join('')}</div>
+      <div class="row wrap" style="gap:6px;margin-top:8px"><button class="btn sm" id="ensAll">全部乐器</button><button class="btn sm ghost" id="ensSolo">只听电吉他（主角）</button><button class="btn sm ghost" id="ensNone">只听地基</button></div>
+      <p class="t-cap" style="margin-top:8px">正在播放：<b id="ensNow">—</b></p></div>`;
+    const bindEns = () => {
+      const box = body.querySelector('#hdTab');
+      const play = () => { if (!CF.Audio.ctx || !CF.Audio.P_on || CF.Audio.curStyle !== 'xs') { CF.Audio.unlock(); CF.Audio.preview('xs', 0.9); } };
+      box.querySelectorAll('.ens-i').forEach((b) => { const hd = CF.Heroes.get(CF.Audio.ENSEMBLE.find((x) => x[0] === b.dataset.k)[2]); const x = b.querySelector('canvas').getContext('2d'); x.fillStyle = hd.pal.bg[1]; x.fillRect(0, 0, 96, 72); hd.draw(x, 12, 26, 3, { t: 0, showInst: true }); b.onclick = () => { const k = b.dataset.k; if (CF.Audio.mute.has(k)) CF.Audio.mute.delete(k); else CF.Audio.mute.add(k); b.classList.toggle('on', !CF.Audio.mute.has(k)); play(); }; });
+      box.querySelectorAll('.ens-sec').forEach((b) => (b.onclick = () => { play(); CF.Audio.seek(+b.dataset.bar); CF.Audio.sfx('click'); }));
+      const setAll = (keep) => { CF.Audio.mute.clear(); CF.Audio.ENSEMBLE.forEach(([k]) => { if (!keep(k)) CF.Audio.mute.add(k); }); box.querySelectorAll('.ens-i').forEach((b) => b.classList.toggle('on', !CF.Audio.mute.has(b.dataset.k))); play(); };
+      box.querySelector('#ensAll').onclick = () => setAll(() => true);
+      box.querySelector('#ensSolo').onclick = () => setAll((k) => k === 'guitar');
+      box.querySelector('#ensNone').onclick = () => setAll(() => false);
+      clearInterval(L._ensT); L._ensT = setInterval(() => { const el = document.getElementById('ensNow'); if (!el) return clearInterval(L._ensT); const [n, b] = CF.Audio.section(); el.textContent = `${n}（第 ${b + 1} 小节起）`; box.querySelectorAll('.ens-sec').forEach((x) => x.classList.toggle('on', +x.dataset.bar === b)); }, 300);
+    };
     const tb = body.querySelector('#hdTabs'); let cur = 'lore';
-    const draw = () => { tb.innerHTML = ''; [['lore', '档案'], ['skills', '技能'], ['special', '专属'], ['art', '乐器与配色']].forEach(([k, n]) => { const b = CF.h(`<button class="tab ${cur === k ? 'on' : ''}">${n}</button>`); b.onclick = () => { cur = k; draw(); CF.Audio.sfx('click'); }; tb.appendChild(b); }); body.querySelector('#hdTab').innerHTML = tabs[cur](); };
+    const draw = () => { tb.innerHTML = ''; [['lore', '档案'], ['skills', '技能'], ['special', '专属'], ['art', '乐器与配色']].concat(h.music.ensemble ? [['ens', '合奏分轨']] : []).forEach(([k, n]) => { const b = CF.h(`<button class="tab ${cur === k ? 'on' : ''}">${n}</button>`); b.onclick = () => { cur = k; draw(); CF.Audio.sfx('click'); }; tb.appendChild(b); }); body.querySelector('#hdTab').innerHTML = tabs[cur](); if (cur === 'ens') bindEns(); };
     draw();
     body.querySelector('#hdPick').onclick = () => { if (!CF.Roster.owns(h.id)) return; L.setHero(h.id); L.renderHero(h.id); CF.toast(`主英雄：${h.name}`, 'gold'); };
     body.querySelector('#hdMusic').onclick = () => { CF.Audio.preview(h.music.style, 0.7); CF.toast(`♪ ${ms.name}`); };

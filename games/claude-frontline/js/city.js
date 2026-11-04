@@ -14,7 +14,7 @@
     compute: { name: '算力中心', size: 2, max: 5, roof: '#9b7bff', cost: COST(200), prod: { comp: [0, 10, 18, 28, 40, 56] }, desc: '持续产出算力，点击收取。' },
     vault: { name: '仓库', size: 2, max: 5, roof: '#9d96ad', cost: COST(150), desc: '每级提高所有资源的储存上限 1500。' },
     lab: { name: '研究所', size: 2, max: 5, roof: '#7ee081', cost: COST(250), desc: '每级使所有战斗中我方伤害 +4%、建筑耐久 +4%。' },
-    herohall: { name: '英雄殿', size: 3, max: 5, roof: '#ffb14a', cost: COST(300), desc: '每级使英雄耐久与攻击 +5%。十位英雄的雕像在这里演奏。' },
+    herohall: { name: '英雄殿', size: 3, max: 5, roof: '#ffb14a', cost: COST(300), desc: '每级使英雄耐久与攻击 +5%。九位英雄的雕像在这里演奏。' },
     barracks: { name: '兵营', size: 2, max: 5, roof: '#d97757', cost: COST(200), desc: '每级使战斗开局多带 1 个编码 Agent。' },
     hall: { name: '音乐厅', size: 2, max: 5, roof: '#ff7ad9', cost: COST(180), desc: '每级使快速模式开局攻击 +6%，并让主城跟着主题曲律动。' },
     tower: { name: '防御塔', size: 1, max: 5, roof: '#ff9a5c', cost: COST(160), desc: '乱码入侵时自动防守。等级越高伤害越高。', perHq: 2 },

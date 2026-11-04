@@ -162,8 +162,7 @@
     const t = near[0]; const ang = t ? Math.atan2(t.y - H.y, t.x - H.x) : 0;
     const fan = (n, spread, sp, dmg, c, pierce = 2) => { for (let i = 0; i < n; i++) { const a = ang - spread / 2 + (n > 1 ? (i / (n - 1)) * spread : 0); S.shots.push({ x: H.x, y: H.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, dmg, pierce, life: 1.2, c, w: 6, hit: new Set() }); } };
     switch (id) {
-      case 'xs': Q.nova(H.x, H.y, 200 * H.area, H.dmg * 4, P.edge, true); break;
-      case 'star': fan(8, TAU * 0.875, 520, H.dmg * 2.2, P.glow, 3); H.hp = Math.min(H.maxHp, H.hp + H.maxHp * 0.05); break;
+      case 'xs': Q.nova(H.x, H.y, 200 * H.area, H.dmg * 4, P.instL, true); break;
       case 'omni': fan(10, 1.2, 620, H.dmg * 2.2, P.white, 3); break;
       case 'twin': fan(1, 0, 900, H.dmg * 3, P.blue, 99); setTimeout(() => S && fan(1, 0, 900, H.dmg * 3, P.pink, 99), 120); break;
       case 'riot': Q.nova(H.x, H.y, 170 * H.area, H.dmg * 3.4, P.red, true); near.slice(0, 6).forEach((e) => e.stun = 1); break;

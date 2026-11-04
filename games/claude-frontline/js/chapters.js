@@ -49,7 +49,7 @@
       themes: ['ground', 'swarm', 'ground', 'heavy', 'mixed', 'swarm'],
       names: ['数据荒原', '梯度山谷', '噪声湿地', '参数森林', '反向传播峡', '权重平原', '激活函数桥', '损失低谷', '卷积回廊', '注意力高地', '词元集市', '向量海岸'],
       learn: ['数据清洗', '梯度下降', '过拟合', '神经网络', '反向传播', '学习率', '激活函数', '损失函数', '卷积', '注意力机制', '分词', '向量嵌入'],
-      dungeon: { id: 'D1', after: 'L2', name: '乱码巢穴', boss: 'forget', pool: ['star', 'twin', 'riot', 'llama'], P: 6 },
+      dungeon: { id: 'D1', after: 'L2', name: '乱码巢穴', boss: 'forget', pool: ['twin', 'llama'], P: 6 },
     },
     {
       id: 'c2', no: 2, name: '向上', en: 'ASCEND', sub: '夺取制空权，冲向星辰', P0: 8, P1: 15,
@@ -57,7 +57,7 @@
       themes: ['air', 'mixed', 'heavy', 'swarm', 'air', 'mixed'],
       names: ['轨道前哨', '推进剂工厂', '低轨走廊', '发射窗口', '引力弹弓', '再入走廊', '姿态控制塔', '卫星星座', '火星中继站', '深空网络', '星舰船坞', '月面基地'],
       learn: ['轨道力学', '比冲', '低地球轨道', '发射窗口', '引力助推', '再入防热', '姿态控制', '卫星通信', '行星际中继', '深空测控', '可复用火箭', '月面着陆'],
-      dungeon: { id: 'D2', after: 'L4', name: '遗忘深渊', boss: 'carrier', pool: ['abyss', 'luna', 'bun', 'star'], P: 13 },
+      dungeon: { id: 'D2', after: 'L4', name: '遗忘深渊', boss: 'carrier', pool: ['abyss', 'luna', 'bun'], P: 13 },
     },
   ];
 
@@ -150,7 +150,7 @@
       stars: [['获胜', () => true], ['主脑耐久 ≥ 60%', (g) => g.coreHpPct() >= 0.6], ['没有英雄阵亡', (g) => !g.heroDeaths]],
       script: [[1, 'HERO', '组队副本开始。队友们，跟上我！'], [20, '侦察Agent', '每守住一波，补给就会送到主城仓库。']],
       onWaveClear: (g, n) => { const L = g.L; L._paid = L._paid || new Set(); if (L._paid.has(n)) return; L._paid.add(n); const r = rewards[n - 1]; if (r) Ch.grantDungeon(ch, r, g); },
-      onEnd: (g, win) => { const d = S().dungeon[ch.dungeon.id]; d.best = Math.max(d.best || 0, g.clearedN || 0); if (win && !CF.P.trial()) [g.heroId].concat(team).forEach((id) => { if (id !== 'xs' && CF.Roster.ownsReal(id)) CF.Treasure.grant(id); }); },
+      onEnd: (g, win) => { const d = S().dungeon[ch.dungeon.id]; d.best = Math.max(d.best || 0, g.clearedN || 0); if (win && !CF.P.trial()) [g.heroId].concat(team).forEach((id) => { if (id !== 'xs' && id !== CF.Roster.STARTER && CF.Roster.ownsReal(id)) CF.Treasure.grant(id); }); },
     };
   };
   Ch.grantDungeon = function (ch, r, g) {
@@ -181,7 +181,7 @@
     const got = { chip: 300 * ch.no, corp: 150 * ch.no, comp: 40 * ch.no };
     CF.City.add(got);
     const lines = [`首通：晶片 ${got.chip} · 语料 ${got.corp} · 算力 ${got.comp}`];
-    if (st.id === CHAPTERS[0].story[CHAPTERS[0].story.length - 1] && !CF.P.trial() && CF.Treasure.grant('xs')) lines.push('章节终章：获得 X-S 的法宝「电吉他」');
+    if (st.id === CHAPTERS[0].story[CHAPTERS[0].story.length - 1] && !CF.P.trial() && CF.Treasure.grant(CF.Roster.STARTER)) lines.push(`章节终章：获得${CF.Heroes.get(CF.Roster.STARTER).name}的法宝「${CF.Heroes.get(CF.Roster.STARTER).instrument}」`);
     g.stageRewards = lines;
   };
   // 给剧情关挂上章节信息与奖励回调

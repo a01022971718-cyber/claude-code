@@ -2,7 +2,7 @@
 (function () {
   const CF = window.CF;
   CF.Save.load();
-  if (!CF.Heroes.list.some((h) => h.id === CF.Save.data.hero) || !CF.Roster.owns(CF.Save.data.hero)) CF.Save.data.hero = 'xs';
+  if (!CF.Heroes.list.some((h) => h.id === CF.Save.data.hero) || !CF.Roster.owns(CF.Save.data.hero)) CF.Save.data.hero = CF.Roster.STARTER;
   CF.Heroes.applyTheme();
   document.body.classList.toggle('reduce-motion', !!CF.Save.data.settings.reduceMotion);
   CF.P._unlockSnapshot = CF.P.unlockSnapshot();

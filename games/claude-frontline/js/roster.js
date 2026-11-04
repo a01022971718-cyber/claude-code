@@ -1,32 +1,38 @@
-/* 英雄获取与法宝（v1）
- * - 开局只有 X-S；第一章第 3 个小关送万象，第 5 个小关送珠问；
+/* 英雄获取与法宝（v1.1）
+ * - 开局英雄是狂想；第一章第 3 个小关送万象，第 5 个小关送珠问；
+ * - 主角 X-S 只能通过特殊渠道获得（高等级 VIP、限时活动——后续版本开放），保持稀缺；
  * - 其余英雄：组队副本第 5 波掉落英雄碎片，集齐 10 片解锁；
  * - 法宝 = 英雄的乐器（《英雄设计宪法》第 6 章）：没有法宝时形象不带乐器、R 技能不能用。
- *   X-S 的电吉他在第一章终章获得；其他英雄带着他出战并打完一次组队副本 5 波获得。
+ *   开局英雄的法宝在第一章终章获得；X-S 的电吉他随 X-S 一起获得；其他英雄带着他出战并打完一次组队副本 5 波获得。
  * - 体验模式下全部解锁。详细获取规则在下一版本细化（见 NEXT.md）。 */
 (function () {
   const CF = window.CF;
-  const FRAG_NEED = 10;
+  const FRAG_NEED = 10, STARTER = 'riot';
+  const VALID = (id) => CF.Heroes.list.some((h) => h.id === id);
   const data = () => {
     const d = CF.Save.data;
     if (!d.roster) {
       // 旧存档迁移：保留玩家正在用的主英雄，避免进来后英雄消失
-      const owned = ['xs']; if (d.hero && d.hero !== 'xs') owned.push(d.hero);
+      const owned = [STARTER]; if (d.hero && d.hero !== STARTER && VALID(d.hero) && d.campaign && Object.keys(d.campaign).length) owned.push(d.hero);
       d.roster = { owned, frags: {}, treasures: [] };
     }
+    // 清理已经删除的英雄（v3 的「星芒」已并入 X-S）
+    if (d.roster.owned.some((id) => !VALID(id))) { d.roster.owned = d.roster.owned.filter(VALID); if (!d.roster.owned.length) d.roster.owned.push(STARTER); }
     return d.roster;
   };
   const trial = () => !!(CF.P && CF.P.trial && CF.P.trial());
 
   // 获取途径（显示在锁定的英雄卡上）
-  const HOW = { xs: '初始英雄', omni: '第一章 · 第 3 个小关首通赠送', pearl: '第一章 · 第 5 个小关首通赠送' };
+  const HOW = { riot: '初始英雄', xs: '特殊渠道：高等级 VIP · 限时活动（后续版本开放）', omni: '第一章 · 第 3 个小关首通赠送', pearl: '第一章 · 第 5 个小关首通赠送' };
   const R = (CF.Roster = {
-    FRAG_NEED,
+    FRAG_NEED, STARTER,
+    special: (id) => id === 'xs',
     owns: (id) => trial() || data().owned.includes(id),
     ownsReal: (id) => data().owned.includes(id),
     ownedList: () => CF.Heroes.list.filter((h) => R.owns(h.id)),
     frags: (id) => data().frags[id] || 0,
     how: (id) => HOW[id] || `组队副本第 5 波掉落英雄碎片（${R.frags(id)}/${FRAG_NEED}）`,
+    // 碎片只对普通英雄有效；X-S 不进入任何掉落池
     grant(id, why) {
       const r = data();
       if (r.owned.includes(id)) return false;
@@ -52,7 +58,7 @@
   CF.Treasure = {
     has: (id) => trial() || data().treasures.includes(id),
     name: (id) => '法宝 · ' + CF.Heroes.get(id).instrument,
-    how: (id) => (id === 'xs' ? '通关第一章终章「原型机护送」获得' : '带该英雄出战，打完一次组队副本 5 波获得'),
+    how: (id) => (id === STARTER ? '通关第一章终章「原型机护送」获得' : id === 'xs' ? '随 X-S 一起通过特殊渠道获得' : '带该英雄出战，打完一次组队副本 5 波获得'),
     grant(id) {
       const r = data();
       if (r.treasures.includes(id)) return false;
