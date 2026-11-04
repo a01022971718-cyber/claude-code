@@ -18,7 +18,9 @@
     fanfare: { name: '胜利号角', bpm: 120, prog: ['C', 'G', 'Am', 'F'], swing: 0 },
     sad: { name: '低吟', bpm: 72, prog: ['Am', 'Dm', 'E', 'Am'], swing: 0 },
     // 英雄主题曲：hero 字段决定主奏乐器与动机
-    xs: { name: 'X-S · 电吉他「破晓」', bpm: 112, prog: ['Em', 'C', 'G', 'D'], swing: 0, hero: 'xs', root: 64, scale: [0, 3, 5, 7, 10], motif: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 4], [5, 2], [6, 2], [7, 8], [null, 8]] },
+    // X-S 主题：D 利底亚（升四级 = 对未知的好奇），后四小节整体升全音（向上），级进上行后跃上八度（新生）
+    xs: { name: 'X-S · 电吉他「破晓·向上」', bpm: 120, prog: ['D', 'E', 'Bm', 'A'], swing: 0, hero: 'xs', gain: 0.8, gainLo: 1.3, root: 62, lift: 2, scale: [0, 2, 4, 6, 7, 9, 11], motif: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 4], [7, 6], [6, 2], [7, 4], [null, 8]] },
+    star: { name: '星芒 · 尤克里里「一步一步」', bpm: 104, prog: ['F', 'C', 'Dm', 'Bb'], swing: 0.08, hero: 'star', gain: 2, root: 65, scale: [0, 2, 4, 5, 7, 9, 11], motif: [[0, 2], [1, 2], [2, 4], [1, 2], [2, 2], [3, 4], [2, 2], [3, 2], [4, 6], [null, 6]] },
     omni: { name: '万象 · 钢琴「八十八层」', bpm: 100, prog: ['C', 'G', 'Am', 'F'], swing: 0, hero: 'omni', gain: 1.5, root: 72, scale: [0, 2, 4, 5, 7, 9, 11], motif: [[4, 2], [2, 2], [0, 2], [2, 2], [4, 2], [7, 4], [6, 2], [7, 8], [null, 8]] },
     twin: { name: '双子 · 竖琴「星河两岸」', bpm: 88, prog: ['Dmaj7', 'E', 'Bm', 'A'], swing: 0, hero: 'twin', gain: 2.4, root: 74, scale: [0, 2, 4, 6, 7, 9, 11], motif: [[0, 2], [4, 2], [6, 4], [null, 2], [7, 2], [6, 2], [4, 2], [5, 6], [null, 10]] },
     riot: { name: '狂想 · 架子鼓「没有规则」', bpm: 150, prog: ['Em', 'Em', 'G', 'A'], swing: 0, hero: 'riot', root: 52, scale: [0, 3, 5, 6, 7, 10], motif: [[0, 1], [0, 1], [3, 2], [0, 2], [5, 2], [4, 2], [3, 2], [1, 4], [null, 16]] },
@@ -114,7 +116,7 @@
     const key = midi + kind;
     if (A.strings[key]) return A.strings[key];
     const ctx = A.ctx, sr = ctx.sampleRate, f = mtof(midi);
-    const K = { m: [0.28, 0.965, 0.45], b: [1.0, 0.9965, 0.75], h: [2.2, 0.998, 0.88], q: [2.6, 0.9975, 0.38], p: [0.7, 0.988, 0.95], c: [1.7, 0.9965, 0.6] }[kind] || [1.7, 0.9965, 0.6];
+    const K = { u: [0.9, 0.991, 0.92], m: [0.28, 0.965, 0.45], b: [1.0, 0.9965, 0.75], h: [2.2, 0.998, 0.88], q: [2.6, 0.9975, 0.38], p: [0.7, 0.988, 0.95], c: [1.7, 0.9965, 0.6] }[kind] || [1.7, 0.9965, 0.6];
     const dur = K[0], damp = K[1], bright = K[2];
     const N = Math.max(2, Math.round(sr / f)), len = Math.floor(sr * dur);
     const buf = ctx.createBuffer(1, len, sr), out = buf.getChannelData(0);
@@ -176,11 +178,11 @@
   const hat = (t, v, d) => noise(t, 0.045, 0.28 * v, d || A.music, 'highpass', 7500);
   const crash = (t, v, d) => noise(t, 1.1, 0.25 * v, d || A.music, 'highpass', 5000);
   function bass(m, t, dur, v, dest) { osc('triangle', mtof(m), 0, t, dur, 0.5 * v, dest || A.music, { lp: 600, atk: 0.01 }); osc('sawtooth', mtof(m), 0, t, dur * 0.6, 0.08 * v, dest || A.music, { lp: 500 }); }
-  function pad(ch, t, dur, v, dest) {
+  function pad(ch, t, dur, v, dest, tr = 0) {
     const [r, iv] = CH[ch];
     iv.forEach((x) => { [-6, 6].forEach((det) => {
       const ctx = A.ctx, o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
-      o.type = 'sawtooth'; o.frequency.value = mtof(r + x); o.detune.value = det;
+      o.type = 'sawtooth'; o.frequency.value = mtof(r + x + tr); o.detune.value = det;
       f.type = 'lowpass'; f.frequency.value = 900;
       g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.022 * v, t + dur * 0.3); g.gain.linearRampToValueAtTime(0.0001, t + dur);
       o.connect(f); f.connect(g); g.connect(dest || A.music); o.start(t); o.stop(t + dur + 0.05);
@@ -254,7 +256,7 @@
     const rnd = CF.rng(seed), ev = [];
     const put = (start, notes) => { let p = start; notes.forEach(([d, len]) => { if (d !== null) ev.push({ s: p, d, len }); p += len; }); };
     const motifLen = st.motif.reduce((a, n) => a + n[1], 0);
-    put(0, st.motif); put(64, st.motif.map(([d, l]) => [d === null ? null : d + (st.hero === 'xs' ? 1 : 0), l]));
+    put(0, st.motif); put(64, st.motif);
     [32, 96].forEach((start, k) => {
       let d = 2, p = start; const end = start + 32;
       while (p < end - 4) { const len = [2, 2, 4, 2, 1, 1, 6][Math.floor(rnd() * 7)] || 2; d = CF.clamp(d + [-1, 1, -2, 2, 0, 1][Math.floor(rnd() * 6)], -1, st.scale.length + 2); if (rnd() < 0.85) ev.push({ s: p, d, len: Math.min(len, end - p) }); p += len; }
@@ -267,6 +269,7 @@
   function heroNote(id, m, t, dur, v, d) {
     switch (id) {
       case 'xs': pluck(m, t, v, { bus: d, kind: 'b', verb: false }); break;
+      case 'star': pluck(m, t, v * 1.1, { bus: d, kind: 'u' }); osc('sine', mtof(m + 12), 0, t, 0.5, v * 0.05, d); break;
       case 'omni': piano(m, t, v, d, Math.max(0.5, dur * 1.6)); break;
       case 'twin': harp(m, t, v, d); break;
       case 'riot': kick(t, 0.8 * v, d); snare(t + dur * 0.5, 0.6 * v, d); break;
@@ -291,12 +294,34 @@
     const len = e ? e.len * spb : 0, m = e ? degMidi(st, e.d) : 0;
     let strumHit = false;
     switch (st.hero) {
-      case 'xs':
-        if (s % 2 === 0) { const pat = [0, 2, 3, 4, 5, 4, 3, 2]; pluck(v[pat[s / 2]], t, hi ? 0.4 : 0.5, { bus: out }); }
-        if (hi && s % 8 === 0) strum([root - 12, root - 5, root], t, 0.6, { bus: out, dist: true, gap: 0.006, len: spb * 3 });
-        if (e) { pluck(m, t, 0.7, { bus: out, kind: 'b', dist: hi, len: Math.min(len, spb * 6) }); strumHit = true; }
-        if (s === 0) bass(root - 12, t, spb * 8, 0.7, out);
+      case 'xs': {
+        // 后四小节整体升全音：动机在更高处再出现一次 = 向上
+        const tr = st.lift && bar % 8 >= 4 ? st.lift : 0, Rt = root + tr, Vv = v.map((x) => x + tr);
+        if (s % 2 === 0) pluck(Rt - 12, t, hi ? 0.55 : 0.32, { bus: out, kind: 'm', dist: hi, len: spb * 1.3 });
+        if (s === 0 || (hi && s === 10)) strum([Rt - 12, Rt - 5, Rt], t, hi ? 0.75 : 0.45, { bus: out, dist: hi, gap: 0.006, len: spb * (s === 0 ? 5 : 3) });
+        if (s % 4 === 2) pluck(Vv[3 + ((s >> 2) % 3)] + 12, t, 0.2, { bus: out, kind: 'h' });
+        if (e) { pluck(m + tr, t, 0.72, { bus: out, kind: 'b', dist: hi, len: Math.min(len, spb * 6) }); strumHit = true; }
+        if (hi) {
+          if (s === 0 || s === 8 || s === 11) kick(t, 0.85, out); if (s === 4 || s === 12) snare(t, 0.9, out); if (s % 2 === 0) hat(t, 0.38, out);
+          if (bar % 4 === 3 && s >= 12) tom(t, [210, 175, 145, 120][s - 12], 0.7, out);
+          if (s === 0 && bar % 4 === 0) crash(t, 0.55, out);
+        } else { if (s === 0) kick(t, 0.45, out); if (s === 8) snare(t, 0.2, out); if (s % 4 === 2) hat(t, 0.2, out); }
+        if (s === 0) { bass(Rt - 24, t, spb * 7, 0.7, out); pad(ch, t, spb * 16, hi ? 0.5 : 0.8, out, tr); }
+        if (s === 8) bass(Rt - 24 + 7, t, spb * 6, 0.5, out);
         break;
+      }
+      case 'star': {
+        // 尤克里里岛屿扫弦：下 · 下上 · 上下上
+        const U = v.slice(1, 5);
+        if ([0, 4, 6, 10, 12, 14].includes(s)) { const up = s === 6 || s === 10 || s === 14; strum(U, t + (s % 4 === 2 ? st.swing * spb : 0), up ? 0.24 : 0.34, { bus: out, kind: 'u', gap: 0.012, up }); }
+        if (e) { pluck(m, t, 0.75, { bus: out, kind: 'u' }); osc('sine', mtof(m + 12), 0, t, 0.6, 0.045, out); strumHit = true; }
+        if (hi) { if (s === 0 || s === 8) kick(t, 0.6, out); if (s === 4 || s === 12) { snare(t, 0.45, out); noise(t, 0.03, 0.16, out, 'bandpass', 1500, 1.5); } }
+        if (s % 2 === 1) shaker(t, hi ? 0.9 : 0.6, out);
+        if (s === 0) bass(root - 12, t, spb * 6, 0.55, out);
+        if (s === 8) bass(root - 12 + 7, t, spb * 6, 0.45, out);
+        if (s === 0 && bar % 2 === 1) osc('sine', mtof(v[4] + 24), 0, t, 1.2, 0.04, out);
+        break;
+      }
       case 'omni':
         if (s % 2 === 0) { const lh = [0, 1, 2, 1, 3, 2, 1, 2]; piano(v[lh[s / 2] % 4] - 12, t, 0.5, out, 1.2); }
         if (s === 0 || s === 8) piano(v[2], t, 0.35, out, 1.8);
@@ -451,7 +476,7 @@
     const st = Object.assign({ id: styleId }, base, { bpm: bpmOverride || base.bpm, int: intensity || 0.5 });
     if (st.hero) buildTimeline(st, CF.randi(1, 99999));
     const ctx = A.ctx;
-    const out = ctx.createGain(); out.gain.setValueAtTime(0.0001, ctx.currentTime); out.gain.exponentialRampToValueAtTime(st.gain || 1, ctx.currentTime + 0.8);
+    const out = ctx.createGain(); out.gain.setValueAtTime(0.0001, ctx.currentTime); out.gain.exponentialRampToValueAtTime((st.int < 0.8 && st.gainLo) || st.gain || 1, ctx.currentTime + 0.8);
     out.connect(A.music);
     A.distGain.disconnect(); A.distGain.connect(out);
     A.verbOut.disconnect(); A.verbOut.connect(out);

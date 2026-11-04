@@ -5,7 +5,8 @@
 
   // 基础属性（沉浸模式下会随等级成长）
   const STATS = {
-    xs: { hp: 650, dmg: 20, range: 160, rate: 0.6, speed: 100 },
+    xs: { hp: 820, dmg: 28, range: 46, rate: 0.6, speed: 110, melee: true, armor: 2 },
+    star: { hp: 560, dmg: 15, range: 180, rate: 0.65, speed: 100 },
     omni: { hp: 560, dmg: 18, range: 190, rate: 0.7, speed: 95 },
     twin: { hp: 520, dmg: 14, range: 170, rate: 0.6, speed: 105 },
     riot: { hp: 820, dmg: 26, range: 40, rate: 0.55, speed: 115, melee: true },
@@ -15,7 +16,7 @@
     pearl: { hp: 520, dmg: 10, range: 200, rate: 0.35, speed: 100 },
     bun: { hp: 700, dmg: 14, range: 150, rate: 0.7, speed: 100 },
   };
-  const ICON = { xs: ['🎸', '🎵', '🌅'], omni: ['🎹', '🦶', '🎼'], twin: ['🌌', '🛡️', '♊'], riot: ['🥁', '💥', '⚡'], llama: ['🌬️', '🧶', '🦙'], abyss: ['🌊', '🌀', '🐋'], luna: ['🏹', '🌑', '🌕'], pearl: ['🤌', '🍽️', '🎯'], bun: ['📯', '🧺', '🐦'] };
+  const ICON = { xs: ['📏', '🛡️', '🌅'], star: ['✳️', '🧩', '🌟'], omni: ['🎹', '🦶', '🎼'], twin: ['🌌', '🛡️', '♊'], riot: ['🥁', '💥', '⚡'], llama: ['🌬️', '🧶', '🦙'], abyss: ['🌊', '🌀', '🐋'], luna: ['🏹', '🌑', '🌕'], pearl: ['🤌', '🍽️', '🎯'], bun: ['📯', '🧺', '🐦'] };
 
   const S = (CF.Skills = { STATS, ICON });
   const lvMul = (h, k) => 1 + 0.25 * (((h.skillLv && h.skillLv[k]) || 1) - 1);
@@ -29,10 +30,14 @@
     const K = id + key;
     switch (K) {
       // ---------- X-S ----------
-      case 'xsQ': g.ring(h.x, h.y, 200, 120 * m * g.bonus.riffMul, h, { knock: 46, c: P.instL, pixel: true }); g.ring(h.x, h.y, 140, 0, h, { c: P.inst, pixel: true, delay: 0.12 }); g.notes(h, 14); g.shake = 0.3; return true;
-      case 'xsW': g.allies(h.x, h.y, 230).forEach((e) => { g.heal(e, 150 * m); g.buff(e, 'haste', 6, 0.4); }); g.ring(h.x, h.y, 230, 0, h, { c: '#7ee081' }); g.notes(h, 10); return true;
+      case 'xsQ': g.dash(h, tx, ty, 240, 130 * m, 0.5, P.edge); g.ring(h.x, h.y, 70, 0, h, { c: P.gold, pixel: true, small: true }); g.shake = 0.25; return true;
+      case 'xsW': g.ring(h.x, h.y, 170, 90 * m, h, { c: P.blade, pixel: true, knock: 20 }); g.allies(h.x, h.y, 220).forEach((e) => g.buff(e, 'shield', 5, 160 * m)); g.notes(h, 8); return true;
       case 'xsR': for (let i = 0; i < 12; i++) g.later(i * 0.5, () => { if (!h.dead) { g.ring(h.x, h.y, 220, 70 * m, h, { c: i % 2 ? P.instL : P.accent, pixel: true }); g.strum = 0.4; g.notes(h, 4); } });
-        g.later(6.1, () => { if (!h.dead) { g.ring(h.x, h.y, 320, 200 * m, h, { c: '#ffb14a', pixel: true, knock: 60 }); g.flash('#ff9a5c'); g.shake = 0.5; } }); return true;
+        g.later(6.1, () => { if (!h.dead) { g.ring(h.x, h.y, 330, 260 * m, h, { c: '#ffb14a', pixel: true, knock: 70 }); g.flash('#ff9a5c'); g.shake = 0.5; } }); return true;
+      // ---------- 星芒 ----------
+      case 'starQ': for (let i = 0; i < 3; i++) g.later(i * 0.35, () => { const ox = (i - 1) * 26; g.ring(tx + ox, ty, 70, 55 * m, h, { c: i === 2 ? '#ffffff' : P.glow, pixel: true, small: true, stun: i === 2 ? 1 : 0 }); g.fx.push({ k: 'boom', x: tx + ox, y: ty, r: 30, t: 0, c: P.ivory }); }); return true;
+      case 'starW': { for (let i = 0; i < 3; i++) { const u = g.addU('spark', 0, h.x + CF.rand(-30, 30), h.y + CF.rand(-30, 30)); u.life = 15; } const lo = g.allies(h.x, h.y, 300).filter((e) => e.kind === 'u').sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0]; if (lo) g.heal(lo, 180 * m); g.ring(h.x, h.y, 120, 0, h, { c: P.ivory }); return true; }
+      case 'starR': for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU; g.beam(h, h.x, h.y, Math.cos(a), Math.sin(a), 380, 34, 140 * m, P.glow, P.ivory); } g.allies(h.x, h.y, 260).forEach((e) => g.buff(e, 'shield', 6, 200 * m)); g.flash('#f0e6d6'); g.shake = 0.35; return true;
       // ---------- 万象 ----------
       case 'omniQ': for (let i = 0; i < 8; i++) { const a = ang - 0.44 + (i / 7) * 0.88; g.shot({ src: h, x: h.x, y: h.y, dx: Math.cos(a), dy: Math.sin(a), speed: 620, range: 380, w: 16, dmg: 50 * m, pierce: 2, c: i % 2 ? P.dark : P.white, glyph: 'key', delay: i * 0.03 }); } return true;
       case 'omniW': g.field({ x: tx, y: ty, r: 180, dur: 5, team: 0, c: P.em, kind: 'pedal', tick: (f, dt) => { g.enemiesIn(f.x, f.y, f.r).forEach((e) => g.buff(e, 'slow', 0.3, 0.4)); g.allies(f.x, f.y, f.r).forEach((e) => g.buff(e, 'haste', 0.3, 0.25)); } }); return true;
@@ -40,7 +45,7 @@
       // ---------- 双子 ----------
       case 'twinQ': g.beam(h, h.x, h.y, dx, dy, 440, 40, 110 * m, P.blue, P.pink); return true;
       case 'twinW': g.allies(h.x, h.y, 240).forEach((e) => g.buff(e, 'shield', 6, 180 * m)); g.ring(h.x, h.y, 240, 0, h, { c: P.pink }); return true;
-      case 'twinR': { const c = g.spawnHero(h.x + 30, h.y + 10, { clone: true, life: 10, mul: 0.7 }); c.cloneOf = h.id; g.ring(h.x, h.y, 120, 0, h, { c: P.pink, pixel: true }); return true; }
+      case 'twinR': { const c = g.spawnHero(h.x + 30, h.y + 10, { heroId: h.heroId, clone: true, life: 10, mul: 0.7 }); c.cloneOf = h.id; g.ring(h.x, h.y, 120, 0, h, { c: P.pink, pixel: true }); return true; }
       // ---------- 狂想 ----------
       case 'riotQ': g.dash(h, tx, ty, 320, 90 * m, 0.5, P.red); return true;
       case 'riotW': g.ring(h.x, h.y, 170, 80 * m, h, { stun: 1.2, c: P.red, pixel: true }); g.shake = 0.35; return true;
@@ -74,7 +79,7 @@
     let mul = 1;
     if (a.heroId) {
       const id = a.heroId;
-      if (id === 'xs') { a.n4 = (a.n4 || 0) + 1; if (a.n4 % 4 === 0) { mul *= 1.8; g.ring(t.x, t.y, 60, atk.dmg * 0.6, a, { c: a.heroDef.pal.accent, small: true }); } }
+      if (id === 'xs') { a.n4 = (a.n4 || 0) + 1; if (a.n4 % 4 === 0) { mul *= 2; g.ring(a.x, a.y, 90, atk.dmg * 0.8, a, { c: a.heroDef.pal.edge, small: true, pixel: true }); } }
       if (id === 'omni') { a.key = !a.key; if (a.key) mul *= 1.2; else g.buff(t, 'slow', 1.5, 0.3); }
       if (id === 'twin') g.later(0.12, () => { if (!t.dead && !a.dead) g.proj.push({ x: a.x + 18, y: a.y - 18, tid: t.id, tx: t.x, ty: t.y, sp: 560, dmg: atk.dmg * 0.6, splash: 0, team: 0, src: a.id, c: a.heroDef.pal.pink }); });
       if (id === 'riot') { const st = g.stat(a); st.rage = Math.min(10, (st.rage || 0) + 1); st.rageT = 3; if (st.frenzy > 0) { g.heal(a, atk.dmg * 0.4); g.chain(a, t, 2, 40); } }
@@ -95,6 +100,7 @@
     if (h.auraT <= 0) {
       h.auraT = 0.5;
       if (h.heroId === 'llama') g.allies(h.x, h.y, 260).forEach((e) => g.buff(e, 'dmgUp', 0.7, 0.15));
+      if (h.heroId === 'star') { g.allies(h.x, h.y, 260).forEach((e) => g.buff(e, 'guard', 0.7, 0.12)); h.shieldT = (h.shieldT || 0) + 0.5; if (h.shieldT >= 8) { h.shieldT = 0; const lo = g.allies(h.x, h.y, 300).filter((e) => e.kind === 'u').sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0]; if (lo) g.buff(lo, 'shield', 5, 120); } }
       if (h.heroId === 'bun') g.allies(h.x, h.y, 260).forEach((e) => { g.buff(e, 'haste', 0.7, 0.15); g.buff(e, 'speed', 0.7, 0.15); });
     }
     if (h.heroId === 'abyss') { h.thinkT = (h.thinkT || 0) + dt; if (h.thinkT >= 8) { h.thinkT = 0; h.think = Math.min(3, (h.think || 0) + 1); } }

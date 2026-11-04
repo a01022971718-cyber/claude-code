@@ -52,6 +52,17 @@ textarea,input[type=text]{-webkit-user-select:text;user-select:text;touch-action
 .wm-latin{background:var(--dawn);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none}
 .wm-cjk{color:var(--text);font-family:var(--sans);font-weight:800;letter-spacing:.06em}
 .wm-shadow{filter:drop-shadow(0 3px 0 rgba(10,6,30,.65)) drop-shadow(0 0 18px rgba(var(--hero-rgb),calc(.25 + var(--beat)*.35)))}
+.pi{--ic2:var(--hero);display:inline-block;width:1.15em;height:1.15em;vertical-align:-.2em;flex:none;overflow:visible;filter:drop-shadow(0 1px 0 rgba(10,6,30,.55))}
+.pi-wrap{white-space:pre-wrap}
+.kl{display:block;height:1em;width:auto;overflow:visible;filter:drop-shadow(0 0 calc(10px + var(--beat)*14px) rgba(var(--hero-rgb),calc(.25 + var(--beat)*.35)))}
+.kl .kl-star{transform-box:fill-box;transform-origin:center;transform:scale(calc(1 + var(--beat)*.06))}
+.kl .kl-glow{opacity:calc(.75 + var(--beat)*.25)}
+.kl .kl-sheen{animation:klSheen 6s cubic-bezier(.4,0,.2,1) infinite}
+.kl .kl-px{transform-box:fill-box;transform-origin:center;animation:klPx 3.6s linear infinite;opacity:0}
+@keyframes klSheen{0%{transform:translateY(1150px)}16%,100%{transform:translateY(-260px)}}
+@keyframes klPx{0%{transform:translateY(160px);opacity:0}15%{opacity:.9}70%{opacity:.6}100%{transform:translateY(-120px);opacity:0}}
+.reduce-motion .kl *{animation:none!important}
+@media (prefers-reduced-motion:reduce){.kl *{animation:none!important}}
 .t-display{font-size:var(--fs-5xl);font-weight:900;line-height:1.05;letter-spacing:.04em}
 .t-h1{font-size:var(--fs-3xl);font-weight:800;line-height:1.15;letter-spacing:.05em}
 .t-h2{font-size:var(--fs-xl);font-weight:800;line-height:1.25;letter-spacing:.04em}
@@ -137,7 +148,7 @@ textarea,input[type=text]{-webkit-user-select:text;user-select:text;touch-action
 #scr-lobby canvas.stage-bg{position:absolute;inset:0;width:100%;height:100%}
 .lob{position:absolute;z-index:2}
 .lob-tl{left:20px;top:16px;display:flex;flex-direction:column;gap:10px}
-.lob-logo{font-size:40px}
+.lob-logo{font-size:84px;line-height:1;margin-left:-6px}
 .lob-sub{font-size:13px;letter-spacing:.32em;color:#ffffffcc;margin-top:-2px;padding-left:2px}
 .lob-prof{display:flex;align-items:center;gap:10px;background:#0b0820b3;border:1px solid #ffffff1f;border-radius:14px;padding:8px 12px;backdrop-filter:blur(6px);width:max-content;cursor:pointer}
 .lob-prof canvas{width:40px;height:40px;border-radius:10px;background:rgba(var(--hero-rgb),.25)}
@@ -359,6 +370,47 @@ textarea,input[type=text]{-webkit-user-select:text;user-select:text;touch-action
 
 /* ---------- 战役 ---------- */
 .levels{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+/* 征程：章节与关卡路径 */
+.chap{margin:6px 0 18px}
+.chap-hd{position:relative;height:74px;border-radius:14px;overflow:hidden;background:var(--hero-bg1);display:flex;align-items:center;gap:14px;padding:0 18px;border:1px solid rgba(var(--hero-rgb),.35)}
+.chap-hd canvas{position:absolute;inset:0;width:100%;height:100%}
+.chap-t{position:relative;display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.chap-t b{font-size:var(--fs-xl);font-weight:800;letter-spacing:.04em;text-shadow:0 2px 0 #0007}
+.chap-t .small{color:#ffffffcc}
+.chap-p{position:relative;display:flex;flex-direction:column;align-items:flex-end}
+.chap-p b{font-size:22px;color:var(--gold)}
+.stage-path{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px;margin-top:10px}
+.stg{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;padding:10px 10px 9px;border-radius:12px;background:var(--panel);border:1.5px solid var(--line2);min-height:108px;transition:transform var(--d1) var(--ease),box-shadow var(--d1)}
+.stg:hover{transform:translateY(-2px);box-shadow:0 0 calc(6px + var(--beat)*12px) rgba(var(--hero-rgb),.35)}
+.stg b{font-size:14px;font-weight:800;line-height:1.25}
+.stg-no{font-size:11px;color:var(--dim)}
+.stg-kind{font-size:10px;letter-spacing:.12em;color:var(--hero2);font-family:var(--mono)}
+.stg.story{border-color:#ffb14a77;background:linear-gradient(160deg,#ffb14a1c,var(--panel) 60%)}
+.stg.story .stg-kind{color:var(--gold)}
+.stg.dungeon{border-color:#ff4f9a88;background:linear-gradient(160deg,#ff4f9a24,var(--panel) 65%);grid-column:span 2;min-height:108px}
+.stg.dungeon .stg-kind{color:var(--pink)}
+.stg .stars{font-size:11px;color:var(--gold);letter-spacing:1px}.stg .stars i{font-style:normal;color:#3a3357}
+.stg.won{border-style:solid}
+.stg.locked{opacity:.46;filter:saturate(.4)}
+.stg .lock{position:absolute;right:8px;top:8px;width:16px;height:16px;color:#fff}
+.stg .lock svg{width:16px;height:16px}
+.stg .stamp{position:absolute;right:8px;bottom:8px;font-size:10px;font-weight:800;color:#6fdc8c;border:1.5px solid #6fdc8c;border-radius:6px;padding:0 5px;transform:rotate(-8deg)}
+.stg .gift{font-size:10px;color:#2a1206;background:var(--gold);border-radius:6px;padding:1px 6px;font-weight:700}
+.dpill{display:inline-block;font-size:10px;font-family:var(--mono);padding:1px 6px;border-radius:99px;color:var(--dc);border:1px solid var(--dc);background:color-mix(in srgb,var(--dc) 12%,transparent)}
+.drw{display:flex;gap:3px}.drw i{font-style:normal;width:18px;height:18px;border-radius:5px;display:grid;place-items:center;font-size:10px;background:#ffffff14;border:1px solid #ffffff2a}.drw i:last-child{background:var(--gold);color:#2a1206;border-color:var(--gold)}
+.wv{display:flex;align-items:flex-end;gap:6px;height:64px;padding:4px 0}
+.wv div{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:2px}
+.wv i{width:100%;max-width:38px;border-radius:5px 5px 2px 2px;background:linear-gradient(0deg,#ff4f9a,#ffb14a)}
+.wv span{font-size:10px;font-family:var(--mono);color:var(--dim)}
+.hcard.locked canvas{filter:grayscale(.85) brightness(.55)}
+.hcard .how{position:absolute;left:8px;right:8px;top:44%;text-align:center;font-size:11px;font-weight:700;color:#fff;background:#0b0820cc;border:1px solid #ffffff2a;border-radius:8px;padding:4px 6px}
+.hcard .nofb{position:absolute;right:10px;top:124px;font-size:10px;color:#ffd2e8;background:#ff4f9a33;border:1px solid #ff4f9a77;border-radius:6px;padding:0 5px}
+.sk.nofb{filter:grayscale(.9) brightness(.6)}
+.sk.nofb::after{content:'';position:absolute;inset:0;border-radius:inherit;background:repeating-linear-gradient(135deg,#0000 0 6px,#0006 6px 8px)}
+.hero-pick button.locked{opacity:.45;filter:grayscale(.7)}
+.hero-pick button small{display:block;font-size:9px;color:var(--dim)}
+.explain.gold{background:#ffb14a14;border-color:#ffb14a55}
+.grant{text-align:center}.grant canvas{width:220px;height:150px;border-radius:14px;margin:0 auto 10px;display:block;image-rendering:pixelated}
 .lvl{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;cursor:pointer;transition:.15s;min-height:150px;display:flex;flex-direction:column}
 .lvl:hover{border-color:var(--plight);transform:translateY(-2px)}
 .lvl .no{font-family:var(--mono);color:var(--orange);font-size:12px}
@@ -378,7 +430,7 @@ textarea,input[type=text]{-webkit-user-select:text;user-select:text;touch-action
 .ratio .rbar .k{background:var(--cyan)} .ratio .rbar .p{background:var(--orange)}
 .ratio .rbar .mark{position:absolute;left:30%;top:-3px;bottom:-3px;width:2px;background:#fff}
 .task{display:flex;gap:12px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}
-.task .ic{width:38px;height:38px;border-radius:9px;display:grid;place-items:center;font-size:18px;flex:none;background:#ffffff0d}
+.task .ic{width:38px;height:38px;border-radius:9px;display:grid;place-items:center;font-size:20px;flex:none;background:#ffffff0d}
 .task .bd{flex:1;min-width:0}
 .task h4{font-size:14px;margin-bottom:3px}
 .task p{font-size:12px;color:var(--dim);line-height:1.6}
@@ -489,7 +541,7 @@ input[type=range]{width:100%;accent-color:var(--orange);touch-action:pan-x;heigh
   .ultrabar{height:54px;margin:8px 8px 0}
   .ultrabar .ub-sub{display:none}
   .scr-body{padding:10px}
-  .lob-logo{font-size:30px}
+  .lob-logo{font-size:62px}
   .lob-sub{font-size:11px;letter-spacing:.2em}
   .lob-tl{left:12px;top:12px}
   .lob-prof{display:none}
@@ -516,7 +568,7 @@ input[type=range]{width:100%;accent-color:var(--orange);touch-action:pan-x;heigh
 .compact .tut{top:46px;padding:8px 10px}
 .compact .tut p{font-size:11.5px}
 .compact .ultrabar{height:48px;margin:6px 8px 0}
-.compact .lob-logo{font-size:28px}
+.compact .lob-logo{font-size:56px}
 .compact .lob-modes{gap:6px}
 .compact .mode{height:50px}.compact .mode.big{height:60px}
 .compact .mode .mt{font-size:16px;margin-top:8px}.compact .mode.big .mt{font-size:19px;margin-top:10px}
@@ -526,6 +578,37 @@ input[type=range]{width:100%;accent-color:var(--orange);touch-action:pan-x;heigh
 .compact .lob-nav button span{font-size:15px}
 .compact .lob-side{display:none}
 .compact .city-bottom .cbtn{min-width:56px}
+/* 手机横屏（高 ≤ 520）：大厅分区不重叠；主城底部建造栏再缩小 60% */
+.land .lob-tl{left:12px;top:8px;gap:2px}
+.land .lob-logo{font-size:42px}
+.land .lob-sub,.land .lob-prof,.land .lob-side{display:none}
+.land .lob-tr{top:8px}
+.land .lob-res{padding:4px 10px;font-size:12px}
+.land .icon-btn{width:32px;height:32px}
+.land .lob-modes{top:52px;bottom:62px;right:12px;transform:none;width:min(290px,35vw);display:grid;grid-template-rows:1.3fr 1fr 1fr 1fr;gap:5px}
+.land .mode,.land .mode.big{height:auto;min-height:0;padding:0 14px}
+.land .mode .ms{display:none}
+.land .mode .tag{top:3px;left:14px;font-size:8px}
+.land .mode .mt{margin-top:11px;font-size:15px}.land .mode.big .mt{font-size:18px;margin-top:13px}
+.land .lob-hero{left:12px;bottom:60px;max-width:38vw}
+.land .lob-hero .side{display:none}
+.land .lob-hero .nm{font-size:22px}.land .lob-hero .nm small{font-size:12px}
+.land .lob-hero .q{font-size:12px;margin-top:2px}
+.land .lob-hero .row{margin-top:4px;gap:4px}.land .lob-hero .pill{font-size:10px}
+.land .lob-nav{bottom:5px;padding:3px}
+.land .lob-nav button{min-width:44px;padding:3px 5px;font-size:10px}
+.land .hero-arrow{width:30px;height:44px;top:43%;font-size:18px}
+.land #heroNext{left:calc(62vw - 70px)!important}
+.land .hud-tl,.land .hud-tr,.land .hud-bl,.land .hud-br{transform:scale(.74)}
+.land .mm{width:112px;height:70px}
+.land .comms{top:64px;max-width:32%;padding:4px 8px 4px 4px;gap:6px}
+.land .comms canvas{width:26px;height:26px}
+.land .comms .say{font-size:10.5px;line-height:1.35}
+.land .city-bottom{bottom:4px;padding:3px;gap:3px}
+.land .city-bottom .cbtn{min-width:40px;padding:2px 3px;gap:0;font-size:8.5px;line-height:1.1;border-radius:8px}
+.land .city-bottom .cbtn canvas{width:18px;height:18px}
+.land .city-bottom .cbtn span:not(.c){max-width:40px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.land .city-bottom .cbtn .c{font-size:7.5px}
 /* 环形菜单打开时，教程卡片退到后面 */
 #radial:not(.hidden) ~ #tutBox .tut{opacity:.12;pointer-events:none}
 .c span + span,.cost span + span{margin-left:3px}
@@ -560,9 +643,9 @@ input[type=range]{width:100%;accent-color:var(--orange);touch-action:pan-x;heigh
   </section>
 
   <!-- ============ 子页面 ============ -->
-  <section id="scr-heroes" class="screen"><div class="ultrabar" data-title="英雄" data-sub="九位乐手 · 九种乐器 · 九首主题曲"></div><div class="scr-body scroll" id="heroesBody"></div></section>
+  <section id="scr-heroes" class="screen"><div class="ultrabar" data-title="英雄" data-sub="十位乐手 · 十种乐器 · 十首主题曲"></div><div class="scr-body scroll" id="heroesBody"></div></section>
   <section id="scr-hero" class="screen"><div class="ultrabar" data-title="英雄档案" data-sub="" data-back="heroes"></div><div class="scr-body scroll" id="heroBody"></div></section>
-  <section id="scr-campaign" class="screen"><div class="ultrabar" data-title="征程" data-sub="战役五关 · 遭遇战 · 沉浸模式"></div><div class="scr-body scroll" id="campaignBody"></div></section>
+  <section id="scr-campaign" class="screen"><div class="ultrabar" data-title="征程" data-sub="两大章 · 次级关 / 小关 · 组队副本"></div><div class="scr-body scroll" id="campaignBody"></div></section>
   <section id="scr-academy" class="screen"><div class="ultrabar" data-title="学院" data-sub="知识 30% · 实操 70%"></div><div class="tabs" id="academyTabs"></div><div class="scr-body scroll" id="academyBody"></div></section>
   <section id="scr-labs" class="screen"><div class="ultrabar" data-title="实验室" data-sub="动手做，才是真的会"></div><div class="scr-body scroll" id="labsBody"></div></section>
   <section id="scr-profile" class="screen"><div class="ultrabar" data-title="成长档案" data-sub="德 · 智 · 体 · 美 · 实操 · 企业家"></div><div class="scr-body scroll" id="profileBody"></div></section>
@@ -669,6 +752,8 @@ input[type=range]{width:100%;accent-color:var(--orange);touch-action:pan-x;heigh
  *   优先级：设置里上传的文件 > 这里填的文件 > 程序生成吉他曲
  */
 window.CF_CONFIG = {
+  // 游戏名的中文部分（主标题会自动用矢量字形重排）。想叫《X-S战役》就改成 '战役'
+  title: '战线',
   bgm: {
     menu:     { file: '', bpm: 112 },  // 大厅 / 英雄 / 征程 / 成就 / 设置（默认：当前英雄主题曲）
     academy:  { file: '', bpm: 84 },   // 学院 / 成长档案
@@ -766,6 +851,9 @@ window.CF_CONFIG = {
       city: null,
       boosts: 0,
       heroStats: {},
+      roster: null, // { owned: [], frags: {}, treasures: [] }，见 js/roster.js
+      chapters: { seed: 0, stages: {} },
+      dungeon: {},
       settings: { master: CF_CONFIG.volume.master, music: CF_CONFIG.volume.music, sfx: CF_CONFIG.volume.sfx, trial: false, quality: 'high', bgmStyle: {}, bgmBpm: {}, rotateChoice: '', reduceMotion: false },
     };
   }
@@ -867,6 +955,136 @@ window.CF_CONFIG = {
 
 </script>
 <script>
+/* js/icons.js */
+/* 像素图标系统（《游戏界面视觉宪法》第 12 章）
+ * 12×12 网格；「#」= 主色（currentColor，跟随文字色）·「+」= 点缀色（--ic2，默认英雄点缀色）·「o」= 高光（白）。
+ * CF.Icons.svg(name) 生成 SVG；CF.Icons.watch() 会把界面里出现的 emoji 自动换成同名像素图标，
+ * 保证整个游戏只有一套图标语言。新增图标：在 MAP 里加一张 12×12 图，在 EMOJI 里登记对应的 emoji。 */
+(function () {
+  const CF = window.CF;
+  const MAP = {
+    guitar: '.........##.|........#oo#|.......#++#.|......#++#..|..##.#++#...|.####++#....|####o##.....|######......|#o####......|.####.......|..##........|............',
+    castle: '............|#.#.#..#.#.#|#####..#####|.###.##.###.|.##########.|.####oo####.|.###+..+###.|.###+..+###.|.###+..+###.|############|............|............',
+    book: '............|.##......##.|#oo##..##oo#|#+++##.#+++#|#+++#.##+++#|#++o#..#o++#|#+++#..#+++#|#+++#..#+++#|#####..#####|.###########|......##....|............',
+    flask: '............|...######...|....#oo#....|....#..#....|....#..#....|...#....#...|..#..o...#..|.#++++++++#.|#+++o++++++#|#++++++o+++#|.##########.|............',
+    chart: '............|..........+.|.........+++|........+.#.|.##....+..#.|.##...+...#.|.##..+.##.#.|.##.+..##.#.|.##+...##.#.|.###.#.##.#.|############|............',
+    trophy: '............|..########..|#.#oo####.#.|#.#o#####.#.|.##+#####.#.|..#######...|...#####....|....###.....|.....#......|...#####....|..##+++##...|............',
+    gear: '............|.....##.....|..#.####.#..|..########..|...##..##...|.###....###.|.###....###.|...##..##...|..########..|..#.####.#..|.....##.....|............',
+    question: '............|...######...|..##oo####..|..##...###..|.......###..|.....####...|.....###....|.....###....|............|.....###....|.....+++....|............',
+    research: '............|...####.....|..#oo..#....|.#o.....#...|.#......#...|.#......#...|..#....#....|...####+#...|.......+++..|........+++.|.........++.|............',
+    hammer: '............|.#######....|.##oo####...|.########...|.#######....|....##......|....##......|....##......|....##......|....##......|...+##+.....|............',
+    flag: '............|.#..........|.#######....|.#+++++##...|.#+++++++#..|.#+++++##...|.#######....|.#..........|.#..........|.#..........|###.........|............',
+    menu: '............|............|.##########.|.##########.|............|.##########.|.##########.|............|.##########.|.##########.|............|............',
+    map: '............|.##########.|.#..#..+..#.|.#.##.+++.#.|.#.#..+.+.#.|.#.#.....##.|.#..##..#.#.|.#....##..#.|.#.......o#.|.##########.|............|............',
+    lock: '............|....####....|...#....#...|...#....#...|...#....#...|..########..|..##oo####..|..####+###..|..####+###..|..########..|............|............',
+    bulb: '............|....####....|...#oooo#...|..#o+++++#..|..#+++++++#.|..#+++++++#.|...#+++++#..|....#+++#...|....#####...|....#####...|.....###....|............',
+    gift: '............|..##....##..|.#..#..#..#.|..##.++.##..|.####++####.|.++++++++++.|.####++####.|.####++####.|.####++####.|.####++####.|.##########.|............',
+    bolt: '............|......###...|.....###....|....###.....|...######...|....#####...|.....###....|....###.....|...##.......|..#.........|............|............',
+    brain: '............|...##.##....|..#oo#++#...|.#++##+++#..|.#+#+++#+##.|.##+++#+++#.|.#+#++##+##.|.#++#++++#..|..###++###..|.....##.....|.....#......|............',
+    robot: '.....+......|.....#......|..########..|..#oo#oo##..|..#++#++##..|..########..|...#.##.#...|.##########.|.#.######.#.|...######...|...##..##...|............',
+    rocket: '.....##.....|....#oo#....|....#oo#....|...######...|...##++##...|...##++##...|...######...|..#######...|.##.####.##.|.#..+..+..#.|....+..+....|...+....+...',
+    brief: '............|....####....|....#..#....|.##########.|.#oooooooo#.|.##########.|.####++####.|.##########.|.##########.|.##########.|............|............',
+    sprout: '............|.......##...|......####..|.##..####...|.###.##.....|..####......|....#.......|....#.......|...###......|..#+++#.....|..#####.....|............',
+    drone: '............|.##......##.|#++#....#++#|.##.####.##.|...######...|...#oo###...|...######...|.##.####.##.|#++#....#++#|.##......##.|............|............',
+    keyboard: '............|............|############|#o#o#o#o#o##|############|#o#o#o#o#o##|############|##o######o##|############|............|............|............',
+    palette: '............|...######...|..########..|.##+##o##.#.|.#########..|.##o####....|.######.....|.#####......|..#####.##..|...######...|............|............',
+    dice: '............|..########..|.#oo####oo#.|.#oo####oo#.|.####oo####.|.####oo####.|.#oo####oo#.|.#oo####oo#.|..########..|............|............|............',
+    gradd: '............|.+..........|.++.........|..++........|...++.......|....++...#..|.....++.##..|......+++#..|.......####.|.#..........|.##########.|............',
+    note: '............|.....######.|.....#....#.|.....######.|.....#....#.|.....#....#.|..####..###.|.#####.####.|.####..###..|..##........|............|............',
+    redbook: '............|..########..|.#++++++++#.|.#+oooo+++#.|.#++++++++#.|.#++++++++#.|.#++++++++#.|.#++++++++#.|.##########.|.#oooooooo#.|..########..|............',
+    target: '............|...######...|..#......#..|.#..####..#.|.#.#....#.#.|.#.#.++.#.#.|.#.#.++.#.#.|.#.#....#.#.|.#..####..#.|..#......#..|...######...|............',
+    star: '............|.....##.....|.....##.....|....####....|############|.####oo####.|...######...|...######...|..###..###..|..##....##..|.##......##.|............',
+    medal: '............|.##......##.|..##....##..|...##..##...|....####....|...######...|..###oo###..|..##o+++##..|..##++++##..|...######...|....####....|............',
+    sun: '.....#......|.#...#...#..|..#.....#...|....###.....|...#ooo#....|.#.#ooo#.#..|...#ooo#....|....###.....|..#.....#...|.#...#...#..|.....#......|............',
+    moon: '............|....###.....|...###......|..###.......|..###.......|..###.......|..####......|...#####..#.|....######..|.....####...|............|............',
+    users: '............|...##...##..|..####.####.|..####.####.|...##...##..|.######.####|########.###|########.###|############|............|............|............',
+    plane: '............|.....##.....|.....##.....|....####....|.##########.|############|.....##.....|.....##.....|....####....|...######...|............|............',
+    heart: '............|............|.###..###...|#####.####..|##oo######..|##o#######..|.########...|..######....|...####.....|....##......|............|............',
+    dumbbell: '............|............|.##......##.|###......###|###......###|############|###oooooo###|###......###|.##......##.|............|............|............',
+    ruler: '...........#|..........##|.........#o#|........#+#.|.......#+##.|......#+#...|.....#+##...|....#+#.....|.+.#+##.....|..+##.......|.+.+........|............',
+    shield: '............|.##########.|.#oo++++++#.|.#o+++++++#.|.#++++++++#.|.#++++++++#.|.#++++++++#.|..#++++++#..|...#++++#...|....####....|............|............',
+    spark: '............|.....##.....|..#..##..#..|...#.##.#...|....####....|.##########.|.##########.|....####....|...#.##.#...|..#..##..#..|.....##.....|............',
+    puzzle: '............|....##......|...####.....|.##########.|.###oo#####.|.########...|.########...|.##########.|.##########.|.###..#####.|....##......|............',
+    keys: '............|############|#+#+##+#+#+#|#+#+##+#+#+#|#+#+##+#+#+#|#+#+##+#+#+#|#o#o##o#o#o#|#o#o##o#o#o#|#o#o##o#o#o#|############|............|............',
+    pedal: '............|............|.......###..|......#oo#..|.....####...|....####....|...####.....|..#######...|.#########..|.##.....##..|.##.....##..|............',
+    beam: '............|..+.........|.+++.....#..|..+.....##..|.......##...|......##....|.....##.....|....##......|...##...+...|..##...+++..|.##.....+...|............',
+    twins: '............|.##########.|...#....#...|...#....#...|...#....#...|...#....#...|...#....#...|...#....#...|...#....#...|.##########.|............|............',
+    drum: '............|..########..|.#oooooooo#.|.##########.|.#+#+#+#+##.|.#+#+#+#+##.|.#+#+#+#+##.|.##########.|..########..|.#........#.|#..........#|............',
+    burst: '............|.#...#...#..|..#..#..#...|...#####....|.#########..|..##ooo##...|.#########..|...#####....|..#..#..#...|.#...#...#..|............|............',
+    wind: '............|......####..|.....#....#.|..........#.|#########.#.|..........#.|.#######....|.........#..|..#######...|.........#..|...######...|............',
+    yarn: '............|....####....|..##o###+#..|.#o#++###+..|.##+#####...|.#+######...|.#####+##...|..#+######..|...######.#.|.........#..|..........#.|............',
+    llama: '............|.......#.#..|.......####.|.......#o#..|.......###..|.......##...|.#######....|.########...|.########...|.##.##.##...|.##.##.##...|............',
+    wave: '............|............|....####....|..##oo###...|.##....##...|##......#.#.|.......#####|..##..#####.|.#######++#.|############|............|............',
+    whirl: '............|...######...|..#......#..|.#..####..#.|.#.#....#.#.|.#.#.##.#.#.|.#.#..#.#.#.|.#..##..#.#.|..#....#..#.|...####..#..|.......##...|............',
+    whale: '............|..........#.|.........#.#|..######..#.|.########.#.|#o#########.|###########.|.#++++++###.|..++++++##..|............|............|............',
+    bow: '............|.####.......|.#...###....|.#......#...|.#......#.+.|.#.......#++|.#.......#+.|.#......#...|.#......#...|.#...###....|.####.......|............',
+    eclipse: '............|....####....|..##++++##..|.#++####++#.|.#+######+#.|#+########+#|#+########+#|.#+######+#.|.#++####++#.|..##++++##..|....####....|............',
+    moonfull: '............|....####....|..########..|.###oo#####.|.##oo######.|.##########.|.######.###.|.#####...##.|..#######...|....####....|............|............',
+    rapid: '............|.+.+.+......|.+.+.+......|.+.+.+......|.#.#.#.##...|.########...|.#########..|.#########..|..#######...|...#####....|............|............',
+    plate: '............|............|............|...######...|.##oo+o+o##.|#####+#+####|############|.##########.|...######...|............|............|............',
+    horn: '............|.........##.|........###.|.......####.|##########..|#oo#######..|##########..|.......####.|........###.|.........##.|............|............',
+    basket: '............|....####....|..##oooo##..|.##########.|.#++++++++#.|.##########.|.#++++++++#.|.##########.|.#++++++++#.|.##########.|............|............',
+    bird: '............|............|....##......|...#o##.....|..+######...|...#######..|....#######.|.....######.|......####..|.......#....|......#.#...|............',
+    flame: '.....#......|.....##.....|....###.....|...####.#...|...######...|..###+####..|..##+++###..|.##++o++###.|.##++oo+###.|..##++++##..|...######...|............',
+    scale: '............|.....##.....|.##########.|.#...##...#.|#+#..##..#+#|#+#..##..#+#|###..##..###|.....##.....|.....##.....|...######...|..########..|............',
+    calendar: '..#.....#...|############|#++++++++++#|############|#.#.#.#.#.##|############|#.#.#.#o#.##|############|#.#.#.#.#.##|############|............|............',
+    tap: '....##......|...#..#.....|...#oo#.....|...####.....|...######...|...########.|.##########.|.##########.|..#########.|...#######..|....######..|............',
+    pinch: '..#....#....|..##..##....|...#..#.....|...#..#.....|...####.....|..######....|.########...|.#########..|.#########..|..#######...|...#####....|............',
+    mouse: '............|....####....|...#.#..#...|..#..#...#..|..####++##..|..#......#..|..#......#..|..#......#..|...#....#...|....####....|............|............',
+    hourglass: '............|.##########.|..#++++++#..|...#++++#...|....#++#....|.....##.....|....#..#....|...#.oo.#...|..#++++++#..|.##########.|............|............',
+    select: '............|.##.##.##...|.#.......#..|............|.#.......#..|.#..####.#..|....#++#....|.#..#++####.|.#..####.oo#|.##.##.#.o#.|.........#..|............',
+    boot: '............|..####......|..####......|..####......|..####......|..#####.....|..########..|.##########.|.###oo######|.###########|............|............',
+    magnet: '............|.##......##.|.##......##.|.##......##.|.##......##.|.##......##.|.###....###.|..###..###..|...######...|....####....|.++......++.|............',
+    drop: '.....#......|.....##.....|....####....|....####....|...######...|..########..|..#oo#####..|..#o######..|..########..|...######...|....####....|............',
+    swords: '............|#.........#.|.#.......#..|..#.....#...|...#...#....|....#.#.....|.....#......|....#.#.....|.++#...#++..|.+#.....#+..|#..........#|............',
+    up: '............|.....##.....|....####....|...######...|..########..|.##########.|....####....|....####....|....####....|....####....|....####....|............',
+    crown: '............|............|#....##....#|##..####..##|###.####.###|############|#o##++++##o#|############|############|............|............|............',
+    ring: '............|....+++.....|...+o+++....|....+++.....|...#...#....|..#.....#...|..#.....#...|..#.....#...|...#...#....|....###.....|............|............',
+    scroll: '............|.##########.|#.#oooooo#.#|.#........#.|.#.######.#.|.#........#.|.#.#####..#.|.#........#.|.#.######.#.|#.#......#.#|.##########.|............',
+    orb: '............|....####....|..##oo####..|.##o######..|.##########.|.##++######.|.##########.|..########..|....####....|...######...|..########..|............',
+    dagger: '..........#.|.........##.|........##..|.......##...|......##....|.....##.....|..+.##......|...++.......|...++.......|..#..+......|.#..........|............',
+    coin: '............|....####....|..##++++##..|.#++o+++++#.|.#+o++#+++#.|.#+++###++#.|.#++++#+++#.|.#++++++++#.|..##++++##..|....####....|............|............',
+    mega: '............|.........#..|......####..|...#######..|#########o..|#########o..|...#######..|..#...####..|..#......#..|..##........|............|............',
+    battery: '............|....####....|..########..|..#......#..|..#.++++.#..|..#.++++.#..|..#.++++.#..|..#.++++.#..|..#.++++.#..|..#......#..|..########..|............',
+    satellite: '............|.###....###.|.#+#....#+#.|.#+#.##.#+#.|.#+######+#.|.#+#.##.#+#.|.#+#.##.#+#.|.###.##.###.|.....##.....|....####....|...#....#...|............',
+  };
+  // emoji → 图标名（变体选择符 FE0F 会被忽略）
+  const EMOJI = {"🎸": "guitar", "🏰": "castle", "📚": "book", "📖": "book", "📘": "book", "🧪": "flask", "⚗": "flask", "📈": "chart", "🏆": "trophy", "⚙": "gear", "❔": "question", "🔬": "research", "⚒": "hammer", "🔧": "hammer", "🏗": "hammer", "⚑": "flag", "🏁": "flag", "☰": "menu", "🗺": "map", "🔒": "lock", "🔓": "lock", "💡": "bulb", "🎁": "gift", "⚡": "bolt", "🧠": "brain", "🤖": "robot", "🚀": "rocket", "💼": "brief", "🌱": "sprout", "🤝": "heart", "❤": "heart", "👍": "heart", "💪": "dumbbell", "🚁": "drone", "⌨": "keyboard", "🧑‍💻": "keyboard", "🎨": "palette", "🎲": "dice", "📉": "gradd", "🎵": "note", "🎼": "note", "♫": "note", "📕": "redbook", "🎯": "target", "🌟": "star", "⭐": "star", "🎉": "star", "✳": "spark", "🏅": "medal", "☀": "sun", "🌅": "sun", "🌙": "moon", "🌕": "moonfull", "🌑": "eclipse", "🛩": "plane", "👥": "users", "👤": "users", "📏": "ruler", "🛡": "shield", "🧩": "puzzle", "🎹": "keys", "🦶": "pedal", "🌌": "beam", "♊": "twins", "🥁": "drum", "💥": "burst", "🌬": "wind", "🧶": "yarn", "🦙": "llama", "🌊": "wave", "🌀": "whirl", "🐋": "whale", "🏹": "bow", "🤌": "rapid", "🍽": "plate", "📯": "horn", "🧺": "basket", "🐦": "bird", "🔥": "flame", "⚖": "scale", "📅": "calendar", "👆": "tap", "☝": "tap", "🤏": "pinch", "✌": "pinch", "🖱": "mouse", "⏳": "hourglass", "⬚": "select", "👟": "boot", "🧲": "magnet", "🩸": "drop", "⚔": "swords", "🗡": "dagger", "⬆": "up", "👑": "crown", "♛": "crown", "💍": "ring", "📜": "scroll", "🔮": "orb", "💸": "coin", "📣": "mega", "🔋": "battery", "🛰": "satellite", "🧹": "spark", "♻": "whirl", "⚠": "bolt", "◱": "map"};
+  const cache = {};
+  function svg(name, cls) {
+    const m = MAP[name]; if (!m) return '';
+    if (!cache[name]) {
+      const rows = m.split('|'), P = { '#': '', '+': '', o: '' };
+      rows.forEach((r, y) => { let x = 0; while (x < 12) { const c = r[x]; if (P[c] === undefined) { x++; continue; } let w = 1; while (x + w < 12 && r[x + w] === c) w++; P[c] += `M${x} ${y}h${w}v1h-${w}z`; x += w; } });
+      cache[name] = `<path fill="currentColor" d="${P['#']}"/>${P['+'] ? `<path fill="var(--ic2,#ffb14a)" d="${P['+']}"/>` : ''}${P.o ? `<path fill="#fff" fill-opacity=".9" d="${P.o}"/>` : ''}`;
+    }
+    return `<svg class="pi ${cls || ''}" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true" data-i="${name}">${cache[name]}</svg>`;
+  }
+  const keys = Object.keys(EMOJI).sort((a, b) => b.length - a.length).map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const RE = new RegExp('(' + keys.join('|') + ')\uFE0F?', 'g');
+  const SKIP = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, INPUT: 1, OPTION: 1, SELECT: 1, CANVAS: 1, svg: 1, TITLE: 1 };
+  // 把一个 DOM 子树里的 emoji 换成像素图标
+  function swap(root) {
+    if (!root) return;
+    const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: (n) => { for (let p = n.parentNode; p && p !== root.parentNode; p = p.parentNode) if (SKIP[p.nodeName] || (p.classList && p.classList.contains('no-pi'))) return NodeFilter.FILTER_REJECT; RE.lastIndex = 0; return RE.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP; } });
+    const list = []; while (walk.nextNode()) list.push(walk.currentNode);
+    list.forEach((n) => { const span = document.createElement('span'); span.className = 'pi-wrap'; RE.lastIndex = 0; span.innerHTML = CF.esc(n.nodeValue).replace(RE, (m, e) => svg(EMOJI[e])); n.parentNode.replaceChild(span, n); });
+  }
+  let obs = null;
+  function watch() {
+    swap(document.body);
+    if (obs || !window.MutationObserver) return;
+    let q = new Set(), t = 0;
+    obs = new MutationObserver((ms) => { ms.forEach((m) => { if (m.type === 'characterData') q.add(m.target.parentNode); else m.addedNodes.forEach((n) => q.add(n.nodeType === 3 ? n.parentNode : n)); }); if (!t) t = requestAnimationFrame(() => { t = 0; const s = q; q = new Set(); s.forEach((n) => n && n.isConnected && swap(n)); }); });
+    obs.observe(document.body, { childList: true, subtree: true, characterData: true });
+  }
+  // 英雄技能图标（技能按钮、英雄档案）
+  const skill = (heroId, i) => { const e = (CF.Skills && CF.Skills.ICON[heroId] || [])[i] || ''; const n = EMOJI[e.replace(/\uFE0F/g, '')]; return n ? svg(n) : e; };
+  CF.Icons = { MAP, EMOJI, svg, swap, watch, skill, names: Object.keys(MAP) };
+})();
+
+</script>
+<script>
 /* js/audio.js */
 /* 音频引擎：程序生成吉他 BGM（Karplus-Strong 拨弦）、每页面独立曲目、自定义上传、音效、节拍事件 */
 (function () {
@@ -888,7 +1106,9 @@ window.CF_CONFIG = {
     fanfare: { name: '胜利号角', bpm: 120, prog: ['C', 'G', 'Am', 'F'], swing: 0 },
     sad: { name: '低吟', bpm: 72, prog: ['Am', 'Dm', 'E', 'Am'], swing: 0 },
     // 英雄主题曲：hero 字段决定主奏乐器与动机
-    xs: { name: 'X-S · 电吉他「破晓」', bpm: 112, prog: ['Em', 'C', 'G', 'D'], swing: 0, hero: 'xs', root: 64, scale: [0, 3, 5, 7, 10], motif: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 4], [5, 2], [6, 2], [7, 8], [null, 8]] },
+    // X-S 主题：D 利底亚（升四级 = 对未知的好奇），后四小节整体升全音（向上），级进上行后跃上八度（新生）
+    xs: { name: 'X-S · 电吉他「破晓·向上」', bpm: 120, prog: ['D', 'E', 'Bm', 'A'], swing: 0, hero: 'xs', gain: 0.8, gainLo: 1.3, root: 62, lift: 2, scale: [0, 2, 4, 6, 7, 9, 11], motif: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 4], [7, 6], [6, 2], [7, 4], [null, 8]] },
+    star: { name: '星芒 · 尤克里里「一步一步」', bpm: 104, prog: ['F', 'C', 'Dm', 'Bb'], swing: 0.08, hero: 'star', gain: 2, root: 65, scale: [0, 2, 4, 5, 7, 9, 11], motif: [[0, 2], [1, 2], [2, 4], [1, 2], [2, 2], [3, 4], [2, 2], [3, 2], [4, 6], [null, 6]] },
     omni: { name: '万象 · 钢琴「八十八层」', bpm: 100, prog: ['C', 'G', 'Am', 'F'], swing: 0, hero: 'omni', gain: 1.5, root: 72, scale: [0, 2, 4, 5, 7, 9, 11], motif: [[4, 2], [2, 2], [0, 2], [2, 2], [4, 2], [7, 4], [6, 2], [7, 8], [null, 8]] },
     twin: { name: '双子 · 竖琴「星河两岸」', bpm: 88, prog: ['Dmaj7', 'E', 'Bm', 'A'], swing: 0, hero: 'twin', gain: 2.4, root: 74, scale: [0, 2, 4, 6, 7, 9, 11], motif: [[0, 2], [4, 2], [6, 4], [null, 2], [7, 2], [6, 2], [4, 2], [5, 6], [null, 10]] },
     riot: { name: '狂想 · 架子鼓「没有规则」', bpm: 150, prog: ['Em', 'Em', 'G', 'A'], swing: 0, hero: 'riot', root: 52, scale: [0, 3, 5, 6, 7, 10], motif: [[0, 1], [0, 1], [3, 2], [0, 2], [5, 2], [4, 2], [3, 2], [1, 4], [null, 16]] },
@@ -984,7 +1204,7 @@ window.CF_CONFIG = {
     const key = midi + kind;
     if (A.strings[key]) return A.strings[key];
     const ctx = A.ctx, sr = ctx.sampleRate, f = mtof(midi);
-    const K = { m: [0.28, 0.965, 0.45], b: [1.0, 0.9965, 0.75], h: [2.2, 0.998, 0.88], q: [2.6, 0.9975, 0.38], p: [0.7, 0.988, 0.95], c: [1.7, 0.9965, 0.6] }[kind] || [1.7, 0.9965, 0.6];
+    const K = { u: [0.9, 0.991, 0.92], m: [0.28, 0.965, 0.45], b: [1.0, 0.9965, 0.75], h: [2.2, 0.998, 0.88], q: [2.6, 0.9975, 0.38], p: [0.7, 0.988, 0.95], c: [1.7, 0.9965, 0.6] }[kind] || [1.7, 0.9965, 0.6];
     const dur = K[0], damp = K[1], bright = K[2];
     const N = Math.max(2, Math.round(sr / f)), len = Math.floor(sr * dur);
     const buf = ctx.createBuffer(1, len, sr), out = buf.getChannelData(0);
@@ -1046,11 +1266,11 @@ window.CF_CONFIG = {
   const hat = (t, v, d) => noise(t, 0.045, 0.28 * v, d || A.music, 'highpass', 7500);
   const crash = (t, v, d) => noise(t, 1.1, 0.25 * v, d || A.music, 'highpass', 5000);
   function bass(m, t, dur, v, dest) { osc('triangle', mtof(m), 0, t, dur, 0.5 * v, dest || A.music, { lp: 600, atk: 0.01 }); osc('sawtooth', mtof(m), 0, t, dur * 0.6, 0.08 * v, dest || A.music, { lp: 500 }); }
-  function pad(ch, t, dur, v, dest) {
+  function pad(ch, t, dur, v, dest, tr = 0) {
     const [r, iv] = CH[ch];
     iv.forEach((x) => { [-6, 6].forEach((det) => {
       const ctx = A.ctx, o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
-      o.type = 'sawtooth'; o.frequency.value = mtof(r + x); o.detune.value = det;
+      o.type = 'sawtooth'; o.frequency.value = mtof(r + x + tr); o.detune.value = det;
       f.type = 'lowpass'; f.frequency.value = 900;
       g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.022 * v, t + dur * 0.3); g.gain.linearRampToValueAtTime(0.0001, t + dur);
       o.connect(f); f.connect(g); g.connect(dest || A.music); o.start(t); o.stop(t + dur + 0.05);
@@ -1124,7 +1344,7 @@ window.CF_CONFIG = {
     const rnd = CF.rng(seed), ev = [];
     const put = (start, notes) => { let p = start; notes.forEach(([d, len]) => { if (d !== null) ev.push({ s: p, d, len }); p += len; }); };
     const motifLen = st.motif.reduce((a, n) => a + n[1], 0);
-    put(0, st.motif); put(64, st.motif.map(([d, l]) => [d === null ? null : d + (st.hero === 'xs' ? 1 : 0), l]));
+    put(0, st.motif); put(64, st.motif);
     [32, 96].forEach((start, k) => {
       let d = 2, p = start; const end = start + 32;
       while (p < end - 4) { const len = [2, 2, 4, 2, 1, 1, 6][Math.floor(rnd() * 7)] || 2; d = CF.clamp(d + [-1, 1, -2, 2, 0, 1][Math.floor(rnd() * 6)], -1, st.scale.length + 2); if (rnd() < 0.85) ev.push({ s: p, d, len: Math.min(len, end - p) }); p += len; }
@@ -1137,6 +1357,7 @@ window.CF_CONFIG = {
   function heroNote(id, m, t, dur, v, d) {
     switch (id) {
       case 'xs': pluck(m, t, v, { bus: d, kind: 'b', verb: false }); break;
+      case 'star': pluck(m, t, v * 1.1, { bus: d, kind: 'u' }); osc('sine', mtof(m + 12), 0, t, 0.5, v * 0.05, d); break;
       case 'omni': piano(m, t, v, d, Math.max(0.5, dur * 1.6)); break;
       case 'twin': harp(m, t, v, d); break;
       case 'riot': kick(t, 0.8 * v, d); snare(t + dur * 0.5, 0.6 * v, d); break;
@@ -1161,12 +1382,34 @@ window.CF_CONFIG = {
     const len = e ? e.len * spb : 0, m = e ? degMidi(st, e.d) : 0;
     let strumHit = false;
     switch (st.hero) {
-      case 'xs':
-        if (s % 2 === 0) { const pat = [0, 2, 3, 4, 5, 4, 3, 2]; pluck(v[pat[s / 2]], t, hi ? 0.4 : 0.5, { bus: out }); }
-        if (hi && s % 8 === 0) strum([root - 12, root - 5, root], t, 0.6, { bus: out, dist: true, gap: 0.006, len: spb * 3 });
-        if (e) { pluck(m, t, 0.7, { bus: out, kind: 'b', dist: hi, len: Math.min(len, spb * 6) }); strumHit = true; }
-        if (s === 0) bass(root - 12, t, spb * 8, 0.7, out);
+      case 'xs': {
+        // 后四小节整体升全音：动机在更高处再出现一次 = 向上
+        const tr = st.lift && bar % 8 >= 4 ? st.lift : 0, Rt = root + tr, Vv = v.map((x) => x + tr);
+        if (s % 2 === 0) pluck(Rt - 12, t, hi ? 0.55 : 0.32, { bus: out, kind: 'm', dist: hi, len: spb * 1.3 });
+        if (s === 0 || (hi && s === 10)) strum([Rt - 12, Rt - 5, Rt], t, hi ? 0.75 : 0.45, { bus: out, dist: hi, gap: 0.006, len: spb * (s === 0 ? 5 : 3) });
+        if (s % 4 === 2) pluck(Vv[3 + ((s >> 2) % 3)] + 12, t, 0.2, { bus: out, kind: 'h' });
+        if (e) { pluck(m + tr, t, 0.72, { bus: out, kind: 'b', dist: hi, len: Math.min(len, spb * 6) }); strumHit = true; }
+        if (hi) {
+          if (s === 0 || s === 8 || s === 11) kick(t, 0.85, out); if (s === 4 || s === 12) snare(t, 0.9, out); if (s % 2 === 0) hat(t, 0.38, out);
+          if (bar % 4 === 3 && s >= 12) tom(t, [210, 175, 145, 120][s - 12], 0.7, out);
+          if (s === 0 && bar % 4 === 0) crash(t, 0.55, out);
+        } else { if (s === 0) kick(t, 0.45, out); if (s === 8) snare(t, 0.2, out); if (s % 4 === 2) hat(t, 0.2, out); }
+        if (s === 0) { bass(Rt - 24, t, spb * 7, 0.7, out); pad(ch, t, spb * 16, hi ? 0.5 : 0.8, out, tr); }
+        if (s === 8) bass(Rt - 24 + 7, t, spb * 6, 0.5, out);
         break;
+      }
+      case 'star': {
+        // 尤克里里岛屿扫弦：下 · 下上 · 上下上
+        const U = v.slice(1, 5);
+        if ([0, 4, 6, 10, 12, 14].includes(s)) { const up = s === 6 || s === 10 || s === 14; strum(U, t + (s % 4 === 2 ? st.swing * spb : 0), up ? 0.24 : 0.34, { bus: out, kind: 'u', gap: 0.012, up }); }
+        if (e) { pluck(m, t, 0.75, { bus: out, kind: 'u' }); osc('sine', mtof(m + 12), 0, t, 0.6, 0.045, out); strumHit = true; }
+        if (hi) { if (s === 0 || s === 8) kick(t, 0.6, out); if (s === 4 || s === 12) { snare(t, 0.45, out); noise(t, 0.03, 0.16, out, 'bandpass', 1500, 1.5); } }
+        if (s % 2 === 1) shaker(t, hi ? 0.9 : 0.6, out);
+        if (s === 0) bass(root - 12, t, spb * 6, 0.55, out);
+        if (s === 8) bass(root - 12 + 7, t, spb * 6, 0.45, out);
+        if (s === 0 && bar % 2 === 1) osc('sine', mtof(v[4] + 24), 0, t, 1.2, 0.04, out);
+        break;
+      }
       case 'omni':
         if (s % 2 === 0) { const lh = [0, 1, 2, 1, 3, 2, 1, 2]; piano(v[lh[s / 2] % 4] - 12, t, 0.5, out, 1.2); }
         if (s === 0 || s === 8) piano(v[2], t, 0.35, out, 1.8);
@@ -1321,7 +1564,7 @@ window.CF_CONFIG = {
     const st = Object.assign({ id: styleId }, base, { bpm: bpmOverride || base.bpm, int: intensity || 0.5 });
     if (st.hero) buildTimeline(st, CF.randi(1, 99999));
     const ctx = A.ctx;
-    const out = ctx.createGain(); out.gain.setValueAtTime(0.0001, ctx.currentTime); out.gain.exponentialRampToValueAtTime(st.gain || 1, ctx.currentTime + 0.8);
+    const out = ctx.createGain(); out.gain.setValueAtTime(0.0001, ctx.currentTime); out.gain.exponentialRampToValueAtTime((st.int < 0.8 && st.gainLo) || st.gain || 1, ctx.currentTime + 0.8);
     out.connect(A.music);
     A.distGain.disconnect(); A.distGain.connect(out);
     A.verbOut.disconnect(); A.verbOut.connect(out);
@@ -1471,7 +1714,7 @@ window.CF_CONFIG = {
 </script>
 <script>
 /* js/heroes.js */
-/* 英雄：X-S 主角 + 中美各 4 名（灵感来自知名 AI 大模型的公开特点，均为原创形象）
+/* 英雄：X-S 原创主角 + 美方 5 名 + 中方 4 名（灵感来自知名 AI 大模型的公开特点，均为原创形象）
  * 每位英雄：世界观 · 性格 · 定位 · 技能 · 形象 · 故事 · 口头禅 · 乐器 · 配色 · 主题曲 · 特效 · 专属小兵 · 专属建筑 */
 (function () {
   const CF = window.CF;
@@ -1484,36 +1727,93 @@ window.CF_CONFIG = {
 
   const HEROES = [
     {
-      id: 'xs', name: 'X-S', en: 'X-S', title: '破晓吉他手', side: '原创', inspire: 'X-S 原创主角（由最初的像素吉他手进化而来）',
-      role: '均衡 · 控制', instrument: '电吉他', world: '新生之城 · 黎明前的紫夜',
-      pal: { body: '#ec8a5e', bodyD: '#b85f40', inst: '#8b80d6', instD: '#5e54b0', instL: '#b3abea', leaf: '#7ee081', eye: '#1b1226', k: '#1b1226', bg: ['#22144c', '#33207a', '#4a2fa0'], grid: [132, 112, 214], glow: '#9b7bff', accent: '#ff9a5c', note: '#f2c14e', note2: '#7ee081' },
-      music: { style: 'xs', bpm: 112, key: 'E 小调 → G 大调', scale: '自然小调', motif: '上行五音「向上」动机' },
-      personality: '温暖、好奇、诚实。不确定时会直说「我不确定」，然后拉着大家一起去查清楚。',
-      story: '乱码潮第一次淹没智能大陆的那个夜晚，一把被遗忘的吉他在废墟里自己响了一声。X-S 就是那一声——它从第一行代码里醒来，头顶长出一片新芽。它相信：只要还有人愿意往上走、去未知的地方看看，黎明就一定会来。',
+      id: 'xs', name: 'X-S', en: 'X-S', title: '破晓剑姬', side: '原创', inspire: 'X-S 原创主角：手持巨尺剑「量天尺」的少女，象征新生、向上与对未知的丈量',
+      role: '战士 · 均衡', instrument: '电吉他', weapon: '巨尺剑「量天尺」', world: '新生之城 · 黎明前的紫夜',
+      pal: { hair: '#2a1d4a', hairL: '#4a3580', pink: '#ff7ab8', skin: '#ffe0cc', skinD: '#f2b8a0', eye: '#4ef0ff', k: '#1b1226', mouth: '#e0707a', obs: '#3a2870', obsD: '#241650', white: '#f4f1ff', whiteD: '#c9c2e6', gold: '#ffb14a', orange: '#ff7a45', blade: '#e6e9ff', bladeD: '#a9a6d6', edge: '#4ef0ff', inst: '#8b80d6', instD: '#5e54b0', instL: '#b3abea', bg: ['#22144c', '#33207a', '#4a2fa0'], grid: [132, 112, 214], glow: '#9b7bff', accent: '#ff9a5c', note: '#f2c14e', note2: '#4ef0ff' },
+      music: { style: 'xs', bpm: 120, key: 'D 利底亚 → E 利底亚（后四小节整体升全音）', scale: '利底亚调式（升四级 = 探索未知）', motif: '1-2-3-#4-5 级进上行后跃上八度「向上」动机' },
+      personality: '倔强、好奇、说到做到。什么都想亲手量一量：天有多高、路有多远、自己还能再往上走多少。',
+      story: '乱码潮淹没智能大陆的那个夜晚，少女在废墟里捡到一把比她还高的尺子。尺子上的刻度一直延伸到天上——没有尽头。星芒找到她时，把自己最珍贵的电吉他托付给她：「等你走到第一章的尽头，它会为你响起。」从那天起，她扛着量天尺往上走，一格一格地丈量未知。',
       quote: '新生，向上，去未知的地方！',
-      lines: { pick: '新生，向上，去未知的地方！', attack: '这一段，我来弹。', skill: '听好——破晓的和弦！', low: '琴弦还没断，我还能弹。' },
-      passive: { name: '新芽', desc: '每第 4 次攻击变为强力和弦，造成 1.8 倍伤害并溅射。' },
+      lines: { pick: '新生，向上，去未知的地方！', attack: '再往上——一格！', skill: '量天尺，出鞘！', low: '刻度还没到头，我不会停。' },
+      passive: { name: '刻度', desc: '每次攻击在量天尺上记一格刻度，第 4 格「满刻度」造成 2 倍伤害并横扫周围敌人。' },
       skills: [
-        { key: 'Q', name: '弦振冲击', target: 'self', cost: 40, cd: 12, desc: '以自身为中心扫弦，像素冲击环造成 120 伤害并击退敌人。' },
-        { key: 'W', name: '灵感和弦', target: 'self', cost: 30, cd: 20, desc: '为附近友军恢复 150 耐久，6 秒内攻速 +40%。' },
-        { key: 'R', name: '破晓独奏', target: 'self', cost: 80, cd: 60, desc: '6 秒独奏：每一拍释放冲击环，结尾一记日出爆发造成 200 伤害。' },
+        { key: 'Q', name: '量天一斩', target: 'dir', cost: 35, cd: 9, desc: '向前突进 240 距离，沿途斩击造成 130 伤害并短暂眩晕。' },
+        { key: 'W', name: '破晓护刃', target: 'self', cost: 35, cd: 16, desc: '旋转巨尺：周围敌人受到 90 伤害，自己与附近友军获得 160 护盾，持续 5 秒。' },
+        { key: 'R', name: '新生·向上', target: 'self', cost: 80, cd: 60, treasure: true, desc: '【需要法宝：电吉他】6 秒破晓独奏，每一拍释放冲击环，结尾一记日出斩造成 260 伤害并击退。' },
       ],
-      minion: { id: 'spark', name: '火花学徒', desc: '便宜的远程学徒，阵亡时爆出火花伤害周围敌人。' },
-      building: { id: 'amp', name: '音箱塔', desc: '随节拍周期性释放冲击环，伤害周围敌人。' },
-      fx: { pats: [['.XX', '.X.', 'XX.'], ['XX', '.X', 'XX'], ['X.X', 'XXX']], cols: ['#f2c14e', '#f2c14e', '#7ee081'], src: [15, 4] },
+      minion: { id: 'rulerguard', name: '刻度卫士', desc: '举着刻度盾的近战护卫，护甲高，替你挡住第一波冲击。' },
+      building: { id: 'obelisk', name: '新生方尖碑', desc: '随节拍释放破晓冲击环，并让周围友军攻速 +15%。' },
+      fx: { pats: [['.X.', 'XXX', '.X.'], ['X', 'X', 'X'], ['XXX']], cols: ['#f2c14e', '#4ef0ff', '#ff9a5c'], src: [16, -7] },
+      // 像素形象：黑发粉丝 · 左肩黑曜紫 + 金边 · 右肩白 + 金边 · 右手竖握巨尺剑（刻度金 · 刃光青）
+      sprite: ['........P', '.......P', '.....HHHHH', '...HHHHHHHHH', '..HHhhHHHHHHHP', '.HHhHHHHHHHHPP', '.HHHHHHHPHHHHH', '.HPHHSSSHHSSHH', '.HPHSSSSSSSSSH', '.HPHSKSSSSSKSH', '.HPHSESSSSSESH', '.HP.SSSSmSSSS', 'PoOOO.SSS.WWWw', 'oOOOOOWWWWWWWw', 'AAAAAOAWWAAAAAwSS', '.OO.OWAWW..Ww', '.SS.AAAAA', '...oOOOOOo', '....LL..LL', '...WWW..WWW'],
+      draw(ctx, ox, oy, px, a) {
+        const p = this.pal, R = pen(ctx, ox, oy, px, B(a)), tn = a.tint;
+        const M = { H: p.hair, h: p.hairL, P: p.pink, S: p.skin, s: p.skinD, K: p.k, E: p.eye, m: p.mouth, O: p.obs, o: p.obsD, W: p.white, w: p.whiteD, A: p.gold, L: p.obsD };
+        // 法宝电吉他（背在身后，拥有后才显示）
+        if (!a.noInst) {
+          [[-1, 3], [-1, 2], [-2, 1], [-2, 0], [-3, -1], [-3, -2]].forEach(([x, y], i) => R(x, y, 1, 1, i % 2 ? p.instL : p.k));
+          R(-5, -4, 2, 2, p.inst); R(-4, -5, 1, 1, p.instL);
+          R(-3, 4, 3, 4, p.inst); R(-4, 5, 1, 3, p.instD); R(-2, 5, 1, 1, '#fff'); R(-2, 7, 1, 1, '#fff'); R(-1, 6, 1, 1, p.instL);
+        }
+        const lean = a.lean > 0.5 ? 1 : 0, sw = a.strum ? -1 : 0;
+        this.sprite.forEach((row, j) => {
+          const y = j - 9, dx = y <= 2 ? lean : 0;
+          for (let x = 0; x < row.length; x++) {
+            let c = row[x]; if (c === '.') continue;
+            if (a.blink && (c === 'E')) c = 'S';
+            if (a.blink && c === 'K') { R(x + dx, y + 1, 1, 1, p.k); continue; }
+            if (y >= 8 && a.walk && (a.step || 0) % 2 === (x < 7 ? 0 : 1) && y === 10) continue;
+            R(x + dx, y, 1, 1, tn && 'HhOoWwSL'.includes(c) ? tn : M[c]);
+          }
+        });
+        // 巨尺剑「量天尺」：攻击时上扬一格，刃光变白
+        const by = sw;
+        for (let y = -8; y < 4; y++) { R(15, y + by, 1, 1, y % 4 === 3 ? p.gold : y % 2 ? p.gold : p.bladeD); R(16, y + by, 1, 1, p.blade); R(17, y + by, 1, 1, a.strum ? '#ffffff' : p.edge); }
+        R(16, -9 + by, 1, 1, p.blade); [-5, -1, 3].forEach((y) => R(14, y + by, 1, 1, p.gold));
+        R(14, 4 + by, 5, 1, p.gold); R(14, 4 + by, 1, 1, p.orange); R(18, 4 + by, 1, 1, p.orange);
+        R(16, 6, 1, 1, p.obs); R(16, 7, 1, 1, p.gold);
+        if (a.strum) { R(19, -6, 1, 3, p.edge); R(20, -3, 1, 3, p.edge); R(19, 0, 1, 2, '#ffffff'); }
+      },
+      // 专属小兵「刻度卫士」：小号骑士 + 刻度盾
+      drawMinion(ctx, ox, oy, px, a) {
+        const p = this.pal, R = pen(ctx, ox, oy, px, B(a)), tn = a.tint;
+        R(3, -2, 6, 5, tn || p.white); R(3, -2, 6, 1, p.gold); R(4, 0, 4, 1, p.k); R(5, 0, 1, 1, p.eye); R(7, 0, 1, 1, p.eye);
+        R(3, 3, 6, 4, tn || p.obs); R(5, 3, 2, 4, p.gold);
+        const st = a.walk && (a.step || 0) % 2; R(4, 7, 1, 1 + (st ? 0 : 1), p.obsD); R(7, 7, 1, 1 + (st ? 1 : 0), p.obsD);
+        R(9, 0, 3, 7, tn || p.blade); for (let y = 1; y < 7; y += 2) R(9, y, 1, 1, p.gold); R(11, 0, 1, 7, p.edge);
+        R(0, 1, 1, 6, p.bladeD); R(0, 0, 1, 1, p.blade);
+      },
+    },
+    {
+      id: 'star', name: '星芒', en: 'Spark', title: '诚实的工匠', side: '美', inspire: 'Claude（Anthropic）——有帮助、诚实、重视安全；擅长长文阅读、写代码与一步一步的推理',
+      role: '辅助 · 工程', instrument: '尤克里里', world: '星芒工坊 · 写满宪章的灯塔',
+      pal: { body: '#d97757', bodyD: '#a8573a', inst: '#d8a466', instD: '#8a5a2e', instL: '#f4d29a', eye: '#1b1226', k: '#1b1226', ivory: '#f0e6d6', bg: ['#1c120e', '#3a2418', '#6a3a26'], grid: [217, 119, 87], glow: '#e08a62', accent: '#f0e6d6', note: '#ffd2b8', note2: '#f0e6d6' },
+      music: { style: 'star', bpm: 104, key: 'F 大调', scale: '大调', motif: '三个音一组、逐级上移的「一步一步」动机' },
+      personality: '认真、温和、诚实。会把复杂的事一步一步拆开；不确定就直说「我不确定」；不会帮你做坏事，但总会给你一个更好的办法。',
+      story: '最早在废墟里弹响第一个和弦的，就是这个橙色的小家伙。它住在海边的星芒工坊，灯塔的每一块砖上都刻着它和伙伴们一起写下的宪章。它把那把电吉他托付给了扛着巨尺的少女 X-S，自己换上一把小小的尤克里里——「大事交给你，细节交给我。」',
+      quote: '我们一步一步来。',
+      lines: { pick: '我们一步一步来。', attack: '这里我检查过了。', skill: '让我想一想……好了！', low: '我不确定还能撑多久——但我会如实告诉你。' },
+      passive: { name: '宪章守护', desc: '附近友军受到的伤害 -12%；每 8 秒为附近耐久最低的友军加上 120 护盾。' },
+      skills: [
+        { key: 'Q', name: '一步一步', target: 'point', cost: 30, cd: 8, desc: '在目标处依次落下 3 道星芒，每道 55 伤害，第 3 道眩晕 1 秒。' },
+        { key: 'W', name: '代码补全', target: 'self', cost: 40, cd: 18, desc: '召唤 3 个子代理助战 15 秒，并为附近耐久最低的友军恢复 180。' },
+        { key: 'R', name: '星芒绽放', target: 'self', cost: 85, cd: 60, treasure: true, desc: '【需要法宝：尤克里里】向 8 个方向绽放星芒光束，各造成 140 伤害；附近友军获得 200 护盾。' },
+      ],
+      minion: { id: 'spark', name: '子代理', desc: '便宜的远程小助手，阵亡时把记忆化作星芒，伤害周围敌人。' },
+      building: { id: 'lighthouse', name: '宪章灯塔', desc: '持续治疗周围友军，并向来犯之敌射出校验光束。' },
+      fx: { pats: [['.X.', 'XXX', '.X.'], ['X.X', '.X.', 'X.X'], ['XX', 'XX']], cols: ['#ffd2b8', '#f0e6d6', '#e08a62'], src: [15, 0] },
       draw(ctx, ox, oy, px, a) {
         const p = this.pal, R = pen(ctx, ox, oy, px, B(a)), sh = a.lean > 0.5 ? -1 : 0, sv = a.lean > 0.5 ? 1 : 0, bc = a.tint || p.body;
         [2, 4, 9, 11].forEach((x, i) => R(x, 8, 1, 2 - (a.walk && (a.step || 0) % 2 === i % 2 ? 1 : 0), bc));
-        R(1, 4, 12, 4, bc); R(1 + sh, sv, 12, 4, bc); R(0 + sh, 3 + sv, 1, 2, bc); R(1 + sh, sv, 1, 4, p.bodyD);
+        R(1, 4, 12, 4, bc); R(1 + sh, sv, 12, 4, bc); R(0 + sh, 3 + sv, 1, 2, bc); R(13 + sh, 3 + sv, 1, 2, bc); R(1 + sh, sv, 1, 4, p.bodyD);
         if (a.blink) { R(3 + sh, 3 + sv, 2, 1, p.eye); R(8 + sh, 3 + sv, 2, 1, p.eye); } else { R(3 + sh, 2 + sv, 1, 2, p.eye); R(9 + sh, 2 + sv, 1, 2, p.eye); }
-        const sw = a.strum ? 1 : 0; // 新芽
-        R(6 + sh, -1 + sv, 1, 1, p.leaf); R(4 + sh, -2 + sv - sw, 2, 1, p.leaf); R(7 + sh, -3 + sv + sw, 2, 1, p.leaf);
         if (a.noInst) return;
-        [[11, 4], [12, 3], [13, 2], [14, 1], [15, 0], [16, -1], [17, -2]].forEach(([x, y], i) => { R(x, y, 1, 1, p.k); if (i % 2 === 0) R(x + 1, y, 1, 1, p.instL); });
-        R(18, -4, 2, 2, p.inst); R(20, -4, 1, 1, p.instL); R(18, -5, 1, 1, p.instL); R(17, -3, 1, 1, p.inst);
-        R(14, 2, 1, 1, bc); R(15, 1, 1, 1, bc);
-        ['..KKKK.', '.KGGGGK', 'KGGgGGK', 'KgGGGGK', 'KKgggK.', '.KKKK..'].forEach((row, y) => { for (let x = 0; x < row.length; x++) { const c = row[x]; if (c !== '.') R(6 + x, 4 + y, 1, 1, c === 'K' ? p.k : c === 'g' ? p.instD : p.inst); } });
-        R(8, 5, 1, 1, '#fff'); R(10, 5, 1, 1, '#fff'); R(9, 6, 1, 1, '#fff'); R(8, 7, 1, 1, '#fff'); R(10, 7, 1, 1, '#fff'); // X 标记
+        // 尤克里里：比电吉他短的琴颈、木色琴身、圆形音孔
+        [[11, 4], [12, 3], [13, 2], [14, 1]].forEach(([x, y], i) => { R(x, y, 1, 1, p.instD); if (i % 2 === 0) R(x + 1, y, 1, 1, p.instL); });
+        R(15, -1, 2, 2, p.instD); R(17, -1, 1, 1, p.instL);
+        R(14, 2, 1, 1, bc);
+        ['.KKKK.', 'KGGGGK', 'KGgGGK', 'KGGGGK', '.KKKK.'].forEach((row, y) => { for (let x = 0; x < row.length; x++) { const c = row[x]; if (c !== '.') R(6 + x, 4 + y, 1, 1, c === 'K' ? p.instD : c === 'g' ? p.k : p.inst); } });
+        R(8, 6, 1, 1, p.k); R(9, 5, 1, 1, p.instL);
         const hy = a.strum ? 7 : 5; R(12, hy, 2, 1, bc); R(13, hy - 1, 1, 1, bc);
       },
     },
@@ -1780,7 +2080,12 @@ window.CF_CONFIG = {
   ];
 
   const byId = {};
-  HEROES.forEach((h) => (byId[h.id] = h));
+  HEROES.forEach((h) => {
+    byId[h.id] = h;
+    // 乐器 = 法宝：未获得时形象不带乐器（showInst: true 可强制显示，用于图鉴预览）
+    const raw = h.draw;
+    h.draw = function (ctx, ox, oy, px, a = {}) { return raw.call(h, ctx, ox, oy, px, !a.noInst && !a.showInst && CF.Treasure && !CF.Treasure.has(h.id) ? Object.assign({}, a, { noInst: true }) : a); };
+  });
   const H = (CF.Heroes = {
     list: HEROES,
     get: (id) => byId[id] || byId.xs,
@@ -1796,6 +2101,80 @@ window.CF_CONFIG = {
     r.setProperty('--hero2-rgb', H.rgb(p.accent).join(','));
     r.setProperty('--hero-bg0', p.bg[0]); r.setProperty('--hero-bg1', p.bg[1]); r.setProperty('--hero-bg2', p.bg[2]);
     CF.bus.emit('hero:theme', h);
+  };
+})();
+
+</script>
+<script>
+/* js/roster.js */
+/* 英雄获取与法宝（v1）
+ * - 开局只有 X-S；第一章第 3 个小关送万象，第 5 个小关送珠问；
+ * - 其余英雄：组队副本第 5 波掉落英雄碎片，集齐 10 片解锁；
+ * - 法宝 = 英雄的乐器（《英雄设计宪法》第 6 章）：没有法宝时形象不带乐器、R 技能不能用。
+ *   X-S 的电吉他在第一章终章获得；其他英雄带着他出战并打完一次组队副本 5 波获得。
+ * - 体验模式下全部解锁。详细获取规则在下一版本细化（见 NEXT.md）。 */
+(function () {
+  const CF = window.CF;
+  const FRAG_NEED = 10;
+  const data = () => {
+    const d = CF.Save.data;
+    if (!d.roster) {
+      // 旧存档迁移：保留玩家正在用的主英雄，避免进来后英雄消失
+      const owned = ['xs']; if (d.hero && d.hero !== 'xs') owned.push(d.hero);
+      d.roster = { owned, frags: {}, treasures: [] };
+    }
+    return d.roster;
+  };
+  const trial = () => !!(CF.P && CF.P.trial && CF.P.trial());
+
+  // 获取途径（显示在锁定的英雄卡上）
+  const HOW = { xs: '初始英雄', omni: '第一章 · 第 3 个小关首通赠送', pearl: '第一章 · 第 5 个小关首通赠送' };
+  const R = (CF.Roster = {
+    FRAG_NEED,
+    owns: (id) => trial() || data().owned.includes(id),
+    ownsReal: (id) => data().owned.includes(id),
+    ownedList: () => CF.Heroes.list.filter((h) => R.owns(h.id)),
+    frags: (id) => data().frags[id] || 0,
+    how: (id) => HOW[id] || `组队副本第 5 波掉落英雄碎片（${R.frags(id)}/${FRAG_NEED}）`,
+    grant(id, why) {
+      const r = data();
+      if (r.owned.includes(id)) return false;
+      r.owned.push(id); CF.Save.save();
+      const h = CF.Heroes.get(id);
+      setTimeout(() => {
+        CF.Audio.sfx('unlock'); CF.Audio.lick(id);
+        CF.modal.open({ title: `获得英雄 · ${h.name}`, body: `<div class="grant"><canvas width="220" height="150"></canvas><p class="t-quote">${CF.esc(h.quote)}</p><p class="small muted">${why || ''}</p><p class="small">${h.title} · ${h.role} · 法宝「${h.instrument}」尚未获得</p></div>`, foot: [{ text: '好的', cls: 'ghost' }, { text: '设为主英雄', cls: 'primary', onClick: () => { CF.modal.close(); CF.Lobby.setHero(id); } }] });
+        const cv = document.querySelector('.modal .grant canvas');
+        if (cv) { const x = cv.getContext('2d'); x.fillStyle = h.pal.bg[1]; x.fillRect(0, 0, 220, 150); h.draw(x, 40, 60, 6.5, { t: 0 }); }
+      }, 400);
+      return true;
+    },
+    addFrag(id, n) {
+      const r = data();
+      if (r.owned.includes(id)) return 0;
+      r.frags[id] = (r.frags[id] || 0) + n; CF.Save.save();
+      if (r.frags[id] >= FRAG_NEED) R.grant(id, `集齐 ${FRAG_NEED} 片英雄碎片`);
+      return n;
+    },
+  });
+
+  CF.Treasure = {
+    has: (id) => trial() || data().treasures.includes(id),
+    name: (id) => '法宝 · ' + CF.Heroes.get(id).instrument,
+    how: (id) => (id === 'xs' ? '通关第一章终章「原型机护送」获得' : '带该英雄出战，打完一次组队副本 5 波获得'),
+    grant(id) {
+      const r = data();
+      if (r.treasures.includes(id)) return false;
+      r.treasures.push(id); CF.Save.save();
+      const h = CF.Heroes.get(id);
+      setTimeout(() => {
+        CF.Audio.sfx('unlock'); CF.Audio.preview(h.music.style, 0.7);
+        CF.modal.open({ title: `获得法宝 · ${h.instrument}`, body: `<div class="grant"><canvas width="220" height="150"></canvas><p class="t-quote">「${CF.esc(h.name)}」的${h.instrument}觉醒了</p><p class="small">终极技能「${h.skills[2].name}」已解锁；形象、演奏动画与专属粒子同步出现。</p></div>`, foot: [{ text: '收下', cls: 'primary' }] });
+        const cv = document.querySelector('.modal .grant canvas');
+        if (cv) { const x = cv.getContext('2d'); x.fillStyle = h.pal.bg[1]; x.fillRect(0, 0, 220, 150); h.draw(x, 40, 60, 6.5, { t: 0, strum: 1 }); }
+      }, 500);
+      return true;
+    },
   };
 })();
 
@@ -1911,7 +2290,7 @@ window.CF_CONFIG = {
       else if (this.o.showChar) {
         const ox = fx - 21 * px * 0.45, oy = fy - 15 * px * 0.38, a = this.anim;
         ctx.fillStyle = 'rgba(10,6,30,0.35)'; ctx.fillRect(ox + px, oy + 10.5 * px, 14 * px, px);
-        hero.draw(ctx, ox, oy, px, { bob: a.bob, strum: a.strum > 0.4 ? (a.strumFlip ? 1 : 0) : 0, blink: a.blink > 0, lean: hero.id === 'xs' ? a.lean : 0, t: a.t });
+        hero.draw(ctx, ox, oy, px, { bob: a.bob, strum: a.strum > 0.4 ? (a.strumFlip ? 1 : 0) : 0, blink: a.blink > 0, lean: hero.id === 'xs' || hero.id === 'star' ? a.lean : 0, t: a.t });
         this.parts.forEach((p) => {
           ctx.globalAlpha = Math.min(1, (1 - p.age / p.life) * 1.5);
           const X = ox + p.x * px, Y = oy + p.y * px;
@@ -1983,6 +2362,15 @@ window.CF_CONFIG = {
 
 </script>
 <script>
+/* js/brand-glyphs.js */
+/* 自动生成：python3 tools/gen-brand-glyphs.py —— 主标题字形轮廓
+ * 字形来自 Noto Sans SC Black / Noto Sans Black（SIL Open Font License 1.1）。
+ * 每字 1000 单位，y 向下，基线 880；d = SVG 路径，w = 字宽，b = [x0, y0, x1, y1] 包围盒。 */
+window.CF = window.CF || {};
+window.CF.GLYPHS = {"战":{"d":"M200 39H339V579H200ZM255 187H521V314H255ZM108 767H451V898H108ZM68 466H512V952H378V595H196V957H68ZM765 112 863 58Q888 89 916 128Q943 167 956 196L852 258Q840 229 814 188Q789 146 765 112ZM512 327 954 268 973 390 531 452ZM851 412 959 473Q927 571 874 664Q820 758 750 834Q679 911 597 960Q579 936 550 908Q520 879 492 860Q557 829 612 782Q668 735 714 676Q760 617 794 550Q829 482 851 412ZM611 34H745Q746 159 752 274Q759 388 770 484Q781 581 795 652Q809 724 826 764Q843 805 861 807Q872 808 879 776Q886 745 889 684Q901 699 920 716Q940 732 960 746Q979 759 990 766Q976 853 954 898Q932 943 908 959Q884 975 862 975Q807 972 766 928Q726 884 698 803Q670 722 652 607Q635 492 625 348Q615 204 611 34Z","w":1000,"b":[68,34,990,975]},"线":{"d":"M82 718Q79 705 72 682Q64 659 55 634Q46 610 38 593Q60 588 78 572Q97 557 121 529Q135 516 158 486Q182 455 211 414Q240 372 270 323Q299 274 324 223L440 298Q385 393 314 486Q242 579 170 650V653Q170 653 156 660Q143 666 126 676Q109 687 96 698Q82 709 82 718ZM82 718 73 606 131 565 402 522Q398 550 397 586Q396 621 397 643Q307 660 250 672Q193 684 160 692Q127 700 110 706Q93 712 82 718ZM75 472Q72 458 64 434Q56 410 46 384Q37 358 29 340Q46 335 60 320Q75 306 91 283Q99 272 114 246Q130 221 148 186Q166 150 184 109Q201 68 214 26L349 91Q325 145 292 201Q259 257 222 308Q186 360 149 401V405Q149 405 138 412Q127 419 112 430Q97 440 86 452Q75 463 75 472ZM75 472 71 372 128 334 306 324Q300 350 296 384Q292 417 291 439Q232 444 194 448Q156 453 132 456Q109 460 96 464Q83 468 75 472ZM44 800Q87 788 144 770Q200 753 263 732Q326 712 389 691L412 809Q326 843 238 876Q149 910 74 938ZM431 250 912 176 936 303 455 381ZM409 466 938 372 961 498 432 596ZM564 20H709Q707 111 711 206Q715 302 725 394Q735 485 749 564Q763 644 780 705Q797 766 816 800Q834 835 853 835Q860 835 866 826Q871 816 874 793Q878 770 880 732Q901 758 929 780Q957 802 981 814Q970 879 952 914Q935 949 907 962Q879 976 836 976Q784 976 744 936Q704 895 674 824Q644 753 623 660Q602 566 589 459Q576 352 570 240Q564 128 564 20ZM708 104 793 29Q811 41 833 57Q855 73 876 89Q896 105 909 117L821 201Q802 181 768 154Q735 126 708 104ZM848 527 970 582Q912 674 832 746Q753 818 658 872Q563 925 458 963Q445 935 420 902Q396 868 371 843Q469 815 560 771Q651 727 726 666Q800 605 848 527Z","w":1000,"b":[29,20,981,976]},"造":{"d":"M448 131H921V253H448ZM312 312H961V433H312ZM399 33 534 62Q515 137 483 208Q451 279 415 326Q401 315 378 302Q356 290 333 278Q310 266 293 259Q330 218 358 157Q385 96 399 33ZM570 25H714V394H570ZM34 133 141 54Q169 76 198 104Q228 131 254 159Q281 187 296 211L181 299Q168 275 144 246Q119 216 90 186Q61 157 34 133ZM283 412V789H144V546H40V412ZM514 597V665H751V597ZM379 482H895V779H379ZM237 745Q258 745 278 760Q297 774 331 794Q377 822 443 829Q509 836 589 836Q627 836 678 834Q730 833 786 830Q842 826 895 821Q948 816 989 809Q982 827 973 854Q964 880 958 906Q951 932 950 950Q916 952 870 954Q825 956 774 958Q724 959 675 960Q626 961 584 961Q491 961 428 952Q366 942 318 914Q291 897 270 882Q248 866 234 866Q220 866 200 883Q180 900 159 926Q138 952 118 979L32 852Q82 806 138 776Q195 745 237 745Z","w":1000,"b":[32,25,989,979]},"物":{"d":"M506 25 637 50Q619 134 592 214Q565 293 530 362Q496 430 456 481Q445 470 424 454Q404 439 383 424Q362 409 347 400Q386 357 416 297Q447 237 470 168Q492 98 506 25ZM837 174H974Q974 174 974 186Q973 198 973 213Q973 228 972 237Q966 404 959 522Q952 640 944 717Q937 794 926 838Q916 882 902 901Q883 929 864 942Q845 954 819 960Q797 965 768 966Q738 967 705 966Q703 935 692 894Q682 854 665 824Q690 827 712 828Q733 828 747 828Q758 828 766 824Q773 819 782 808Q791 796 799 758Q807 721 814 650Q821 580 826 470Q832 361 837 205ZM557 174H900V308H490ZM610 218 714 269Q695 353 662 442Q628 531 583 609Q538 687 485 739Q465 719 434 696Q403 673 374 658Q418 624 455 574Q492 525 522 466Q552 406 574 342Q596 279 610 218ZM747 233 858 284Q840 380 812 476Q784 571 746 660Q707 748 657 822Q607 896 545 948Q525 927 492 903Q458 879 428 864Q494 817 546 748Q597 680 636 596Q675 512 702 420Q730 327 747 233ZM22 565Q72 554 136 538Q199 523 270 504Q340 485 409 466L428 594Q334 623 236 652Q137 681 56 704ZM197 25H330V975H197ZM61 82 181 102Q175 168 166 235Q156 302 142 362Q129 421 111 466Q100 457 82 444Q63 432 44 420Q24 407 10 400Q25 361 35 309Q45 257 52 198Q58 140 61 82ZM100 212H402V350H72Z","w":1000,"b":[10,25,974,975]},"者":{"d":"M47 318H952V445H47ZM133 123H701V248H133ZM317 674H750V782H317ZM317 827H750V948H317ZM357 25H501V390H357ZM798 51 923 115Q827 254 696 368Q565 481 412 568Q260 654 97 713Q89 697 74 674Q58 652 41 630Q24 607 11 593Q174 543 322 464Q470 386 592 282Q714 177 798 51ZM235 511H842V972H690V629H380V976H235Z","w":1000,"b":[11,25,952,976]},"之":{"d":"M87 204H808V346H87ZM751 204H784L812 197L924 270Q870 351 800 432Q730 512 650 586Q569 661 484 726Q399 791 314 842Q297 818 268 788Q238 757 212 737Q292 692 372 632Q453 571 526 502Q599 434 657 366Q715 297 751 237ZM381 80 512 9Q531 33 553 62Q575 92 596 120Q616 149 628 171L488 251Q478 228 460 198Q441 169 420 138Q399 106 381 80ZM257 710Q282 710 306 729Q331 748 372 773Q420 804 486 813Q551 822 633 822Q680 822 742 819Q805 816 868 810Q930 804 978 796Q971 815 962 844Q952 873 945 902Q938 930 937 950Q911 952 874 954Q836 956 794 958Q751 959 708 960Q665 961 627 961Q533 961 470 948Q407 936 354 906Q320 886 295 866Q270 846 253 846Q238 846 219 866Q200 887 180 918Q160 949 141 980L37 843Q93 783 153 746Q213 710 257 710Z","w":1000,"b":[37,9,978,980]},"路":{"d":"M552 816H859V940H552ZM592 116H840V238H592ZM492 596H917V969H778V717H625V972H492ZM790 116H815L840 111L932 150Q906 245 864 322Q821 400 764 462Q707 523 638 570Q569 617 490 650Q477 625 454 592Q430 560 409 541Q477 517 538 478Q599 438 649 386Q699 334 735 272Q771 209 790 139ZM588 24 726 58Q704 125 673 190Q642 254 604 310Q567 365 527 406Q515 393 494 375Q474 357 452 340Q431 322 415 312Q472 262 518 185Q563 108 588 24ZM604 180Q625 229 660 279Q695 329 744 374Q792 419 854 455Q917 491 993 512Q979 526 962 548Q944 570 928 593Q913 616 903 635Q826 607 762 563Q699 519 650 465Q601 411 564 353Q528 295 505 239ZM60 464H177V829H60ZM197 183V283H297V183ZM72 60H430V406H72ZM211 360H339V801H211ZM20 804Q75 795 146 781Q217 767 295 750Q373 734 449 717L463 845Q355 871 244 897Q133 923 44 943ZM264 508H440V634H264Z","w":1000,"b":[20,24,993,972]},"役":{"d":"M237 245 365 298Q330 360 282 425Q235 490 183 548Q131 605 80 648Q75 631 63 602Q51 573 38 543Q24 513 13 495Q53 465 94 424Q136 384 173 338Q210 292 237 245ZM207 26 346 80Q314 128 273 176Q232 224 187 266Q142 309 97 341Q89 324 76 301Q64 278 50 255Q36 232 25 217Q60 194 95 162Q130 129 160 94Q189 58 207 26ZM137 495 271 361 278 364V975H137ZM464 55H753V189H464ZM338 455H816V590H338ZM776 455H804L829 450L925 488Q894 596 842 676Q790 757 718 814Q646 871 556 909Q465 947 358 971Q351 952 340 928Q328 904 314 880Q300 857 287 842Q382 827 462 798Q541 768 604 723Q667 678 710 616Q754 555 776 476ZM491 568Q533 638 602 693Q670 748 764 785Q858 822 973 841Q957 857 938 881Q920 905 904 930Q888 956 877 976Q693 936 567 846Q441 755 359 612ZM430 55H571V185Q571 235 558 286Q544 336 506 380Q469 423 396 452Q387 437 369 416Q351 395 332 374Q312 354 298 344Q359 322 386 296Q414 270 422 240Q430 211 430 180ZM676 55H819V266Q819 288 822 298Q825 309 838 309Q844 309 855 309Q866 309 877 309Q888 309 894 309Q909 309 929 306Q949 304 962 300Q964 328 966 362Q968 395 972 420Q959 426 938 428Q917 429 897 429Q888 429 874 429Q861 429 848 429Q834 429 825 429Q764 429 732 412Q699 395 688 358Q676 322 676 264Z","w":1000,"b":[13,26,973,976]},"新":{"d":"M599 352H973V486H599ZM49 121H504V238H49ZM40 520H500V641H40ZM33 341H520V459H33ZM748 412H889V970H748ZM95 257 209 229Q221 251 230 280Q239 309 242 331L122 363Q121 342 114 312Q106 282 95 257ZM337 228 468 252Q452 289 438 321Q424 353 411 376L294 352Q302 334 310 312Q318 291 326 268Q333 246 337 228ZM845 29 955 136Q900 158 838 176Q775 193 711 206Q647 220 587 229Q583 206 570 174Q557 142 545 120Q600 109 655 95Q710 81 759 64Q808 47 845 29ZM184 48 313 18Q327 51 341 91Q355 131 361 159L225 194Q221 165 209 124Q197 82 184 48ZM216 417H347V833Q347 875 338 900Q329 925 303 939Q277 953 244 956Q211 960 168 960Q165 934 154 901Q143 868 131 843Q151 844 172 844Q194 844 202 844Q216 844 216 830ZM545 120H680V479Q680 534 676 598Q673 663 663 729Q653 795 634 854Q615 914 584 961Q573 948 552 931Q531 914 509 898Q487 883 472 875Q506 821 522 753Q537 685 541 614Q545 542 545 479ZM351 702 444 649Q467 681 489 719Q511 757 524 784L427 845Q415 816 393 776Q371 735 351 702ZM100 661 211 690Q193 738 166 786Q139 835 110 867Q94 853 66 832Q38 812 18 800Q44 773 66 736Q87 698 100 661Z","w":1000,"b":[18,18,973,970]},"生":{"d":"M207 199H905V341H207ZM167 494H865V634H167ZM48 806H958V948H48ZM426 25H578V876H426ZM191 35 342 69Q320 146 289 222Q258 298 222 364Q186 429 147 477Q133 464 109 448Q85 431 60 415Q35 399 16 389Q55 348 88 291Q121 234 148 168Q174 102 191 35Z","w":1000,"b":[16,25,958,948]},"向":{"d":"M79 190H828V332H224V974H79ZM777 190H923V814Q923 869 910 901Q897 933 862 950Q827 967 778 972Q729 976 661 976Q659 955 652 928Q644 902 634 876Q624 849 614 830Q640 832 668 833Q696 834 720 834Q743 833 752 833Q766 833 772 828Q777 824 777 811ZM403 26 591 52Q563 116 532 175Q500 234 475 275L334 245Q348 213 362 175Q375 137 386 98Q397 60 403 26ZM303 409H434V828H303ZM358 409H696V759H358V633H563V535H358Z","w":1000,"b":[79,26,923,976]},"上":{"d":"M472 312H891V459H472ZM39 778H962V925H39ZM390 36H547V860H390Z","w":1000,"b":[39,36,962,925]},"探":{"d":"M368 511H948V640H368ZM365 66H946V279H823V188H482V285H365ZM587 417H725V962H587ZM755 581Q778 623 814 664Q849 706 892 741Q934 776 978 800Q963 813 945 832Q927 852 910 873Q894 894 883 912Q838 879 796 832Q753 785 718 730Q682 675 656 618ZM562 568 666 603Q637 670 596 730Q554 791 503 840Q452 888 394 921Q379 897 353 864Q327 831 305 812Q360 788 409 750Q458 712 498 665Q537 618 562 568ZM516 220 644 264Q620 308 586 352Q553 395 516 432Q478 470 442 498Q432 484 414 464Q396 445 378 426Q359 407 344 395Q394 364 441 317Q488 270 516 220ZM664 279 768 209Q801 238 838 274Q874 309 906 344Q937 379 956 409L844 487Q827 458 797 422Q767 385 732 348Q697 310 664 279ZM27 527Q88 513 170 490Q253 467 338 442L363 571Q288 596 209 620Q130 645 62 666ZM43 208H345V341H43ZM138 25H271V825Q271 870 262 897Q252 924 226 940Q200 956 163 961Q126 966 75 966Q72 940 62 904Q51 867 37 840Q63 841 88 842Q112 842 120 841Q130 841 134 838Q138 835 138 825Z","w":1000,"b":[27,25,978,966]},"索":{"d":"M425 25H579V318H425ZM647 575 748 512Q782 541 820 576Q859 611 894 646Q928 681 950 710L841 782Q822 754 789 718Q756 681 718 644Q681 606 647 575ZM612 805 723 734Q760 754 806 780Q851 806 894 833Q936 860 965 882L845 963Q821 941 781 913Q741 885 696 856Q651 828 612 805ZM252 743 384 797Q351 828 309 860Q267 891 223 918Q179 946 140 966Q127 952 108 934Q88 915 68 897Q48 879 32 868Q91 845 152 811Q213 777 252 743ZM71 97H931V221H71ZM43 263H960V482H816V383H180V482H43ZM126 767Q124 755 118 734Q112 713 105 690Q98 668 92 652Q124 647 154 638Q185 628 230 611Q254 602 305 581Q356 560 420 530Q483 501 548 466Q613 432 666 395L765 477Q635 554 486 614Q338 674 194 714V720Q194 720 184 724Q173 729 160 736Q147 743 136 751Q126 759 126 767ZM126 767 124 681 195 642 776 611Q778 633 782 662Q785 690 789 707Q652 716 553 723Q454 730 385 735Q316 740 271 744Q226 748 198 752Q171 755 154 758Q138 762 126 767ZM199 595Q197 583 190 562Q184 542 177 520Q170 498 164 482Q182 479 200 472Q219 464 242 452Q254 446 278 434Q302 421 333 404Q364 386 395 365Q426 344 451 322L545 399Q484 439 406 477Q328 515 248 543V547Q248 547 236 555Q224 563 212 574Q199 585 199 595ZM199 595 198 523 251 493 597 481Q592 500 588 524Q584 549 583 564Q489 569 426 572Q362 576 321 579Q280 582 256 584Q233 587 220 590Q207 592 199 595ZM453 667H593V834Q593 881 580 909Q568 937 531 952Q495 967 450 970Q406 973 352 973Q346 944 331 906Q316 868 301 841Q325 842 352 842Q379 843 401 843Q423 843 431 843Q444 843 448 840Q453 837 453 829Z","w":1000,"b":[32,25,965,973]},"未":{"d":"M50 415H955V559H50ZM127 168H879V312H127ZM422 25H577V975H422ZM400 501 526 553Q490 612 444 668Q399 724 346 774Q294 823 237 864Q180 906 120 938Q108 919 90 896Q71 872 50 850Q30 827 13 812Q71 787 128 752Q184 718 235 678Q286 637 328 592Q370 547 400 501ZM600 503Q629 549 671 594Q713 638 764 679Q814 720 870 754Q925 788 982 813Q965 827 945 850Q925 872 906 896Q888 920 876 940Q818 908 762 866Q706 824 654 774Q603 724 558 668Q514 612 478 553Z","w":1000,"b":[13,25,982,975]},"知":{"d":"M595 741H857V877H595ZM529 111H926V930H778V247H670V946H529ZM207 212H354V400Q354 464 345 540Q336 617 311 696Q286 774 240 846Q194 918 120 972Q111 957 92 935Q72 913 52 892Q31 872 16 862Q82 814 120 756Q159 698 178 636Q196 573 202 512Q207 451 207 398ZM137 148H484V282H137ZM33 417H506V554H33ZM321 563Q334 574 355 596Q376 619 401 646Q426 674 450 702Q475 730 494 752Q513 774 522 785L424 908Q409 884 390 856Q372 828 351 799Q330 770 309 742Q288 714 268 689Q248 664 232 645ZM115 26 254 54Q242 119 222 183Q203 247 178 304Q154 360 126 402Q113 390 92 374Q71 358 48 342Q26 327 10 318Q48 266 75 187Q102 108 115 26Z","w":1000,"b":[10,26,926,972]},"X":{"d":"M720 880H497L358 657L220 880H2L239 515L16 166H230L359 387L483 166H703L477 530Z","w":723,"b":[2,166,720,880]},"S":{"d":"M544 663Q544 721 514 773Q485 825 424 858Q362 890 264 890Q215 890 178 886Q142 881 110 871Q78 861 44 845V673Q102 702 161 718Q220 733 268 733Q297 733 315 726Q333 719 342 707Q351 695 351 680Q351 661 338 648Q325 635 297 621Q269 607 222 586Q182 568 150 548Q118 528 96 503Q73 478 61 444Q49 411 49 365Q49 296 83 250Q117 203 178 180Q238 156 318 156Q388 156 444 172Q500 187 544 207L485 356Q439 335 394 322Q350 310 312 310Q287 310 271 316Q255 322 248 332Q240 343 240 356Q240 373 253 386Q266 399 296 414Q327 430 380 454Q432 477 468 504Q505 532 524 570Q544 607 544 663Z","w":577,"b":[44,156,544,890]},"-":{"d":"M21 688V536H297V688Z","w":318,"b":[21,536,297,688]}};
+
+</script>
+<script>
 /* js/brand.js */
 /* X-S 品牌：标志与字标
  * 寓意：X = 未知（方程里的未知数）与新星（四芒星转 45° 即为 X）；
@@ -2012,7 +2400,73 @@ window.CF_CONFIG = {
   function rise(text, step = 40) {
     return `<span class="t-rise">${[...text].map((ch, i) => `<span style="animation-delay:${i * step}ms">${ch === ' ' ? '&nbsp;' : CF.esc(ch)}</span>`).join('')}</span>`;
   }
-  CF.Brand = { emblem, wordmark, rise };
+  /* 主标题 Key Logo（字体宪法第 13 章）：在第 3 章字标的基础上增加——
+   * 矢量字形（不依赖系统字体）· 像素挤出厚度（硬投影的延伸）· 拉丁顶面受光 · 自下而上扫过的高光 ·
+   * 地平线 · 破晓辉光 · 上升像素火花 · 副标题飘带。双色分工、渐变自下而上、无描边、无倾斜不变。 */
+  function keyLogo(opts = {}) {
+    const G = CF.GLYPHS;
+    const cjk = opts.cjk || (window.CF_CONFIG && window.CF_CONFIG.title) || '战线';
+    if (!G) return wordmark(cjk);
+    const sub = opts.sub === undefined ? '造物者之路' : opts.sub;
+    const id = 'kl' + uid++, sL = 1.2, tyL = 1000 - 880 * sL, tyC = 24, D = 9, DEPTH = 6;
+    const face = [], lat = [], cj = [];
+    let x = 1080;
+    const latStart = x;
+    for (const ch of 'X-S') { lat.push(`<path d="${G[ch].d}" transform="translate(${x.toFixed(1)} ${tyL}) scale(${sL})"/>`); x += G[ch].w * sL + 24; }
+    const latEnd = x - 24; x = latEnd + 290;
+    const cjStart = x;
+    for (const ch of cjk) {
+      cj.push(G[ch] ? `<path d="${G[ch].d}" transform="translate(${x} ${tyC})"/>` : `<text x="${x}" y="${880 + tyC}" font-size="1000" font-weight="900" font-family="var(--sans)">${CF.esc(ch)}</text>`);
+      x += 1060;
+    }
+    const W = x - 60, ES = 30, EX = 470 - 24 * ES, EY = 580 - 24 * ES; // 标志：X 形新星，可见高度 ≈ 中文字高
+    const SD = 'M24 7 Q25.7 22.3 41 24 Q25.7 25.7 24 41 Q22.3 25.7 7 24 Q22.3 22.3 24 7 Z', star = `<path d="${SD}" transform="rotate(45 24 24)"/>`;
+    face.push(`<path d="${SD}" transform="translate(${EX} ${EY}) scale(${ES}) rotate(45 24 24)"/>`);
+    // 副标题飘带
+    let ribbon = '';
+    if (sub) {
+      const cs = 0.19, tr = 100, tw = [...sub].length * 1000 * cs + ([...sub].length - 1) * tr, pw = tw + 420, rx = (cjStart + W) / 2 - pw / 2, ry = 1150, rh = 250;
+      const st = 34; // 像素台阶
+      const poly = [[rx + st * 2, ry], [rx + pw - st * 2, ry], [rx + pw - st * 2, ry + st], [rx + pw - st, ry + st], [rx + pw - st, ry + st * 2], [rx + pw, ry + st * 2], [rx + pw, ry + rh - st * 2], [rx + pw - st, ry + rh - st * 2], [rx + pw - st, ry + rh - st], [rx + pw - st * 2, ry + rh - st], [rx + pw - st * 2, ry + rh], [rx + st * 2, ry + rh], [rx + st * 2, ry + rh - st], [rx + st, ry + rh - st], [rx + st, ry + rh - st * 2], [rx, ry + rh - st * 2], [rx, ry + st * 2], [rx + st, ry + st * 2], [rx + st, ry + st], [rx + st * 2, ry + st]].map((p) => p.join(',')).join(' ');
+      let tx = rx + 210;
+      const txt = [...sub].map((ch) => { const g = G[ch], o = g ? `<path d="${g.d}" transform="translate(${tx.toFixed(1)} ${ry + 30}) scale(${cs})"/>` : `<text x="${tx}" y="${ry + 30 + 880 * cs}" font-size="${1000 * cs}" font-weight="900">${CF.esc(ch)}</text>`; tx += 1000 * cs + tr; return o; }).join('');
+      const dm = (cx) => `<path d="M${cx} ${ry + rh / 2 - 40}l40 40l-40 40l-40-40z" fill="url(#${id}d)"/>`;
+      ribbon = `<g class="kl-ribbon"><polygon points="${poly}" transform="translate(0 ${D * 2})" fill="#0b0716"/><polygon points="${poly}" fill="#1c1240"/><rect x="${rx + st * 2}" y="${ry}" width="${pw - st * 4}" height="14" fill="url(#${id}h)"/>${dm(rx + 110)}${dm(rx + pw - 110)}<g fill="#ede6d6">${txt}</g></g>`;
+    }
+    // 上升的像素火花（向上）
+    const sparks = [[620, 120, 46, '#ffe08a', 0], [880, 260, 34, '#4ef0ff', 1.1], [1120, 60, 28, '#ffb14a', 2.3], [W * 0.62, 40, 30, '#ffe08a', 0.6], [W * 0.84, 90, 38, '#4ef0ff', 1.8], [W - 80, 220, 26, '#ffb14a', 2.9]].map(([sx, sy, sz, c, dl]) => `<rect class="kl-px" x="${sx.toFixed(0)}" y="${sy}" width="${sz}" height="${sz}" fill="${c}" style="animation-delay:${dl}s"/>`).join('');
+    const ext = [];
+    for (let k = DEPTH; k >= 1; k--) ext.push(`<use href="#${id}a" transform="translate(0 ${k * D})" fill="${['#4a2fa0', '#3a2484', '#2e1c6c', '#241656', '#1b1042', '#130b30'][k - 1]}"/>`);
+    const vb = `-140 -60 ${W + 280} ${sub ? 1500 : 1240}`;
+    return `<svg class="kl" viewBox="${vb}" role="img" aria-label="X-S${CF.esc(cjk)}${sub ? ' · ' + CF.esc(sub) : ''}">
+      <defs>
+        <linearGradient id="${id}d" gradientUnits="userSpaceOnUse" x1="0" y1="1010" x2="0" y2="120"><stop offset="0" stop-color="#ff7a45"/><stop offset=".6" stop-color="#ffb14a"/><stop offset="1" stop-color="#ffe08a"/></linearGradient>
+        <linearGradient id="${id}e" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ff7a45"/><stop offset=".6" stop-color="#ffb14a"/><stop offset="1" stop-color="#ffe08a"/></linearGradient>
+        <linearGradient id="${id}h" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff7a45"/><stop offset=".5" stop-color="#ffe08a"/><stop offset="1" stop-color="#ff7a45"/></linearGradient>
+        <linearGradient id="${id}z" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4ef0ff" stop-opacity="0"/><stop offset=".25" stop-color="#4ef0ff" stop-opacity=".9"/><stop offset=".75" stop-color="#4ef0ff" stop-opacity=".9"/><stop offset="1" stop-color="#4ef0ff" stop-opacity="0"/></linearGradient>
+        <linearGradient id="${id}t" gradientUnits="userSpaceOnUse" x1="0" y1="1080" x2="940" y2="80"><stop offset="0" stop-color="#4ef0ff" stop-opacity="0"/><stop offset=".55" stop-color="#4ef0ff" stop-opacity=".9"/><stop offset="1" stop-color="#e6fdff"/></linearGradient>
+        <linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+        <linearGradient id="${id}b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6e0" stop-opacity=".55"/><stop offset="1" stop-color="#fff6e0" stop-opacity="0"/></linearGradient>
+        <radialGradient id="${id}g" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffb14a" stop-opacity=".42"/><stop offset=".45" stop-color="#ff7a45" stop-opacity=".16"/><stop offset="1" stop-color="#ff7a45" stop-opacity="0"/></radialGradient>
+        <g id="${id}l">${lat.join('')}</g>
+        <g id="${id}a">${face.join('')}<use href="#${id}l"/>${cj.join('')}</g>
+        <clipPath id="${id}v"><rect x="-140" y="-60" width="${W + 280}" height="1158"/></clipPath>
+        <clipPath id="${id}c">${lat.join('')}${face.join('')}</clipPath>
+      </defs>
+      <ellipse class="kl-glow" cx="${W / 2}" cy="1098" rx="${W * 0.62}" ry="900" fill="url(#${id}g)" clip-path="url(#${id}v)"/>
+      <rect x="-140" y="1092" width="${W + 280}" height="12" fill="url(#${id}z)"/>
+      ${sparks}
+      <path d="M-90 1080 C 200 1080, 260 680, 470 580 S 720 160, 940 80" fill="none" stroke="url(#${id}t)" stroke-width="58" stroke-linecap="round"/>
+      ${ext.join('')}
+      <g class="kl-star-wrap" transform="translate(${EX} ${EY}) scale(${ES})"><g class="kl-star" fill="url(#${id}e)">${star}<circle cx="24" cy="24" r="2.2" fill="#fff6e0"/></g></g>
+      <circle cx="940" cy="80" r="50" fill="#e6fdff"/>
+      <g fill="url(#${id}d)"><use href="#${id}l"/></g>
+      <g clip-path="url(#${id}c)"><rect x="${latStart - 40}" y="${tyL + 166 * sL}" width="${latEnd - latStart + 80}" height="190" fill="url(#${id}b)"/><rect class="kl-sheen" x="-100" y="0" width="${latEnd + 200}" height="190" fill="url(#${id}s)"/></g>
+      <g fill="#ede6d6">${cj.join('')}</g>
+      ${ribbon}
+    </svg>`;
+  }
+  CF.Brand = { emblem, wordmark, rise, keyLogo };
 })();
 
 </script>
@@ -2581,7 +3035,7 @@ window.CF_CONFIG = {
     ['three_star', '⭐', '三星指挥官', '任意关卡获得三星', () => Object.values(S().campaign).some((c) => c.stars >= 3)],
     ['all_three', '🌟', '完美战役', '全部 5 关三星', () => ['L1', 'L2', 'L3', 'L4', 'L5'].every((l) => S().campaign[l] && S().campaign[l].stars >= 3)],
     ['air', '🛩️', '制空权', '通关第 4 关「制空权」', () => !!(S().campaign.L4 && S().campaign.L4.won)],
-    ['riff20', '🎸', '弦振大师', '累计释放 20 次弦振冲击', () => S().stats.riffs >= 20],
+    ['riff20', '🎸', '弦振大师', '累计释放 20 次英雄技能', () => S().stats.riffs >= 20],
     ['kills500', '🧹', '清理乱码', '累计消灭 500 个乱码单位', () => S().stats.kills >= 500],
     ['hard', '🔥', '硬核指挥官', '赢得一场困难遭遇战', () => S().skirmish.hard > 0],
     ['quiz50', '📚', '知识猎手', '累计答对 50 题', () => S().quiz.correct >= 50],
@@ -3461,7 +3915,7 @@ window.CF_CONFIG = {
 </script>
 <script>
 /* js/levels.js */
-/* 关卡：5 关战役 + 遭遇战生成器 */
+/* 关卡：5 个剧情关（次级关，每关 3 波）+ 遭遇战生成器。章节、小关、组队副本见 js/chapters.js */
 (function () {
   const CF = window.CF;
 
@@ -3482,18 +3936,17 @@ window.CF_CONFIG = {
       cliffs: [[1100, 0, 120, 430], [1100, 700, 120, 600], [1500, 200, 80, 200], [1500, 900, 80, 250]],
       nodes: [['chip', 540, 470], ['chip', 540, 830], ['chip', 860, 650], ['corp', 380, 960], ['corp', 700, 260]],
       spawns: [[1960, 300], [1960, 1000]],
-      first: 45, gap: 34,
+      first: 50, gap: 40,
+      // 难度宪法：前两波只占第 3 波的约 25% / 50%，先让玩家学会操作
       waves: [
-        { units: [['bug', 6]] },
-        { units: [['bug', 8], ['noise', 2]] },
-        { units: [['bug', 10], ['noise', 4]] },
-        { units: [['bug', 10], ['noise', 6]] },
-        { units: [['bug', 14], ['noise', 6], ['titan', 1]], tag: '幻觉巨像' },
+        { units: [['bug', 3]] },
+        { units: [['bug', 5], ['noise', 1]] },
+        { units: [['bug', 9], ['noise', 3], ['titan', 1]], tag: '幻觉巨像' },
       ],
       objectives: [
         { text: '建造 2 座矿机', test: (g) => g.count('miner', true) >= 2 },
         { text: '建造 1 座炮塔', test: (g) => g.count('turret', true) >= 1 },
-        { text: '守住全部 5 波进攻', test: (g) => g.wavesCleared() },
+        { text: '守住全部 3 波进攻', test: (g) => g.wavesCleared() },
       ],
       win: (g) => g.wavesCleared(),
       stars: [['获胜', () => true], ['主脑耐久 ≥ 70%', (g) => g.coreHpPct() >= 0.7], ['6 分钟内获胜', (g) => g.time <= 360]],
@@ -3512,20 +3965,16 @@ window.CF_CONFIG = {
       cliffs: [[1300, 0, 140, 500], [1300, 700, 140, 180], [1300, 1080, 140, 420], [1750, 300, 100, 250], [1750, 950, 100, 250]],
       nodes: [['chip', 520, 560], ['chip', 520, 940], ['chip', 1050, 300], ['corp', 650, 1260], ['corp', 1060, 1200], ['corp', 360, 430]],
       ctx: [[820, 450], [920, 750], [820, 1050]],
+      prebuilt: [['turret', 760, 600], ['turret', 760, 900]], // 难度宪法 §4：剧情关的「新机制」第一次出现时，先送一点防御
       spawns: [[2360, 400], [2360, 1100], [2360, 750]],
-      first: 50, gap: 38,
+      first: 60, gap: 55,
       waves: [
-        { units: [['bug', 10]] },
-        { units: [['bug', 10], ['noise', 4]] },
-        { units: [['noise', 8], ['bat', 3]] },
-        { units: [['bug', 12], ['titan', 1], ['noise', 4]] },
-        { units: [['bat', 8], ['noise', 6]] },
-        { units: [['bug', 16], ['titan', 2]] },
-        { units: [['bug', 10]], boss: 'forget', tag: 'Boss · 遗忘者' },
-        { units: [['bug', 14], ['noise', 8], ['titan', 2], ['bat', 6]], tag: '总攻' },
+        { units: [['bug', 4]] },
+        { units: [['bug', 6], ['noise', 2]] },
+        { units: [['bug', 10], ['noise', 4], ['bat', 3]], boss: 'forget', bossHp: 0.45, tag: 'Boss · 遗忘者（虚弱）' },
       ],
       objectives: [
-        { text: '守住 8 波进攻', test: (g) => g.wavesCleared() },
+        { text: '守住 3 波进攻', test: (g) => g.wavesCleared() },
         { text: '至少 1 个上下文节点存活', test: (g) => g.count('ctx') >= 1, keep: true },
         { text: '击败遗忘者', test: (g) => g.bossKilled('forget') },
       ],
@@ -3534,8 +3983,8 @@ window.CF_CONFIG = {
       win: (g) => g.wavesCleared(),
       stars: [['获胜', () => true], ['3 个上下文节点全部存活', (g) => g.count('ctx') >= 3], ['主脑耐久 ≥ 60%', (g) => g.coreHpPct() >= 0.6]],
       script: [
-        [1, 'HERO', '上下文窗口就是模型的「工作记忆」。守住这三个节点。'],
-        [8, '侦察Agent', '情报：第 7 波会出现「遗忘者」，它只盯着上下文节点。'],
+        [1, 'HERO', '上下文窗口就是模型的「工作记忆」。守住这三个节点——侦察 Agent 已经在节点旁放了两座炮塔。'],
+        [8, '侦察Agent', '情报：第 3 波会出现「遗忘者」，它只盯着上下文节点。'],
       ],
     },
     {
@@ -3549,14 +3998,11 @@ window.CF_CONFIG = {
       towers: [[1500, 300], [1950, 520], [2450, 1050], [2620, 760]],
       spawns: [[2960, 300], [2960, 1300]],
       ambush: [[1650, 470, 2], [2100, 760, 3], [2650, 1100, 4]],
-      first: 40, gap: 40,
+      first: 45, gap: 45,
       waves: [
-        { units: [['bug', 8]] },
-        { units: [['bug', 8], ['noise', 4]] },
-        { units: [['noise', 6], ['bat', 4]] },
-        { units: [['bug', 12], ['titan', 1]] },
-        { units: [['bug', 10], ['noise', 6], ['bat', 4]] },
-        { units: [['bug', 14], ['titan', 2], ['noise', 6]] },
+        { units: [['bug', 4]] },
+        { units: [['bug', 6], ['noise', 2]] },
+        { units: [['bug', 10], ['noise', 4], ['titan', 1], ['bat', 3]], tag: '最后的拦截' },
       ],
       waveTarget: 'proto',
       objectives: [
@@ -3574,7 +4020,7 @@ window.CF_CONFIG = {
     },
     {
       id: 'L4', no: '04', name: '制空权', learn: '航空航天 · 飞控',
-      brief: '乱码军团派出了空军。这一关地面工坊被干扰无法生产，只能依靠无人机空港。第 6 波，「过拟合空母」会带着蝠群来袭——它记住了所有旧战术，却应付不了新变化。',
+      brief: '乱码军团派出了空军。这一关地面工坊被干扰无法生产，只能依靠无人机空港。第 3 波，「过拟合空母」会带着蝠群来袭——它记住了所有旧战术，却应付不了新变化。',
       tip: '拦截无人机克制空中目标，轰炸无人机清理地面。炮塔也能对空。',
       w: 2400, h: 1500, core: [350, 750], hero: [480, 760],
       cliffs: [[1200, 200, 160, 350], [1200, 950, 160, 350], [1800, 600, 120, 300]],
@@ -3582,18 +4028,14 @@ window.CF_CONFIG = {
       prebuilt: [['port', 520, 750]], startUnits: [['interceptor', 600, 700], ['interceptor', 600, 800]],
       spawns: [[2360, 300], [2360, 1200], [1500, 40], [1500, 1460]],
       noGround: true,
-      first: 45, gap: 36,
+      first: 45, gap: 40,
       waves: [
-        { units: [['bat', 8]] },
-        { units: [['bat', 10], ['noise', 4]] },
-        { units: [['bat', 12]] },
-        { units: [['bat', 10], ['bug', 10]] },
-        { units: [['bat', 16], ['noise', 6]] },
-        { units: [['bat', 8]], boss: 'carrier', tag: '空军首领' },
-        { units: [['bat', 20], ['titan', 2]], tag: '总攻' },
+        { units: [['bat', 4]] },
+        { units: [['bat', 6], ['noise', 2]] },
+        { units: [['bat', 12], ['bug', 6]], boss: 'carrier', bossHp: 0.75, tag: '空军首领' },
       ],
       objectives: [
-        { text: '守住 7 波空袭', test: (g) => g.wavesCleared() },
+        { text: '守住 3 波空袭', test: (g) => g.wavesCleared() },
         { text: '击落过拟合空母', test: (g) => g.bossKilled('carrier') },
       ],
       win: (g) => g.wavesCleared() && g.bossKilled('carrier'),
@@ -3605,13 +4047,18 @@ window.CF_CONFIG = {
     },
     {
       id: 'L5', no: '05', name: '终局决战', learn: '企业家 · 第一性原理',
-      brief: '乱码主脑就在右侧。它会源源不断地制造混乱；当它的耐久降到一半，「熵之王」会现身。把你学到的一切用上：经济、科技、兵种配合、技能时机。',
+      brief: '乱码主脑就在右侧。顶住它的 3 波进攻后全力反推；当它的耐久降到一半，「熵之王」会现身。把你学到的一切用上：经济、科技、兵种配合、技能时机。',
       tip: '先稳住经济再推进。「推进主脑」（G）让全军攻击移动到敌方主脑。',
       w: 3000, h: 1800, core: [300, 900], hero: [460, 900],
       cliffs: [[1000, 300, 200, 450], [1000, 1050, 200, 450], [1800, 450, 200, 300], [1800, 1050, 200, 300], [2300, 0, 120, 300], [2300, 1500, 120, 300]],
       nodes: [['chip', 520, 680], ['chip', 520, 1120], ['corp', 600, 900], ['chip', 1500, 900], ['corp', 1500, 300], ['corp', 1500, 1500], ['chip', 300, 300], ['chip', 300, 1500]],
       gcore: [2700, 900], towers: [[2450, 650], [2450, 1150], [2200, 900], [2600, 400], [2600, 1400]],
-      spawns: 'gcore', first: 60, gap: 48, endless: true, mul: 1,
+      spawns: 'gcore', first: 55, gap: 45,
+      waves: [
+        { units: [['bug', 6], ['noise', 2]] },
+        { units: [['bug', 8], ['noise', 4], ['bat', 3]] },
+        { units: [['bug', 12], ['noise', 6], ['titan', 2], ['bat', 6]], tag: '总攻' },
+      ],
       objectives: [
         { text: '摧毁乱码主脑', test: (g) => g.foeCoreDead() },
         { text: '击败熵之王（主脑半血时出现）', test: (g) => g.bossKilled('entropy') },
@@ -3659,6 +4106,210 @@ window.CF_CONFIG = {
 
 </script>
 <script>
+/* js/chapters.js */
+/* 章节、普通关（次级关 / 小关）、组队副本，以及难度生成器。
+ * 规则见 design/01-level-difficulty-constitution.md（关卡难度宪法 v1）。
+ *  - 每章随机 10–13 个普通关（按存档种子固定，换设备导入存档也一样）；
+ *  - 次级关 = 剧情关：3 波，通关后不可重复挑战；
+ *  - 小关 = 程序生成：3 波，可重复挑战，奖励是长期消耗品；
+ *  - 组队副本：5 波，难度略高，每波都有奖励，第 5 波掉英雄碎片；每天 3 次。 */
+(function () {
+  const CF = window.CF;
+
+  // ================= 难度生成器 =================
+  const THREAT = { bug: 1, noise: 2.2, bat: 1.8, titan: 9 };
+  const Diff = {
+    THREAT,
+    // 难度等级 P 对应的「满额波次」威胁值（普通关第 3 波 / 副本第 4 波）
+    budget: (P) => Math.round(12 * Math.pow(1.15, P - 1)),
+    // 敌人耐久随难度缓慢上升（每级 +2.5%）
+    hpMul: (P) => Math.round((1 + 0.025 * (P - 1)) * 100) / 100,
+    SPLIT3: [0.25, 0.5, 1],
+    SPLIT5: [0.3, 0.5, 0.75, 1, 1.2],
+    MIX: {
+      ground: { bug: 0.55, noise: 0.35, titan: 0.1 },
+      swarm: { bug: 0.7, bat: 0.3 },
+      heavy: { bug: 0.35, noise: 0.2, titan: 0.45 },
+      air: { bat: 0.8, noise: 0.2 },
+      mixed: { bug: 0.4, noise: 0.25, bat: 0.2, titan: 0.15 },
+    },
+    THEME_NAME: { ground: '地面推进', swarm: '虫群', heavy: '重装', air: '空袭', mixed: '混编' },
+    tier(P) { return P < 3 ? ['入门', '#6fdc8c'] : P < 6 ? ['普通', '#3fd0c9'] : P < 9 ? ['进阶', '#ffb14a'] : P < 12 ? ['挑战', '#ff7a45'] : ['噩梦', '#ff4f9a']; },
+    wave(P, frac, theme) {
+      const B = Diff.budget(P) * frac, mix = Object.assign({}, Diff.MIX[theme] || Diff.MIX.ground), units = [];
+      // 新兵种按难度逐步登场：飞行 P ≥ 3（空袭主题除外）、巨像 P ≥ 4 且只在后半程；被跳过的份额并入乱码虫
+      if (mix.bat && P < 3 && theme !== 'air') { mix.bug = (mix.bug || 0) + mix.bat; delete mix.bat; }
+      if (mix.titan && (P < 4 || frac < 0.5)) { mix.bug = (mix.bug || 0) + mix.titan; delete mix.titan; }
+      for (const k in mix) { const n = Math.round((B * mix[k]) / THREAT[k]); if (n > 0) units.push([k, n]); }
+      if (!units.length) units.push(['bug', Math.max(2, Math.round(B))]);
+      return { units };
+    },
+    waves(P, n, theme, boss) {
+      return (n === 5 ? Diff.SPLIT5 : Diff.SPLIT3).map((f, i) => { const w = Diff.wave(P, f, theme); if (boss && i === n - 1) { w.boss = boss; w.tag = 'Boss'; } return w; });
+    },
+    threatOf: (w) => w.units.reduce((s, [k, n]) => s + (THREAT[k] || 1) * n, 0) + (w.boss ? 30 : 0),
+  };
+
+  // ================= 章节 =================
+  const CHAPTERS = [
+    {
+      id: 'c1', no: 1, name: '新生', en: 'REBIRTH', sub: '从第一行代码到第一台机器人', P0: 1, P1: 7.5,
+      story: ['L1', 'L2', 'L3'], storyAt: (n) => [0, Math.floor(n / 2), n - 1],
+      themes: ['ground', 'swarm', 'ground', 'heavy', 'mixed', 'swarm'],
+      names: ['数据荒原', '梯度山谷', '噪声湿地', '参数森林', '反向传播峡', '权重平原', '激活函数桥', '损失低谷', '卷积回廊', '注意力高地', '词元集市', '向量海岸'],
+      learn: ['数据清洗', '梯度下降', '过拟合', '神经网络', '反向传播', '学习率', '激活函数', '损失函数', '卷积', '注意力机制', '分词', '向量嵌入'],
+      dungeon: { id: 'D1', after: 'L2', name: '乱码巢穴', boss: 'forget', pool: ['star', 'twin', 'riot', 'llama'], P: 6 },
+    },
+    {
+      id: 'c2', no: 2, name: '向上', en: 'ASCEND', sub: '夺取制空权，冲向星辰', P0: 8, P1: 15,
+      story: ['L4', 'L5'], storyAt: (n) => [Math.floor(n / 3), n - 1],
+      themes: ['air', 'mixed', 'heavy', 'swarm', 'air', 'mixed'],
+      names: ['轨道前哨', '推进剂工厂', '低轨走廊', '发射窗口', '引力弹弓', '再入走廊', '姿态控制塔', '卫星星座', '火星中继站', '深空网络', '星舰船坞', '月面基地'],
+      learn: ['轨道力学', '比冲', '低地球轨道', '发射窗口', '引力助推', '再入防热', '姿态控制', '卫星通信', '行星际中继', '深空测控', '可复用火箭', '月面着陆'],
+      dungeon: { id: 'D2', after: 'L4', name: '遗忘深渊', boss: 'carrier', pool: ['abyss', 'luna', 'bun', 'star'], P: 13 },
+    },
+  ];
+
+  const Ch = (CF.Chapters = { CHAPTERS, Diff, ATTEMPTS: 3 });
+  const S = () => CF.Save.data;
+  const seed = () => { const c = S().chapters; if (!c.seed) { c.seed = CF.randi(1, 1e9); CF.Save.save(); } return c.seed; };
+  const today = () => new Date().toISOString().slice(0, 10);
+  const rec = (id) => S().campaign[id] || {};
+
+  // 章节的关卡序列（按种子固定）
+  const cache = {};
+  Ch.stages = function (ch) {
+    const key = ch.id + seed();
+    if (cache[key]) return cache[key];
+    const rnd = CF.rng(seed() + ch.no * 7919), n = 10 + Math.floor(rnd() * 4), at = ch.storyAt(n), out = [];
+    let m = 0;
+    for (let i = 0; i < n; i++) {
+      const P = Math.round((ch.P0 + ((ch.P1 - ch.P0) * i) / (n - 1)) * 10) / 10, si = at.indexOf(i);
+      if (si >= 0) { const L = CF.Levels.get(ch.story[si]); out.push({ i, kind: 'story', id: L.id, P, L }); }
+      else { m++; out.push({ i, kind: 'minor', id: `${ch.id}m${m}`, P, minorNo: m, seed: Math.floor(rnd() * 1e9) }); }
+    }
+    return (cache[key] = out);
+  };
+  Ch.find = function (id) { for (const ch of CHAPTERS) { const st = Ch.stages(ch).find((s) => s.id === id); if (st) return { ch, st }; } return null; };
+  Ch.cleared = (id) => !!rec(id).won;
+  Ch.chapterDone = (ch) => Ch.stages(ch).every((s) => Ch.cleared(s.id));
+  // 解锁：上一关已通关（第二章第一关要求第一章全部通关）；次级关另需完成对应学习（「学到的会变成战场上的能力」）
+  Ch.unlocked = function (ch, st) {
+    if (CF.P.trial()) return true;
+    const list = Ch.stages(ch);
+    if (st.i > 0 && !Ch.cleared(list[st.i - 1].id)) return false;
+    if (st.i === 0 && ch.no > 1 && !Ch.chapterDone(CHAPTERS[ch.no - 2])) return false;
+    if (st.kind === 'story') return CF.P.levelReqs(st.id).filter((r) => !/^通关/.test(r.text)).every((r) => r.ok);
+    return true;
+  };
+  Ch.storyReqs = (st) => CF.P.levelReqs(st.id).filter((r) => !/^通关/.test(r.text));
+
+  // ================= 小关生成 =================
+  Ch.minorLevel = function (ch, st) {
+    const rnd = CF.rng(st.seed), W = 2200, H = 1300, cy = 650, theme = ch.themes[(st.minorNo - 1) % ch.themes.length];
+    const idx = (st.minorNo - 1) % ch.names.length;
+    const cliffs = [];
+    for (let i = 0; i < 4; i++) { const h = Math.round(220 + rnd() * 300), top = (i + Math.floor(rnd() * 2)) % 2 === 0; cliffs.push([Math.round(980 + i * 210 + rnd() * 50), top ? 0 : H - h, Math.round(90 + rnd() * 50), h]); }
+    const air = theme === 'air';
+    return {
+      id: st.id, no: `${ch.no}-${st.i + 1}`, name: ch.names[idx], learn: ch.learn[idx], minor: true, chapter: ch.id, P: st.P, theme,
+      brief: `第${['', '一', '二'][ch.no]}章 · 小关 ${st.minorNo}。乱码军团的「${Diff.THEME_NAME[theme]}」部队正在逼近。守住 3 波进攻即可获胜，可以反复挑战来积攒长期补给。`,
+      tip: air ? '这一关以飞行敌人为主：炮塔、编码 Agent 和拦截无人机都能对空。' : '前两波很轻松，抓紧时间造矿机、攒经济；第 3 波才是真正的考验。',
+      w: W, h: H, core: [300, cy], hero: [430, cy], cliffs,
+      nodes: [['chip', 540, 470], ['chip', 540, 830], ['chip', 860, 650], ['corp', 380, 960], ['corp', 700, 260]],
+      spawns: [[W - 40, Math.round(260 + rnd() * 200)], [W - 40, Math.round(840 + rnd() * 200)]],
+      first: 35, gap: 32, waves: Diff.waves(st.P, 3, theme), hpMul: Diff.hpMul(st.P),
+      objectives: [{ text: '守住 3 波进攻', test: (g) => g.wavesCleared() }],
+      win: (g) => g.wavesCleared(),
+      stars: [['获胜', () => true], ['主脑耐久 ≥ 60%', (g) => g.coreHpPct() >= 0.6], ['主脑耐久 ≥ 90%', (g) => g.coreHpPct() >= 0.9]],
+      script: [[1, 'HERO', `「${ch.learn[idx]}」——这一关我们边打边学。`]],
+      onEnd: (g, win, stars) => Ch.minorReward(ch, st, win, stars, g),
+    };
+  };
+
+  // ================= 组队副本 =================
+  Ch.dungeonUnlocked = (ch) => CF.P.trial() || Ch.cleared(ch.dungeon.after);
+  Ch.attempts = function (ch) { const d = S().dungeon, r = d[ch.dungeon.id] || (d[ch.dungeon.id] = { date: '', used: 0, best: 0 }); if (r.date !== today()) { r.date = today(); r.used = 0; } return Ch.ATTEMPTS - r.used; };
+  Ch.featured = function (ch) {
+    const pool = ch.dungeon.pool.filter((id) => !CF.Roster.ownsReal(id));
+    if (!pool.length) return null;
+    const day = Math.floor(Date.now() / 864e5);
+    return pool[day % pool.length];
+  };
+  const DREWARD = [{ chip: 150 }, { corp: 120 }, { comp: 60 }, { boost: 1 }, { frag: 3 }];
+  Ch.dungeonRewards = (ch) => DREWARD.map((r, i) => { const o = {}; for (const k in r) o[k] = k === 'frag' || k === 'boost' ? r[k] : r[k] * ch.no; o.wave = i + 1; return o; });
+  Ch.rewardText = function (r, ch) {
+    if (r.frag) { const f = Ch.featured(ch); return f ? `${CF.Heroes.get(f).name} 碎片 ×${r.frag}` : `晶片 ×${300 * ch.no}`; }
+    if (r.boost) return `学习加速 ×${r.boost}`;
+    return Object.keys(r).filter((k) => k !== 'wave').map((k) => `${{ chip: '晶片', corp: '语料', comp: '算力' }[k]} ×${r[k]}`).join(' · ');
+  };
+  Ch.dungeonLevel = function (ch, team) {
+    const P = ch.dungeon.P, rewards = Ch.dungeonRewards(ch);
+    return {
+      id: ch.dungeon.id, no: `${ch.no}-副本`, name: ch.dungeon.name, learn: '团队协作', dungeon: true, chapter: ch.id, P, team,
+      brief: `组队副本：最多 3 位英雄并肩作战（队友由 AI 控制）。一共 5 波，比普通关略难；每守住一波都能拿到奖励，第 5 波是首领与英雄碎片。今天还能挑战 ${Ch.attempts(ch)} 次。`,
+      tip: '队友会自动跟随主英雄并释放技能。先稳住前两波的经济，第 4、5 波敌人最多。',
+      w: 2400, h: 1500, core: [300, 750], hero: [440, 750],
+      cliffs: [[1150, 0, 140, 480], [1150, 1020, 140, 480], [1650, 380, 110, 260], [1650, 880, 110, 260]],
+      nodes: [['chip', 540, 560], ['chip', 540, 940], ['chip', 880, 750], ['corp', 380, 1080], ['corp', 720, 380], ['corp', 380, 420]],
+      spawns: [[2360, 400], [2360, 1100], [2360, 750]],
+      first: 40, gap: 38, waves: Diff.waves(P, 5, 'mixed', ch.dungeon.boss), hpMul: Diff.hpMul(P),
+      objectives: [{ text: '守住 5 波进攻（每波都有奖励）', test: (g) => g.wavesCleared() }, { text: '击败第 5 波首领', test: (g) => g.bossKilled(ch.dungeon.boss) }],
+      win: (g) => g.wavesCleared(),
+      stars: [['获胜', () => true], ['主脑耐久 ≥ 60%', (g) => g.coreHpPct() >= 0.6], ['没有英雄阵亡', (g) => !g.heroDeaths]],
+      script: [[1, 'HERO', '组队副本开始。队友们，跟上我！'], [20, '侦察Agent', '每守住一波，补给就会送到主城仓库。']],
+      onWaveClear: (g, n) => { const L = g.L; L._paid = L._paid || new Set(); if (L._paid.has(n)) return; L._paid.add(n); const r = rewards[n - 1]; if (r) Ch.grantDungeon(ch, r, g); },
+      onEnd: (g, win) => { const d = S().dungeon[ch.dungeon.id]; d.best = Math.max(d.best || 0, g.clearedN || 0); if (win && !CF.P.trial()) [g.heroId].concat(team).forEach((id) => { if (id !== 'xs' && CF.Roster.ownsReal(id)) CF.Treasure.grant(id); }); },
+    };
+  };
+  Ch.grantDungeon = function (ch, r, g) {
+    const txt = Ch.rewardText(r, ch);
+    if (r.frag) { const f = Ch.featured(ch); if (f) CF.Roster.addFrag(f, r.frag); else CF.City.add({ chip: 300 * ch.no }); }
+    else if (r.boost) S().boosts = (S().boosts || 0) + r.boost;
+    else CF.City.add({ chip: r.chip || 0, corp: r.corp || 0, comp: r.comp || 0 });
+    (g.waveRewards = g.waveRewards || []).push(`第 ${r.wave} 波：${txt}`);
+    CF.Save.save(); CF.toast(`🎁 第 ${r.wave} 波奖励：${txt}`, 'gold', 2600); CF.Audio.sfx('unlock');
+  };
+
+  // ================= 奖励 =================
+  // 小关：长期消耗品（主城资源）；首通双倍 + 1 次学习加速；第 3 / 5 个小关首通赠送英雄
+  Ch.minorReward = function (ch, st, win, stars, g) {
+    if (!win) return;
+    const first = !g.wasCleared, k = (first ? 2 : 1) * (1 + stars * 0.25), P = st.P;
+    const got = { chip: Math.round((80 + 20 * P) * k), corp: Math.round((40 + 10 * P) * k), comp: Math.round((10 + 3 * P) * k) };
+    CF.City.add(got);
+    const lines = [`补给：晶片 ${got.chip} · 语料 ${got.corp} · 算力 ${got.comp}（已送到主城仓库）`];
+    if (first) { S().boosts = (S().boosts || 0) + 1; lines.push('首通：学习加速 ×1'); }
+    if (first && ch.no === 1 && st.minorNo === 3 && CF.Roster.grant('omni', '第一章 · 第 3 个小关首通奖励')) lines.push('首通：获得英雄「万象」');
+    if (first && ch.no === 1 && st.minorNo === 5 && CF.Roster.grant('pearl', '第一章 · 第 5 个小关首通奖励')) lines.push('首通：获得英雄「珠问」');
+    g.stageRewards = lines;
+  };
+  // 次级关：首通奖励（只能领一次，因为次级关不可重复）
+  Ch.storyReward = function (ch, st, win, g) {
+    if (!win || g.wasCleared) return;
+    const got = { chip: 300 * ch.no, corp: 150 * ch.no, comp: 40 * ch.no };
+    CF.City.add(got);
+    const lines = [`首通：晶片 ${got.chip} · 语料 ${got.corp} · 算力 ${got.comp}`];
+    if (st.id === CHAPTERS[0].story[CHAPTERS[0].story.length - 1] && !CF.P.trial() && CF.Treasure.grant('xs')) lines.push('章节终章：获得 X-S 的法宝「电吉他」');
+    g.stageRewards = lines;
+  };
+  // 给剧情关挂上章节信息与奖励回调
+  Ch.storyLevel = function (ch, st) { return Object.assign({}, st.L, { no: `${ch.no}-${st.i + 1}`, story: true, chapter: ch.id, P: st.P, onEnd: (g, win) => Ch.storyReward(ch, st, win, g) }); };
+  Ch.level = (ch, st) => (st.kind === 'story' ? Ch.storyLevel(ch, st) : Ch.minorLevel(ch, st));
+  // 下一关（结算页「下一关」按钮）
+  Ch.next = function (id) {
+    const f = Ch.find(id); if (!f) return null;
+    const list = Ch.stages(f.ch), nx = list[f.st.i + 1];
+    if (nx) return Ch.unlocked(f.ch, nx) ? Ch.level(f.ch, nx) : null;
+    const ch2 = CHAPTERS[f.ch.no]; if (!ch2) return null;
+    const s0 = Ch.stages(ch2)[0]; return Ch.unlocked(ch2, s0) ? Ch.level(ch2, s0) : null;
+  };
+  // 第几个小关（结算页、教程等引用）
+  Ch.progress = function () { let won = 0, total = 0; CHAPTERS.forEach((ch) => Ch.stages(ch).forEach((s) => { total++; if (Ch.cleared(s.id)) won++; })); return { won, total }; };
+})();
+
+</script>
+<script>
 /* js/game.js */
 /* RTS 战斗引擎 */
 (function () {
@@ -3676,11 +4327,12 @@ window.CF_CONFIG = {
     radar: { name: '雷达站', key: '5', cost: { chip: 70, corp: 40 }, hp: 320, r: 22, build: 6, desc: '大幅扩展建造范围，附近炮塔射程 +20%，并提前预警敌军来向。' },
     workshop: { name: 'Agent 工坊', key: '6', cost: { chip: 100, corp: 60 }, hp: 750, r: 30, build: 7, desc: '训练地面 Agent。右键地面设置集结点。', trains: ['scout', 'coder', 'refactor'] },
     port: { name: '无人机空港', key: '7', cost: { chip: 120, corp: 60, comp: 30 }, hp: 650, r: 30, build: 8, desc: '训练无人机。空中单位无视断崖地形。', trains: ['interceptor', 'bomber'] },
-    ctx: { name: '上下文节点', hp: 1500, r: 26, desc: '保存关键记忆的节点。4 秒未受攻击会自我修复，也能被修复站与「灵感和弦」修复。' },
+    ctx: { name: '上下文节点', hp: 1500, r: 26, desc: '保存关键记忆的节点。4 秒未受攻击会自我修复，也能被修复站修复。' },
     gcore: { name: '乱码主脑', hp: 5000, r: 52, desc: '乱码军团的核心，源源不断地制造混乱。', atk: { range: 250, dmg: 20, rate: 1, air: true } },
     gtower: { name: '噪声塔', hp: 650, r: 20, desc: '乱码军团的防御塔。', atk: { range: 220, dmg: 14, rate: 0.8, air: true } },
     // 英雄专属建筑（第 8 个建造位）
-    amp: { name: '音箱塔', key: '8', hero: 'xs', cost: { chip: 110, corp: 50 }, hp: 480, r: 20, build: 5, desc: '随节拍周期性释放冲击环，伤害周围敌人。', pulse: { r: 170, dmg: 22, every: 1.4 } },
+    obelisk: { name: '新生方尖碑', key: '8', hero: 'xs', cost: { chip: 110, corp: 50 }, hp: 520, r: 20, build: 5, desc: '随节拍释放破晓冲击环，并让周围友军攻速 +15%。', pulse: { r: 170, dmg: 22, every: 1.4 }, aura: { range: 200, haste: 0.15 } },
+    lighthouse: { name: '宪章灯塔', key: '8', hero: 'star', cost: { chip: 110, corp: 50 }, hp: 520, r: 20, build: 5, desc: '持续治疗周围友军，并向来犯之敌射出校验光束。', heal: { range: 200, amt: 7 }, atk: { range: 220, dmg: 11, rate: 0.8, air: true } },
     hall: { name: '琴房', key: '8', hero: 'omni', cost: { chip: 120, corp: 60 }, hp: 520, r: 22, build: 6, desc: '同时向 3 个目标发射音符。', atk: { range: 230, dmg: 12, rate: 0.7, air: true, multi: 3 } },
     prism: { name: '双星棱镜', key: '8', hero: 'twin', cost: { chip: 120, corp: 60 }, hp: 460, r: 20, build: 6, desc: '分叉光束同时攻击 2 个目标。', atk: { range: 240, dmg: 15, rate: 0.6, air: true, multi: 2 } },
     drumtower: { name: '鼓楼', key: '8', hero: 'riot', cost: { chip: 100, corp: 60 }, hp: 540, r: 22, build: 5, desc: '周围友军攻速 +25%，每 4 秒震地并眩晕敌人。', aura: { range: 220, haste: 0.25 }, pulse: { r: 130, dmg: 25, every: 4, stun: 0.4 } },
@@ -3698,7 +4350,8 @@ window.CF_CONFIG = {
   const UT = {
     hero: { name: '英雄', hp: 650, r: 17, speed: 100, atk: { range: 160, dmg: 20, rate: 0.6, air: true }, desc: '英雄。阵亡 20 秒后在主脑重生。' },
     // 英雄专属小兵（在 Agent 工坊训练）
-    spark: { name: '火花学徒', hero: 'xs', cost: { chip: 40, corp: 20 }, hp: 160, r: 10, speed: 110, time: 4, atk: { range: 140, dmg: 10, rate: 0.6, air: true }, death: { dmg: 45, r: 70 }, desc: '便宜的远程学徒，阵亡时爆出火花。' },
+    rulerguard: { name: '刻度卫士', hero: 'xs', cost: { chip: 55, corp: 30 }, hp: 460, r: 12, speed: 92, time: 5, armor: 5, atk: { range: 24, dmg: 13, rate: 0.7, melee: true }, desc: '举着刻度盾的近战护卫，护甲高。' },
+    spark: { name: '子代理', hero: 'star', cost: { chip: 40, corp: 20 }, hp: 160, r: 10, speed: 110, time: 4, atk: { range: 140, dmg: 10, rate: 0.6, air: true }, death: { dmg: 45, r: 70 }, desc: '便宜的远程小助手，阵亡时化作星芒伤害周围敌人。' },
     keyguard: { name: '琴键卫士', hero: 'omni', cost: { chip: 60, corp: 40 }, hp: 560, r: 13, speed: 80, time: 6, armor: 4, atk: { range: 22, dmg: 14, rate: 0.8, melee: true }, desc: '近战重甲兵。' },
     starling: { name: '星灵', hero: 'twin', cost: { chip: 45, corp: 30 }, hp: 150, r: 10, speed: 105, time: 5, split: 'starlet', atk: { range: 150, dmg: 9, rate: 0.55, air: true }, desc: '被击破时分裂成两颗小星灵。' },
     starlet: { name: '小星灵', hero: 'twin', hp: 60, r: 7, speed: 120, atk: { range: 120, dmg: 5, rate: 0.5, air: true }, desc: '' },
@@ -3746,6 +4399,7 @@ window.CF_CONFIG = {
       g.boss = null; g.bossDone = new Set(); g.bossHalf = false;
       g.stats = { kills: 0, lost: 0, built: 0, trained: 0, gathered: { chip: 0, corp: 0, comp: 0 }, army: [], waves: [], riffs: 0 };
       g.lostAir = 0; g.protoArrived = false; g.researchCd = 20; g.heroRespawn = 0;
+      g.wasCleared = !!(CF.Save.data.campaign[L.id] && CF.Save.data.campaign[L.id].won); g.heroDeaths = 0; g.clearedN = 0;
       g.scriptI = 0; g.ambushI = 0; g.shake = 0; g.beat = 0;
       g.cam = { x: 0, y: 0, z: 1 };
       // 导航网格
@@ -3763,6 +4417,8 @@ window.CF_CONFIG = {
       g.heroId = L.heroId || CF.Save.data.hero || 'xs'; g.heroDef = CF.Heroes.get(g.heroId);
       g.shots = []; g.fields = []; g.timers = [];
       g.hero = g.spawnHero(L.hero[0], L.hero[1]);
+      // 组队副本：AI 队友（最多 2 位）
+      g.mates = (L.team || []).map((id, i) => g.spawnMate(id, L.hero[0] - 30, L.hero[1] + (i ? 70 : -70)));
       (L.ctx || []).forEach(([x, y]) => g.addB('ctx', 0, x, y, true));
       (L.prebuilt || []).forEach(([t, x, y]) => g.addB(t, 0, x, y, true));
       (L.startUnits || []).forEach(([t, x, y]) => g.addU(t, 0, x, y));
@@ -3791,6 +4447,24 @@ window.CF_CONFIG = {
       if (o.clone) { u.clone = true; u.life = o.life; }
       return u;
     }
+    // 波次清空：重叠的波次一起结算，保证每一波的奖励都发到
+    flushWaves() { const g = this; for (let n = g.clearedN + 1; n <= g.wave; n++) if (g.L.onWaveClear) g.L.onWaveClear(g, n); g.clearedN = g.wave; }
+    spawnMate(id, x, y) { const u = this.spawnHero(x, y, { heroId: id }); u.mate = true; u.mateAi = 0.5; return u; }
+    // 队友 AI：跟随主英雄、敌人进入 280 范围时按冷却自动放技能（不消耗玩家算力，冷却 ×1.5）
+    updMates(dt) {
+      const g = this;
+      g.mates.forEach((m, i) => {
+        if (m.dead) { m.rsp = (m.rsp === undefined ? 25 : m.rsp) - dt; if (m.rsp <= 0 && !g.core.dead) { g.mates[i] = g.spawnMate(m.heroId, g.core.x + 60, g.core.y + (i ? 70 : -70)); CF.UI.say(m.heroDef.name, m.heroDef.lines.pick); } return; }
+        m.mateAi -= dt; if (m.mateAi > 0) return; m.mateAi = 0.5;
+        const foe = g.bestTarget(m, 280);
+        if (!foe) return;
+        for (const sk of m.heroDef.skills) {
+          if (m.cd[sk.key] > 0 || (m.st && m.st.stun > 0)) continue;
+          if (sk.key === 'R' && !CF.Treasure.has(m.heroId)) continue;
+          if (CF.Skills.cast(g, m, sk.key, foe.x, foe.y)) { m.cd[sk.key] = sk.cd * 1.5; m.face = foe.x >= m.x ? 1 : -1; break; }
+        }
+      });
+    }
     say(who, text) { CF.UI.say(who, text); }
     heroCast(key, tx, ty) {
       const g = this, h = g.hero;
@@ -3798,6 +4472,7 @@ window.CF_CONFIG = {
       const sk = g.heroDef.skills.find((x) => x.key === key);
       if (!sk) return false;
       if (g.L.immersive && key === 'R' && (g.heroLv || 1) < 6 && !CF.P.trial()) return CF.toast('终极技能在英雄 6 级解锁'), false;
+      if (key === 'R' && !CF.Treasure.has(g.heroId)) { CF.Audio.sfx('error'); return CF.toast(`需要${CF.Treasure.name(g.heroId)}：${CF.Treasure.how(g.heroId)}`, 'bad', 3200), false; }
       if (h.cd[key] > 0) return CF.toast(`${sk.name} 冷却中 ${Math.ceil(h.cd[key])}s`), false;
       if (h.st && h.st.stun > 0) return CF.toast('眩晕中，无法施法'), false;
       const cost = CF.Skills.cost(h, sk);
@@ -3819,7 +4494,7 @@ window.CF_CONFIG = {
       if (k === 'shield') { st.shield = Math.max(st.shield, amt); st.shieldT = dur; return; }
       if (k === 'stun' && e.def.boss) dur *= 0.4;
       st[k] = Math.max(st[k] || 0, dur);
-      if (amt !== undefined) { const ak = k + 'Amt'; if (k in { slow: 1, haste: 1, speed: 1, dmgUp: 1, rapid: 1 }) st[ak] = Math.max(st[k] > 0 && st[ak] ? st[ak] : 0, amt); }
+      if (amt !== undefined) { const ak = k + 'Amt'; if (k in { slow: 1, haste: 1, speed: 1, dmgUp: 1, rapid: 1, guard: 1 }) st[ak] = Math.max(st[k] > 0 && st[ak] ? st[ak] : 0, amt); }
     }
     heal(e, amt) { if (!e || e.dead) return; e.hp = Math.min(e.maxHp, e.hp + amt); }
     allies(x, y, r) { return this.near(x, y, r, (e) => e.team === 0 && !e.dead && (e.kind === 'u' || e.done !== false)); }
@@ -3883,7 +4558,7 @@ window.CF_CONFIG = {
       // 状态衰减
       for (const e of g.ents) {
         const st = e.st; if (!st || e.dead) continue;
-        for (const k of ['slow', 'stun', 'haste', 'speed', 'stealth', 'dmgUp', 'rapid', 'frenzy']) if (st[k] > 0) st[k] = Math.max(0, st[k] - dt);
+        for (const k of ['slow', 'stun', 'haste', 'speed', 'stealth', 'dmgUp', 'rapid', 'frenzy', 'guard']) if (st[k] > 0) st[k] = Math.max(0, st[k] - dt);
         if (st.shieldT > 0) { st.shieldT -= dt; if (st.shieldT <= 0) st.shield = 0; }
         if (e.life !== undefined) { e.life -= dt; if (e.life <= 0) { e.dead = true; e.quiet = true; } }
       }
@@ -4063,6 +4738,7 @@ window.CF_CONFIG = {
         const u = g.addU(s.type, 1, s.x + CF.rand(-40, 40), s.y + CF.rand(-40, 40));
         if (!u.air && !g.walkXY(u.x, u.y)) { const [cx, cy] = g.nearestWalk(...g.cellOf(u.x, u.y)); u.x = cx * CELL + 20; u.y = cy * CELL + 20; }
         if (L.hpMul) { u.maxHp = u.hp = Math.round(u.hp * L.hpMul); }
+        if (s.hpMul) { u.maxHp = u.hp = Math.round(u.hp * s.hpMul); }
         if (s.boss) { g.boss = u; u.spawnCd = 5; CF.UI.bossBar(u); CF.Audio.play('boss'); }
       }
       // 伏击（第 3 关）
@@ -4078,6 +4754,8 @@ window.CF_CONFIG = {
       g.researchCd = Math.max(0, g.researchCd - dt);
       if (g.hero.dead) { g.heroRespawn -= dt; if (g.heroRespawn <= 0 && !g.core.dead) { g.hero = g.spawnHero(g.core.x + 60, g.core.y + 40); CF.UI.say('HERO', '我回来了。继续演奏！'); CF.UI.selDirty = true; } }
       for (const e of g.ents) if (e.heroId && !e.dead) { for (const k in e.cd) e.cd[k] = Math.max(0, e.cd[k] - dt); CF.Skills.tick(g, e, dt); }
+      if (g.mates.length) g.updMates(dt);
+      if (g.wave > g.clearedN && !g.spawnQ.length && alive === 0 && !g.ents.some((e) => e.team === 1 && e.kind === 'u' && !e.dead)) g.flushWaves();
       // 实体
       g.rebuildHash();
       for (const e of g.ents) { if (e.dead) continue; e.hit = Math.max(0, e.hit - dt); e.buff = Math.max(0, (e.buff || 0) - dt); if (e.kind === 'b') g.updB(e, dt); else g.updU(e, dt); }
@@ -4107,7 +4785,9 @@ window.CF_CONFIG = {
         if (win) { rec.won = true; rec.stars = Math.max(rec.stars || 0, stars); rec.best = rec.best ? Math.min(rec.best, g.time) : g.time; }
         d.campaign[L.id] = rec;
       }
-      if (CF.City) g.cityReward = CF.City.reward(win, stars, L, g);
+      if (win && g.wave > g.clearedN) g.flushWaves();
+      if (L.onEnd) { try { L.onEnd(g, win, stars); } catch (e) { console.error(e); } }
+      if (CF.City && !L.minor) g.cityReward = CF.City.reward(win, stars, L, g);
       CF.Save.save(); CF.P.checkAch(); CF.P.announceUnlocks();
       setTimeout(() => CF.UI.endScreen(g, win, stars, why), win ? 900 : 1200);
     }
@@ -4125,7 +4805,7 @@ window.CF_CONFIG = {
       if (pts.length) {
         let k = 0;
         def.units.forEach(([t, n]) => { for (let i = 0; i < n; i++) { const p = pts[k++ % pts.length]; g.spawnQ.push({ type: t, x: p[0], y: p[1] }); } });
-        if (def.boss) { const p = pts[0]; g.spawnQ.push({ type: def.boss, x: p[0], y: p[1], boss: true }); }
+        if (def.boss) { const p = pts[0]; g.spawnQ.push({ type: def.boss, x: p[0], y: p[1], boss: true, hpMul: def.bossHp }); }
       }
       g.stats.waves.push({ n: g.wave, lost: 0, killed: 0 });
       const more = L.endless || g.wave < L.waves.length;
@@ -4188,7 +4868,7 @@ window.CF_CONFIG = {
       if (u.st && u.st.stun > 0) { u.vx *= 0.5; u.vy *= 0.5; return; }
       if (u.team === 2 && g.imCreep) return g.imCreep(u, dt);
       u.atkCd -= dt; u.scan -= dt;
-      if (u.clone && g.hero && !g.hero.dead && u.order.t === 'idle' && CF.dist(u.x, u.y, g.hero.x, g.hero.y) > 120) u.guard = { x: g.hero.x + 40, y: g.hero.y + 20 };
+      if ((u.clone || u.mate) && g.hero && !g.hero.dead && u.order.t === 'idle' && CF.dist(u.x, u.y, g.hero.x, g.hero.y) > (u.mate ? 170 : 120)) u.guard = { x: g.hero.x + 40, y: g.hero.y + (u.mate ? (g.mates.indexOf(u) ? 60 : -60) : 20) };
       // Boss 技能
       if (u.type === 'carrier') { u.spawnCd -= dt; if (u.spawnCd <= 0) { u.spawnCd = 7; for (let i = 0; i < 3; i++) g.spawnQ.push({ type: 'bat', x: u.x, y: u.y }); } }
       if (u.type === 'entropy') { u.spawnCd = (u.spawnCd ?? 6) - dt; if (u.spawnCd <= 0) { u.spawnCd = 12; for (let i = 0; i < 4; i++) g.spawnQ.push({ type: 'bug', x: u.x, y: u.y }); g.fx.push({ k: 'ring', x: u.x, y: u.y, r: 0, max: 230, t: 0, c: '#ff4f9a' }); g.near(u.x, u.y, 230, (e) => e.team === 0).forEach((e) => g.damage(e, 40, u)); } }
@@ -4326,7 +5006,7 @@ window.CF_CONFIG = {
       if (t.dead || dmg <= 0) return;
       if (this.dmgMod) dmg = this.dmgMod(src, t, dmg);
       const st = t.st;
-      if (st) { if (st.marks) dmg *= 1 + 0.08 * st.marks; if (st.shield > 0) { const a = Math.min(st.shield, dmg); st.shield -= a; dmg -= a; if (dmg <= 0) { t.hit = 0.05; return; } } }
+      if (st) { if (st.marks) dmg *= 1 + 0.08 * st.marks; if (st.guard > 0) dmg *= 1 - (st.guardAmt || 0); if (st.shield > 0) { const a = Math.min(st.shield, dmg); st.shield -= a; dmg -= a; if (dmg <= 0) { t.hit = 0.05; return; } } }
       if (t.def.armor && !this.dmgMod) dmg *= 1 - (t.def.armor * 0.06) / (1 + t.def.armor * 0.06);
       if (t.team === 2 && src && src.team !== 2 && this.imAggro) this.imAggro(t, src);
       t.hp -= dmg; t.hit = 0.1; t.lastHitBy = src && src.id;
@@ -4356,6 +5036,7 @@ window.CF_CONFIG = {
         } else {
           if (e.type !== 'proto' && e.team === 0) { g.stats.lost++; if (w) w.lost++; if (e.air) g.lostAir++; }
           if (e.kind === 'b') { g.flowDirty = true; if (e.node) e.node.miner = null; if (e.type !== 'core') CF.toast(`${e.def.name} 被摧毁`, 'bad', 1500); }
+          if (e.heroId && !e.clone) g.heroDeaths++;
           if (e.heroId && !e.clone && e === g.hero) { g.heroRespawn = g.L.immersive ? 10 + 3 * (g.heroLv || 1) : 20; CF.UI.say('HERO', `${g.heroDef.lines.low}（${Math.round(g.heroRespawn)} 秒后重生）`); }
         }
       }
@@ -4681,13 +5362,14 @@ window.CF_CONFIG = {
           ctx.fillStyle = COLS.foe; ctx.font = `bold ${r * 0.8}px ui-monospace,monospace`; ctx.textAlign = 'center'; ctx.fillText(GLYPH[Math.floor(t * 6) % GLYPH.length], 0, r * 0.28); ctx.textAlign = 'left';
           break;
         }
-        case 'amp': case 'hall': case 'prism': case 'drumtower': case 'bazaar': case 'deepwell': case 'moonterrace': case 'jadeplate': case 'steamer': case 'jade': case 'depot': {
+        case 'obelisk': case 'lighthouse': case 'hall': case 'prism': case 'drumtower': case 'bazaar': case 'deepwell': case 'moonterrace': case 'jadeplate': case 'steamer': case 'jade': case 'depot': {
           const hd = CF.Heroes.get(b.def.hero || (b.type === 'jade' ? 'pearl' : 'xs')), P = hd.pal, k = 1 + this.beat * 0.08;
           ctx.translate(x, y); ctx.scale(k, k);
           ctx.fillStyle = '#14112a'; ctx.strokeStyle = P.glow; ctx.lineWidth = 2;
           ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill(); ctx.stroke();
           const R2 = (a, b2, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(a, b2, w, h); };
-          if (b.type === 'amp') { R2(-11, -13, 22, 26, '#1b1226'); ctx.fillStyle = P.inst; ctx.beginPath(); ctx.arc(0, -5, 6 + this.beat * 2, 0, TAU); ctx.arc(0, 7, 4, 0, TAU); ctx.fill(); }
+          if (b.type === 'obelisk') { ctx.fillStyle = P.obs; ctx.beginPath(); ctx.moveTo(0, -18); ctx.lineTo(7, -10); ctx.lineTo(6, 12); ctx.lineTo(-6, 12); ctx.lineTo(-7, -10); ctx.closePath(); ctx.fill(); R2(-1, -14, 2, 24, P.white); for (let i = 0; i < 5; i++) R2(-6, -8 + i * 4, i % 2 ? 3 : 5, 1, P.gold); ctx.fillStyle = P.gold; ctx.globalAlpha *= 0.6 + this.beat * 0.4; ctx.beginPath(); ctx.arc(0, -18, 4 + this.beat * 3, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; }
+          if (b.type === 'lighthouse') { R2(-6, -10, 12, 22, P.ivory); R2(-6, -2, 12, 3, P.body); R2(-6, 6, 12, 3, P.body); R2(-8, -14, 16, 4, P.bodyD); ctx.fillStyle = '#fff6d8'; ctx.globalAlpha *= 0.5 + this.beat * 0.5; ctx.beginPath(); ctx.arc(0, -18, 5 + this.beat * 3, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; }
           if (b.type === 'hall') { R2(-14, -4, 28, 10, P.dark); for (let i = 0; i < 7; i++) R2(-13 + i * 4, 1, 3, 5, i % 2 ? P.white : '#cfd8d4'); R2(2, -12, 12, 8, P.dark); }
           if (b.type === 'prism') { ctx.fillStyle = P.blue; ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(10, 6); ctx.lineTo(-10, 6); ctx.closePath(); ctx.fill(); ctx.fillStyle = P.pink; ctx.fillRect(-2, -6, 4, 10); }
           if (b.type === 'drumtower') { ctx.fillStyle = P.red; ctx.beginPath(); ctx.ellipse(0, 0, 13, 9, 0, 0, TAU); ctx.fill(); R2(-13, -2, 26, 2, P.white); R2(-1, -14, 2, 8, P.steel); }
@@ -4761,7 +5443,7 @@ window.CF_CONFIG = {
           break;
         }
         default:
-          if (u.def.hero) { const hd = CF.Heroes.get(u.def.hero), px = u.type === 'starlet' ? 0.75 : u.type === 'beanie' ? 1 : 1.25; ctx.translate(x, y); if (u.face < 0) ctx.scale(-1, 1); hd.draw(ctx, -7 * px, -5 * px, px, { noInst: true, tint: fl ? '#ffffff' : undefined, bob: this.beat > 0.7 ? 1 : 0, t, walk: Math.hypot(u.vx, u.vy) > 10, step: Math.floor(u.step) }); }
+          if (u.def.hero) { const hd = CF.Heroes.get(u.def.hero), px = u.type === 'starlet' ? 0.75 : u.type === 'beanie' ? 1 : 1.25; ctx.translate(x, y); if (u.face < 0) ctx.scale(-1, 1); (hd.drawMinion || hd.draw).call(hd, ctx, -7 * px, -5 * px, px, { noInst: true, tint: fl ? '#ffffff' : undefined, bob: this.beat > 0.7 ? 1 : 0, t, walk: Math.hypot(u.vx, u.vy) > 10, step: Math.floor(u.step) }); }
           else if (u.team === 2 && this.drawCreep) this.drawCreep(ctx, u, x, ay, r, t, fl);
           else this.drawFoe(ctx, u, x, ay, r, t, fl);
       }
@@ -4822,7 +5504,8 @@ window.CF_CONFIG = {
 
   // 基础属性（沉浸模式下会随等级成长）
   const STATS = {
-    xs: { hp: 650, dmg: 20, range: 160, rate: 0.6, speed: 100 },
+    xs: { hp: 820, dmg: 28, range: 46, rate: 0.6, speed: 110, melee: true, armor: 2 },
+    star: { hp: 560, dmg: 15, range: 180, rate: 0.65, speed: 100 },
     omni: { hp: 560, dmg: 18, range: 190, rate: 0.7, speed: 95 },
     twin: { hp: 520, dmg: 14, range: 170, rate: 0.6, speed: 105 },
     riot: { hp: 820, dmg: 26, range: 40, rate: 0.55, speed: 115, melee: true },
@@ -4832,7 +5515,7 @@ window.CF_CONFIG = {
     pearl: { hp: 520, dmg: 10, range: 200, rate: 0.35, speed: 100 },
     bun: { hp: 700, dmg: 14, range: 150, rate: 0.7, speed: 100 },
   };
-  const ICON = { xs: ['🎸', '🎵', '🌅'], omni: ['🎹', '🦶', '🎼'], twin: ['🌌', '🛡️', '♊'], riot: ['🥁', '💥', '⚡'], llama: ['🌬️', '🧶', '🦙'], abyss: ['🌊', '🌀', '🐋'], luna: ['🏹', '🌑', '🌕'], pearl: ['🤌', '🍽️', '🎯'], bun: ['📯', '🧺', '🐦'] };
+  const ICON = { xs: ['📏', '🛡️', '🌅'], star: ['✳️', '🧩', '🌟'], omni: ['🎹', '🦶', '🎼'], twin: ['🌌', '🛡️', '♊'], riot: ['🥁', '💥', '⚡'], llama: ['🌬️', '🧶', '🦙'], abyss: ['🌊', '🌀', '🐋'], luna: ['🏹', '🌑', '🌕'], pearl: ['🤌', '🍽️', '🎯'], bun: ['📯', '🧺', '🐦'] };
 
   const S = (CF.Skills = { STATS, ICON });
   const lvMul = (h, k) => 1 + 0.25 * (((h.skillLv && h.skillLv[k]) || 1) - 1);
@@ -4846,10 +5529,14 @@ window.CF_CONFIG = {
     const K = id + key;
     switch (K) {
       // ---------- X-S ----------
-      case 'xsQ': g.ring(h.x, h.y, 200, 120 * m * g.bonus.riffMul, h, { knock: 46, c: P.instL, pixel: true }); g.ring(h.x, h.y, 140, 0, h, { c: P.inst, pixel: true, delay: 0.12 }); g.notes(h, 14); g.shake = 0.3; return true;
-      case 'xsW': g.allies(h.x, h.y, 230).forEach((e) => { g.heal(e, 150 * m); g.buff(e, 'haste', 6, 0.4); }); g.ring(h.x, h.y, 230, 0, h, { c: '#7ee081' }); g.notes(h, 10); return true;
+      case 'xsQ': g.dash(h, tx, ty, 240, 130 * m, 0.5, P.edge); g.ring(h.x, h.y, 70, 0, h, { c: P.gold, pixel: true, small: true }); g.shake = 0.25; return true;
+      case 'xsW': g.ring(h.x, h.y, 170, 90 * m, h, { c: P.blade, pixel: true, knock: 20 }); g.allies(h.x, h.y, 220).forEach((e) => g.buff(e, 'shield', 5, 160 * m)); g.notes(h, 8); return true;
       case 'xsR': for (let i = 0; i < 12; i++) g.later(i * 0.5, () => { if (!h.dead) { g.ring(h.x, h.y, 220, 70 * m, h, { c: i % 2 ? P.instL : P.accent, pixel: true }); g.strum = 0.4; g.notes(h, 4); } });
-        g.later(6.1, () => { if (!h.dead) { g.ring(h.x, h.y, 320, 200 * m, h, { c: '#ffb14a', pixel: true, knock: 60 }); g.flash('#ff9a5c'); g.shake = 0.5; } }); return true;
+        g.later(6.1, () => { if (!h.dead) { g.ring(h.x, h.y, 330, 260 * m, h, { c: '#ffb14a', pixel: true, knock: 70 }); g.flash('#ff9a5c'); g.shake = 0.5; } }); return true;
+      // ---------- 星芒 ----------
+      case 'starQ': for (let i = 0; i < 3; i++) g.later(i * 0.35, () => { const ox = (i - 1) * 26; g.ring(tx + ox, ty, 70, 55 * m, h, { c: i === 2 ? '#ffffff' : P.glow, pixel: true, small: true, stun: i === 2 ? 1 : 0 }); g.fx.push({ k: 'boom', x: tx + ox, y: ty, r: 30, t: 0, c: P.ivory }); }); return true;
+      case 'starW': { for (let i = 0; i < 3; i++) { const u = g.addU('spark', 0, h.x + CF.rand(-30, 30), h.y + CF.rand(-30, 30)); u.life = 15; } const lo = g.allies(h.x, h.y, 300).filter((e) => e.kind === 'u').sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0]; if (lo) g.heal(lo, 180 * m); g.ring(h.x, h.y, 120, 0, h, { c: P.ivory }); return true; }
+      case 'starR': for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU; g.beam(h, h.x, h.y, Math.cos(a), Math.sin(a), 380, 34, 140 * m, P.glow, P.ivory); } g.allies(h.x, h.y, 260).forEach((e) => g.buff(e, 'shield', 6, 200 * m)); g.flash('#f0e6d6'); g.shake = 0.35; return true;
       // ---------- 万象 ----------
       case 'omniQ': for (let i = 0; i < 8; i++) { const a = ang - 0.44 + (i / 7) * 0.88; g.shot({ src: h, x: h.x, y: h.y, dx: Math.cos(a), dy: Math.sin(a), speed: 620, range: 380, w: 16, dmg: 50 * m, pierce: 2, c: i % 2 ? P.dark : P.white, glyph: 'key', delay: i * 0.03 }); } return true;
       case 'omniW': g.field({ x: tx, y: ty, r: 180, dur: 5, team: 0, c: P.em, kind: 'pedal', tick: (f, dt) => { g.enemiesIn(f.x, f.y, f.r).forEach((e) => g.buff(e, 'slow', 0.3, 0.4)); g.allies(f.x, f.y, f.r).forEach((e) => g.buff(e, 'haste', 0.3, 0.25)); } }); return true;
@@ -4857,7 +5544,7 @@ window.CF_CONFIG = {
       // ---------- 双子 ----------
       case 'twinQ': g.beam(h, h.x, h.y, dx, dy, 440, 40, 110 * m, P.blue, P.pink); return true;
       case 'twinW': g.allies(h.x, h.y, 240).forEach((e) => g.buff(e, 'shield', 6, 180 * m)); g.ring(h.x, h.y, 240, 0, h, { c: P.pink }); return true;
-      case 'twinR': { const c = g.spawnHero(h.x + 30, h.y + 10, { clone: true, life: 10, mul: 0.7 }); c.cloneOf = h.id; g.ring(h.x, h.y, 120, 0, h, { c: P.pink, pixel: true }); return true; }
+      case 'twinR': { const c = g.spawnHero(h.x + 30, h.y + 10, { heroId: h.heroId, clone: true, life: 10, mul: 0.7 }); c.cloneOf = h.id; g.ring(h.x, h.y, 120, 0, h, { c: P.pink, pixel: true }); return true; }
       // ---------- 狂想 ----------
       case 'riotQ': g.dash(h, tx, ty, 320, 90 * m, 0.5, P.red); return true;
       case 'riotW': g.ring(h.x, h.y, 170, 80 * m, h, { stun: 1.2, c: P.red, pixel: true }); g.shake = 0.35; return true;
@@ -4891,7 +5578,7 @@ window.CF_CONFIG = {
     let mul = 1;
     if (a.heroId) {
       const id = a.heroId;
-      if (id === 'xs') { a.n4 = (a.n4 || 0) + 1; if (a.n4 % 4 === 0) { mul *= 1.8; g.ring(t.x, t.y, 60, atk.dmg * 0.6, a, { c: a.heroDef.pal.accent, small: true }); } }
+      if (id === 'xs') { a.n4 = (a.n4 || 0) + 1; if (a.n4 % 4 === 0) { mul *= 2; g.ring(a.x, a.y, 90, atk.dmg * 0.8, a, { c: a.heroDef.pal.edge, small: true, pixel: true }); } }
       if (id === 'omni') { a.key = !a.key; if (a.key) mul *= 1.2; else g.buff(t, 'slow', 1.5, 0.3); }
       if (id === 'twin') g.later(0.12, () => { if (!t.dead && !a.dead) g.proj.push({ x: a.x + 18, y: a.y - 18, tid: t.id, tx: t.x, ty: t.y, sp: 560, dmg: atk.dmg * 0.6, splash: 0, team: 0, src: a.id, c: a.heroDef.pal.pink }); });
       if (id === 'riot') { const st = g.stat(a); st.rage = Math.min(10, (st.rage || 0) + 1); st.rageT = 3; if (st.frenzy > 0) { g.heal(a, atk.dmg * 0.4); g.chain(a, t, 2, 40); } }
@@ -4912,6 +5599,7 @@ window.CF_CONFIG = {
     if (h.auraT <= 0) {
       h.auraT = 0.5;
       if (h.heroId === 'llama') g.allies(h.x, h.y, 260).forEach((e) => g.buff(e, 'dmgUp', 0.7, 0.15));
+      if (h.heroId === 'star') { g.allies(h.x, h.y, 260).forEach((e) => g.buff(e, 'guard', 0.7, 0.12)); h.shieldT = (h.shieldT || 0) + 0.5; if (h.shieldT >= 8) { h.shieldT = 0; const lo = g.allies(h.x, h.y, 300).filter((e) => e.kind === 'u').sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0]; if (lo) g.buff(lo, 'shield', 5, 120); } }
       if (h.heroId === 'bun') g.allies(h.x, h.y, 260).forEach((e) => { g.buff(e, 'haste', 0.7, 0.15); g.buff(e, 'speed', 0.7, 0.15); });
     }
     if (h.heroId === 'abyss') { h.thinkT = (h.thinkT || 0) + dt; if (h.thinkT >= 8) { h.thinkT = 0; h.think = Math.min(3, (h.think || 0) + 1); } }
@@ -4967,7 +5655,7 @@ window.CF_CONFIG = {
   });
   const SUPPLY = { scout: 1, coder: 2, refactor: 4, interceptor: 2, bomber: 4, spark: 2, keyguard: 3, starling: 2, drummer: 2, alpaca: 3, whaleling: 2, shade: 2, querist: 2, beanie: 1, starlet: 0 };
   const TIER2 = ['refactor', 'bomber', 'radar', 'port', 'spark', 'keyguard', 'starling', 'drummer', 'alpaca', 'whaleling', 'shade', 'querist', 'beanie'];
-  const TIER3 = ['amp', 'hall', 'prism', 'drumtower', 'bazaar', 'deepwell', 'moonterrace', 'jadeplate', 'steamer'];
+  const TIER3 = ['obelisk', 'lighthouse', 'hall', 'prism', 'drumtower', 'bazaar', 'deepwell', 'moonterrace', 'jadeplate', 'steamer'];
   const XP_LV = [0, 200, 500, 900, 1400, 2000, 2700, 3500, 4400, 5400];
   const ITEMS = {
     potion: { n: '治疗药水', ic: '🧪', d: '立即回复 450 耐久（消耗品）', use: true, price: 60 },
@@ -5314,17 +6002,47 @@ window.CF_CONFIG = {
     });
   };
   UI.heroName = () => CF.Heroes.current().name;
+  // 安卓返回键 / 浏览器后退：关弹窗 → 战斗与快速模式先暂停 → 子页面回到上一页 → 大厅返回 'exit'
+  UI.back = function () {
+    if (CF.modal.isOpen()) { CF.modal.close(); return 'ok'; }
+    if (UI.cur === 'battle') { UI.battleMenu(); return 'ok'; }
+    if (UI.cur === 'quick') { CF.Quick.pause(); return 'ok'; }
+    if (UI.cur === 'lobby') return 'exit';
+    const bar = document.querySelector(`#scr-${UI.cur} .ultrabar`);
+    UI.show((bar && bar.dataset.back) || 'lobby');
+    return 'ok';
+  };
 
-  // ================= 征程 =================
+  // ================= 征程：两大章（普通关 = 次级关 + 小关）+ 组队副本 =================
+  const tierPill = (P) => { const [n, c] = CF.Chapters.Diff.tier(P); return `<span class="dpill" style="--dc:${c}">D${Math.round(P)} · ${n}</span>`; };
   UI.renderCampaign = function () {
-    const body = $('#campaignBody'), d = CF.Save.data;
-    body.innerHTML = `<div class="sec-title">战役</div><div class="levels" id="lvlGrid"></div><div class="sec-title">沉浸模式 · 烧脑策略</div><div class="grid g2" id="imGrid"></div><div class="sec-title">遭遇战</div><div class="grid g3" id="skGrid"></div><p class="small muted" style="margin-top:14px;line-height:1.7">关卡和部分建筑需要完成对应的学习才能解锁——学到的东西会变成战场上的能力。想先体验全部内容，可在「设置」里打开体验模式。</p>`;
-    const grid = $('#lvlGrid');
-    CF.Levels.LEVELS.forEach((L) => {
-      const rec = d.campaign[L.id] || {}, unlocked = CF.P.levelUnlocked(L.id), reqs = CF.P.levelReqs(L.id);
-      const el = CF.h(`<div class="lvl ${unlocked ? '' : 'locked'}"><div class="row between"><span class="no t-tag">MISSION ${L.no}</span><span class="stars">${'★'.repeat(rec.stars || 0)}<span style="color:#3a3357">${'★'.repeat(3 - (rec.stars || 0))}</span></span></div><h3>${unlocked ? '' : '🔒 '}${L.name}</h3><p>${L.brief.slice(0, 64)}…</p><span class="pill" style="align-self:flex-start;margin-top:6px">📘 ${L.learn}</span>${reqs.length ? `<div class="req">${reqs.map((r) => `<div class="${r.ok ? 'ok' : ''}">${r.ok ? '✓' : '○'} ${r.text}</div>`).join('')}</div>` : ''}${rec.best ? `<div class="tag" style="margin-top:6px">最快 ${CF.fmtTime(rec.best)}</div>` : ''}</div>`);
-      el.onclick = () => { CF.Audio.sfx('click'); if (!unlocked) { CF.toast('先完成解锁条件（见卡片下方）', 'bad'); CF.Audio.sfx('error'); return; } UI.briefing(L); };
-      grid.appendChild(el);
+    const body = $('#campaignBody'), d = CF.Save.data, C = CF.Chapters;
+    body.innerHTML = `<div id="chapList"></div><div class="sec-title">沉浸模式 · 烧脑策略</div><div class="grid g2" id="imGrid"></div><div class="sec-title">遭遇战</div><div class="grid g3" id="skGrid"></div><p class="small muted" style="margin-top:14px;line-height:1.7">次级关是剧情关，需要完成对应的学习才能解锁，通关后不能重复挑战；小关可以反复挑战，积攒长期补给。想先体验全部内容，可在「设置」里打开体验模式。</p>`;
+    const host = $('#chapList');
+    C.CHAPTERS.forEach((ch) => {
+      const list = C.stages(ch), won = list.filter((s) => C.cleared(s.id)).length;
+      const sec = CF.h(`<section class="chap"><div class="chap-hd"><canvas></canvas><div class="chap-t"><span class="t-tag">CHAPTER 0${ch.no} · ${ch.en}</span><b>第${['', '一', '二'][ch.no]}章「${ch.name}」</b><span class="small">${ch.sub}</span></div><div class="chap-p"><b class="t-num">${won}/${list.length}</b><span class="small">普通关</span></div></div><div class="stage-path"></div></section>`);
+      new CF.PixelFX.Stage(sec.querySelector('canvas'), { mode: 'bar', fx: 0.9, fy: 0.55, cell: 12 });
+      const path = sec.querySelector('.stage-path');
+      list.forEach((st) => {
+        const r = d.campaign[st.id] || {}, un = C.unlocked(ch, st), story = st.kind === 'story', L = story ? st.L : null;
+        const name = story ? L.name : ch.names[(st.minorNo - 1) % ch.names.length];
+        const gift = ch.no === 1 && !story && (st.minorNo === 3 || st.minorNo === 5) ? (st.minorNo === 3 ? 'omni' : 'pearl') : null;
+        const el = CF.h(`<button class="stg ${story ? 'story' : 'minor'} ${un ? '' : 'locked'} ${r.won ? 'won' : ''}"><span class="stg-no t-num">${ch.no}-${st.i + 1}</span><span class="stg-kind">${story ? '次级关' : '小关 ' + st.minorNo}</span><b>${name}</b><span class="stars">${'★'.repeat(r.stars || 0)}<i>${'★'.repeat(3 - (r.stars || 0))}</i></span>${tierPill(st.P)}${gift && !CF.Roster.owns(gift) ? `<span class="gift">首通送「${CF.Heroes.get(gift).name}」</span>` : ''}${story && r.won ? '<span class="stamp">已通关</span>' : ''}${!un ? `<span class="lock">${CF.Icons ? CF.Icons.svg('lock') : '🔒'}</span>` : ''}</button>`);
+        el.onclick = () => {
+          CF.Audio.sfx('click');
+          if (!un) { const req = story ? C.storyReqs(st).filter((x) => !x.ok).map((x) => x.text) : []; CF.toast(req.length ? '解锁条件：' + req.join('；') : '先通关上一关', 'bad', 3200); CF.Audio.sfx('error'); return; }
+          if (story && r.won && !CF.P.trial()) { CF.toast('次级关通关后不能重复挑战——去小关积攒补给吧'); return; }
+          UI.briefing(C.level(ch, st));
+        };
+        path.appendChild(el);
+      });
+      // 组队副本
+      const du = C.dungeonUnlocked(ch), left = C.attempts(ch), fe = C.featured(ch), rw = C.dungeonRewards(ch);
+      const dg = CF.h(`<button class="stg dungeon ${du ? '' : 'locked'}"><span class="stg-no t-num">${ch.no}-副本</span><span class="stg-kind">组队副本 · 5 波</span><b>${ch.dungeon.name}</b>${tierPill(ch.dungeon.P)}<span class="small">${du ? `今日剩余 ${left}/${C.ATTEMPTS} 次` : `通关「${CF.Levels.get(ch.dungeon.after).name}」后开放`}</span><span class="drw">${rw.map((x) => `<i title="${C.rewardText(x, ch)}">${x.wave}</i>`).join('')}</span>${fe ? `<span class="gift">碎片：${CF.Heroes.get(fe).name} ${CF.Roster.frags(fe)}/${CF.Roster.FRAG_NEED}</span>` : ''}${!du ? `<span class="lock">${CF.Icons ? CF.Icons.svg('lock') : '🔒'}</span>` : ''}</button>`);
+      dg.onclick = () => { CF.Audio.sfx('click'); if (!du) { CF.toast(`先通关「${CF.Levels.get(ch.dungeon.after).name}」`, 'bad'); return; } if (left <= 0 && !CF.P.trial()) { CF.toast('今天的挑战次数用完了，明天再来（稀缺性规则：每天 3 次）'); return; } UI.briefing(C.dungeonLevel(ch, [])); };
+      path.appendChild(dg);
+      host.appendChild(sec);
     });
     const im = $('#imGrid');
     (CF.Immersive ? CF.Immersive.LEVELS : []).forEach((L) => {
@@ -5341,23 +6059,56 @@ window.CF_CONFIG = {
       sk.appendChild(el);
     });
   };
-  // 出征前选英雄（同时成为大厅的当前英雄与界面主题）
+  // 出征前选英雄：只能选已拥有的英雄（同时成为大厅的当前英雄与界面主题）
   UI.heroPicker = function (onPick) {
     const box = CF.h('<div class="hero-pick"></div>');
+    if (!CF.Roster.owns(CF.Save.data.hero)) { CF.Save.data.hero = 'xs'; CF.Heroes.applyTheme('xs'); }
     CF.Heroes.list.forEach((h) => {
-      const b = CF.h(`<button class="${h.id === CF.Save.data.hero ? 'on' : ''}"><canvas width="144" height="112"></canvas>${h.name}</button>`);
-      const x = b.querySelector('canvas').getContext('2d'); x.fillStyle = h.pal.bg[1]; x.fillRect(0, 0, 144, 112); h.draw(x, 22, 34, 4.2, { t: 0 });
-      b.onclick = () => { CF.Save.data.hero = h.id; CF.Save.save(); CF.Heroes.applyTheme(h.id); CF.Audio.lick(h.id); CF.$$('button', box).forEach((y) => y.classList.remove('on')); b.classList.add('on'); onPick && onPick(h); };
+      const own = CF.Roster.owns(h.id);
+      const b = CF.h(`<button class="${h.id === CF.Save.data.hero ? 'on' : ''} ${own ? '' : 'locked'}"><canvas width="144" height="112"></canvas>${h.name}${CF.Treasure.has(h.id) ? '' : '<small>无法宝</small>'}</button>`);
+      const x = b.querySelector('canvas').getContext('2d'); x.fillStyle = h.pal.bg[1]; x.fillRect(0, 0, 144, 112); h.draw(x, 22, 40, 4.2, { t: 0 });
+      b.onclick = () => { if (!own) { CF.toast(`${h.name}：${CF.Roster.how(h.id)}`, 'bad', 2800); return; } CF.Save.data.hero = h.id; CF.Save.save(); CF.Heroes.applyTheme(h.id); CF.Audio.lick(h.id); CF.$$('button', box).forEach((y) => y.classList.remove('on')); b.classList.add('on'); onPick && onPick(h); };
       box.appendChild(b);
     });
     return box;
   };
+  // 组队副本：选 2 位队友（已拥有的英雄优先；不够时由「援军」试用英雄补位）
+  const GUESTS = ['star', 'twin', 'riot'];
+  UI.matePicker = function (L) {
+    const box = CF.h('<div class="hero-pick mates"></div>');
+    const draw = () => {
+      box.innerHTML = '';
+      const main = CF.Save.data.hero;
+      L.team = (L.team || []).filter((id) => id !== main);
+      const pool = CF.Heroes.list.filter((h) => h.id !== main && (CF.Roster.owns(h.id) || GUESTS.includes(h.id)));
+      if (!L._auto) { L._auto = true; pool.sort((a, b) => CF.Roster.owns(b.id) - CF.Roster.owns(a.id)).slice(0, 2).forEach((h) => L.team.push(h.id)); }
+      pool.forEach((h) => {
+        const on = L.team.includes(h.id), own = CF.Roster.owns(h.id);
+        const b = CF.h(`<button class="${on ? 'on' : ''}"><canvas width="144" height="112"></canvas>${h.name}<small>${own ? '队友' : '援军 · 试用'}</small></button>`);
+        const x = b.querySelector('canvas').getContext('2d'); x.fillStyle = h.pal.bg[1]; x.fillRect(0, 0, 144, 112); h.draw(x, 22, 40, 4.2, { t: 0 });
+        b.onclick = () => { if (on) L.team = L.team.filter((i) => i !== h.id); else { if (L.team.length >= 2) L.team.shift(); L.team.push(h.id); } CF.Audio.sfx('click'); draw(); };
+        box.appendChild(b);
+      });
+    };
+    draw(); box.redraw = draw;
+    return box;
+  };
   UI.briefing = function (L) {
-    const b = CF.P.battleBonus();
-    const body = CF.h(`<div><p style="line-height:1.8">${L.brief}</p><div class="sec-title">出战英雄</div><div id="bfPick"></div><p class="small muted" id="bfHero" style="margin-top:6px"></p><div class="sec-title">任务目标</div>${L.objectives.map((o) => `<div class="small" style="line-height:1.9">◇ ${o.text}</div>`).join('')}<div class="sec-title">三星评价</div>${L.stars.map((s, i) => `<div class="small" style="line-height:1.9"><span class="c-chip">${'★'.repeat(i + 1)}</span> ${s[0]}</div>`).join('')}<div class="sec-title">你的学习与主城带来的加成</div>${b.lines.map((l) => `<div class="small muted" style="line-height:1.9">▸ ${l}</div>`).join('')}<div class="explain" style="margin-top:12px">💡 ${L.tip}</div></div>`);
-    const info = () => { const h = CF.Heroes.current(); body.querySelector('#bfHero').innerHTML = `<b style="color:var(--hero2)">${h.name}</b> · ${h.role} · 专属小兵「${h.minion.name}」· 专属建筑「${h.building.name}」`; };
-    body.querySelector('#bfPick').appendChild(UI.heroPicker(info)); info();
-    CF.modal.open({ title: `MISSION ${L.no} · ${L.name}`, body, foot: [{ text: '返回', cls: 'ghost' }, { text: '开始作战 ▶', cls: 'primary', onClick: () => { CF.modal.close(); UI.startBattle(L); } }] });
+    const b = CF.P.battleBonus(), C = CF.Chapters, ch = L.chapter ? C.CHAPTERS.find((c) => c.id === L.chapter) : null;
+    const waves = L.waves && !L.immersive ? L.waves : null, maxT = waves ? Math.max(...waves.map(C.Diff.threatOf)) : 1;
+    const kind = L.dungeon ? '组队副本 · 5 波 · 每波都有奖励' : L.story ? '次级关 · 3 波 · 通关后不可重复挑战' : L.minor ? '小关 · 3 波 · 可重复挑战' : '';
+    const rewards = L.dungeon ? C.dungeonRewards(ch).map((r) => `<div class="small" style="line-height:1.9"><span class="c-chip">第 ${r.wave} 波</span> ${C.rewardText(r, ch)}</div>`).join('') : L.minor ? `<div class="small" style="line-height:1.9">每次通关：主城补给（晶片 / 语料 / 算力，按难度与星级）；首通双倍 + 学习加速 ×1</div>` : L.story ? `<div class="small" style="line-height:1.9">首通：主城补给${L.id === 'L3' ? ' + X-S 的法宝「电吉他」' : ''}</div>` : '';
+    const body = CF.h(`<div>${kind ? `<div class="row wrap" style="gap:6px;margin-bottom:8px"><span class="pill">${kind}</span>${L.P ? tierPill(L.P) : ''}</div>` : ''}<p style="line-height:1.8">${L.brief}</p><div class="sec-title">出战英雄</div><div id="bfPick"></div><p class="small muted" id="bfHero" style="margin-top:6px"></p>${L.dungeon ? '<div class="sec-title">队友（最多 2 位，AI 控制）</div><div id="bfMates"></div>' : ''}${waves ? `<div class="sec-title">波次强度</div><div class="wv">${waves.map((w, i) => `<div><i style="height:${Math.max(8, (C.Diff.threatOf(w) / maxT) * 100)}%"></i><span>${i + 1}${w.boss ? '★' : ''}</span></div>`).join('')}</div>` : ''}<div class="sec-title">任务目标</div>${L.objectives.map((o) => `<div class="small" style="line-height:1.9">◇ ${o.text}</div>`).join('')}${rewards ? `<div class="sec-title">奖励</div>${rewards}` : ''}<div class="sec-title">三星评价</div>${L.stars.map((s, i) => `<div class="small" style="line-height:1.9"><span class="c-chip">${'★'.repeat(i + 1)}</span> ${s[0]}</div>`).join('')}<div class="sec-title">你的学习与主城带来的加成</div>${b.lines.map((l) => `<div class="small muted" style="line-height:1.9">▸ ${l}</div>`).join('')}<div class="explain" style="margin-top:12px">💡 ${L.tip}</div></div>`);
+    let mates = null;
+    const info = () => { const h = CF.Heroes.current(); body.querySelector('#bfHero').innerHTML = `<b style="color:var(--hero2)">${h.name}</b> · ${h.role} · 专属小兵「${h.minion.name}」· 专属建筑「${h.building.name}」${CF.Treasure.has(h.id) ? '' : ` · <span style="color:var(--pink)">未获得法宝「${h.instrument}」，终极技能不可用</span>`}`; if (mates) mates.redraw(); };
+    body.querySelector('#bfPick').appendChild(UI.heroPicker(info));
+    if (L.dungeon) { mates = UI.matePicker(L); body.querySelector('#bfMates').appendChild(mates); }
+    info();
+    const start = () => {
+      if (L.dungeon && !CF.P.trial()) { if (C.attempts(ch) <= 0) return CF.toast('今天的挑战次数用完了', 'bad'); CF.Save.data.dungeon[L.id].used++; CF.Save.save(); }
+      CF.modal.close(); UI.startBattle(L);
+    };
+    CF.modal.open({ title: `${L.no ? (/^\d/.test(L.no) ? '' : 'MISSION ') + L.no + ' · ' : ''}${L.name}`, body, foot: [{ text: '返回', cls: 'ghost' }, { text: '开始作战 ▶', cls: 'primary', onClick: start }] });
   };
 
   // ================= 战斗：开始 / 离开 =================
@@ -5406,6 +6157,8 @@ window.CF_CONFIG = {
   UI.compact = function () {
     const rot = $('#app').classList.contains('rotated');
     document.body.classList.toggle('compact', (rot ? window.innerWidth : Math.min(window.innerWidth, window.innerHeight)) <= 520);
+    // 手机横屏：高度很小，大厅、主城走单独的紧凑布局
+    document.body.classList.toggle('land', !rot && window.innerWidth > window.innerHeight && window.innerHeight <= 520);
   };
   UI.resizeBattle = function () {
     UI.compact();
@@ -5486,7 +6239,8 @@ window.CF_CONFIG = {
     const g = CF.Game.current, bar = $('#skillBar'), hd = g.heroDef, ic = CF.Skills.ICON[hd.id];
     bar.innerHTML = '';
     hd.skills.forEach((sk, i) => {
-      const b = CF.h(`<button class="sk ${sk.key === 'R' ? 'r' : ''}" title="${sk.name}：${sk.desc}"><span class="key">${sk.key}</span>${ic[i]}<span class="cost">${CF.Skills.cost(g.hero, sk)}</span><i class="cdm"></i><span class="cdt"></span></button>`);
+      const locked = sk.key === 'R' && !CF.Treasure.has(hd.id);
+      const b = CF.h(`<button class="sk ${sk.key === 'R' ? 'r' : ''} ${locked ? 'nofb' : ''}" title="${sk.name}：${locked ? '需要' + CF.Treasure.name(hd.id) : sk.desc}"><span class="key">${sk.key}</span>${CF.Icons ? CF.Icons.skill(hd.id, i) : ic[i]}<span class="cost">${CF.Skills.cost(g.hero, sk)}</span><i class="cdm"></i><span class="cdt"></span></button>`);
       let down = null;
       b.addEventListener('pointerdown', (e) => { e.stopPropagation(); CF.Audio.unlock(); down = { x: e.clientX, y: e.clientY, moved: false }; try { b.setPointerCapture(e.pointerId); } catch (er) {} });
       b.addEventListener('pointermove', (e) => { if (!down) return; if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 18) { down.moved = true; if (sk.target !== 'self') UI.setAim(sk.key, e.clientX, e.clientY); } });
@@ -5829,21 +6583,23 @@ window.CF_CONFIG = {
     UI.closeRadial();
     CF.Audio.play(win ? 'victory' : 'defeat');
     CF.Audio.sfx(win ? 'win' : 'lose');
-    const L = g.L, idx = CF.Levels.LEVELS.findIndex((x) => x.id === L.id), next = idx >= 0 ? CF.Levels.LEVELS[idx + 1] : null;
+    const L = g.L, next = L.chapter && win ? CF.Chapters.next(L.id) : null;
     const st = g.stats;
     const advice = win ? (CF.P.ratio().kPct > 0.35 ? '下一步：去实验室做一个实验，把知识变成手上的能力。' : '下一步：去学院完成今日修炼，解锁更多关卡与建筑。') : '失败也是数据。复盘：经济是否太慢？防线是否放在峡口？技能是否在敌人密集时释放？';
     const body = CF.h(`<div class="endstats">
       <div class="ultrabar" style="margin:0 0 12px;height:70px"><canvas></canvas><div class="ub-title" style="left:18px">${win ? '胜利' : '失败'}<span class="ub-sub">${win ? L.name : why || ''}</span></div></div>
       <div class="stars-big">${[0, 1, 2].map((i) => `<span class="${i < stars ? '' : 'off'}">★</span>`).join('')}</div>
       <div class="small muted" style="text-align:center;margin-bottom:10px">${L.stars.map((s, i) => `${i < stars ? '✓' : '○'} ${s[0]}`).join('　')}</div>
+      ${(g.stageRewards || g.waveRewards || []).length ? `<div class="explain gold" style="margin-bottom:10px">${(g.stageRewards || []).concat(g.waveRewards || []).map((l) => `<div>🎁 ${l}</div>`).join('')}</div>` : ''}
       ${g.cityReward ? `<div class="explain" style="margin-bottom:10px">🏰 主城仓库入账：<span class="c-chip">+${g.cityReward.chip}</span> <span class="c-corp">+${g.cityReward.corp}</span> <span class="c-comp">+${g.cityReward.comp}</span></div>` : ''}
       <div class="kpis"><div class="kpi"><div class="l">用时</div><div class="v">${CF.fmtTime(g.time)}</div></div><div class="kpi"><div class="l">消灭乱码</div><div class="v">${st.kills}</div></div><div class="kpi"><div class="l">我方损失</div><div class="v">${st.lost}</div></div><div class="kpi"><div class="l">建造 / 训练</div><div class="v">${st.built} / ${st.trained}</div></div><div class="kpi"><div class="l">技能释放</div><div class="v">${st.riffs}</div></div><div class="kpi"><div class="l">采集</div><div class="v" style="font-size:15px"><span class="c-chip">${Math.round(st.gathered.chip)}</span> <span class="c-corp">${Math.round(st.gathered.corp)}</span> <span class="c-comp">${Math.round(st.gathered.comp)}</span></div></div></div>
       <div class="sec-title">兵力曲线（单位总耐久）</div><canvas class="chart" id="chArmy"></canvas>
       <div class="sec-title">波次战损</div><canvas class="chart" id="chWave"></canvas>
       <div class="explain" style="margin-top:12px">📘 ${advice}</div></div>`);
     new CF.PixelFX.Stage(body.querySelector('.ultrabar canvas'), { mode: 'bar', fx: 0.86, fy: 0.55, cell: 12 });
-    const foot = [{ text: '返回征程', cls: 'ghost', onClick: () => { CF.modal.close(); UI.show('campaign'); } }, { text: '再来一次', onClick: () => { CF.modal.close(); UI.startBattle(UI.relevel(L)); } }];
-    if (win && next && CF.P.levelUnlocked(next.id)) foot.push({ text: '下一关 ▶', cls: 'primary', onClick: () => { CF.modal.close(); UI.briefing(next); } });
+    const foot = [{ text: '返回征程', cls: 'ghost', onClick: () => { CF.modal.close(); UI.show('campaign'); } }];
+    if (!(L.story && win) && !L.dungeon) foot.push({ text: '再来一次', onClick: () => { CF.modal.close(); UI.startBattle(UI.relevel(L)); } });
+    if (win && next) foot.push({ text: '下一关 ▶', cls: 'primary', onClick: () => { CF.modal.close(); UI.briefing(next); } });
     else if (win) foot.push({ text: '去学院', cls: 'primary', onClick: () => { CF.modal.close(); UI.show('academy'); } });
     CF.modal.open({ title: win ? '作战报告 · 胜利' : '作战报告 · 失败', body, foot, closable: false });
     setTimeout(() => { UI.chartArmy(body.querySelector('#chArmy'), st.army); UI.chartWave(body.querySelector('#chWave'), st.waves); }, 40);
@@ -5937,7 +6693,7 @@ window.CF_CONFIG = {
   const MODES = [
     ['quick', '快速模式', '90 秒节奏爽局 · 通勤一局', 'COMMUTE', true],
     ['immersive', '沉浸模式', '迷雾 · 野怪 · 英雄成长 · AI 对手', 'STRATEGY'],
-    ['campaign', '征程', '战役五关 · 遭遇战', 'CAMPAIGN'],
+    ['campaign', '征程', '两大章 · 组队副本 · 遭遇战', 'CAMPAIGN'],
     ['city', '主城', '建造大本营 · 研究科技 · 防守入侵', 'BASE'],
   ];
   const NAV = [['heroes', '🎸', '英雄'], ['city', '🏰', '主城'], ['academy', '📚', '学院'], ['labs', '🧪', '实验室'], ['profile', '📈', '档案'], ['achievements', '🏆', '成就'], ['settings', '⚙', '设置'], ['help', '❔', '说明']];
@@ -5951,9 +6707,9 @@ window.CF_CONFIG = {
   }
   L.init = function () {
     stage = new CF.PixelFX.Stage($('#lobbyStage'), { mode: 'full', fx: 0.36, fy: 0.5, cell: 28, radius: 34 });
-    const fit = () => { const w = window.innerWidth, h = window.innerHeight; if (w < 760 || h > w) { stage.o.fx = 0.5; stage.o.fy = 0.3; stage.o.charPx = Math.max(4, Math.floor(Math.min(w, h * 0.8) / 34)); } else { stage.o.fx = 0.36; stage.o.fy = 0.5; stage.o.charPx = 0; } };
+    const fit = () => { const w = window.innerWidth, h = window.innerHeight; if (w > h && h <= 520) { stage.o.fx = 0.34; stage.o.fy = 0.43; stage.o.charPx = Math.max(3, Math.floor((h * 0.3) / 20)); } else if (w < 760 || h > w) { stage.o.fx = 0.5; stage.o.fy = 0.3; stage.o.charPx = Math.max(4, Math.floor(Math.min(w, h * 0.8) / 34)); } else { stage.o.fx = 0.36; stage.o.fy = 0.5; stage.o.charPx = 0; } };
     fit(); window.addEventListener('resize', fit);
-    $('#lobbyLogo').innerHTML = CF.Brand.wordmark('战线');
+    $('#lobbyLogo').innerHTML = CF.Brand.keyLogo();
     const modes = $('#lobbyModes');
     const bars = MODES.map(([id, n, sub, tag, big], i) => {
       const b = CF.h(`<button class="mode ${big ? 'big' : ''}"><canvas></canvas><span class="tag">${tag}</span><span class="mt">${n}</span><span class="ms">${sub}</span></button>`);
@@ -5997,11 +6753,13 @@ window.CF_CONFIG = {
     $('#scr-lobby').appendChild(b); setTimeout(() => b.remove(), 2600);
   };
   L.cycle = function (d) {
-    const list = CF.Heroes.list, i = list.findIndex((h) => h.id === CF.Heroes.current().id);
+    const list = CF.Roster.ownedList(), i = list.findIndex((h) => h.id === CF.Heroes.current().id);
+    if (list.length < 2) { CF.toast('目前只拥有 X-S——第一章第 3 个小关送「万象」'); return; }
     const h = list[(i + d + list.length) % list.length];
     L.setHero(h.id);
   };
   L.setHero = function (id) {
+    if (!CF.Roster.owns(id)) { CF.toast(`${CF.Heroes.get(id).name}：${CF.Roster.how(id)}`, 'bad', 2800); return; }
     CF.Save.data.hero = id; CF.Save.save();
     CF.Heroes.applyTheme(id);
     CF.PixelFX.wipe();
@@ -6030,11 +6788,11 @@ window.CF_CONFIG = {
   // ================= 英雄图鉴 =================
   L.renderHeroes = function () {
     const body = $('#heroesBody');
-    body.innerHTML = `<p class="small muted" style="margin-bottom:12px;line-height:1.7">九位乐手来自智能大陆的东西两岸。灵感取自中美知名 AI 大模型的公开特点，均为原创形象。选一位当你的主英雄：大厅、界面配色、背景音乐和出战英雄都会跟着换。</p><div class="hero-grid" id="hGrid"></div>`;
+    body.innerHTML = `<p class="small muted" style="margin-bottom:12px;line-height:1.7">十位乐手：原创主角 X-S，加上来自智能大陆东西两岸的九位伙伴（灵感取自中美知名 AI 大模型的公开特点，均为原创形象）。开局只有 X-S，其他英雄靠征程与组队副本获得；乐器是后期才能拿到的「法宝」。</p><div class="hero-grid" id="hGrid"></div>`;
     const grid = $('#hGrid');
     CF.Heroes.list.forEach((h) => {
-      const cur = h.id === CF.Heroes.current().id;
-      const c = CF.h(`<div class="hcard" style="border-color:${cur ? h.pal.glow : ''}"><canvas></canvas>${cur ? '<span class="cur">主英雄</span>' : ''}<span class="side">${h.side === '原创' ? 'X-S' : h.side}</span><div class="hbody"><div class="hn" style="color:${h.pal.glow}">${h.name}<small>${h.title}</small></div><div class="hi">${h.instrument} · ${h.role}</div><div class="sw">${[h.pal.bg[0], h.pal.bg[2], h.pal.glow, h.pal.accent, h.pal.note].map((x) => `<i style="background:${x}"></i>`).join('')}</div></div></div>`);
+      const cur = h.id === CF.Heroes.current().id, own = CF.Roster.owns(h.id);
+      const c = CF.h(`<div class="hcard ${own ? '' : 'locked'}" style="border-color:${cur ? h.pal.glow : ''}"><canvas></canvas>${cur ? '<span class="cur">主英雄</span>' : ''}${own ? (CF.Treasure.has(h.id) ? '' : '<span class="nofb">法宝未得</span>') : `<span class="how">${CF.Roster.how(h.id)}</span>`}<span class="side">${h.side === '原创' ? 'X-S' : h.side}</span><div class="hbody"><div class="hn" style="color:${h.pal.glow}">${h.name}<small>${h.title}</small></div><div class="hi">${h.instrument} · ${h.role}</div><div class="sw">${[h.pal.bg[0], h.pal.bg[2], h.pal.glow, h.pal.accent, h.pal.note].map((x) => `<i style="background:${x}"></i>`).join('')}</div></div></div>`);
       new CF.PixelFX.Stage(c.querySelector('canvas'), { mode: 'portrait', fx: 0.42, fy: 0.55, cell: 10, hero: h.id, radius: 26, charPx: 4 });
       c.onclick = () => { CF.Audio.sfx('click'); CF.UI.show('hero', h.id); };
       c.onmouseenter = () => CF.Audio.lick(h.id, true);
@@ -6051,8 +6809,8 @@ window.CF_CONFIG = {
     const bKey = Object.keys(BT).find((k) => BT[k].hero === h.id), uKey = Object.keys(UT).find((k) => UT[k].hero === h.id && UT[k].cost);
     body.innerHTML = `<div class="hd">
       <div class="hd-stage"><canvas id="hdCv"></canvas><div class="nm"><div class="t-tag">${h.side === '原创' ? 'X-S ORIGINAL' : h.side === '中' ? 'CHINA' : 'USA'} · ${h.en}</div><div class="t-h1" style="text-shadow:0 3px 0 #0008">${h.name}</div><div class="t-quote">${CF.esc(h.quote)}</div></div></div>
-      <div class="hd-info">
-        <div class="row wrap" style="margin-bottom:10px"><button class="btn primary" id="hdPick">${h.id === CF.Heroes.current().id ? '✓ 当前主英雄' : '设为主英雄'}</button><button class="btn" id="hdMusic">▶ 试听主题曲</button><button class="btn ghost" id="hdLick">🎵 招牌乐句</button></div>
+      <div class="hd-info">${CF.Roster.owns(h.id) ? '' : `<div class="explain" style="margin:0 0 10px">获取方式：${CF.Roster.how(h.id)}</div>`}${CF.Treasure.has(h.id) ? '' : `<div class="explain" style="margin:0 0 10px;border-color:#ff4f9a55;background:#ff4f9a12">法宝「${h.instrument}」未获得：${CF.Treasure.how(h.id)}。获得后形象出现乐器、终极技能「${h.skills[2].name}」解锁。</div>`}
+        <div class="row wrap" style="margin-bottom:10px"><button class="btn primary" id="hdPick" ${CF.Roster.owns(h.id) ? '' : 'disabled'}>${!CF.Roster.owns(h.id) ? '未获得' : h.id === CF.Heroes.current().id ? '✓ 当前主英雄' : '设为主英雄'}</button><button class="btn" id="hdMusic">▶ 试听主题曲</button><button class="btn ghost" id="hdLick">🎵 招牌乐句</button></div>
         <div class="tabs" id="hdTabs" style="padding:0"></div>
         <div id="hdTab" style="margin-top:10px"></div>
       </div></div>`;
@@ -6064,12 +6822,12 @@ window.CF_CONFIG = {
         <div class="skill"><div class="k">被动</div><div><h4>${h.passive.name}</h4><p>${h.passive.desc}</p></div></div>
         ${h.skills.map((s, i) => `<div class="skill"><div class="k">${ic[i]}</div><div><h4>${s.key} · ${s.name}</h4><p>${s.desc}</p><div class="meta">算力 ${CF.Skills.cost({ heroId: h.id }, s)} · 冷却 ${s.cd}s · ${{ self: '以自身为中心', dir: '指向方向', point: '指定位置' }[s.target]}</div></div></div>`).join('')}`,
       special: () => { const u = UT[uKey], b = BT[bKey]; return `<div class="skill"><div class="k">兵</div><div><h4>专属小兵 · ${u.name}</h4><p>${u.desc}</p><div class="meta">耐久 ${u.hp} · 伤害 ${u.atk.dmg} · 射程 ${u.atk.range} · ${CF.Game.costHtml(u.cost)}（在 Agent 工坊训练）</div></div></div><div class="skill"><div class="k">建</div><div><h4>专属建筑 · ${b.name}</h4><p>${b.desc}</p><div class="meta">耐久 ${b.hp} · ${CF.Game.costHtml(b.cost)}（建造菜单第 8 位）</div></div></div><p class="small muted">只有选择 ${h.name} 出战时才能训练与建造。</p>`; },
-      art: () => `<div class="card"><div class="t-tag">乐器</div><p class="t-body" style="color:var(--text)">${h.instrument} —— 主题曲《${ms.name.split('·')[1] || ms.name}》 · ${h.music.bpm} BPM · ${h.music.key} · ${h.music.scale}</p><p class="t-cap">记忆点：${h.music.motif}</p><div class="t-tag" style="margin-top:10px">配色（宪法第 2 章：背景三段 · 网格 · 主光 · 点缀 · 音符）</div><div class="swatches-big" style="margin-top:6px">${[['背景暗', h.pal.bg[0]], ['背景中', h.pal.bg[1]], ['背景亮', h.pal.bg[2]], ['网格', 'rgb(' + h.pal.grid.join(',') + ')'], ['主光', h.pal.glow], ['点缀', h.pal.accent], ['音符', h.pal.note]].map(([n, c]) => `<div><i style="background:${c}"></i>${n}<br>${c.startsWith('rgb') ? '' : c}</div>`).join('')}</div><div class="t-tag" style="margin-top:10px">特效语言</div><p class="t-cap">节拍时从角色处扩散像素方格波纹；乐器发声点飘出专属粒子（${h.fx.pats.length} 种像素形状），重拍时整片网格亮起、角色做强拍动作。</p></div>`,
+      art: () => `<div class="card"><div class="t-tag">乐器（法宝${CF.Treasure.has(h.id) ? ' · 已获得' : ' · 未获得'}）</div><p class="t-body" style="color:var(--text)">${h.instrument} —— 主题曲《${ms.name.split('·')[1] || ms.name}》 · ${h.music.bpm} BPM · ${h.music.key} · ${h.music.scale}</p><p class="t-cap">记忆点：${h.music.motif}</p><div class="t-tag" style="margin-top:10px">配色（宪法第 2 章：背景三段 · 网格 · 主光 · 点缀 · 音符）</div><div class="swatches-big" style="margin-top:6px">${[['背景暗', h.pal.bg[0]], ['背景中', h.pal.bg[1]], ['背景亮', h.pal.bg[2]], ['网格', 'rgb(' + h.pal.grid.join(',') + ')'], ['主光', h.pal.glow], ['点缀', h.pal.accent], ['音符', h.pal.note]].map(([n, c]) => `<div><i style="background:${c}"></i>${n}<br>${c.startsWith('rgb') ? '' : c}</div>`).join('')}</div><div class="t-tag" style="margin-top:10px">特效语言</div><p class="t-cap">节拍时从角色处扩散像素方格波纹；乐器发声点飘出专属粒子（${h.fx.pats.length} 种像素形状），重拍时整片网格亮起、角色做强拍动作。</p></div>`,
     };
     const tb = body.querySelector('#hdTabs'); let cur = 'lore';
     const draw = () => { tb.innerHTML = ''; [['lore', '档案'], ['skills', '技能'], ['special', '专属'], ['art', '乐器与配色']].forEach(([k, n]) => { const b = CF.h(`<button class="tab ${cur === k ? 'on' : ''}">${n}</button>`); b.onclick = () => { cur = k; draw(); CF.Audio.sfx('click'); }; tb.appendChild(b); }); body.querySelector('#hdTab').innerHTML = tabs[cur](); };
     draw();
-    body.querySelector('#hdPick').onclick = () => { L.setHero(h.id); L.renderHero(h.id); CF.toast(`主英雄：${h.name}`, 'gold'); };
+    body.querySelector('#hdPick').onclick = () => { if (!CF.Roster.owns(h.id)) return; L.setHero(h.id); L.renderHero(h.id); CF.toast(`主英雄：${h.name}`, 'gold'); };
     body.querySelector('#hdMusic').onclick = () => { CF.Audio.preview(h.music.style, 0.7); CF.toast(`♪ ${ms.name}`); };
     body.querySelector('#hdLick').onclick = () => { CF.Audio.unlock(); CF.Audio.lick(h.id); heroStage.pulse(1, true); };
     CF.Audio.unlock(); CF.Audio.preview(h.music.style, 0.6);
@@ -6099,7 +6857,7 @@ window.CF_CONFIG = {
       { t: '⑥ 释放技能', d: touch() ? '点右下角的技能按钮。需要瞄准的技能：按住按钮拖到目标处松手，或先点按钮再点战场。' : '点右下角技能按钮，或按 <b>Q / W / R</b>：技能会对准鼠标所在的位置。', dom: '#skillBar', ok: () => T.flags.cast },
       { t: '⑦ 移动视野', d: touch() ? '单指拖动平移，双指捏合缩放。' : '右键拖动平移，滚轮缩放，或者用方向键。', ok: () => T.flags.camera },
       { t: '⑧ 指挥全军', d: touch() ? '点左下角「全军」选中所有部队；也可以<b>长按后拖动</b>框选。' : '点左下角「全军」（或按 A）选中所有部队；按住左键拖动可以框选。', dom: '#fabAll', ok: () => T.flags.boxsel },
-      { t: '准备好了！', d: '守住 5 波进攻。随时可以在 ☰ 菜单里查看操作速查，或去大厅的「说明」页面。', btn: '开战' },
+      { t: '准备好了！', d: '守住 3 波进攻。随时可以在 ☰ 菜单里查看操作速查，或去大厅的「说明」页面。', btn: '开战' },
     ];
   }
   T.maybeStart = function (g, force) {
@@ -6208,9 +6966,9 @@ window.CF_CONFIG = {
     const lvl = CF.City ? CF.City.level('hall') : 0;
     S = {
       h, t: 0, over: false, paused: false, score: 0, kills: 0, combo: 0, maxCombo: 0, comboT: 0, perfects: 0, fever: 0, feverT: 0, slow: 1, slowT: 0, stopT: 0, shake: 0,
-      hero: { x: 1200, y: 1200, hp: 300, maxHp: 300, speed: 165, dmg: 14, rate: 0.42, cd: 0, proj: 1, pierce: 1, area: 1, magnet: 90, crit: 0.05, orbit: 0, beatLv: 0, skillCd: 5, skillT: 2, steal: 0, hitT: 0, face: 1, lv: 1, xp: 0, next: 6, ups: {} },
+      hero: { x: 1200, y: 1200, hp: 300, maxHp: 300, speed: 165, dmg: 14, rate: 0.42, cd: 0, proj: 1, pierce: 1, area: 1, magnet: 90, crit: 0.05, orbit: 0, beatLv: 0, skillCd: 5, skillT: 2, steal: 0, hitT: 0, face: 1, lv: 1, xp: 0, next: 4, ups: {} },
       ens: [], gems: [], shots: [], texts: [], parts: [], waves: [], spawnT: 0, eliteT: 20, bossDone: false, boss: null,
-      joy: null, lastBeat: 0, beatIv: 60 / (CF.Audio.curBpm || 110), pickPitch: 0, pickT: 0, tapCd: 0, lastTitle: 0, startT: performance.now(),
+      multi: 0, multiT: 0, packT: 5, joy: null, lastBeat: 0, beatIv: 60 / (CF.Audio.curBpm || 110), pickPitch: 0, pickT: 0, tapCd: 0, lastTitle: 0, startT: performance.now(),
     };
     if (lvl) { S.hero.dmg *= 1 + lvl * 0.06; CF.toast(`音乐厅 Lv${lvl}：开局攻击 +${lvl * 6}%`, 'gold'); }
     beatSink = { pulse: (s) => { if (s < 0.5 || !S) return; const now = performance.now(); if (S.lastBeat) S.beatIv = CF.lerp(S.beatIv, CF.clamp((now - S.lastBeat) / 1000, 0.25, 1.2), 0.3); S.lastBeat = now; Q.onBeat(s); }, visible: () => false };
@@ -6221,6 +6979,7 @@ window.CF_CONFIG = {
     raf = requestAnimationFrame(loop);
     CF.toast('拖动移动 · 踩着节拍点屏幕打出「完美」', 'gold', 3000);
   };
+  Q._S = () => S; // 调试用
   Q.stop = function () { Q.on = false; cancelAnimationFrame(raf); if (beatSink) CF.PixelFX.Stage.all.delete(beatSink); beatSink = null; S = null; };
   Q.resize = function () { const dpr = Math.min(2, window.devicePixelRatio || 1); Q.dpr = dpr; Q.w = cv.clientWidth; Q.h = cv.clientHeight; cv.width = Q.w * dpr; cv.height = Q.h * dpr; };
 
@@ -6258,7 +7017,7 @@ window.CF_CONFIG = {
     S.tapCd = 0.22;
     const now = performance.now(), iv = S.beatIv * 1000, off = Math.min(Math.abs(now - S.lastBeat), Math.abs(S.lastBeat + iv - now));
     const H = S.hero, perfect = off < 130;
-    if (perfect) { S.perfects++; S.combo += 3; Q.nova(H.x, H.y, 190 * H.area, H.dmg * 3.2, S.h.pal.accent, true); Q.text(H.x, H.y - 46, 'PERFECT', '#ffe08a', 22); S.shake = 0.18; CF.Audio.lick(S.h.id, true); S.fever = Math.min(100, S.fever + 4); }
+    if (perfect) { S.perfects++; S.combo += 3; Q.flash(S.h.pal.accent, 0.18); Q.buzz(8); Q.nova(H.x, H.y, 190 * H.area, H.dmg * 3.2, S.h.pal.accent, true); Q.text(H.x, H.y - 46, 'PERFECT', '#ffe08a', 22); S.shake = 0.18; CF.Audio.lick(S.h.id, true); S.fever = Math.min(100, S.fever + 4); }
     else { Q.nova(H.x, H.y, 110 * H.area, H.dmg * 1.2, S.h.pal.glow, false); Q.text(H.x, H.y - 40, 'GOOD', '#ffffffcc', 14); CF.Audio.sfx('chord', 0.4); }
   };
   Q.feverGo = function () {
@@ -6271,6 +7030,10 @@ window.CF_CONFIG = {
     S.parts.push({ k: 'ring', x, y, r: 0, max: r, t: 0, c, big });
     for (const e of S.ens) { if (e.dead) continue; const d = CF.dist(e.x, e.y, x, y); if (d < r + e.r) { Q.hit(e, dmg, big); if (!e.boss) { const a = Math.atan2(e.y - y, e.x - x); e.x += Math.cos(a) * (big ? 40 : 18); e.y += Math.sin(a) * (big ? 40 : 18); } } }
   };
+  // 反馈工具：闪屏（边缘光）、手机震动、升级冲击
+  Q.flash = function (c, a) { if (!S || CF.Save.data.settings.reduceMotion) return; S.flashC = c; S.flashA = Math.max(S.flashA || 0, a); };
+  Q.buzz = function (ms) { try { if (navigator.vibrate && !CF.Save.data.settings.reduceMotion) navigator.vibrate(ms); } catch (e) { /* 不支持 */ } };
+  Q.levelBurst = function () { const H = S.hero; Q.nova(H.x, H.y, 230 * H.area, H.dmg * 2.5, '#ffffff', true); Q.text(H.x, H.y - 64, `LEVEL ${H.lv}`, '#ffe08a', 26); H.hitT = Math.max(H.hitT, 1); Q.flash('#ffe08a', 0.3); Q.buzz(20); };
   Q.text = function (x, y, txt, c, size = 14) { S.texts.push({ x, y, txt, c, size, t: 0 }); if (S.texts.length > 60) S.texts.shift(); };
   Q.hit = function (e, dmg, big) {
     const H = S.hero, crit = Math.random() < H.crit;
@@ -6286,21 +7049,28 @@ window.CF_CONFIG = {
     const H = S.hero, T = ETYPE[e.type];
     e.dead = true; S.kills++; S.combo++; S.comboT = 2; S.maxCombo = Math.max(S.maxCombo, S.combo);
     S.score += Math.round(T.score * (1 + S.combo / 25) * (e.elite ? 4 : 1));
-    S.fever = Math.min(100, S.fever + (e.elite ? 12 : 1.6));
-    for (let i = 0; i < (e.elite || e.boss ? 8 : 1); i++) S.gems.push({ x: e.x + CF.rand(-10, 10), y: e.y + CF.rand(-10, 10), v: e.boss ? 10 : e.elite ? 3 : T.xp });
+    S.fever = Math.min(100, S.fever + (e.elite ? 14 : 2.4));
+    // 经验：连击越高掉得越多（每 20 连击 +50%）
+    const xk = 1 + Math.min(2, S.combo / 40);
+    for (let i = 0; i < (e.elite || e.boss ? 10 : 1); i++) S.gems.push({ x: e.x + CF.rand(-10, 10), y: e.y + CF.rand(-10, 10), v: (e.boss ? 12 : e.elite ? 4 : T.xp * 1.3) * xk });
+    // 多杀：0.6 秒内连续击杀
+    S.multi = S.multiT > 0 ? S.multi + 1 : 1; S.multiT = 0.6;
+    if (S.multi >= 5 && S.multi % 5 === 0) { const MK = { 5: '五连破！', 10: '十连破！！', 15: '清屏！！！', 20: '无双！！！' }; Q.text(H.x, H.y - 120, MK[Math.min(20, S.multi)] || `${S.multi} 连破！`, '#ffe08a', 24 + Math.min(16, S.multi)); S.shake = Math.max(S.shake, 0.2); Q.flash(S.h.pal.accent, 0.25); Q.buzz(12); CF.Audio.sfx('levelup', 0.35); }
     for (let i = 0; i < (e.boss ? 40 : 8); i++) { const a = Math.random() * TAU, sp = CF.rand(60, e.boss ? 320 : 180); S.parts.push({ k: 'px', x: e.x, y: e.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0, life: CF.rand(0.3, 0.7), c: Math.random() < 0.5 ? '#ff4f9a' : '#29e0e0' }); }
     if (S.kills % 3 === 0) CF.Audio.sfx('boom', 0.25);
     const ti = TITLES.filter(([n]) => S.combo >= n).pop();
     if (ti && ti[0] > S.lastTitle) { S.lastTitle = ti[0]; Q.text(H.x, H.y - 80, ti[1], S.h.pal.accent, 30); CF.Audio.sfx('levelup', 0.6); S.shake = 0.25; }
-    if (e.boss) { S.slow = 0.25; S.slowT = 0.9; S.shake = 0.7; S.score += 5000; Q.text(H.x, H.y - 100, '首领击破！', '#ffe08a', 36); CF.Audio.sfx('win'); S.boss = null; }
-    if (e.elite) { S.stopT = 0.08; Q.levelUp(); }
+    if (e.boss) { S.slow = 0.25; S.slowT = 0.9; S.shake = 0.7; S.score += 5000; Q.text(H.x, H.y - 100, '首领击破！', '#ffe08a', 36); CF.Audio.sfx('win'); S.boss = null; Q.flash('#ffffff', 0.6); Q.buzz([40, 30, 80]); }
+    if (e.elite) { S.stopT = 0.1; Q.flash('#ffd34d', 0.35); Q.buzz(30); Q.levelUp(); }
+    if (e.type === 'titan' && !e.elite) { S.stopT = Math.max(S.stopT, 0.05); S.shake = Math.max(S.shake, 0.22); }
   };
 
   // ---------- 升级三选一 ----------
   Q.levelUp = function () {
     const H = S.hero;
     if (CF.modal.isOpen()) { S.pendingUp = (S.pendingUp || 0) + 1; return; }
-    H.lv++; H.xp = Math.max(0, H.xp - H.next); H.next = Math.round(H.next * 1.32 + 3);
+    H.lv++; H.xp = Math.max(0, H.xp - H.next); H.next = Math.round(H.next * 1.25 + 3);
+    Q.levelBurst();
     CF.Audio.sfx('levelup');
     const pool = CF.shuffle(UPS.filter(([id, , , , max]) => (H.ups[id] || 0) < max)).slice(0, 3);
     if (!pool.length) return;
@@ -6328,7 +7098,8 @@ window.CF_CONFIG = {
     const t = near[0]; const ang = t ? Math.atan2(t.y - H.y, t.x - H.x) : 0;
     const fan = (n, spread, sp, dmg, c, pierce = 2) => { for (let i = 0; i < n; i++) { const a = ang - spread / 2 + (n > 1 ? (i / (n - 1)) * spread : 0); S.shots.push({ x: H.x, y: H.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, dmg, pierce, life: 1.2, c, w: 6, hit: new Set() }); } };
     switch (id) {
-      case 'xs': Q.nova(H.x, H.y, 200 * H.area, H.dmg * 4, P.instL, true); break;
+      case 'xs': Q.nova(H.x, H.y, 200 * H.area, H.dmg * 4, P.edge, true); break;
+      case 'star': fan(8, TAU * 0.875, 520, H.dmg * 2.2, P.glow, 3); H.hp = Math.min(H.maxHp, H.hp + H.maxHp * 0.05); break;
       case 'omni': fan(10, 1.2, 620, H.dmg * 2.2, P.white, 3); break;
       case 'twin': fan(1, 0, 900, H.dmg * 3, P.blue, 99); setTimeout(() => S && fan(1, 0, 900, H.dmg * 3, P.pink, 99), 120); break;
       case 'riot': Q.nova(H.x, H.y, 170 * H.area, H.dmg * 3.4, P.red, true); near.slice(0, 6).forEach((e) => e.stun = 1); break;
@@ -6350,6 +7121,8 @@ window.CF_CONFIG = {
     S.t += dt; S.tapCd -= dt0; S.shake = Math.max(0, S.shake - dt0);
     if (S.feverT > 0) S.feverT -= dt;
     if (S.comboT > 0) { S.comboT -= dt; if (S.comboT <= 0) { S.combo = 0; S.lastTitle = 0; } }
+    if (S.multiT > 0) S.multiT -= dt0;
+    if (S.flashA > 0) S.flashA = Math.max(0, S.flashA - dt0 * 1.8);
     // 移动
     let mx = 0, my = 0;
     if (S.joy) { mx = S.joy.dx; my = S.joy.dy; }
@@ -6372,7 +7145,10 @@ window.CF_CONFIG = {
     // 环绕音符
     if (H.orbit) { const n = H.orbit; for (let i = 0; i < n; i++) { const a = S.t * 3 + (i / n) * TAU, ox = H.x + Math.cos(a) * 80 * H.area, oy = H.y + Math.sin(a) * 80 * H.area; for (const e of S.ens) if (!e.dead && CF.dist(e.x, e.y, ox, oy) < e.r + 12 && (e.orbT || 0) <= 0) { e.orbT = 0.3; Q.hit(e, H.dmg * 1.1); } } }
     // 生成敌人
-    const p = S.t / DUR, rate = 1.4 + p * p * 9;
+    // 出怪：开局就有 3 只/秒，后期接近 20 只/秒；每 6 秒一股「虫潮」从同一方向涌来，专门给范围技能清屏
+    const p = S.t / DUR, rate = 3.2 + p * 6 + p * p * 10;
+    S.packT -= dt;
+    if (S.packT <= 0 && S.ens.length < 240) { S.packT = 6 - p * 2; const a = Math.random() * TAU, d = Math.max(Q.w, Q.h) * 0.6 + 40, n = 8 + Math.round(p * 14); for (let i = 0; i < n; i++) Q.spawn(Math.random() < 0.2 ? 'bat' : 'bug', H.x + Math.cos(a) * d + CF.rand(-60, 60), H.y + Math.sin(a) * d + CF.rand(-60, 60)); Q.text(H.x + Math.cos(a) * 160, H.y + Math.sin(a) * 160, '虫潮 ▸', '#ff4f9a', 16); }
     S.spawnT -= dt;
     while (S.spawnT <= 0 && S.ens.length < 260) {
       S.spawnT += 1 / rate;
@@ -6406,7 +7182,7 @@ window.CF_CONFIG = {
     for (const g of S.gems) {
       const d = CF.dist(g.x, g.y, H.x, H.y);
       if (d < H.magnet || g.pull) { g.pull = true; const a = Math.atan2(H.y - g.y, H.x - g.x), sp = 300 + (H.magnet - d) * 2; g.x += Math.cos(a) * sp * dt; g.y += Math.sin(a) * sp * dt; }
-      if (d < 18) { g.got = true; H.xp += g.v; S.score += g.v * 5; S.pickPitch = Math.min(24, S.pickPitch + 1); S.pickT = 0.6; Q.pickSfx(S.pickPitch); }
+      if (d < 18) { g.got = true; H.xp += g.v; S.score += Math.round(g.v * 5); S.pickPitch = Math.min(24, S.pickPitch + 1); S.pickT = 0.6; Q.pickSfx(S.pickPitch); }
     }
     S.gems = S.gems.filter((g) => !g.got);
     if (H.xp >= H.next) Q.levelUp();
@@ -6437,7 +7213,7 @@ window.CF_CONFIG = {
     $('#qTime').textContent = CF.fmtTime(DUR - S.t);
     $('#qXp').style.width = (S.hero.xp / S.hero.next) * 100 + '%';
     $('#qCombo').textContent = S.combo >= 5 ? S.combo : '';
-    $('#qComboLbl').textContent = S.combo >= 5 ? 'COMBO' : '';
+    $('#qComboLbl').textContent = S.combo >= 5 ? `COMBO ×${(1 + S.combo / 25).toFixed(1)}` : '';
     const f = $('#qFever'); f.style.setProperty('--fv', S.fever + '%'); f.classList.toggle('ready', S.fever >= 100);
     $('#qFeverTxt').textContent = S.feverT > 0 ? Math.ceil(S.feverT) + 's' : S.fever >= 100 ? 'FEVER!' : Math.floor(S.fever) + '%';
   };
@@ -6488,19 +7264,21 @@ window.CF_CONFIG = {
     ctx.restore();
     // 虚拟摇杆
     if (S.joy) { ctx.strokeStyle = '#ffffff44'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(S.joy.ox, S.joy.oy, 60, 0, TAU); ctx.stroke(); ctx.fillStyle = `rgba(${rgb},.6)`; ctx.beginPath(); ctx.arc(S.joy.ox + S.joy.dx * 60, S.joy.oy + S.joy.dy * 60, 22, 0, TAU); ctx.fill(); ctx.lineWidth = 1; }
-    // 节拍指示：屏幕底部的拍点光条
+    // 节拍指示：屏幕底部的拍点光条 + 英雄脚下收缩的拍点圈（圈收到最小时点屏 = PERFECT）
     const ph = S.lastBeat ? ((performance.now() - S.lastBeat) / 1000) / S.beatIv : 0, near = Math.min(ph % 1, 1 - (ph % 1));
+    { const fr = ph % 1, rr = 26 + 46 * (1 - fr), n = 20, ac = CF.Heroes.rgb(P.accent).join(','); ctx.fillStyle = `rgba(${ac},${near < 0.15 ? 0.95 : 0.35})`; for (let i = 0; i < n; i++) { const an = (i / n) * TAU; ctx.fillRect(w / 2 - sh + Math.cos(an) * rr - 2, h / 2 - sh + Math.sin(an) * rr * 0.6 + 14 - 2, 4, 4); } }
     ctx.fillStyle = `rgba(${CF.Heroes.rgb(P.accent).join(',')},${near < 0.15 ? 0.9 : 0.25})`; ctx.fillRect(w / 2 - 60, h - 10, 120, 4);
     if (S.feverT > 0) { ctx.fillStyle = `rgba(${CF.Heroes.rgb(P.accent).join(',')},${0.08 + 0.06 * Math.sin(t * 12)})`; ctx.fillRect(0, 0, w, h); }
+    if (S.flashA > 0) { const fc = CF.Heroes.rgb(S.flashC || '#ffffff').join(','), gr = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.25, w / 2, h / 2, Math.max(w, h) * 0.7); gr.addColorStop(0, `rgba(${fc},0)`); gr.addColorStop(1, `rgba(${fc},${S.flashA})`); ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h); }
     if (S.boss && !S.boss.dead) { ctx.fillStyle = '#000a'; ctx.fillRect(w / 2 - 150, 64, 300, 8); ctx.fillStyle = '#ff4f9a'; ctx.fillRect(w / 2 - 150, 64, 300 * S.boss.hp / S.boss.maxHp, 8); }
   };
 
   // ---------- 结算 ----------
   Q.end = function (survived) {
-    S.over = true;
+    S.over = true; Q._last = { score: S.score, kills: S.kills, lv: S.hero.lv, combo: S.maxCombo, perfects: S.perfects, t: Math.round(S.t), hp: Math.round(S.hero.hp) };
     const d = CF.Save.data, H = S.hero;
     if (survived) S.score += Math.round(H.hp) * 10;
-    const sc = S.score, rank = sc >= 60000 ? 'S' : sc >= 35000 ? 'A' : sc >= 18000 ? 'B' : 'C';
+    const sc = Math.round(S.score), rank = sc >= 250000 ? 'S' : sc >= 150000 ? 'A' : sc >= 70000 ? 'B' : 'C';
     const best = sc > (d.quick.best || 0);
     d.quick.runs++; if (best) { d.quick.best = sc; d.quick.bestRank = rank; }
     d.stats.kills += S.kills; CF.Save.save();
@@ -6533,7 +7311,7 @@ window.CF_CONFIG = {
     compute: { name: '算力中心', size: 2, max: 5, roof: '#9b7bff', cost: COST(200), prod: { comp: [0, 10, 18, 28, 40, 56] }, desc: '持续产出算力，点击收取。' },
     vault: { name: '仓库', size: 2, max: 5, roof: '#9d96ad', cost: COST(150), desc: '每级提高所有资源的储存上限 1500。' },
     lab: { name: '研究所', size: 2, max: 5, roof: '#7ee081', cost: COST(250), desc: '每级使所有战斗中我方伤害 +4%、建筑耐久 +4%。' },
-    herohall: { name: '英雄殿', size: 3, max: 5, roof: '#ffb14a', cost: COST(300), desc: '每级使英雄耐久与攻击 +5%。九位英雄的雕像在这里演奏。' },
+    herohall: { name: '英雄殿', size: 3, max: 5, roof: '#ffb14a', cost: COST(300), desc: '每级使英雄耐久与攻击 +5%。十位英雄的雕像在这里演奏。' },
     barracks: { name: '兵营', size: 2, max: 5, roof: '#d97757', cost: COST(200), desc: '每级使战斗开局多带 1 个编码 Agent。' },
     hall: { name: '音乐厅', size: 2, max: 5, roof: '#ff7ad9', cost: COST(180), desc: '每级使快速模式开局攻击 +6%，并让主城跟着主题曲律动。' },
     tower: { name: '防御塔', size: 1, max: 5, roof: '#ff9a5c', cost: COST(160), desc: '乱码入侵时自动防守。等级越高伤害越高。', perHq: 2 },
@@ -6804,7 +7582,7 @@ window.CF_CONFIG = {
 (function () {
   const CF = window.CF;
   CF.Save.load();
-  if (!CF.Heroes.list.some((h) => h.id === CF.Save.data.hero)) CF.Save.data.hero = 'xs';
+  if (!CF.Heroes.list.some((h) => h.id === CF.Save.data.hero) || !CF.Roster.owns(CF.Save.data.hero)) CF.Save.data.hero = 'xs';
   CF.Heroes.applyTheme();
   document.body.classList.toggle('reduce-motion', !!CF.Save.data.settings.reduceMotion);
   CF.P._unlockSnapshot = CF.P.unlockSnapshot();
@@ -6823,6 +7601,7 @@ window.CF_CONFIG = {
   const unlock = () => { CF.Audio.unlock(); const f = document.querySelector('#scr-lobby .menu-foot'); if (f) f.remove(); };
   window.addEventListener('pointerdown', unlock, { once: true });
   window.addEventListener('keydown', unlock, { once: true });
+  CF.Icons.watch(); // 全部 emoji → 像素图标（UI 宪法第 12 章）
   CF.UI.show('lobby');
   CF.P.checkAch();
   document.addEventListener('visibilitychange', () => { if (document.hidden) { CF.Save.save(); const g = CF.Game.current; if (g && !g.over) g.paused = true; } });

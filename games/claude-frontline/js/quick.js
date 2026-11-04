@@ -30,9 +30,9 @@
     const lvl = CF.City ? CF.City.level('hall') : 0;
     S = {
       h, t: 0, over: false, paused: false, score: 0, kills: 0, combo: 0, maxCombo: 0, comboT: 0, perfects: 0, fever: 0, feverT: 0, slow: 1, slowT: 0, stopT: 0, shake: 0,
-      hero: { x: 1200, y: 1200, hp: 300, maxHp: 300, speed: 165, dmg: 14, rate: 0.42, cd: 0, proj: 1, pierce: 1, area: 1, magnet: 90, crit: 0.05, orbit: 0, beatLv: 0, skillCd: 5, skillT: 2, steal: 0, hitT: 0, face: 1, lv: 1, xp: 0, next: 6, ups: {} },
+      hero: { x: 1200, y: 1200, hp: 300, maxHp: 300, speed: 165, dmg: 14, rate: 0.42, cd: 0, proj: 1, pierce: 1, area: 1, magnet: 90, crit: 0.05, orbit: 0, beatLv: 0, skillCd: 5, skillT: 2, steal: 0, hitT: 0, face: 1, lv: 1, xp: 0, next: 4, ups: {} },
       ens: [], gems: [], shots: [], texts: [], parts: [], waves: [], spawnT: 0, eliteT: 20, bossDone: false, boss: null,
-      joy: null, lastBeat: 0, beatIv: 60 / (CF.Audio.curBpm || 110), pickPitch: 0, pickT: 0, tapCd: 0, lastTitle: 0, startT: performance.now(),
+      multi: 0, multiT: 0, packT: 5, joy: null, lastBeat: 0, beatIv: 60 / (CF.Audio.curBpm || 110), pickPitch: 0, pickT: 0, tapCd: 0, lastTitle: 0, startT: performance.now(),
     };
     if (lvl) { S.hero.dmg *= 1 + lvl * 0.06; CF.toast(`音乐厅 Lv${lvl}：开局攻击 +${lvl * 6}%`, 'gold'); }
     beatSink = { pulse: (s) => { if (s < 0.5 || !S) return; const now = performance.now(); if (S.lastBeat) S.beatIv = CF.lerp(S.beatIv, CF.clamp((now - S.lastBeat) / 1000, 0.25, 1.2), 0.3); S.lastBeat = now; Q.onBeat(s); }, visible: () => false };
@@ -43,6 +43,7 @@
     raf = requestAnimationFrame(loop);
     CF.toast('拖动移动 · 踩着节拍点屏幕打出「完美」', 'gold', 3000);
   };
+  Q._S = () => S; // 调试用
   Q.stop = function () { Q.on = false; cancelAnimationFrame(raf); if (beatSink) CF.PixelFX.Stage.all.delete(beatSink); beatSink = null; S = null; };
   Q.resize = function () { const dpr = Math.min(2, window.devicePixelRatio || 1); Q.dpr = dpr; Q.w = cv.clientWidth; Q.h = cv.clientHeight; cv.width = Q.w * dpr; cv.height = Q.h * dpr; };
 
@@ -80,7 +81,7 @@
     S.tapCd = 0.22;
     const now = performance.now(), iv = S.beatIv * 1000, off = Math.min(Math.abs(now - S.lastBeat), Math.abs(S.lastBeat + iv - now));
     const H = S.hero, perfect = off < 130;
-    if (perfect) { S.perfects++; S.combo += 3; Q.nova(H.x, H.y, 190 * H.area, H.dmg * 3.2, S.h.pal.accent, true); Q.text(H.x, H.y - 46, 'PERFECT', '#ffe08a', 22); S.shake = 0.18; CF.Audio.lick(S.h.id, true); S.fever = Math.min(100, S.fever + 4); }
+    if (perfect) { S.perfects++; S.combo += 3; Q.flash(S.h.pal.accent, 0.18); Q.buzz(8); Q.nova(H.x, H.y, 190 * H.area, H.dmg * 3.2, S.h.pal.accent, true); Q.text(H.x, H.y - 46, 'PERFECT', '#ffe08a', 22); S.shake = 0.18; CF.Audio.lick(S.h.id, true); S.fever = Math.min(100, S.fever + 4); }
     else { Q.nova(H.x, H.y, 110 * H.area, H.dmg * 1.2, S.h.pal.glow, false); Q.text(H.x, H.y - 40, 'GOOD', '#ffffffcc', 14); CF.Audio.sfx('chord', 0.4); }
   };
   Q.feverGo = function () {
@@ -93,6 +94,10 @@
     S.parts.push({ k: 'ring', x, y, r: 0, max: r, t: 0, c, big });
     for (const e of S.ens) { if (e.dead) continue; const d = CF.dist(e.x, e.y, x, y); if (d < r + e.r) { Q.hit(e, dmg, big); if (!e.boss) { const a = Math.atan2(e.y - y, e.x - x); e.x += Math.cos(a) * (big ? 40 : 18); e.y += Math.sin(a) * (big ? 40 : 18); } } }
   };
+  // 反馈工具：闪屏（边缘光）、手机震动、升级冲击
+  Q.flash = function (c, a) { if (!S || CF.Save.data.settings.reduceMotion) return; S.flashC = c; S.flashA = Math.max(S.flashA || 0, a); };
+  Q.buzz = function (ms) { try { if (navigator.vibrate && !CF.Save.data.settings.reduceMotion) navigator.vibrate(ms); } catch (e) { /* 不支持 */ } };
+  Q.levelBurst = function () { const H = S.hero; Q.nova(H.x, H.y, 230 * H.area, H.dmg * 2.5, '#ffffff', true); Q.text(H.x, H.y - 64, `LEVEL ${H.lv}`, '#ffe08a', 26); H.hitT = Math.max(H.hitT, 1); Q.flash('#ffe08a', 0.3); Q.buzz(20); };
   Q.text = function (x, y, txt, c, size = 14) { S.texts.push({ x, y, txt, c, size, t: 0 }); if (S.texts.length > 60) S.texts.shift(); };
   Q.hit = function (e, dmg, big) {
     const H = S.hero, crit = Math.random() < H.crit;
@@ -108,21 +113,28 @@
     const H = S.hero, T = ETYPE[e.type];
     e.dead = true; S.kills++; S.combo++; S.comboT = 2; S.maxCombo = Math.max(S.maxCombo, S.combo);
     S.score += Math.round(T.score * (1 + S.combo / 25) * (e.elite ? 4 : 1));
-    S.fever = Math.min(100, S.fever + (e.elite ? 12 : 1.6));
-    for (let i = 0; i < (e.elite || e.boss ? 8 : 1); i++) S.gems.push({ x: e.x + CF.rand(-10, 10), y: e.y + CF.rand(-10, 10), v: e.boss ? 10 : e.elite ? 3 : T.xp });
+    S.fever = Math.min(100, S.fever + (e.elite ? 14 : 2.4));
+    // 经验：连击越高掉得越多（每 20 连击 +50%）
+    const xk = 1 + Math.min(2, S.combo / 40);
+    for (let i = 0; i < (e.elite || e.boss ? 10 : 1); i++) S.gems.push({ x: e.x + CF.rand(-10, 10), y: e.y + CF.rand(-10, 10), v: (e.boss ? 12 : e.elite ? 4 : T.xp * 1.3) * xk });
+    // 多杀：0.6 秒内连续击杀
+    S.multi = S.multiT > 0 ? S.multi + 1 : 1; S.multiT = 0.6;
+    if (S.multi >= 5 && S.multi % 5 === 0) { const MK = { 5: '五连破！', 10: '十连破！！', 15: '清屏！！！', 20: '无双！！！' }; Q.text(H.x, H.y - 120, MK[Math.min(20, S.multi)] || `${S.multi} 连破！`, '#ffe08a', 24 + Math.min(16, S.multi)); S.shake = Math.max(S.shake, 0.2); Q.flash(S.h.pal.accent, 0.25); Q.buzz(12); CF.Audio.sfx('levelup', 0.35); }
     for (let i = 0; i < (e.boss ? 40 : 8); i++) { const a = Math.random() * TAU, sp = CF.rand(60, e.boss ? 320 : 180); S.parts.push({ k: 'px', x: e.x, y: e.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0, life: CF.rand(0.3, 0.7), c: Math.random() < 0.5 ? '#ff4f9a' : '#29e0e0' }); }
     if (S.kills % 3 === 0) CF.Audio.sfx('boom', 0.25);
     const ti = TITLES.filter(([n]) => S.combo >= n).pop();
     if (ti && ti[0] > S.lastTitle) { S.lastTitle = ti[0]; Q.text(H.x, H.y - 80, ti[1], S.h.pal.accent, 30); CF.Audio.sfx('levelup', 0.6); S.shake = 0.25; }
-    if (e.boss) { S.slow = 0.25; S.slowT = 0.9; S.shake = 0.7; S.score += 5000; Q.text(H.x, H.y - 100, '首领击破！', '#ffe08a', 36); CF.Audio.sfx('win'); S.boss = null; }
-    if (e.elite) { S.stopT = 0.08; Q.levelUp(); }
+    if (e.boss) { S.slow = 0.25; S.slowT = 0.9; S.shake = 0.7; S.score += 5000; Q.text(H.x, H.y - 100, '首领击破！', '#ffe08a', 36); CF.Audio.sfx('win'); S.boss = null; Q.flash('#ffffff', 0.6); Q.buzz([40, 30, 80]); }
+    if (e.elite) { S.stopT = 0.1; Q.flash('#ffd34d', 0.35); Q.buzz(30); Q.levelUp(); }
+    if (e.type === 'titan' && !e.elite) { S.stopT = Math.max(S.stopT, 0.05); S.shake = Math.max(S.shake, 0.22); }
   };
 
   // ---------- 升级三选一 ----------
   Q.levelUp = function () {
     const H = S.hero;
     if (CF.modal.isOpen()) { S.pendingUp = (S.pendingUp || 0) + 1; return; }
-    H.lv++; H.xp = Math.max(0, H.xp - H.next); H.next = Math.round(H.next * 1.32 + 3);
+    H.lv++; H.xp = Math.max(0, H.xp - H.next); H.next = Math.round(H.next * 1.25 + 3);
+    Q.levelBurst();
     CF.Audio.sfx('levelup');
     const pool = CF.shuffle(UPS.filter(([id, , , , max]) => (H.ups[id] || 0) < max)).slice(0, 3);
     if (!pool.length) return;
@@ -150,7 +162,8 @@
     const t = near[0]; const ang = t ? Math.atan2(t.y - H.y, t.x - H.x) : 0;
     const fan = (n, spread, sp, dmg, c, pierce = 2) => { for (let i = 0; i < n; i++) { const a = ang - spread / 2 + (n > 1 ? (i / (n - 1)) * spread : 0); S.shots.push({ x: H.x, y: H.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, dmg, pierce, life: 1.2, c, w: 6, hit: new Set() }); } };
     switch (id) {
-      case 'xs': Q.nova(H.x, H.y, 200 * H.area, H.dmg * 4, P.instL, true); break;
+      case 'xs': Q.nova(H.x, H.y, 200 * H.area, H.dmg * 4, P.edge, true); break;
+      case 'star': fan(8, TAU * 0.875, 520, H.dmg * 2.2, P.glow, 3); H.hp = Math.min(H.maxHp, H.hp + H.maxHp * 0.05); break;
       case 'omni': fan(10, 1.2, 620, H.dmg * 2.2, P.white, 3); break;
       case 'twin': fan(1, 0, 900, H.dmg * 3, P.blue, 99); setTimeout(() => S && fan(1, 0, 900, H.dmg * 3, P.pink, 99), 120); break;
       case 'riot': Q.nova(H.x, H.y, 170 * H.area, H.dmg * 3.4, P.red, true); near.slice(0, 6).forEach((e) => e.stun = 1); break;
@@ -172,6 +185,8 @@
     S.t += dt; S.tapCd -= dt0; S.shake = Math.max(0, S.shake - dt0);
     if (S.feverT > 0) S.feverT -= dt;
     if (S.comboT > 0) { S.comboT -= dt; if (S.comboT <= 0) { S.combo = 0; S.lastTitle = 0; } }
+    if (S.multiT > 0) S.multiT -= dt0;
+    if (S.flashA > 0) S.flashA = Math.max(0, S.flashA - dt0 * 1.8);
     // 移动
     let mx = 0, my = 0;
     if (S.joy) { mx = S.joy.dx; my = S.joy.dy; }
@@ -194,7 +209,10 @@
     // 环绕音符
     if (H.orbit) { const n = H.orbit; for (let i = 0; i < n; i++) { const a = S.t * 3 + (i / n) * TAU, ox = H.x + Math.cos(a) * 80 * H.area, oy = H.y + Math.sin(a) * 80 * H.area; for (const e of S.ens) if (!e.dead && CF.dist(e.x, e.y, ox, oy) < e.r + 12 && (e.orbT || 0) <= 0) { e.orbT = 0.3; Q.hit(e, H.dmg * 1.1); } } }
     // 生成敌人
-    const p = S.t / DUR, rate = 1.4 + p * p * 9;
+    // 出怪：开局就有 3 只/秒，后期接近 20 只/秒；每 6 秒一股「虫潮」从同一方向涌来，专门给范围技能清屏
+    const p = S.t / DUR, rate = 3.2 + p * 6 + p * p * 10;
+    S.packT -= dt;
+    if (S.packT <= 0 && S.ens.length < 240) { S.packT = 6 - p * 2; const a = Math.random() * TAU, d = Math.max(Q.w, Q.h) * 0.6 + 40, n = 8 + Math.round(p * 14); for (let i = 0; i < n; i++) Q.spawn(Math.random() < 0.2 ? 'bat' : 'bug', H.x + Math.cos(a) * d + CF.rand(-60, 60), H.y + Math.sin(a) * d + CF.rand(-60, 60)); Q.text(H.x + Math.cos(a) * 160, H.y + Math.sin(a) * 160, '虫潮 ▸', '#ff4f9a', 16); }
     S.spawnT -= dt;
     while (S.spawnT <= 0 && S.ens.length < 260) {
       S.spawnT += 1 / rate;
@@ -228,7 +246,7 @@
     for (const g of S.gems) {
       const d = CF.dist(g.x, g.y, H.x, H.y);
       if (d < H.magnet || g.pull) { g.pull = true; const a = Math.atan2(H.y - g.y, H.x - g.x), sp = 300 + (H.magnet - d) * 2; g.x += Math.cos(a) * sp * dt; g.y += Math.sin(a) * sp * dt; }
-      if (d < 18) { g.got = true; H.xp += g.v; S.score += g.v * 5; S.pickPitch = Math.min(24, S.pickPitch + 1); S.pickT = 0.6; Q.pickSfx(S.pickPitch); }
+      if (d < 18) { g.got = true; H.xp += g.v; S.score += Math.round(g.v * 5); S.pickPitch = Math.min(24, S.pickPitch + 1); S.pickT = 0.6; Q.pickSfx(S.pickPitch); }
     }
     S.gems = S.gems.filter((g) => !g.got);
     if (H.xp >= H.next) Q.levelUp();
@@ -259,7 +277,7 @@
     $('#qTime').textContent = CF.fmtTime(DUR - S.t);
     $('#qXp').style.width = (S.hero.xp / S.hero.next) * 100 + '%';
     $('#qCombo').textContent = S.combo >= 5 ? S.combo : '';
-    $('#qComboLbl').textContent = S.combo >= 5 ? 'COMBO' : '';
+    $('#qComboLbl').textContent = S.combo >= 5 ? `COMBO ×${(1 + S.combo / 25).toFixed(1)}` : '';
     const f = $('#qFever'); f.style.setProperty('--fv', S.fever + '%'); f.classList.toggle('ready', S.fever >= 100);
     $('#qFeverTxt').textContent = S.feverT > 0 ? Math.ceil(S.feverT) + 's' : S.fever >= 100 ? 'FEVER!' : Math.floor(S.fever) + '%';
   };
@@ -310,19 +328,21 @@
     ctx.restore();
     // 虚拟摇杆
     if (S.joy) { ctx.strokeStyle = '#ffffff44'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(S.joy.ox, S.joy.oy, 60, 0, TAU); ctx.stroke(); ctx.fillStyle = `rgba(${rgb},.6)`; ctx.beginPath(); ctx.arc(S.joy.ox + S.joy.dx * 60, S.joy.oy + S.joy.dy * 60, 22, 0, TAU); ctx.fill(); ctx.lineWidth = 1; }
-    // 节拍指示：屏幕底部的拍点光条
+    // 节拍指示：屏幕底部的拍点光条 + 英雄脚下收缩的拍点圈（圈收到最小时点屏 = PERFECT）
     const ph = S.lastBeat ? ((performance.now() - S.lastBeat) / 1000) / S.beatIv : 0, near = Math.min(ph % 1, 1 - (ph % 1));
+    { const fr = ph % 1, rr = 26 + 46 * (1 - fr), n = 20, ac = CF.Heroes.rgb(P.accent).join(','); ctx.fillStyle = `rgba(${ac},${near < 0.15 ? 0.95 : 0.35})`; for (let i = 0; i < n; i++) { const an = (i / n) * TAU; ctx.fillRect(w / 2 - sh + Math.cos(an) * rr - 2, h / 2 - sh + Math.sin(an) * rr * 0.6 + 14 - 2, 4, 4); } }
     ctx.fillStyle = `rgba(${CF.Heroes.rgb(P.accent).join(',')},${near < 0.15 ? 0.9 : 0.25})`; ctx.fillRect(w / 2 - 60, h - 10, 120, 4);
     if (S.feverT > 0) { ctx.fillStyle = `rgba(${CF.Heroes.rgb(P.accent).join(',')},${0.08 + 0.06 * Math.sin(t * 12)})`; ctx.fillRect(0, 0, w, h); }
+    if (S.flashA > 0) { const fc = CF.Heroes.rgb(S.flashC || '#ffffff').join(','), gr = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.25, w / 2, h / 2, Math.max(w, h) * 0.7); gr.addColorStop(0, `rgba(${fc},0)`); gr.addColorStop(1, `rgba(${fc},${S.flashA})`); ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h); }
     if (S.boss && !S.boss.dead) { ctx.fillStyle = '#000a'; ctx.fillRect(w / 2 - 150, 64, 300, 8); ctx.fillStyle = '#ff4f9a'; ctx.fillRect(w / 2 - 150, 64, 300 * S.boss.hp / S.boss.maxHp, 8); }
   };
 
   // ---------- 结算 ----------
   Q.end = function (survived) {
-    S.over = true;
+    S.over = true; Q._last = { score: S.score, kills: S.kills, lv: S.hero.lv, combo: S.maxCombo, perfects: S.perfects, t: Math.round(S.t), hp: Math.round(S.hero.hp) };
     const d = CF.Save.data, H = S.hero;
     if (survived) S.score += Math.round(H.hp) * 10;
-    const sc = S.score, rank = sc >= 60000 ? 'S' : sc >= 35000 ? 'A' : sc >= 18000 ? 'B' : 'C';
+    const sc = Math.round(S.score), rank = sc >= 250000 ? 'S' : sc >= 150000 ? 'A' : sc >= 70000 ? 'B' : 'C';
     const best = sc > (d.quick.best || 0);
     d.quick.runs++; if (best) { d.quick.best = sc; d.quick.bestRank = rank; }
     d.stats.kills += S.kills; CF.Save.save();

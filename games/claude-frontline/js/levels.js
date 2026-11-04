@@ -1,4 +1,4 @@
-/* 关卡：5 关战役 + 遭遇战生成器 */
+/* 关卡：5 个剧情关（次级关，每关 3 波）+ 遭遇战生成器。章节、小关、组队副本见 js/chapters.js */
 (function () {
   const CF = window.CF;
 
@@ -19,18 +19,17 @@
       cliffs: [[1100, 0, 120, 430], [1100, 700, 120, 600], [1500, 200, 80, 200], [1500, 900, 80, 250]],
       nodes: [['chip', 540, 470], ['chip', 540, 830], ['chip', 860, 650], ['corp', 380, 960], ['corp', 700, 260]],
       spawns: [[1960, 300], [1960, 1000]],
-      first: 45, gap: 34,
+      first: 50, gap: 40,
+      // 难度宪法：前两波只占第 3 波的约 25% / 50%，先让玩家学会操作
       waves: [
-        { units: [['bug', 6]] },
-        { units: [['bug', 8], ['noise', 2]] },
-        { units: [['bug', 10], ['noise', 4]] },
-        { units: [['bug', 10], ['noise', 6]] },
-        { units: [['bug', 14], ['noise', 6], ['titan', 1]], tag: '幻觉巨像' },
+        { units: [['bug', 3]] },
+        { units: [['bug', 5], ['noise', 1]] },
+        { units: [['bug', 9], ['noise', 3], ['titan', 1]], tag: '幻觉巨像' },
       ],
       objectives: [
         { text: '建造 2 座矿机', test: (g) => g.count('miner', true) >= 2 },
         { text: '建造 1 座炮塔', test: (g) => g.count('turret', true) >= 1 },
-        { text: '守住全部 5 波进攻', test: (g) => g.wavesCleared() },
+        { text: '守住全部 3 波进攻', test: (g) => g.wavesCleared() },
       ],
       win: (g) => g.wavesCleared(),
       stars: [['获胜', () => true], ['主脑耐久 ≥ 70%', (g) => g.coreHpPct() >= 0.7], ['6 分钟内获胜', (g) => g.time <= 360]],
@@ -49,20 +48,16 @@
       cliffs: [[1300, 0, 140, 500], [1300, 700, 140, 180], [1300, 1080, 140, 420], [1750, 300, 100, 250], [1750, 950, 100, 250]],
       nodes: [['chip', 520, 560], ['chip', 520, 940], ['chip', 1050, 300], ['corp', 650, 1260], ['corp', 1060, 1200], ['corp', 360, 430]],
       ctx: [[820, 450], [920, 750], [820, 1050]],
+      prebuilt: [['turret', 760, 600], ['turret', 760, 900]], // 难度宪法 §4：剧情关的「新机制」第一次出现时，先送一点防御
       spawns: [[2360, 400], [2360, 1100], [2360, 750]],
-      first: 50, gap: 38,
+      first: 60, gap: 55,
       waves: [
-        { units: [['bug', 10]] },
-        { units: [['bug', 10], ['noise', 4]] },
-        { units: [['noise', 8], ['bat', 3]] },
-        { units: [['bug', 12], ['titan', 1], ['noise', 4]] },
-        { units: [['bat', 8], ['noise', 6]] },
-        { units: [['bug', 16], ['titan', 2]] },
-        { units: [['bug', 10]], boss: 'forget', tag: 'Boss · 遗忘者' },
-        { units: [['bug', 14], ['noise', 8], ['titan', 2], ['bat', 6]], tag: '总攻' },
+        { units: [['bug', 4]] },
+        { units: [['bug', 6], ['noise', 2]] },
+        { units: [['bug', 10], ['noise', 4], ['bat', 3]], boss: 'forget', bossHp: 0.45, tag: 'Boss · 遗忘者（虚弱）' },
       ],
       objectives: [
-        { text: '守住 8 波进攻', test: (g) => g.wavesCleared() },
+        { text: '守住 3 波进攻', test: (g) => g.wavesCleared() },
         { text: '至少 1 个上下文节点存活', test: (g) => g.count('ctx') >= 1, keep: true },
         { text: '击败遗忘者', test: (g) => g.bossKilled('forget') },
       ],
@@ -71,8 +66,8 @@
       win: (g) => g.wavesCleared(),
       stars: [['获胜', () => true], ['3 个上下文节点全部存活', (g) => g.count('ctx') >= 3], ['主脑耐久 ≥ 60%', (g) => g.coreHpPct() >= 0.6]],
       script: [
-        [1, 'HERO', '上下文窗口就是模型的「工作记忆」。守住这三个节点。'],
-        [8, '侦察Agent', '情报：第 7 波会出现「遗忘者」，它只盯着上下文节点。'],
+        [1, 'HERO', '上下文窗口就是模型的「工作记忆」。守住这三个节点——侦察 Agent 已经在节点旁放了两座炮塔。'],
+        [8, '侦察Agent', '情报：第 3 波会出现「遗忘者」，它只盯着上下文节点。'],
       ],
     },
     {
@@ -86,14 +81,11 @@
       towers: [[1500, 300], [1950, 520], [2450, 1050], [2620, 760]],
       spawns: [[2960, 300], [2960, 1300]],
       ambush: [[1650, 470, 2], [2100, 760, 3], [2650, 1100, 4]],
-      first: 40, gap: 40,
+      first: 45, gap: 45,
       waves: [
-        { units: [['bug', 8]] },
-        { units: [['bug', 8], ['noise', 4]] },
-        { units: [['noise', 6], ['bat', 4]] },
-        { units: [['bug', 12], ['titan', 1]] },
-        { units: [['bug', 10], ['noise', 6], ['bat', 4]] },
-        { units: [['bug', 14], ['titan', 2], ['noise', 6]] },
+        { units: [['bug', 4]] },
+        { units: [['bug', 6], ['noise', 2]] },
+        { units: [['bug', 10], ['noise', 4], ['titan', 1], ['bat', 3]], tag: '最后的拦截' },
       ],
       waveTarget: 'proto',
       objectives: [
@@ -111,7 +103,7 @@
     },
     {
       id: 'L4', no: '04', name: '制空权', learn: '航空航天 · 飞控',
-      brief: '乱码军团派出了空军。这一关地面工坊被干扰无法生产，只能依靠无人机空港。第 6 波，「过拟合空母」会带着蝠群来袭——它记住了所有旧战术，却应付不了新变化。',
+      brief: '乱码军团派出了空军。这一关地面工坊被干扰无法生产，只能依靠无人机空港。第 3 波，「过拟合空母」会带着蝠群来袭——它记住了所有旧战术，却应付不了新变化。',
       tip: '拦截无人机克制空中目标，轰炸无人机清理地面。炮塔也能对空。',
       w: 2400, h: 1500, core: [350, 750], hero: [480, 760],
       cliffs: [[1200, 200, 160, 350], [1200, 950, 160, 350], [1800, 600, 120, 300]],
@@ -119,18 +111,14 @@
       prebuilt: [['port', 520, 750]], startUnits: [['interceptor', 600, 700], ['interceptor', 600, 800]],
       spawns: [[2360, 300], [2360, 1200], [1500, 40], [1500, 1460]],
       noGround: true,
-      first: 45, gap: 36,
+      first: 45, gap: 40,
       waves: [
-        { units: [['bat', 8]] },
-        { units: [['bat', 10], ['noise', 4]] },
-        { units: [['bat', 12]] },
-        { units: [['bat', 10], ['bug', 10]] },
-        { units: [['bat', 16], ['noise', 6]] },
-        { units: [['bat', 8]], boss: 'carrier', tag: '空军首领' },
-        { units: [['bat', 20], ['titan', 2]], tag: '总攻' },
+        { units: [['bat', 4]] },
+        { units: [['bat', 6], ['noise', 2]] },
+        { units: [['bat', 12], ['bug', 6]], boss: 'carrier', bossHp: 0.75, tag: '空军首领' },
       ],
       objectives: [
-        { text: '守住 7 波空袭', test: (g) => g.wavesCleared() },
+        { text: '守住 3 波空袭', test: (g) => g.wavesCleared() },
         { text: '击落过拟合空母', test: (g) => g.bossKilled('carrier') },
       ],
       win: (g) => g.wavesCleared() && g.bossKilled('carrier'),
@@ -142,13 +130,18 @@
     },
     {
       id: 'L5', no: '05', name: '终局决战', learn: '企业家 · 第一性原理',
-      brief: '乱码主脑就在右侧。它会源源不断地制造混乱；当它的耐久降到一半，「熵之王」会现身。把你学到的一切用上：经济、科技、兵种配合、技能时机。',
+      brief: '乱码主脑就在右侧。顶住它的 3 波进攻后全力反推；当它的耐久降到一半，「熵之王」会现身。把你学到的一切用上：经济、科技、兵种配合、技能时机。',
       tip: '先稳住经济再推进。「推进主脑」（G）让全军攻击移动到敌方主脑。',
       w: 3000, h: 1800, core: [300, 900], hero: [460, 900],
       cliffs: [[1000, 300, 200, 450], [1000, 1050, 200, 450], [1800, 450, 200, 300], [1800, 1050, 200, 300], [2300, 0, 120, 300], [2300, 1500, 120, 300]],
       nodes: [['chip', 520, 680], ['chip', 520, 1120], ['corp', 600, 900], ['chip', 1500, 900], ['corp', 1500, 300], ['corp', 1500, 1500], ['chip', 300, 300], ['chip', 300, 1500]],
       gcore: [2700, 900], towers: [[2450, 650], [2450, 1150], [2200, 900], [2600, 400], [2600, 1400]],
-      spawns: 'gcore', first: 60, gap: 48, endless: true, mul: 1,
+      spawns: 'gcore', first: 55, gap: 45,
+      waves: [
+        { units: [['bug', 6], ['noise', 2]] },
+        { units: [['bug', 8], ['noise', 4], ['bat', 3]] },
+        { units: [['bug', 12], ['noise', 6], ['titan', 2], ['bat', 6]], tag: '总攻' },
+      ],
       objectives: [
         { text: '摧毁乱码主脑', test: (g) => g.foeCoreDead() },
         { text: '击败熵之王（主脑半血时出现）', test: (g) => g.bossKilled('entropy') },

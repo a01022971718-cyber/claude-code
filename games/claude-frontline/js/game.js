@@ -14,11 +14,12 @@
     radar: { name: '雷达站', key: '5', cost: { chip: 70, corp: 40 }, hp: 320, r: 22, build: 6, desc: '大幅扩展建造范围，附近炮塔射程 +20%，并提前预警敌军来向。' },
     workshop: { name: 'Agent 工坊', key: '6', cost: { chip: 100, corp: 60 }, hp: 750, r: 30, build: 7, desc: '训练地面 Agent。右键地面设置集结点。', trains: ['scout', 'coder', 'refactor'] },
     port: { name: '无人机空港', key: '7', cost: { chip: 120, corp: 60, comp: 30 }, hp: 650, r: 30, build: 8, desc: '训练无人机。空中单位无视断崖地形。', trains: ['interceptor', 'bomber'] },
-    ctx: { name: '上下文节点', hp: 1500, r: 26, desc: '保存关键记忆的节点。4 秒未受攻击会自我修复，也能被修复站与「灵感和弦」修复。' },
+    ctx: { name: '上下文节点', hp: 1500, r: 26, desc: '保存关键记忆的节点。4 秒未受攻击会自我修复，也能被修复站修复。' },
     gcore: { name: '乱码主脑', hp: 5000, r: 52, desc: '乱码军团的核心，源源不断地制造混乱。', atk: { range: 250, dmg: 20, rate: 1, air: true } },
     gtower: { name: '噪声塔', hp: 650, r: 20, desc: '乱码军团的防御塔。', atk: { range: 220, dmg: 14, rate: 0.8, air: true } },
     // 英雄专属建筑（第 8 个建造位）
-    amp: { name: '音箱塔', key: '8', hero: 'xs', cost: { chip: 110, corp: 50 }, hp: 480, r: 20, build: 5, desc: '随节拍周期性释放冲击环，伤害周围敌人。', pulse: { r: 170, dmg: 22, every: 1.4 } },
+    obelisk: { name: '新生方尖碑', key: '8', hero: 'xs', cost: { chip: 110, corp: 50 }, hp: 520, r: 20, build: 5, desc: '随节拍释放破晓冲击环，并让周围友军攻速 +15%。', pulse: { r: 170, dmg: 22, every: 1.4 }, aura: { range: 200, haste: 0.15 } },
+    lighthouse: { name: '宪章灯塔', key: '8', hero: 'star', cost: { chip: 110, corp: 50 }, hp: 520, r: 20, build: 5, desc: '持续治疗周围友军，并向来犯之敌射出校验光束。', heal: { range: 200, amt: 7 }, atk: { range: 220, dmg: 11, rate: 0.8, air: true } },
     hall: { name: '琴房', key: '8', hero: 'omni', cost: { chip: 120, corp: 60 }, hp: 520, r: 22, build: 6, desc: '同时向 3 个目标发射音符。', atk: { range: 230, dmg: 12, rate: 0.7, air: true, multi: 3 } },
     prism: { name: '双星棱镜', key: '8', hero: 'twin', cost: { chip: 120, corp: 60 }, hp: 460, r: 20, build: 6, desc: '分叉光束同时攻击 2 个目标。', atk: { range: 240, dmg: 15, rate: 0.6, air: true, multi: 2 } },
     drumtower: { name: '鼓楼', key: '8', hero: 'riot', cost: { chip: 100, corp: 60 }, hp: 540, r: 22, build: 5, desc: '周围友军攻速 +25%，每 4 秒震地并眩晕敌人。', aura: { range: 220, haste: 0.25 }, pulse: { r: 130, dmg: 25, every: 4, stun: 0.4 } },
@@ -36,7 +37,8 @@
   const UT = {
     hero: { name: '英雄', hp: 650, r: 17, speed: 100, atk: { range: 160, dmg: 20, rate: 0.6, air: true }, desc: '英雄。阵亡 20 秒后在主脑重生。' },
     // 英雄专属小兵（在 Agent 工坊训练）
-    spark: { name: '火花学徒', hero: 'xs', cost: { chip: 40, corp: 20 }, hp: 160, r: 10, speed: 110, time: 4, atk: { range: 140, dmg: 10, rate: 0.6, air: true }, death: { dmg: 45, r: 70 }, desc: '便宜的远程学徒，阵亡时爆出火花。' },
+    rulerguard: { name: '刻度卫士', hero: 'xs', cost: { chip: 55, corp: 30 }, hp: 460, r: 12, speed: 92, time: 5, armor: 5, atk: { range: 24, dmg: 13, rate: 0.7, melee: true }, desc: '举着刻度盾的近战护卫，护甲高。' },
+    spark: { name: '子代理', hero: 'star', cost: { chip: 40, corp: 20 }, hp: 160, r: 10, speed: 110, time: 4, atk: { range: 140, dmg: 10, rate: 0.6, air: true }, death: { dmg: 45, r: 70 }, desc: '便宜的远程小助手，阵亡时化作星芒伤害周围敌人。' },
     keyguard: { name: '琴键卫士', hero: 'omni', cost: { chip: 60, corp: 40 }, hp: 560, r: 13, speed: 80, time: 6, armor: 4, atk: { range: 22, dmg: 14, rate: 0.8, melee: true }, desc: '近战重甲兵。' },
     starling: { name: '星灵', hero: 'twin', cost: { chip: 45, corp: 30 }, hp: 150, r: 10, speed: 105, time: 5, split: 'starlet', atk: { range: 150, dmg: 9, rate: 0.55, air: true }, desc: '被击破时分裂成两颗小星灵。' },
     starlet: { name: '小星灵', hero: 'twin', hp: 60, r: 7, speed: 120, atk: { range: 120, dmg: 5, rate: 0.5, air: true }, desc: '' },
@@ -84,6 +86,7 @@
       g.boss = null; g.bossDone = new Set(); g.bossHalf = false;
       g.stats = { kills: 0, lost: 0, built: 0, trained: 0, gathered: { chip: 0, corp: 0, comp: 0 }, army: [], waves: [], riffs: 0 };
       g.lostAir = 0; g.protoArrived = false; g.researchCd = 20; g.heroRespawn = 0;
+      g.wasCleared = !!(CF.Save.data.campaign[L.id] && CF.Save.data.campaign[L.id].won); g.heroDeaths = 0; g.clearedN = 0;
       g.scriptI = 0; g.ambushI = 0; g.shake = 0; g.beat = 0;
       g.cam = { x: 0, y: 0, z: 1 };
       // 导航网格
@@ -101,6 +104,8 @@
       g.heroId = L.heroId || CF.Save.data.hero || 'xs'; g.heroDef = CF.Heroes.get(g.heroId);
       g.shots = []; g.fields = []; g.timers = [];
       g.hero = g.spawnHero(L.hero[0], L.hero[1]);
+      // 组队副本：AI 队友（最多 2 位）
+      g.mates = (L.team || []).map((id, i) => g.spawnMate(id, L.hero[0] - 30, L.hero[1] + (i ? 70 : -70)));
       (L.ctx || []).forEach(([x, y]) => g.addB('ctx', 0, x, y, true));
       (L.prebuilt || []).forEach(([t, x, y]) => g.addB(t, 0, x, y, true));
       (L.startUnits || []).forEach(([t, x, y]) => g.addU(t, 0, x, y));
@@ -129,6 +134,24 @@
       if (o.clone) { u.clone = true; u.life = o.life; }
       return u;
     }
+    // 波次清空：重叠的波次一起结算，保证每一波的奖励都发到
+    flushWaves() { const g = this; for (let n = g.clearedN + 1; n <= g.wave; n++) if (g.L.onWaveClear) g.L.onWaveClear(g, n); g.clearedN = g.wave; }
+    spawnMate(id, x, y) { const u = this.spawnHero(x, y, { heroId: id }); u.mate = true; u.mateAi = 0.5; return u; }
+    // 队友 AI：跟随主英雄、敌人进入 280 范围时按冷却自动放技能（不消耗玩家算力，冷却 ×1.5）
+    updMates(dt) {
+      const g = this;
+      g.mates.forEach((m, i) => {
+        if (m.dead) { m.rsp = (m.rsp === undefined ? 25 : m.rsp) - dt; if (m.rsp <= 0 && !g.core.dead) { g.mates[i] = g.spawnMate(m.heroId, g.core.x + 60, g.core.y + (i ? 70 : -70)); CF.UI.say(m.heroDef.name, m.heroDef.lines.pick); } return; }
+        m.mateAi -= dt; if (m.mateAi > 0) return; m.mateAi = 0.5;
+        const foe = g.bestTarget(m, 280);
+        if (!foe) return;
+        for (const sk of m.heroDef.skills) {
+          if (m.cd[sk.key] > 0 || (m.st && m.st.stun > 0)) continue;
+          if (sk.key === 'R' && !CF.Treasure.has(m.heroId)) continue;
+          if (CF.Skills.cast(g, m, sk.key, foe.x, foe.y)) { m.cd[sk.key] = sk.cd * 1.5; m.face = foe.x >= m.x ? 1 : -1; break; }
+        }
+      });
+    }
     say(who, text) { CF.UI.say(who, text); }
     heroCast(key, tx, ty) {
       const g = this, h = g.hero;
@@ -136,6 +159,7 @@
       const sk = g.heroDef.skills.find((x) => x.key === key);
       if (!sk) return false;
       if (g.L.immersive && key === 'R' && (g.heroLv || 1) < 6 && !CF.P.trial()) return CF.toast('终极技能在英雄 6 级解锁'), false;
+      if (key === 'R' && !CF.Treasure.has(g.heroId)) { CF.Audio.sfx('error'); return CF.toast(`需要${CF.Treasure.name(g.heroId)}：${CF.Treasure.how(g.heroId)}`, 'bad', 3200), false; }
       if (h.cd[key] > 0) return CF.toast(`${sk.name} 冷却中 ${Math.ceil(h.cd[key])}s`), false;
       if (h.st && h.st.stun > 0) return CF.toast('眩晕中，无法施法'), false;
       const cost = CF.Skills.cost(h, sk);
@@ -157,7 +181,7 @@
       if (k === 'shield') { st.shield = Math.max(st.shield, amt); st.shieldT = dur; return; }
       if (k === 'stun' && e.def.boss) dur *= 0.4;
       st[k] = Math.max(st[k] || 0, dur);
-      if (amt !== undefined) { const ak = k + 'Amt'; if (k in { slow: 1, haste: 1, speed: 1, dmgUp: 1, rapid: 1 }) st[ak] = Math.max(st[k] > 0 && st[ak] ? st[ak] : 0, amt); }
+      if (amt !== undefined) { const ak = k + 'Amt'; if (k in { slow: 1, haste: 1, speed: 1, dmgUp: 1, rapid: 1, guard: 1 }) st[ak] = Math.max(st[k] > 0 && st[ak] ? st[ak] : 0, amt); }
     }
     heal(e, amt) { if (!e || e.dead) return; e.hp = Math.min(e.maxHp, e.hp + amt); }
     allies(x, y, r) { return this.near(x, y, r, (e) => e.team === 0 && !e.dead && (e.kind === 'u' || e.done !== false)); }
@@ -221,7 +245,7 @@
       // 状态衰减
       for (const e of g.ents) {
         const st = e.st; if (!st || e.dead) continue;
-        for (const k of ['slow', 'stun', 'haste', 'speed', 'stealth', 'dmgUp', 'rapid', 'frenzy']) if (st[k] > 0) st[k] = Math.max(0, st[k] - dt);
+        for (const k of ['slow', 'stun', 'haste', 'speed', 'stealth', 'dmgUp', 'rapid', 'frenzy', 'guard']) if (st[k] > 0) st[k] = Math.max(0, st[k] - dt);
         if (st.shieldT > 0) { st.shieldT -= dt; if (st.shieldT <= 0) st.shield = 0; }
         if (e.life !== undefined) { e.life -= dt; if (e.life <= 0) { e.dead = true; e.quiet = true; } }
       }
@@ -401,6 +425,7 @@
         const u = g.addU(s.type, 1, s.x + CF.rand(-40, 40), s.y + CF.rand(-40, 40));
         if (!u.air && !g.walkXY(u.x, u.y)) { const [cx, cy] = g.nearestWalk(...g.cellOf(u.x, u.y)); u.x = cx * CELL + 20; u.y = cy * CELL + 20; }
         if (L.hpMul) { u.maxHp = u.hp = Math.round(u.hp * L.hpMul); }
+        if (s.hpMul) { u.maxHp = u.hp = Math.round(u.hp * s.hpMul); }
         if (s.boss) { g.boss = u; u.spawnCd = 5; CF.UI.bossBar(u); CF.Audio.play('boss'); }
       }
       // 伏击（第 3 关）
@@ -416,6 +441,8 @@
       g.researchCd = Math.max(0, g.researchCd - dt);
       if (g.hero.dead) { g.heroRespawn -= dt; if (g.heroRespawn <= 0 && !g.core.dead) { g.hero = g.spawnHero(g.core.x + 60, g.core.y + 40); CF.UI.say('HERO', '我回来了。继续演奏！'); CF.UI.selDirty = true; } }
       for (const e of g.ents) if (e.heroId && !e.dead) { for (const k in e.cd) e.cd[k] = Math.max(0, e.cd[k] - dt); CF.Skills.tick(g, e, dt); }
+      if (g.mates.length) g.updMates(dt);
+      if (g.wave > g.clearedN && !g.spawnQ.length && alive === 0 && !g.ents.some((e) => e.team === 1 && e.kind === 'u' && !e.dead)) g.flushWaves();
       // 实体
       g.rebuildHash();
       for (const e of g.ents) { if (e.dead) continue; e.hit = Math.max(0, e.hit - dt); e.buff = Math.max(0, (e.buff || 0) - dt); if (e.kind === 'b') g.updB(e, dt); else g.updU(e, dt); }
@@ -445,7 +472,9 @@
         if (win) { rec.won = true; rec.stars = Math.max(rec.stars || 0, stars); rec.best = rec.best ? Math.min(rec.best, g.time) : g.time; }
         d.campaign[L.id] = rec;
       }
-      if (CF.City) g.cityReward = CF.City.reward(win, stars, L, g);
+      if (win && g.wave > g.clearedN) g.flushWaves();
+      if (L.onEnd) { try { L.onEnd(g, win, stars); } catch (e) { console.error(e); } }
+      if (CF.City && !L.minor) g.cityReward = CF.City.reward(win, stars, L, g);
       CF.Save.save(); CF.P.checkAch(); CF.P.announceUnlocks();
       setTimeout(() => CF.UI.endScreen(g, win, stars, why), win ? 900 : 1200);
     }
@@ -463,7 +492,7 @@
       if (pts.length) {
         let k = 0;
         def.units.forEach(([t, n]) => { for (let i = 0; i < n; i++) { const p = pts[k++ % pts.length]; g.spawnQ.push({ type: t, x: p[0], y: p[1] }); } });
-        if (def.boss) { const p = pts[0]; g.spawnQ.push({ type: def.boss, x: p[0], y: p[1], boss: true }); }
+        if (def.boss) { const p = pts[0]; g.spawnQ.push({ type: def.boss, x: p[0], y: p[1], boss: true, hpMul: def.bossHp }); }
       }
       g.stats.waves.push({ n: g.wave, lost: 0, killed: 0 });
       const more = L.endless || g.wave < L.waves.length;
@@ -526,7 +555,7 @@
       if (u.st && u.st.stun > 0) { u.vx *= 0.5; u.vy *= 0.5; return; }
       if (u.team === 2 && g.imCreep) return g.imCreep(u, dt);
       u.atkCd -= dt; u.scan -= dt;
-      if (u.clone && g.hero && !g.hero.dead && u.order.t === 'idle' && CF.dist(u.x, u.y, g.hero.x, g.hero.y) > 120) u.guard = { x: g.hero.x + 40, y: g.hero.y + 20 };
+      if ((u.clone || u.mate) && g.hero && !g.hero.dead && u.order.t === 'idle' && CF.dist(u.x, u.y, g.hero.x, g.hero.y) > (u.mate ? 170 : 120)) u.guard = { x: g.hero.x + 40, y: g.hero.y + (u.mate ? (g.mates.indexOf(u) ? 60 : -60) : 20) };
       // Boss 技能
       if (u.type === 'carrier') { u.spawnCd -= dt; if (u.spawnCd <= 0) { u.spawnCd = 7; for (let i = 0; i < 3; i++) g.spawnQ.push({ type: 'bat', x: u.x, y: u.y }); } }
       if (u.type === 'entropy') { u.spawnCd = (u.spawnCd ?? 6) - dt; if (u.spawnCd <= 0) { u.spawnCd = 12; for (let i = 0; i < 4; i++) g.spawnQ.push({ type: 'bug', x: u.x, y: u.y }); g.fx.push({ k: 'ring', x: u.x, y: u.y, r: 0, max: 230, t: 0, c: '#ff4f9a' }); g.near(u.x, u.y, 230, (e) => e.team === 0).forEach((e) => g.damage(e, 40, u)); } }
@@ -664,7 +693,7 @@
       if (t.dead || dmg <= 0) return;
       if (this.dmgMod) dmg = this.dmgMod(src, t, dmg);
       const st = t.st;
-      if (st) { if (st.marks) dmg *= 1 + 0.08 * st.marks; if (st.shield > 0) { const a = Math.min(st.shield, dmg); st.shield -= a; dmg -= a; if (dmg <= 0) { t.hit = 0.05; return; } } }
+      if (st) { if (st.marks) dmg *= 1 + 0.08 * st.marks; if (st.guard > 0) dmg *= 1 - (st.guardAmt || 0); if (st.shield > 0) { const a = Math.min(st.shield, dmg); st.shield -= a; dmg -= a; if (dmg <= 0) { t.hit = 0.05; return; } } }
       if (t.def.armor && !this.dmgMod) dmg *= 1 - (t.def.armor * 0.06) / (1 + t.def.armor * 0.06);
       if (t.team === 2 && src && src.team !== 2 && this.imAggro) this.imAggro(t, src);
       t.hp -= dmg; t.hit = 0.1; t.lastHitBy = src && src.id;
@@ -694,6 +723,7 @@
         } else {
           if (e.type !== 'proto' && e.team === 0) { g.stats.lost++; if (w) w.lost++; if (e.air) g.lostAir++; }
           if (e.kind === 'b') { g.flowDirty = true; if (e.node) e.node.miner = null; if (e.type !== 'core') CF.toast(`${e.def.name} 被摧毁`, 'bad', 1500); }
+          if (e.heroId && !e.clone) g.heroDeaths++;
           if (e.heroId && !e.clone && e === g.hero) { g.heroRespawn = g.L.immersive ? 10 + 3 * (g.heroLv || 1) : 20; CF.UI.say('HERO', `${g.heroDef.lines.low}（${Math.round(g.heroRespawn)} 秒后重生）`); }
         }
       }
@@ -1019,13 +1049,14 @@
           ctx.fillStyle = COLS.foe; ctx.font = `bold ${r * 0.8}px ui-monospace,monospace`; ctx.textAlign = 'center'; ctx.fillText(GLYPH[Math.floor(t * 6) % GLYPH.length], 0, r * 0.28); ctx.textAlign = 'left';
           break;
         }
-        case 'amp': case 'hall': case 'prism': case 'drumtower': case 'bazaar': case 'deepwell': case 'moonterrace': case 'jadeplate': case 'steamer': case 'jade': case 'depot': {
+        case 'obelisk': case 'lighthouse': case 'hall': case 'prism': case 'drumtower': case 'bazaar': case 'deepwell': case 'moonterrace': case 'jadeplate': case 'steamer': case 'jade': case 'depot': {
           const hd = CF.Heroes.get(b.def.hero || (b.type === 'jade' ? 'pearl' : 'xs')), P = hd.pal, k = 1 + this.beat * 0.08;
           ctx.translate(x, y); ctx.scale(k, k);
           ctx.fillStyle = '#14112a'; ctx.strokeStyle = P.glow; ctx.lineWidth = 2;
           ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill(); ctx.stroke();
           const R2 = (a, b2, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(a, b2, w, h); };
-          if (b.type === 'amp') { R2(-11, -13, 22, 26, '#1b1226'); ctx.fillStyle = P.inst; ctx.beginPath(); ctx.arc(0, -5, 6 + this.beat * 2, 0, TAU); ctx.arc(0, 7, 4, 0, TAU); ctx.fill(); }
+          if (b.type === 'obelisk') { ctx.fillStyle = P.obs; ctx.beginPath(); ctx.moveTo(0, -18); ctx.lineTo(7, -10); ctx.lineTo(6, 12); ctx.lineTo(-6, 12); ctx.lineTo(-7, -10); ctx.closePath(); ctx.fill(); R2(-1, -14, 2, 24, P.white); for (let i = 0; i < 5; i++) R2(-6, -8 + i * 4, i % 2 ? 3 : 5, 1, P.gold); ctx.fillStyle = P.gold; ctx.globalAlpha *= 0.6 + this.beat * 0.4; ctx.beginPath(); ctx.arc(0, -18, 4 + this.beat * 3, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; }
+          if (b.type === 'lighthouse') { R2(-6, -10, 12, 22, P.ivory); R2(-6, -2, 12, 3, P.body); R2(-6, 6, 12, 3, P.body); R2(-8, -14, 16, 4, P.bodyD); ctx.fillStyle = '#fff6d8'; ctx.globalAlpha *= 0.5 + this.beat * 0.5; ctx.beginPath(); ctx.arc(0, -18, 5 + this.beat * 3, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; }
           if (b.type === 'hall') { R2(-14, -4, 28, 10, P.dark); for (let i = 0; i < 7; i++) R2(-13 + i * 4, 1, 3, 5, i % 2 ? P.white : '#cfd8d4'); R2(2, -12, 12, 8, P.dark); }
           if (b.type === 'prism') { ctx.fillStyle = P.blue; ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(10, 6); ctx.lineTo(-10, 6); ctx.closePath(); ctx.fill(); ctx.fillStyle = P.pink; ctx.fillRect(-2, -6, 4, 10); }
           if (b.type === 'drumtower') { ctx.fillStyle = P.red; ctx.beginPath(); ctx.ellipse(0, 0, 13, 9, 0, 0, TAU); ctx.fill(); R2(-13, -2, 26, 2, P.white); R2(-1, -14, 2, 8, P.steel); }
@@ -1099,7 +1130,7 @@
           break;
         }
         default:
-          if (u.def.hero) { const hd = CF.Heroes.get(u.def.hero), px = u.type === 'starlet' ? 0.75 : u.type === 'beanie' ? 1 : 1.25; ctx.translate(x, y); if (u.face < 0) ctx.scale(-1, 1); hd.draw(ctx, -7 * px, -5 * px, px, { noInst: true, tint: fl ? '#ffffff' : undefined, bob: this.beat > 0.7 ? 1 : 0, t, walk: Math.hypot(u.vx, u.vy) > 10, step: Math.floor(u.step) }); }
+          if (u.def.hero) { const hd = CF.Heroes.get(u.def.hero), px = u.type === 'starlet' ? 0.75 : u.type === 'beanie' ? 1 : 1.25; ctx.translate(x, y); if (u.face < 0) ctx.scale(-1, 1); (hd.drawMinion || hd.draw).call(hd, ctx, -7 * px, -5 * px, px, { noInst: true, tint: fl ? '#ffffff' : undefined, bob: this.beat > 0.7 ? 1 : 0, t, walk: Math.hypot(u.vx, u.vy) > 10, step: Math.floor(u.step) }); }
           else if (u.team === 2 && this.drawCreep) this.drawCreep(ctx, u, x, ay, r, t, fl);
           else this.drawFoe(ctx, u, x, ay, r, t, fl);
       }

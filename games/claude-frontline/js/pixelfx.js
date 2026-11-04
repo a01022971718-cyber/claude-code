@@ -107,7 +107,7 @@
       else if (this.o.showChar) {
         const ox = fx - 21 * px * 0.45, oy = fy - 15 * px * 0.38, a = this.anim;
         ctx.fillStyle = 'rgba(10,6,30,0.35)'; ctx.fillRect(ox + px, oy + 10.5 * px, 14 * px, px);
-        hero.draw(ctx, ox, oy, px, { bob: a.bob, strum: a.strum > 0.4 ? (a.strumFlip ? 1 : 0) : 0, blink: a.blink > 0, lean: hero.id === 'xs' ? a.lean : 0, t: a.t });
+        hero.draw(ctx, ox, oy, px, { bob: a.bob, strum: a.strum > 0.4 ? (a.strumFlip ? 1 : 0) : 0, blink: a.blink > 0, lean: hero.id === 'xs' || hero.id === 'star' ? a.lean : 0, t: a.t });
         this.parts.forEach((p) => {
           ctx.globalAlpha = Math.min(1, (1 - p.age / p.life) * 1.5);
           const X = ox + p.x * px, Y = oy + p.y * px;

@@ -4,12 +4,14 @@
 
 - X-S 寓意：**新生 · 向上 · 探索未知**（X = 未知与新星，S = 向上的 S 曲线）。
 - 设计说明：[DESIGN.md](DESIGN.md)
-- 美术宪法：[字体美术宪法](art/01-typography-constitution.md) · [游戏界面视觉宪法](art/02-game-ui-constitution.md) · [英雄设定集](art/03-heroes.md)
+- 宪法：[字体美术宪法](art/01-typography-constitution.md) · [游戏界面视觉宪法](art/02-game-ui-constitution.md) · [英雄设计宪法](art/04-hero-design-constitution.md) · [关卡难度宪法](design/01-level-difficulty-constitution.md) · [英雄设定集](art/03-heroes.md)
+- 下一版本待办：[NEXT.md](NEXT.md)
 
 ## 怎么玩
 
 - **电脑**：双击 `index.html` 直接打开（Chrome / Edge / Safari，不需要联网）。
-- **手机 / 分享**：运行 `node build.mjs`，把 `dist/claude-frontline.html` 发到手机上打开。战斗建议横屏；快速模式竖屏单手就能玩。
+- **安卓手机**：安装 [`release/xs-frontline.apk`](release/xs-frontline.apk)（离线可玩，存档保存在手机里）。自己重新打包：见 `android/build-apk.sh`。
+- **手机浏览器 / 分享**：运行 `node build.mjs`，把 `dist/claude-frontline.html` 发到手机上打开。战斗建议横屏；快速模式竖屏单手就能玩。
 - 第一次进入点一下屏幕开启声音；第一关会自动开始 10 步新手教程。
 
 ## 四种玩法
@@ -18,14 +20,17 @@
 |---|---|---|
 | ⚡ 快速模式 | 拖动移动、自动攻击，踩拍点屏打出「完美」，连击、三选一强化、FEVER 爆发、第 60 秒出首领 | 90 秒 |
 | 🧠 沉浸模式 | 参考魔兽争霸 3：战争迷雾、野怪营地与物品、英雄 1–10 级加点（6 级大招）、攻防类型克制、人口与维护费、主脑三级科技、会扩张会撤退的 AI 对手、昼夜 | 15–25 分钟 |
-| 🗺 征程 | 5 关剧情战役（三星评价）+ 3 档遭遇战 | 5–15 分钟 |
+| 🗺 征程 | 两大章，每章随机 10–13 个普通关（次级关 = 剧情关，通关后不可重复；小关可重复刷补给，都是 3 波）+ 每章一个组队副本（5 波、AI 队友、每波有奖励、第 5 波掉英雄碎片、每天 3 次）+ 遭遇战 | 3–5 分钟 / 关 |
 | 🏰 主城 | 参考海岛奇兵 / 部落冲突：建造与升级城池，真实时间产出，研究所 / 英雄殿 / 兵营 / 音乐厅加成所有战斗，「乱码入侵」用你的布局打防守战 | 随时 |
 
-## 九位英雄
+## 十位英雄
 
-X-S 原创主角 + 中美各 4 位（灵感取自知名 AI 大模型的公开特点，均为原创形象）。每位都有自己的乐器、配色、主题曲、像素形象、被动与 Q/W/R 技能、专属小兵与专属建筑、世界观、性格、故事和口头禅。选中谁当主英雄，大厅、整个界面的配色、背景音乐和出战英雄都会跟着换。
+X-S 原创主角（扛着巨尺剑「量天尺」的少女）+ 美方 5 位 + 中方 4 位（灵感取自知名 AI 大模型的公开特点，均为原创形象）。每位都有自己的乐器、配色、主题曲、像素形象、被动与 Q/W/R 技能、专属小兵与专属建筑、世界观、性格、故事和口头禅。
 
-X-S（电吉他）· 万象（钢琴）· 双子（竖琴）· 狂想（架子鼓）· 羊驼（排箫）· 鲸歌（古琴）· 月弦（二胡）· 珠问（琵琶）· 团团（唢呐）
+- **开局只有 X-S**；第一章第 3 个小关送「万象」，第 5 个小关送「珠问」，其他英雄靠组队副本的英雄碎片（10 片解锁）。
+- **乐器是法宝**：后期才能获得；没有法宝时形象不带乐器、终极技能不可用。X-S 的电吉他在第一章终章获得。
+
+X-S（电吉他）· 星芒（尤克里里，灵感 Claude）· 万象（钢琴）· 双子（竖琴）· 狂想（架子鼓）· 羊驼（排箫）· 鲸歌（古琴）· 月弦（二胡）· 珠问（琵琶）· 团团（唢呐）
 
 ## 学习 → 战力（知识 30% · 实操 70%）
 
@@ -51,7 +56,8 @@ X-S（电吉他）· 万象（钢琴）· 双子（竖琴）· 狂想（架子�
 
 - 学习内容：`js/content.js`
 - 英雄：`js/heroes.js`（改完运行 `node tools/gen-heroes-doc.mjs` 更新设定集）
-- 技能：`js/skills.js`；关卡：`js/levels.js`、`js/immersive.js`
+- 技能：`js/skills.js`；剧情关：`js/levels.js`；章节 / 小关 / 组队副本 / 难度公式：`js/chapters.js`；沉浸模式：`js/immersive.js`
+- 图标：`js/icons.js`（12×12 像素图，界面里的 emoji 会自动换成像素图标）
 
 ## 文件结构
 
@@ -60,15 +66,19 @@ index.html            页面骨架
 css/style.css         样式（按两份美术宪法组织的令牌与组件）
 js/config.js          背景音乐与音量配置
 js/core.js            工具、存档、提示、弹窗（每个弹窗都带英雄像素页眉）
-js/audio.js           乐器合成、9 首英雄主题曲与动机、音效、自定义音乐
-js/heroes.js          9 位英雄：数据、像素形象、乐器演奏动画、配色主题
+js/icons.js           像素图标系统（emoji 自动替换）
+js/audio.js           乐器合成、10 首英雄主题曲与动机、音效、自定义音乐
+js/heroes.js          10 位英雄：数据、像素形象、乐器演奏动画、配色主题
+js/roster.js          英雄获取、英雄碎片、法宝
 js/pixelfx.js         像素脉冲舞台、全局节拍变量、像素转场
-js/brand.js           X-S 标志与字标
+js/brand-glyphs.js    主标题矢量字形（Noto Sans SC/Noto Sans Black，OFL）
+js/brand.js           X-S 标志、字标与主标题 Key Logo
 js/content.js         学习内容库
 js/progress.js        经验、3:7 配比、解锁、成就、战斗加成
 js/labs.js            8 个实验
 js/academy.js         学院、实验室列表、档案、成就页
-js/levels.js          战役与遭遇战
+js/levels.js          剧情关（次级关）与遭遇战
+js/chapters.js        章节、小关生成、组队副本、难度生成器、关卡奖励
 js/game.js            RTS 引擎（A* 寻路、流场、单位 AI、效果原语、渲染）
 js/skills.js          英雄属性、被动与 27 个主动技能
 js/immersive.js       沉浸模式（迷雾、野怪、物品、攻防类型、人口、科技、AI、昼夜）
@@ -77,8 +87,11 @@ js/lobby.js           大厅、英雄图鉴与英雄档案
 js/tutorial.js        新手教程与操作说明
 js/quick.js           快速模式
 js/city.js            主城养成与乱码入侵
-art/                  美术宪法与英雄设定集
-tools/                文档生成脚本
+art/                  字体 / 界面 / 英雄设计宪法与英雄设定集
+design/               关卡难度宪法
+android/              安卓 WebView 套壳与构建脚本
+release/              安卓安装包
+tools/                文档、字形生成脚本
 build.mjs             打包成单文件
 ```
 

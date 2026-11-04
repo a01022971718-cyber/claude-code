@@ -240,7 +240,7 @@
     ['three_star', '⭐', '三星指挥官', '任意关卡获得三星', () => Object.values(S().campaign).some((c) => c.stars >= 3)],
     ['all_three', '🌟', '完美战役', '全部 5 关三星', () => ['L1', 'L2', 'L3', 'L4', 'L5'].every((l) => S().campaign[l] && S().campaign[l].stars >= 3)],
     ['air', '🛩️', '制空权', '通关第 4 关「制空权」', () => !!(S().campaign.L4 && S().campaign.L4.won)],
-    ['riff20', '🎸', '弦振大师', '累计释放 20 次弦振冲击', () => S().stats.riffs >= 20],
+    ['riff20', '🎸', '弦振大师', '累计释放 20 次英雄技能', () => S().stats.riffs >= 20],
     ['kills500', '🧹', '清理乱码', '累计消灭 500 个乱码单位', () => S().stats.kills >= 500],
     ['hard', '🔥', '硬核指挥官', '赢得一场困难遭遇战', () => S().skirmish.hard > 0],
     ['quiz50', '📚', '知识猎手', '累计答对 50 题', () => S().quiz.correct >= 50],

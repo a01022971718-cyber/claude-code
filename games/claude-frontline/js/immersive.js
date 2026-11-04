@@ -44,7 +44,7 @@
   });
   const SUPPLY = { scout: 1, coder: 2, refactor: 4, interceptor: 2, bomber: 4, spark: 2, keyguard: 3, starling: 2, drummer: 2, alpaca: 3, whaleling: 2, shade: 2, querist: 2, beanie: 1, starlet: 0 };
   const TIER2 = ['refactor', 'bomber', 'radar', 'port', 'spark', 'keyguard', 'starling', 'drummer', 'alpaca', 'whaleling', 'shade', 'querist', 'beanie'];
-  const TIER3 = ['amp', 'hall', 'prism', 'drumtower', 'bazaar', 'deepwell', 'moonterrace', 'jadeplate', 'steamer'];
+  const TIER3 = ['obelisk', 'lighthouse', 'hall', 'prism', 'drumtower', 'bazaar', 'deepwell', 'moonterrace', 'jadeplate', 'steamer'];
   const XP_LV = [0, 200, 500, 900, 1400, 2000, 2700, 3500, 4400, 5400];
   const ITEMS = {
     potion: { n: '治疗药水', ic: '🧪', d: '立即回复 450 耐久（消耗品）', use: true, price: 60 },

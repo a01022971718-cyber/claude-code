@@ -77,6 +77,9 @@
       city: null,
       boosts: 0,
       heroStats: {},
+      roster: null, // { owned: [], frags: {}, treasures: [] }，见 js/roster.js
+      chapters: { seed: 0, stages: {} },
+      dungeon: {},
       settings: { master: CF_CONFIG.volume.master, music: CF_CONFIG.volume.music, sfx: CF_CONFIG.volume.sfx, trial: false, quality: 'high', bgmStyle: {}, bgmBpm: {}, rotateChoice: '', reduceMotion: false },
     };
   }

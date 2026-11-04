@@ -6,7 +6,7 @@
   const MODES = [
     ['quick', '快速模式', '90 秒节奏爽局 · 通勤一局', 'COMMUTE', true],
     ['immersive', '沉浸模式', '迷雾 · 野怪 · 英雄成长 · AI 对手', 'STRATEGY'],
-    ['campaign', '征程', '战役五关 · 遭遇战', 'CAMPAIGN'],
+    ['campaign', '征程', '两大章 · 组队副本 · 遭遇战', 'CAMPAIGN'],
     ['city', '主城', '建造大本营 · 研究科技 · 防守入侵', 'BASE'],
   ];
   const NAV = [['heroes', '🎸', '英雄'], ['city', '🏰', '主城'], ['academy', '📚', '学院'], ['labs', '🧪', '实验室'], ['profile', '📈', '档案'], ['achievements', '🏆', '成就'], ['settings', '⚙', '设置'], ['help', '❔', '说明']];
@@ -20,9 +20,9 @@
   }
   L.init = function () {
     stage = new CF.PixelFX.Stage($('#lobbyStage'), { mode: 'full', fx: 0.36, fy: 0.5, cell: 28, radius: 34 });
-    const fit = () => { const w = window.innerWidth, h = window.innerHeight; if (w < 760 || h > w) { stage.o.fx = 0.5; stage.o.fy = 0.3; stage.o.charPx = Math.max(4, Math.floor(Math.min(w, h * 0.8) / 34)); } else { stage.o.fx = 0.36; stage.o.fy = 0.5; stage.o.charPx = 0; } };
+    const fit = () => { const w = window.innerWidth, h = window.innerHeight; if (w > h && h <= 520) { stage.o.fx = 0.34; stage.o.fy = 0.43; stage.o.charPx = Math.max(3, Math.floor((h * 0.3) / 20)); } else if (w < 760 || h > w) { stage.o.fx = 0.5; stage.o.fy = 0.3; stage.o.charPx = Math.max(4, Math.floor(Math.min(w, h * 0.8) / 34)); } else { stage.o.fx = 0.36; stage.o.fy = 0.5; stage.o.charPx = 0; } };
     fit(); window.addEventListener('resize', fit);
-    $('#lobbyLogo').innerHTML = CF.Brand.wordmark('战线');
+    $('#lobbyLogo').innerHTML = CF.Brand.keyLogo();
     const modes = $('#lobbyModes');
     const bars = MODES.map(([id, n, sub, tag, big], i) => {
       const b = CF.h(`<button class="mode ${big ? 'big' : ''}"><canvas></canvas><span class="tag">${tag}</span><span class="mt">${n}</span><span class="ms">${sub}</span></button>`);
@@ -66,11 +66,13 @@
     $('#scr-lobby').appendChild(b); setTimeout(() => b.remove(), 2600);
   };
   L.cycle = function (d) {
-    const list = CF.Heroes.list, i = list.findIndex((h) => h.id === CF.Heroes.current().id);
+    const list = CF.Roster.ownedList(), i = list.findIndex((h) => h.id === CF.Heroes.current().id);
+    if (list.length < 2) { CF.toast('目前只拥有 X-S——第一章第 3 个小关送「万象」'); return; }
     const h = list[(i + d + list.length) % list.length];
     L.setHero(h.id);
   };
   L.setHero = function (id) {
+    if (!CF.Roster.owns(id)) { CF.toast(`${CF.Heroes.get(id).name}：${CF.Roster.how(id)}`, 'bad', 2800); return; }
     CF.Save.data.hero = id; CF.Save.save();
     CF.Heroes.applyTheme(id);
     CF.PixelFX.wipe();
@@ -99,11 +101,11 @@
   // ================= 英雄图鉴 =================
   L.renderHeroes = function () {
     const body = $('#heroesBody');
-    body.innerHTML = `<p class="small muted" style="margin-bottom:12px;line-height:1.7">九位乐手来自智能大陆的东西两岸。灵感取自中美知名 AI 大模型的公开特点，均为原创形象。选一位当你的主英雄：大厅、界面配色、背景音乐和出战英雄都会跟着换。</p><div class="hero-grid" id="hGrid"></div>`;
+    body.innerHTML = `<p class="small muted" style="margin-bottom:12px;line-height:1.7">十位乐手：原创主角 X-S，加上来自智能大陆东西两岸的九位伙伴（灵感取自中美知名 AI 大模型的公开特点，均为原创形象）。开局只有 X-S，其他英雄靠征程与组队副本获得；乐器是后期才能拿到的「法宝」。</p><div class="hero-grid" id="hGrid"></div>`;
     const grid = $('#hGrid');
     CF.Heroes.list.forEach((h) => {
-      const cur = h.id === CF.Heroes.current().id;
-      const c = CF.h(`<div class="hcard" style="border-color:${cur ? h.pal.glow : ''}"><canvas></canvas>${cur ? '<span class="cur">主英雄</span>' : ''}<span class="side">${h.side === '原创' ? 'X-S' : h.side}</span><div class="hbody"><div class="hn" style="color:${h.pal.glow}">${h.name}<small>${h.title}</small></div><div class="hi">${h.instrument} · ${h.role}</div><div class="sw">${[h.pal.bg[0], h.pal.bg[2], h.pal.glow, h.pal.accent, h.pal.note].map((x) => `<i style="background:${x}"></i>`).join('')}</div></div></div>`);
+      const cur = h.id === CF.Heroes.current().id, own = CF.Roster.owns(h.id);
+      const c = CF.h(`<div class="hcard ${own ? '' : 'locked'}" style="border-color:${cur ? h.pal.glow : ''}"><canvas></canvas>${cur ? '<span class="cur">主英雄</span>' : ''}${own ? (CF.Treasure.has(h.id) ? '' : '<span class="nofb">法宝未得</span>') : `<span class="how">${CF.Roster.how(h.id)}</span>`}<span class="side">${h.side === '原创' ? 'X-S' : h.side}</span><div class="hbody"><div class="hn" style="color:${h.pal.glow}">${h.name}<small>${h.title}</small></div><div class="hi">${h.instrument} · ${h.role}</div><div class="sw">${[h.pal.bg[0], h.pal.bg[2], h.pal.glow, h.pal.accent, h.pal.note].map((x) => `<i style="background:${x}"></i>`).join('')}</div></div></div>`);
       new CF.PixelFX.Stage(c.querySelector('canvas'), { mode: 'portrait', fx: 0.42, fy: 0.55, cell: 10, hero: h.id, radius: 26, charPx: 4 });
       c.onclick = () => { CF.Audio.sfx('click'); CF.UI.show('hero', h.id); };
       c.onmouseenter = () => CF.Audio.lick(h.id, true);
@@ -120,8 +122,8 @@
     const bKey = Object.keys(BT).find((k) => BT[k].hero === h.id), uKey = Object.keys(UT).find((k) => UT[k].hero === h.id && UT[k].cost);
     body.innerHTML = `<div class="hd">
       <div class="hd-stage"><canvas id="hdCv"></canvas><div class="nm"><div class="t-tag">${h.side === '原创' ? 'X-S ORIGINAL' : h.side === '中' ? 'CHINA' : 'USA'} · ${h.en}</div><div class="t-h1" style="text-shadow:0 3px 0 #0008">${h.name}</div><div class="t-quote">${CF.esc(h.quote)}</div></div></div>
-      <div class="hd-info">
-        <div class="row wrap" style="margin-bottom:10px"><button class="btn primary" id="hdPick">${h.id === CF.Heroes.current().id ? '✓ 当前主英雄' : '设为主英雄'}</button><button class="btn" id="hdMusic">▶ 试听主题曲</button><button class="btn ghost" id="hdLick">🎵 招牌乐句</button></div>
+      <div class="hd-info">${CF.Roster.owns(h.id) ? '' : `<div class="explain" style="margin:0 0 10px">获取方式：${CF.Roster.how(h.id)}</div>`}${CF.Treasure.has(h.id) ? '' : `<div class="explain" style="margin:0 0 10px;border-color:#ff4f9a55;background:#ff4f9a12">法宝「${h.instrument}」未获得：${CF.Treasure.how(h.id)}。获得后形象出现乐器、终极技能「${h.skills[2].name}」解锁。</div>`}
+        <div class="row wrap" style="margin-bottom:10px"><button class="btn primary" id="hdPick" ${CF.Roster.owns(h.id) ? '' : 'disabled'}>${!CF.Roster.owns(h.id) ? '未获得' : h.id === CF.Heroes.current().id ? '✓ 当前主英雄' : '设为主英雄'}</button><button class="btn" id="hdMusic">▶ 试听主题曲</button><button class="btn ghost" id="hdLick">🎵 招牌乐句</button></div>
         <div class="tabs" id="hdTabs" style="padding:0"></div>
         <div id="hdTab" style="margin-top:10px"></div>
       </div></div>`;
@@ -133,12 +135,12 @@
         <div class="skill"><div class="k">被动</div><div><h4>${h.passive.name}</h4><p>${h.passive.desc}</p></div></div>
         ${h.skills.map((s, i) => `<div class="skill"><div class="k">${ic[i]}</div><div><h4>${s.key} · ${s.name}</h4><p>${s.desc}</p><div class="meta">算力 ${CF.Skills.cost({ heroId: h.id }, s)} · 冷却 ${s.cd}s · ${{ self: '以自身为中心', dir: '指向方向', point: '指定位置' }[s.target]}</div></div></div>`).join('')}`,
       special: () => { const u = UT[uKey], b = BT[bKey]; return `<div class="skill"><div class="k">兵</div><div><h4>专属小兵 · ${u.name}</h4><p>${u.desc}</p><div class="meta">耐久 ${u.hp} · 伤害 ${u.atk.dmg} · 射程 ${u.atk.range} · ${CF.Game.costHtml(u.cost)}（在 Agent 工坊训练）</div></div></div><div class="skill"><div class="k">建</div><div><h4>专属建筑 · ${b.name}</h4><p>${b.desc}</p><div class="meta">耐久 ${b.hp} · ${CF.Game.costHtml(b.cost)}（建造菜单第 8 位）</div></div></div><p class="small muted">只有选择 ${h.name} 出战时才能训练与建造。</p>`; },
-      art: () => `<div class="card"><div class="t-tag">乐器</div><p class="t-body" style="color:var(--text)">${h.instrument} —— 主题曲《${ms.name.split('·')[1] || ms.name}》 · ${h.music.bpm} BPM · ${h.music.key} · ${h.music.scale}</p><p class="t-cap">记忆点：${h.music.motif}</p><div class="t-tag" style="margin-top:10px">配色（宪法第 2 章：背景三段 · 网格 · 主光 · 点缀 · 音符）</div><div class="swatches-big" style="margin-top:6px">${[['背景暗', h.pal.bg[0]], ['背景中', h.pal.bg[1]], ['背景亮', h.pal.bg[2]], ['网格', 'rgb(' + h.pal.grid.join(',') + ')'], ['主光', h.pal.glow], ['点缀', h.pal.accent], ['音符', h.pal.note]].map(([n, c]) => `<div><i style="background:${c}"></i>${n}<br>${c.startsWith('rgb') ? '' : c}</div>`).join('')}</div><div class="t-tag" style="margin-top:10px">特效语言</div><p class="t-cap">节拍时从角色处扩散像素方格波纹；乐器发声点飘出专属粒子（${h.fx.pats.length} 种像素形状），重拍时整片网格亮起、角色做强拍动作。</p></div>`,
+      art: () => `<div class="card"><div class="t-tag">乐器（法宝${CF.Treasure.has(h.id) ? ' · 已获得' : ' · 未获得'}）</div><p class="t-body" style="color:var(--text)">${h.instrument} —— 主题曲《${ms.name.split('·')[1] || ms.name}》 · ${h.music.bpm} BPM · ${h.music.key} · ${h.music.scale}</p><p class="t-cap">记忆点：${h.music.motif}</p><div class="t-tag" style="margin-top:10px">配色（宪法第 2 章：背景三段 · 网格 · 主光 · 点缀 · 音符）</div><div class="swatches-big" style="margin-top:6px">${[['背景暗', h.pal.bg[0]], ['背景中', h.pal.bg[1]], ['背景亮', h.pal.bg[2]], ['网格', 'rgb(' + h.pal.grid.join(',') + ')'], ['主光', h.pal.glow], ['点缀', h.pal.accent], ['音符', h.pal.note]].map(([n, c]) => `<div><i style="background:${c}"></i>${n}<br>${c.startsWith('rgb') ? '' : c}</div>`).join('')}</div><div class="t-tag" style="margin-top:10px">特效语言</div><p class="t-cap">节拍时从角色处扩散像素方格波纹；乐器发声点飘出专属粒子（${h.fx.pats.length} 种像素形状），重拍时整片网格亮起、角色做强拍动作。</p></div>`,
     };
     const tb = body.querySelector('#hdTabs'); let cur = 'lore';
     const draw = () => { tb.innerHTML = ''; [['lore', '档案'], ['skills', '技能'], ['special', '专属'], ['art', '乐器与配色']].forEach(([k, n]) => { const b = CF.h(`<button class="tab ${cur === k ? 'on' : ''}">${n}</button>`); b.onclick = () => { cur = k; draw(); CF.Audio.sfx('click'); }; tb.appendChild(b); }); body.querySelector('#hdTab').innerHTML = tabs[cur](); };
     draw();
-    body.querySelector('#hdPick').onclick = () => { L.setHero(h.id); L.renderHero(h.id); CF.toast(`主英雄：${h.name}`, 'gold'); };
+    body.querySelector('#hdPick').onclick = () => { if (!CF.Roster.owns(h.id)) return; L.setHero(h.id); L.renderHero(h.id); CF.toast(`主英雄：${h.name}`, 'gold'); };
     body.querySelector('#hdMusic').onclick = () => { CF.Audio.preview(h.music.style, 0.7); CF.toast(`♪ ${ms.name}`); };
     body.querySelector('#hdLick').onclick = () => { CF.Audio.unlock(); CF.Audio.lick(h.id); heroStage.pulse(1, true); };
     CF.Audio.unlock(); CF.Audio.preview(h.music.style, 0.6);

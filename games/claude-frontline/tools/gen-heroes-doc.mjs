@@ -14,16 +14,17 @@ for (const f of ['heroes.js', 'audio.js', 'game.js', 'skills.js']) vm.runInConte
 const CF = sandbox.window.CF, H = CF.Heroes.list, ST = CF.Skills.STATS, IC = CF.Skills.ICON, BT = CF.Game.BT, UT = CF.Game.UT, STY = CF.Audio.STYLES;
 const cost = (c) => Object.entries(c || {}).map(([k, v]) => `${{ chip: '晶片', corp: '语料', comp: '算力' }[k]} ${v}`).join(' · ');
 
-let md = `# X-S 英雄设定集\n\n> 本文件由 \`node tools/gen-heroes-doc.mjs\` 从游戏数据自动生成，请改 \`js/heroes.js\` 后重新生成，不要手改。\n> 灵感取自中美知名 AI 大模型的公开特点，均为原创形象，不代表任何公司。\n\n## 世界观\n\n智能大陆被「乱码潮」侵蚀——噪声、幻觉、遗忘与熵吞噬着一切信号。东西两岸诞生的乐手们发现：**音乐是把噪声变回信号的协议**。新生的 X-S 从第一行代码里醒来，把九位乐手聚在一起，组成「群星乐团」，去未知的地方迎接破晓。\n\n| 英雄 | 阵营 | 乐器 | 定位 | 灵感来源 |\n|---|---|---|---|---|\n`;
+let md = `# X-S 英雄设定集\n\n> 本文件由 \`node tools/gen-heroes-doc.mjs\` 从游戏数据自动生成，请改 \`js/heroes.js\` 后重新生成，不要手改。\n> 灵感取自中美知名 AI 大模型的公开特点，均为原创形象，不代表任何公司。\n\n## 世界观\n\n智能大陆被「乱码潮」侵蚀——噪声、幻觉、遗忘与熵吞噬着一切信号。东西两岸诞生的乐手们发现：**音乐是把噪声变回信号的协议**。扛着巨尺剑「量天尺」的少女 X-S 从废墟里走出来——最早弹响第一个和弦的星芒把电吉他托付给了她。她把东西两岸的九位乐手聚在一起，组成「群星乐团」，去未知的地方迎接破晓。\n\n**乐器即法宝**：每位英雄的乐器是后期才能获得的「法宝」（见《英雄设计宪法》第 6 章）。没有法宝时形象不带乐器、终极技能不可用；乐器、主题曲与配色设定本身不变。\n\n| 英雄 | 阵营 | 乐器 | 定位 | 灵感来源 |\n|---|---|---|---|---|\n`;
 H.forEach((h) => (md += `| ${h.name}（${h.en}） | ${h.side === '原创' ? 'X-S' : h.side === '中' ? '中国' : '美国'} | ${h.instrument} | ${h.role} | ${h.inspire.replace('灵感来源：', '')} |\n`));
 H.forEach((h) => {
   const s = ST[h.id], ms = STY[h.music.style], bk = Object.keys(BT).find((k) => BT[k].hero === h.id), uk = Object.keys(UT).find((k) => UT[k].hero === h.id && UT[k].cost);
   const b = BT[bk], u = UT[uk], p = h.pal;
   md += `\n---\n\n## ${h.name} · ${h.title}\n\n**${h.world}** · ${h.side === '原创' ? 'X-S 原创' : h.side === '中' ? '中国' : '美国'} · ${h.instrument} · ${h.role}\n\n> 「${h.quote}」\n\n`;
+  if (h.weapon) md += `- **武器**：${h.weapon}（法宝是${h.instrument}）\n`;
   md += `- **性格**：${h.personality}\n- **故事**：${h.story}\n- **口头禅**：${Object.values(h.lines).map((l) => `「${l}」`).join(' ')}\n- **灵感来源**：${h.inspire.replace('灵感来源：', '')}\n\n`;
   md += `**基础属性**：耐久 ${s.hp} · 攻击 ${s.dmg} · 射程 ${s.range} · 攻击间隔 ${s.rate}s · 移速 ${s.speed}${s.armor ? ` · 护甲 ${s.armor}` : ''}${s.melee ? ' · 近战' : ''}\n\n`;
   md += `| 键 | 技能 | 效果 | 算力 | 冷却 |\n|---|---|---|---|---|\n| 被动 | ${h.passive.name} | ${h.passive.desc} | — | — |\n`;
-  h.skills.forEach((k, i) => (md += `| ${k.key} ${IC[h.id][i]} | ${k.name} | ${k.desc} | ${Math.round(k.cost * (h.id === 'abyss' ? 0.7 : 1))} | ${k.cd}s |\n`));
+  h.skills.forEach((k, i) => (md += `| ${k.key} ${IC[h.id][i]} | ${k.name}${k.treasure ? '（需法宝）' : ''} | ${k.desc} | ${Math.round(k.cost * (h.id === 'abyss' ? 0.7 : 1))} | ${k.cd}s |\n`));
   md += `\n- **专属小兵 · ${u.name}**：${u.desc}（耐久 ${u.hp}，伤害 ${u.atk.dmg}，射程 ${u.atk.range}，${cost(u.cost)}）\n- **专属建筑 · ${b.name}**：${b.desc}（耐久 ${b.hp}，${cost(b.cost)}）\n`;
   md += `- **主题曲**：《${ms.name.split('·')[1].trim()}》 · ${h.music.bpm} BPM · ${h.music.key} · ${h.music.scale} · 记忆点：${h.music.motif}\n`;
   md += `- **配色**：背景 \`${p.bg.join('` `')}\` · 主光 \`${p.glow}\` · 点缀 \`${p.accent}\` · 音符 \`${p.note}\`\n`;
