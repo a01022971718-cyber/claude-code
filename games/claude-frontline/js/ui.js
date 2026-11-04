@@ -166,6 +166,7 @@
     g.centerOn(g.core.x + 260, g.core.y);
     UI.sel([]); UI.closeRadial(); UI.selDirty = true; UI.aimKey = null; g.aim = null;
     $('#foeCoreBox').classList.toggle('hidden', !g.gcore);
+    $('#portrait').classList.toggle('gold', CF.Roster.star(g.heroId) >= 5);
     $('#bossBar').classList.add('hidden'); $('#comms').classList.add('hidden');
     $('#mmBox').classList.toggle('min', document.body.classList.contains('compact') && window.innerWidth < 700);
     UI.buildSkillBar();
@@ -202,6 +203,8 @@
     document.body.classList.toggle('compact', (rot ? window.innerWidth : Math.min(window.innerWidth, window.innerHeight)) <= 520);
     // 手机横屏：高度很小，大厅、主城走单独的紧凑布局
     document.body.classList.toggle('land', !rot && window.innerWidth > window.innerHeight && window.innerHeight <= 520);
+    // 竖屏（没有旋转画面）：战斗 HUD 走竖屏布局（v6：左下按钮与空物品格去掉，波次信息不与资源栏重叠）
+    document.body.classList.toggle('port', !rot && window.innerHeight > window.innerWidth);
   };
   UI.resizeBattle = function () {
     UI.compact();
@@ -218,6 +221,8 @@
   // ================= HUD =================
   UI.hud = function () {
     const g = CF.Game.current; if (!g) return;
+    // 英雄残血时说一句濒危台词（每条命一次，回到 60% 以上重置）
+    if (g.hero && !g.hero.dead && CF.Voice) { const p = g.hero.hp / g.hero.maxHp; if (p < 0.25 && !g.hero._lowSaid) { g.hero._lowSaid = true; CF.Voice.say(g.heroDef, g.heroDef.lines.low); } else if (p > 0.6) g.hero._lowSaid = false; }
     $('#rChip').textContent = CF.fmtNum(g.res.chip); $('#rCorp').textContent = CF.fmtNum(g.res.corp); $('#rComp').textContent = CF.fmtNum(g.res.comp);
     $('#rChipR').textContent = `+${g.rate.chip.toFixed(0)}`; $('#rCorpR').textContent = `+${g.rate.corp.toFixed(0)}`; $('#rCompR').textContent = `+${g.rate.comp.toFixed(1)}`;
     const sup = $('#supTxt');
@@ -321,7 +326,6 @@
     hd.draw(x, 12, 40, 5, { t: performance.now() / 1000, blink: false, noInst: true, bob: g.beat > 0.7 ? 1 : 0 });
     if (h.dead) { x.fillStyle = '#000b'; x.fillRect(0, 0, 132, 132); x.fillStyle = '#fff'; x.font = 'bold 34px ui-monospace,monospace'; x.textAlign = 'center'; x.fillText(Math.ceil(g.heroRespawn), 66, 78); x.textAlign = 'left'; }
     else { const p = h.hp / h.maxHp; x.lineWidth = 8; x.strokeStyle = '#0009'; x.beginPath(); x.arc(66, 66, 60, 0, Math.PI * 2); x.stroke(); x.strokeStyle = p > 0.5 ? '#6fdc8c' : p > 0.25 ? '#e9b949' : '#ff5d6c'; x.beginPath(); x.arc(66, 66, 60, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p); x.stroke(); }
-    $('#heroLv').textContent = g.heroLv ? 'Lv ' + g.heroLv : hd.name;
   };
   UI.buildSkillBar = function () {
     const g = CF.Game.current, bar = $('#skillBar'), hd = g.heroDef, ic = CF.Skills.ICON[hd.id];
@@ -348,7 +352,7 @@
     const g = CF.Game.current, h = g.hero;
     CF.$$('#skillBar .sk').forEach((b, i) => {
       const sk = g.heroDef.skills[i], cd = h && !h.dead ? h.cd[sk.key] : 0, cost = h ? CF.Skills.cost(h, sk) : sk.cost;
-      b.querySelector('.cdm').style.setProperty('--cd', (cd > 0 ? (cd / (sk.cd * (g.bonus.cdMul || 1))) * 100 : 0) + '%');
+      b.querySelector('.cdm').style.setProperty('--cd', (cd > 0 ? (cd / (sk.cd * (g.bonus.cdMul || 1) * CF.Roster.starCd(g.heroId))) * 100 : 0) + '%');
       b.querySelector('.cdt').textContent = cd > 0 ? Math.ceil(cd) : '';
       b.querySelector('.cost').textContent = cost;
       const lock = g.L.immersive && sk.key === 'R' && (g.heroLv || 1) < 6 && !CF.P.trial();
@@ -435,8 +439,11 @@
   };
   UI.sel = function (ids) {
     const g = CF.Game.current; if (!g) return;
+    const wasHero = g.hero && g.sel.includes(g.hero.id);
     g.sel = ids; UI.selDirty = true;
     const one = ids.length === 1 ? g.get(ids[0]) : null;
+    // 点到英雄：英雄用录音应答一句（v6）
+    if (one && one === g.hero && !wasHero && CF.Voice) CF.Voice.ack(g.heroDef);
     if (one && one.team === 0 && one.kind === 'b') UI.entityRadial(one); else if (UI.radial && UI.radial.anchor) UI.closeRadial();
     UI.updSelChip();
   };
@@ -635,7 +642,7 @@
       <div id="bgmRows"></div>
       <div class="sec-title">画面与玩法</div>
       <div class="set-row"><span class="nm">画质</span><div class="ctl"><select id="setQ"><option value="high">高（推荐）</option><option value="low">低（旧手机更流畅）</option></select></div></div>
-      <div class="set-row"><span class="nm">英雄配音</span><div class="ctl"><select id="setVoice"><option value="auto">自动（系统中文语音，没有时用像素音）</option><option value="pixel">像素音</option><option value="off">关闭</option></select><span class="small muted" id="setVoiceEng"></span><button class="btn sm ghost" id="setVoiceTry">试听</button></div></div>
+      <div class="set-row"><span class="nm">英雄配音</span><div class="ctl"><select id="setVoice"><option value="auto">英雄录音（推荐）</option><option value="tts">系统中文语音</option><option value="pixel">像素音</option><option value="off">关闭</option></select><span class="small muted" id="setVoiceEng"></span><button class="btn sm ghost" id="setVoiceTry">试听</button></div></div>
       <div class="set-row"><span class="nm">英雄音效</span><div class="ctl"><label class="check" style="padding:0"><input type="checkbox" id="setHeroSfx"><span>点击、打击音效使用主英雄的乐器（连续点击会弹出主题曲动机）</span></label></div></div>
       <div class="set-row"><span class="nm">减少动效</span><div class="ctl"><label class="check" style="padding:0"><input type="checkbox" id="setRM"><span>关闭转场与大部分闪烁、波纹（对光敏感或晕动时建议开启）</span></label></div></div>
       <div class="set-row"><span class="nm">体验模式</span><div class="ctl"><label class="check" style="padding:0"><input type="checkbox" id="setTrial"><span>解锁全部关卡与建筑（适合先看看全貌；学习进度照常记录）</span></label></div></div>
@@ -741,7 +748,7 @@
       mode: 'portrait', fx: 0.42, fy: 0.62, cell: 8, radius: 14,
       drawChar(ctx, fx, fy, px) {
         const who = UI.commsWho;
-        if (who === '侦察Agent') { CF.PixelFX.drawClawd(ctx, fx - 6.5 * px, fy - 6 * px, px, { noGuitar: true, tint: '#f0a080' }); ctx.fillStyle = '#b3abea'; ctx.fillRect(fx, fy - 9 * px, px, 3 * px); return true; }
+        if (who === '侦察Agent') { CF.PixelFX.drawAgent(ctx, fx - 6.5 * px, fy - 6 * px, px, { noGuitar: true, tint: '#9fd0ff' }); ctx.fillStyle = '#b3abea'; ctx.fillRect(fx, fy - 9 * px, px, 3 * px); return true; }
         if (who === '乱码') { ctx.fillStyle = '#ff4f9a'; ctx.font = `bold ${px * 10}px ui-monospace,monospace`; ctx.fillText('#?%'[Math.floor(performance.now() / 120) % 3], fx - px * 4, fy + px * 3); return true; }
         if (who === '指挥官' && CF.Labs.drawAvatar(ctx, fx - px * 7, fy - px * 8, px * 14)) return true;
         return false;

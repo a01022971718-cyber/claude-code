@@ -20,7 +20,7 @@
     // 英雄主题曲：hero 字段决定主奏乐器与动机
     // 主角造乐的主题《众声向上》：九位乐手的九件乐器合奏，造乐是指挥（每段开始前有指挥棒的起拍声）（见《英雄设计宪法》第 5.9 节）。
     // 32 小节四段：新生（电吉他独奏）→ 相遇（每件乐器用自己的动机回应）→ 同行（各司其职）→ 向上（整体升全音，全员齐奏同一条动机）
-    xs: { name: 'X-S · 电吉他「破晓」', bpm: 112, prog: ['Em', 'C', 'G', 'D'], swing: 0, hero: 'xs', root: 64, scale: [0, 3, 5, 7, 10], motif: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 4], [5, 2], [6, 2], [7, 8], [null, 8]] },
+    xs: { name: '灯语 · 电吉他「破晓」', bpm: 112, prog: ['Em', 'C', 'G', 'D'], swing: 0, hero: 'xs', root: 64, scale: [0, 3, 5, 7, 10], motif: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 4], [5, 2], [6, 2], [7, 8], [null, 8]] },
     zaole: { name: '造乐 · 九乐器合奏「众声向上」', bpm: 116, prog: ['D', 'Bm', 'G', 'A'], swing: 0, hero: 'zaole', ensemble: true, gain: 0.9, gainLo: 0.95, root: 62, scale: [0, 2, 4, 7, 9], motif: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 4], [5, 6], [6, 6], [null, 8]] },
     omni: { name: '万象 · 钢琴「八十八层」', bpm: 100, prog: ['C', 'G', 'Am', 'F'], swing: 0, hero: 'omni', gain: 1.5, root: 72, scale: [0, 2, 4, 5, 7, 9, 11], motif: [[4, 2], [2, 2], [0, 2], [2, 2], [4, 2], [7, 4], [6, 2], [7, 8], [null, 8]] },
     twin: { name: '双子 · 竖琴「星河两岸」', bpm: 88, prog: ['Dmaj7', 'E', 'Bm', 'A'], swing: 0, hero: 'twin', gain: 2.4, root: 74, scale: [0, 2, 4, 6, 7, 9, 11], motif: [[0, 2], [4, 2], [6, 4], [null, 2], [7, 2], [6, 2], [4, 2], [5, 6], [null, 10]] },
@@ -289,7 +289,7 @@
     st.motif.slice(0, fast ? 4 : 7).forEach(([deg, len]) => { if (deg !== null) heroNote(st.hero, degMidi(st, deg), t, unit * Math.min(len, 3), 0.8, d); t += unit * Math.min(len, 2); });
   };
 
-  // ================= X-S 九乐器合奏《众声向上》 =================
+  // ================= 造乐 九乐器合奏《众声向上》 =================
   // 分轨开关：A.mute 里的乐器不发声（英雄档案页「分轨试听」使用）。地基（贝斯、和声垫）始终保留。
   A.ENSEMBLE = [['guitar', '电吉他', 'xs'], ['piano', '钢琴', 'omni'], ['harp', '竖琴', 'twin'], ['drums', '架子鼓', 'riot'], ['panflute', '排箫', 'llama'], ['guqin', '古琴', 'abyss'], ['erhu', '二胡', 'luna'], ['pipa', '琵琶', 'pearl'], ['suona', '唢呐 · 锣鼓', 'bun']];
   A.mute = new Set();
@@ -297,7 +297,7 @@
   A.seek = (bar) => { if (P.on && P.style) P.step = bar * 16; }; // 跳到第几小节（分轨试听用）
   A.section = () => { const b = Math.floor((P.step || 0) / 16) % 32; return A.SECTIONS.reduce((r, x) => (b >= x[1] ? x : r), A.SECTIONS[0]); };
   const motifAt = (mo, k) => { let p = 0; for (const [d, l] of mo) { if (p === k) return d === null ? null : { d, l }; p += l; if (p > k) return undefined; } return undefined; };
-  // 某位英雄动机的前 n 步（用于「相遇」段的回应），映射到 X-S 的五声音阶上：各自的旋律，同一个调
+  // 某位英雄动机的前 n 步（用于「相遇」段的回应），映射到造乐合奏的五声音阶上：各自的旋律，同一个调
   const answerAt = (heroStyle, k, n) => { const mo = STYLES[heroStyle].motif; let p = 0; for (const [d, l] of mo) { if (p >= n) return undefined; if (p === k) return d === null ? null : { d: CF.clamp(d, 0, 7), l: Math.min(l, n - p) }; p += l; if (p > k) return undefined; } return undefined; };
   function ensembleStep(st, step, t, spb, out0, I, root0, v0, ch) {
     const on = (k) => !A.mute.has(k), s = step % 16, bar = Math.floor(step / 16) % 32, hi = I >= 0.8, lo = hi ? 1 : 0.7;
@@ -314,7 +314,7 @@
     // ---- 指挥（造乐）：每段最后一小节敲四下谱架起拍，进入下一段时一声钟琴
     if (bar % 8 === 7 && s >= 8 && s % 2 === 0) wood(t, 0.5 + (s - 8) * 0.06, out);
     if (bar % 8 === 0 && s === 0) osc('sine', mtof(root + 24), 0, t, 1.2, 0.07, out);
-    // ---- 电吉他（X-S）：第一段独奏、第二段发问、第四段领奏
+    // ---- 电吉他（灯语）：第一段独奏、第二段发问、第四段领奏
     if (on('guitar')) {
       if (s % 2 === 0 && (sec === 0 || sec === 1)) { const pat = [0, 2, 3, 4, 5, 4, 3, 2]; pluck(v[pat[s / 2]], t, 0.32, { bus: out }); }
       if (sec >= 2 && s % 2 === 0) pluck(root - 12, t, hi ? 0.42 : 0.28, { bus: out, kind: 'm', dist: hi, len: spb * 1.2 });

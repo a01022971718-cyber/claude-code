@@ -162,18 +162,19 @@
   Ch.dungeonUnlocked = (ch) => CF.P.trial() || Ch.cleared(ch.dungeon.after);
   Ch.attempts = function (ch) { const d = S().dungeon, r = d[ch.dungeon.id] || (d[ch.dungeon.id] = { date: '', used: 0, best: 0 }); if (r.date !== today()) { r.date = today(); r.used = 0; } return Ch.ATTEMPTS - r.used; };
   // ================= 章节掉落（v1）：每章固定一种碎片 / 道具 =================
-  // 第一章 万象（GPT）· 第二章 火力发电厂 · 第三章 核能发电厂 · 第四章 X-S（Claude）· 第五章 鲸歌（DeepSeek）· 第六章 法宝锦囊 · 第七章 狂想（Grok）
-  // 掉落量：小关首通 2（第一章第 3 个小关首通 3）、小关重复通关 25% 概率 1、次级关首通 3、组队副本第 5 波 3。已拥有的英雄碎片自动转化为晶片。
+  // 第一章 万象（GPT）· 第二章 火力发电厂 · 第三章 核能发电厂 · 第四章 灯语（灵感 Claude）· 第五章 鲸歌（DeepSeek）· 第六章 法宝锦囊 · 第七章 狂想（Grok）
+  // 掉落量：小关首通 2（第一章第 3 个小关首通 3）、小关重复通关 25% 概率 1、次级关首通 3、组队副本第 5 波 3。v6 起已拥有英雄的碎片用于升星（满 5 星后才换成晶片）。
   Ch.fragName = (ch) => (ch.frag === 'pouch' ? '法宝锦囊' : CF.Collect.PLANTS[ch.frag] ? CF.Collect.PLANTS[ch.frag].name + ' 碎片' : CF.Heroes.get(ch.frag).name + ' 碎片');
-  Ch.fragProgress = (ch) => (ch.frag === 'pouch' ? `持有 ${CF.Collect.pouches()} 个` : CF.Collect.PLANTS[ch.frag] ? (CF.Collect.owns(ch.frag) ? '已收藏' : `${CF.Collect.frags(ch.frag)}/${CF.Collect.NEED}`) : CF.Roster.ownsReal(ch.frag) ? '已拥有' : `${CF.Roster.frags(ch.frag)}/${CF.Roster.FRAG_NEED}`);
+  Ch.fragProgress = (ch) => (ch.frag === 'pouch' ? `持有 ${CF.Collect.pouches()} 个` : CF.Collect.PLANTS[ch.frag] ? (CF.Collect.owns(ch.frag) ? '已收藏' : `${CF.Collect.frags(ch.frag)}/${CF.Collect.NEED}`) : CF.Roster.ownsReal(ch.frag) ? `${CF.Roster.star(ch.frag)}★ · ${CF.Roster.fragLine(ch.frag)}` : `${CF.Roster.frags(ch.frag)}/${CF.Roster.FRAG_NEED}`);
   Ch.drop = function (ch, n, lines) {
     if (!n || !ch.frag) return;
     const f = ch.frag;
     if (f === 'pouch') { CF.Collect.addPouch(n); lines.push(`法宝锦囊 ×${n}（去商城打开）`); return; }
     if (CF.Collect.PLANTS[f]) { lines.push(CF.Collect.addFrag(f, n)); return; }
-    const h = CF.Heroes.get(f);
-    if (CF.Roster.ownsReal(f)) { CF.City.add({ chip: 40 * n }); lines.push(`${h.name} 碎片 ×${n}（已拥有，转化为晶片 ${40 * n}）`); return; }
-    CF.Roster.addFrag(f, n); lines.push(`${h.name} 碎片 ×${n}（${Math.min(CF.Roster.FRAG_NEED, CF.Roster.frags(f))}/${CF.Roster.FRAG_NEED}）`);
+    const h = CF.Heroes.get(f), R = CF.Roster;
+    if (R.ownsReal(f) && R.star(f) >= R.MAX_STAR) { R.addFrag(f, n); lines.push(`${h.name} 碎片 ×${n}（已满 5 星，转化为晶片 ${40 * n}）`); return; }
+    const had = R.ownsReal(f); R.addFrag(f, n);
+    lines.push(`${h.name} 碎片 ×${n}（${had ? R.fragLine(f) + (R.canStarUp(f) ? ' · 可以升星了！' : '') : R.ownsReal(f) ? '已解锁！' : R.fragLine(f)}）`);
   };
   Ch.featured = (ch) => ch.frag;
   const DREWARD = [{ chip: 150 }, { corp: 120 }, { comp: 60 }, { boost: 1 }, { frag: 3 }];

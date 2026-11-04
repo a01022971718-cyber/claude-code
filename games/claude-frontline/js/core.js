@@ -71,7 +71,7 @@
       achievements: {},
       stats: { riffs: 0, kills: 0, battles: 0, wins: 0, playSec: 0 },
       avatar: null,
-      hero: 'riot', // 开局英雄（主角 X-S 走特殊渠道获得）
+      hero: 'riot', // 开局英雄（主角造乐走特殊渠道获得）
       tutorial: { done: false },
       quick: { best: 0, runs: 0, bestRank: '' },
       city: null,

@@ -1,5 +1,5 @@
 /* 商城（v1）：用主城仓库里的晶片购买。不涉及真实货币。
- * - 英雄碎片：每天轮换 3 位还没拥有的英雄，每位每天限购 3 片（稀缺性）；主角造乐不出售。
+ * - 英雄碎片：每天轮换 3 位英雄（v6 起已拥有的英雄也会出现，碎片用来升星），每位每天限购 3 片（稀缺性）；主角造乐不出售。
  * - 法宝：法宝锦囊（每天 1 个）；打开锦囊、用 10 片赐福法宝碎片为英雄赐福法宝。
  * - 补给：体力药剂（每天 2 瓶）。 */
 (function () {
@@ -15,10 +15,13 @@
   const take = (key) => { const b = data().bought; b[key] = (b[key] || 0) + 1; CF.Save.save(); };
   // 今日轮换的英雄（按日期固定）
   const offers = () => {
-    const pool = CF.Heroes.list.filter((h) => !h.protagonist && h.id !== CF.Roster.STARTER && !CF.Roster.ownsReal(h.id));
-    const day = Math.floor(Date.now() / 864e5), out = [];
-    for (let i = 0; i < Math.min(3, pool.length); i++) out.push(pool[(day * 7 + i * 3) % pool.length]);
-    return [...new Set(out)];
+    // 优先轮换还没拥有的英雄；不足 3 位时用已拥有、未满 5 星的英雄补上（升星用）
+    const R = CF.Roster, base = CF.Heroes.list.filter((h) => !h.protagonist);
+    const a = base.filter((h) => h.id !== R.STARTER && !R.ownsReal(h.id)), b = base.filter((h) => R.ownsReal(h.id) && R.star(h.id) < R.MAX_STAR);
+    const pool = a.length >= 3 ? a : a.concat(b);
+    // 按日期做确定性洗牌，保证每天 3 位互不重复（旧写法在 6 人池时会重复）
+    const day = Math.floor(Date.now() / 864e5), hash = (id) => { let x = day * 2654435761; for (const ch of id) x = ((x ^ ch.charCodeAt(0)) * 16777619) >>> 0; return x; };
+    return pool.slice().sort((p, q) => hash(p.id) - hash(q.id)).slice(0, 3);
   };
   const Shop = (CF.Shop = { PRICE, LIMIT });
   let tab = 'hero';
@@ -30,14 +33,14 @@
     const host = $('#shopTab');
     if (tab === 'hero') {
       const list = offers();
-      host.appendChild(CF.h(`<p class="small muted" style="margin-bottom:8px">每天轮换 3 位你还没拥有的英雄，每位每天限购 ${LIMIT.frag} 片；集齐 ${CF.Roster.FRAG_NEED} 片解锁。主角「造乐」只能通过特殊渠道获得，不在商城出售。</p>`));
-      if (!list.length) host.appendChild(CF.h('<p class="small">你已经拥有全部可购买的英雄。</p>'));
+      host.appendChild(CF.h(`<p class="small muted" style="margin-bottom:8px">每天轮换 3 位英雄，每位每天限购 ${LIMIT.frag} 片。没拥有的英雄集齐 ${CF.Roster.FRAG_NEED} 片解锁；已拥有的英雄用碎片升星（4→5 星需要 500 片）。主角「造乐」只能通过特殊渠道获得，不在商城出售。</p>`));
+      if (!list.length) host.appendChild(CF.h('<p class="small">可购买的英雄都已满 5 星。</p>'));
       const g = CF.h('<div class="shop-grid"></div>');
       list.forEach((h) => {
         const key = 'frag_' + h.id, n = left(key, LIMIT.frag);
-        const el = CF.h(`<div class="shop-item"><canvas width="144" height="112"></canvas><b>${h.name} <small>${h.title}</small></b><span class="small muted">碎片 ${CF.Roster.frags(h.id)}/${CF.Roster.FRAG_NEED} · 今日还可买 ${n} 片</span><button class="btn sm primary" ${n > 0 ? '' : 'disabled'}><span class="c-chip">◆ ${PRICE.frag}</span> 买 1 片</button></div>`);
+        const el = CF.h(`<div class="shop-item"><canvas width="144" height="112"></canvas><b>${h.name} <small>${h.title}</small></b><span class="small muted">${CF.Roster.ownsReal(h.id) ? CF.Roster.star(h.id) + '★ · ' : ''}${CF.Roster.ownsReal(h.id) ? '' : '碎片 '}${CF.Roster.fragLine(h.id)} · 今日还可买 ${n} 片</span><button class="btn sm primary" ${n > 0 ? '' : 'disabled'}><span class="c-chip">◆ ${PRICE.frag}</span> 买 1 片</button></div>`);
         const x = el.querySelector('canvas').getContext('2d'); x.fillStyle = h.pal.bg[1]; x.fillRect(0, 0, 144, 112); h.draw(x, 22, 40, 4.2, { t: 0 });
-        el.querySelector('button').onclick = () => { if (left(key, LIMIT.frag) <= 0 || !pay(PRICE.frag)) return; take(key); CF.Roster.addFrag(h.id, 1); CF.Audio.sfx('unlock'); CF.toast(`${h.name} 碎片 +1（${Math.min(CF.Roster.FRAG_NEED, CF.Roster.frags(h.id))}/${CF.Roster.FRAG_NEED}）`, 'gold'); Shop.render(); };
+        el.querySelector('button').onclick = () => { if (left(key, LIMIT.frag) <= 0 || !pay(PRICE.frag)) return; take(key); CF.Roster.addFrag(h.id, 1); CF.Audio.sfx('unlock'); CF.toast(`${h.name} 碎片 +1（${CF.Roster.fragLine(h.id)}）`, 'gold'); Shop.render(); };
         g.appendChild(el);
       });
       host.appendChild(g);

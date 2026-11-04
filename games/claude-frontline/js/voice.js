@@ -1,5 +1,9 @@
-/* 英雄配音（v1，《英雄设计宪法》第 13 章）
- * 用现有台词（选中 / 攻击 / 技能 / 濒危 + 口头禅）。按英雄的性别、年龄、性格设定音高与语速：
+/* 英雄配音（v2，《英雄设计宪法》第 13 章及 v1.3 增补）
+ * v6 起优先播放「录音」：每位英雄的每句台词都有一条录好的 mp3（js/voice-data.js，离线可用），
+ *   每人一位不同的说话人，每种台词有不同的演绎（口头禅平稳、攻击短促、终极技能拔高带回声、濒危放慢压低）。
+ *   录音由开源离线语音模型生成并经语音识别逐条校验（见 tools/gen-voices.py、voice/report.json）；
+ *   换成真人配音只需替换 voice/ 下的 mp3 并运行 node tools/pack-voices.mjs。
+ * 没有录音的句子（以后新增的台词）按顺序兜底：
  *   ① 安卓安装包：调用系统中文语音合成（XSNative 桥）；
  *   ② 浏览器：Web Speech API 的中文语音；
  *   ③ 都没有时：「像素音」——按字发出的短促合成音（类似复古游戏的对话音），每位英雄音色不同。
@@ -32,12 +36,47 @@
       t += step;
     }
   }
+  // ---------- 录音播放（Web Audio：走音效总线、说话时音乐自动压低） ----------
+  const DATA = () => window.CF_VOICE_DATA || {};
+  const buf = {}; let curSrc = null;
+  const hasClip = (h, text) => !!(DATA()[h.id] && DATA()[h.id][text]);
+  async function decode(h, text) {
+    const k = h.id + '|' + text; if (buf[k]) return buf[k];
+    const b64 = DATA()[h.id][text], bin = atob(b64), u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    buf[k] = await CF.Audio.ctx.decodeAudioData(u8.buffer);
+    return buf[k];
+  }
+  async function playClip(h, text) {
+    const A = CF.Audio; if (!A.ctx) A.unlock(); if (!A.ctx) return false;
+    try {
+      if (A.ctx.state !== 'running') await A.ctx.resume();
+      const b = await decode(h, text);
+      if (curSrc) { try { curSrc.stop(); } catch (e) { /* 已结束 */ } }
+      const src = A.ctx.createBufferSource(), g = A.ctx.createGain(); src.buffer = b; g.gain.value = 1.15;
+      src.connect(g); g.connect(A.sfxBus); src.start(); curSrc = src;
+      // 说话时把音乐压到 45%，说完 0.25 秒内恢复
+      const m = A.music && A.music.gain, now = A.ctx.currentTime, vol = CF.Save.data.settings.music;
+      if (m && typeof vol === 'number') { m.cancelScheduledValues(now); m.setTargetAtTime(vol * 0.45, now, 0.05); m.setTargetAtTime(vol, now + b.duration, 0.12); }
+      V.speaking = now + b.duration;
+      src.onended = () => { if (curSrc === src) curSrc = null; };
+      return true;
+    } catch (e) { return false; }
+  }
   const V = (CF.Voice = {
-    lines: (h) => [h.lines.pick, h.lines.attack, h.lines.skill, h.lines.low, h.quote].filter((x, i, a) => x && a.indexOf(x) === i),
+    hasClip,
+    clips: (h) => Object.keys(DATA()[h.id] || {}).length,
+    lines: (h) => [h.lines.pick, h.lines.attack, h.lines.skill, h.lines.low, h.quote].concat(h.clicks || []).filter((x, i, a) => x && a.indexOf(x) === i),
     // 随机一句，不和上一句重复
     pick(h) { const ls = V.lines(h); let s; do { s = ls[Math.floor(Math.random() * ls.length)]; } while (ls.length > 1 && s === last[h.id]); last[h.id] = s; return s; },
     say(h, text) {
       if (!h || !text || mode() === 'off') return;
+      const v = h.voice || {};
+      if (mode() === 'auto' && hasClip(h, text)) { playClip(h, text).then((ok) => { if (!ok) V.synth(h, text); }); return; }
+      V.synth(h, text);
+    },
+    // 合成兜底（系统语音 / 浏览器语音 / 像素音）
+    synth(h, text) {
       const v = h.voice || {};
       // 双子：「——」前后由两姐妹交替说
       const parts = h.id === 'twin' ? text.split('——') : [text];
@@ -58,6 +97,8 @@
       let delay = 0; parts.forEach((p, i) => { setTimeout(() => pixelVoice(h, p, i % 2 && v.alt ? v.alt / (v.pitch || 1) : 1), delay); delay += (p.length * 85) / (v.rate || 1) + 160; });
     },
     line(h) { const s = V.pick(h); V.say(h, s); return s; },
-    engine: () => (mode() === 'off' ? '关闭' : mode() === 'pixel' ? '像素音' : native() ? '系统语音（安卓）' : synth() && zhVoices.length ? '浏览器语音' : '像素音（当前设备没有中文语音）'),
+    // 战斗里点到英雄时的应答（参考魔兽争霸 3 的单位应答）：5 秒冷却，避免刷屏
+    ack(h) { const now = performance.now(); if (V._ackT !== undefined && now - V._ackT < 5000) return; V._ackT = now; const ls = [h.lines.pick, h.lines.attack].concat(h.clicks || []); let s; do { s = ls[Math.floor(Math.random() * ls.length)]; } while (ls.length > 1 && s === last[h.id]); last[h.id] = s; V.say(h, s); },
+    engine: () => (mode() === 'off' ? '关闭' : mode() === 'pixel' ? '像素音' : mode() === 'auto' && Object.keys(DATA()).length ? '英雄录音' : native() ? '系统语音（安卓）' : synth() && zhVoices.length ? '浏览器语音' : '像素音（当前设备没有中文语音）'),
   });
 })();

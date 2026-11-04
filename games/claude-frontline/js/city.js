@@ -173,10 +173,11 @@
       quiz: { q: '电容电压升到 63%（约 3.8 V）大约用了多久？', opts: ['0.1 秒', '1 秒', '10 秒'], a: 1 } },
   ];
   C.LABS = LABS;
-  C._cur = () => cur; C._load = (i) => load(i); // 测试与调试用
+  C._cur = () => cur; C._load = (i) => load(i); C._pick = () => pick; // 测试与调试用
+  C._edgeXY = (e) => edgeMid(e);
 
   // ================= 工坊界面 =================
-  let cur = null, cv, ctx, raf = 0, timer = 0, drag = null, sel = null, chart = [], simT = 0;
+  let cur = null, cv, ctx, raf = 0, timer = 0, drag = null, sel = null, chart = [], simT = 0, pick = null, hov = null;
   const geo = () => { const w = cv.clientWidth, h = cv.clientHeight, s = Math.min((w - 70) / (COLS - 1), (h - 70) / (ROWS - 1)); return { s, ox: (w - s * (COLS - 1)) / 2, oy: (h - s * (ROWS - 1)) / 2 }; };
   const nodeXY = (n) => { const g = geo(); return [g.ox + (n % COLS) * g.s, g.oy + Math.floor(n / COLS) * g.s]; };
   const edgeMid = (e) => { const [a, b] = ends(e).map(nodeXY); return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; };
@@ -191,7 +192,7 @@
     const L = i === 'sandbox' ? { id: 'sandbox', lv: '自由', title: '自由搭建', goal: '没有题目，随便搭。可以用全部已解锁的元件，电路照样实时计算。', fixed: [], pal: {}, know: '试试：同一个电池，接一个灯泡和接两个并联的灯泡，电流表读数有什么不同？', bridge: '真正的电子工程师也是这样——先在仿真里试，再动手焊板子。', hint: '元件不限量。' } : LABS[i];
     cur = { i, lab: L, sandbox: i === 'sandbox', parts: L.fixed.map((p) => Object.assign({ val: p.type === 'resistor' ? 100 : p.type === 'battery' ? 6 : p.type === 'cap' ? 0.001 : undefined, on: p.type === 'switch' ? false : undefined }, p)), quiz: false, st: {} };
     if (cur.sandbox) cur.parts = (data().cw.sandbox || []).map((p) => Object.assign({}, p));
-    chart = []; simT = 0; sel = null;
+    chart = []; simT = 0; sel = null; pick = null; hov = null;
     C.renderSide(); C.renderTray();
   }
   // 在「测试场景」里修改开关等状态后重新求解（用于检查开关逻辑），不影响玩家看到的电路
@@ -258,13 +259,28 @@
     el.innerHTML = `<div class="t-tag">${L.lv === '高中' ? 'HIGH SCHOOL' : L.lv === '衔接' ? 'BRIDGE' : L.lv === '大学' ? 'UNIVERSITY' : 'SANDBOX'} · ${L.lv}</div><h3>${L.title}</h3><p class="cw-goal">${L.goal}</p><div class="cw-know"><b>高中</b>${L.know}</div><div class="cw-know uni"><b>大学</b>${L.bridge}</div><div id="cwRead" class="cw-read"></div><div class="row wrap" style="gap:6px;margin-top:8px"><button class="btn sm primary" id="cwCheck">检查</button><button class="btn sm" id="cwHint">提示</button><button class="btn sm ghost" id="cwReset">重置</button></div>${L.rc ? '<canvas id="cwChart" class="cw-chart"></canvas>' : ''}`;
     $('#cwCheck').onclick = C.check; $('#cwHint').onclick = () => CF.modal.open({ title: '提示', body: `<p style="line-height:1.8">${L.hint}</p>`, foot: [{ text: '好的', cls: 'primary' }] }); $('#cwReset').onclick = () => { load(cur.i); };
   };
+  const defVal = (t) => (t === 'resistor' ? (cur.lab.id === 'k7' ? 200 : 100) : t === 'battery' ? 6 : t === 'cap' ? 0.001 : undefined);
+  // 点选放置（v6，参考植物大战僵尸：点一下卡片选中，再点电路板上的空边放下；也可以直接拖）
+  C.setPick = function (t) {
+    pick = t && left(t) > 0 ? { type: t, val: defVal(t) } : null; hov = null;
+    if (pick) CF.toast(`已选中「${PARTS[t].name}」：点电路板上的空位放置（再点卡片取消）`, '', 1800);
+    C.renderTray();
+  };
+  C.placeAt = function (e2) {
+    if (!pick || !e2) return false;
+    if (cur.parts.some((q) => q.e === e2)) { CF.toast('这条边已经有元件了', 'bad', 1200); CF.Audio.sfx('error'); return false; }
+    cur.parts.push({ type: pick.type, val: pick.val, on: pick.type === 'switch' ? true : undefined, e: e2, fixed: false });
+    CF.Audio.sfx('place');
+    if (left(pick.type) <= 0) pick = null; // 用完自动取消；还有库存就保持选中，可以连续放
+    C.renderTray(); return true;
+  };
   C.renderTray = function () {
     const el = $('#cwTray'); el.innerHTML = '';
     const types = cur.sandbox ? Object.keys(PARTS) : Object.keys(cur.lab.pal);
     if (!types.length) el.appendChild(CF.h('<span class="small muted">这个实验不需要放元件——直接点电路板上的开关。</span>'));
     types.forEach((t) => {
-      const n = left(t), b = CF.h(`<button class="cw-part ${n > 0 ? '' : 'na'}" data-t="${t}"><span class="ic">${PARTS[t].ic}</span><span>${PARTS[t].name}</span><span class="c">${cur.sandbox ? '∞' : '×' + n}</span></button>`);
-      b.addEventListener('pointerdown', (e) => { if (left(t) <= 0) return CF.toast('这个元件用完了', 'bad'); e.preventDefault(); drag = { type: t, x: e.clientX, y: e.clientY, from: null, val: t === 'resistor' ? (cur.lab.id === 'k7' ? 200 : 100) : t === 'battery' ? 6 : t === 'cap' ? 0.001 : undefined }; C.dragMove(e); });
+      const n = left(t), b = CF.h(`<button class="cw-part ${n > 0 ? '' : 'na'}${pick && pick.type === t ? ' pick' : ''}" data-t="${t}"><span class="ic">${PARTS[t].ic}</span><span>${PARTS[t].name}</span><span class="c">${cur.sandbox ? '∞' : '×' + n}</span></button>`);
+      b.addEventListener('pointerdown', (e) => { if (left(t) <= 0) return CF.toast('这个元件用完了', 'bad'); e.preventDefault(); drag = { type: t, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, tray: true, from: null, val: defVal(t) }; C.dragMove(e); });
       el.appendChild(b);
     });
   };
@@ -273,9 +289,15 @@
     const local = (e) => { const r = CF.appRect(cv), p = CF.appPoint(e.clientX, e.clientY); return [p.x - r.left, p.y - r.top]; };
     C.dragMove = (e) => { if (!drag) return; drag.x = e.clientX; drag.y = e.clientY; const [x, y] = local(e); drag.lx = x; drag.ly = y; drag.edge = nearestEdge(x, y); drag.ok = drag.edge && !cur.parts.some((p) => p.e === drag.edge); };
     window.addEventListener('pointermove', (e) => { if (drag) C.dragMove(e); });
+    cv.addEventListener('pointermove', (e) => { if (!pick || drag) return; const [x, y] = local(e), e2 = nearestEdge(x, y); hov = { lx: x, ly: y, edge: e2, ok: e2 && !cur.parts.some((q) => q.e === e2) }; });
+    cv.addEventListener('pointerleave', () => { hov = null; });
+    cv.addEventListener('contextmenu', (e) => { if (pick) { e.preventDefault(); C.setPick(null); } });
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && pick && CF.UI.cur === 'city') C.setPick(null); });
     window.addEventListener('pointerup', (e) => {
       if (!drag) return;
       const d = drag; drag = null; C.dragMove(e);
+      if (d.tray && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < 8) { CF.Audio.sfx('click'); C.setPick(pick && pick.type === d.type ? null : d.type); return; }
+      if (d.tray && pick) { pick = null; hov = null; }
       const moved = d.from && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < 8;
       if (moved) { cur.parts.push(d.from); C.openPop(d.from); return; }
       const [x, y] = local(e), e2 = nearestEdge(x, y);
@@ -285,6 +307,7 @@
     cv.addEventListener('pointerdown', (e) => {
       const [x, y] = local(e), e2 = nearestEdge(x, y), p = e2 && cur.parts.find((q) => q.e === e2);
       C.closePop();
+      if (pick) { if (e.button === 2) { C.setPick(null); return; } if (!e2) { C.setPick(null); return; } C.placeAt(e2); return; }
       if (!p) return;
       if (p.fixed) { C.openPop(p); return; }
       cur.parts = cur.parts.filter((q) => q !== p); drag = { from: p, type: p.type, sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY }; C.dragMove(e);
@@ -333,8 +356,8 @@
     // 背景网格（像素脉冲随节拍）
     ctx.fillStyle = `rgba(${hp.grid.join(',')},${0.05 + beat * 0.05})`; for (let y = 0; y < h; y += 24) for (let x = 0; x < w; x += 24) ctx.fillRect(x, y, 1, 1);
     // 空边（可放位置）
-    const hl = drag && drag.edge;
-    allEdges().forEach((e) => { const [a, b] = ends(e).map(nodeXY); ctx.strokeStyle = e === hl ? (drag.ok ? '#6fdc8c' : '#ff5d6c') : '#ffffff10'; ctx.lineWidth = e === hl ? 4 : 2; ctx.setLineDash(e === hl ? [] : [3, 5]); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); });
+    const hs = drag || hov, hl = hs && hs.edge, busy = pick ? new Set(cur.parts.map((q) => q.e)) : null;
+    allEdges().forEach((e) => { const [a, b] = ends(e).map(nodeXY); ctx.strokeStyle = e === hl ? (hs.ok ? '#6fdc8c' : '#ff5d6c') : busy && !busy.has(e) ? `rgba(111,220,140,${0.16 + beat * 0.22})` : '#ffffff10'; ctx.lineWidth = e === hl ? 4 : 2; ctx.setLineDash(e === hl ? [] : [3, 5]); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); });
     ctx.setLineDash([]); ctx.lineWidth = 1;
     if (cur.lab.slot && !cur.parts.some((p) => p.e === cur.lab.slot)) { const [mx, my] = edgeMid(cur.lab.slot); ctx.strokeStyle = `rgba(255,177,74,${0.5 + beat * 0.5})`; ctx.strokeRect(mx - 14, my - 22, 28, 44); ctx.fillStyle = '#ffb14a'; ctx.font = '11px sans-serif'; ctx.fillText('R₃ ?', mx + 16, my); }
     cur.parts.forEach((p) => drawPart(p, g.s, t));
@@ -342,6 +365,7 @@
     for (let n = 0; n < COLS * ROWS; n++) { const [x, y] = nodeXY(n); ctx.fillStyle = '#c9d4ff'; ctx.fillRect(x - 3, y - 3, 6, 6); }
     // 拖拽中的虚影
     if (drag) { const pos = drag.edge ? edgeMid(drag.edge) : [drag.lx, drag.ly]; ctx.globalAlpha = 0.75; drawPart({ type: drag.type, e: drag.edge || 'h,0,0', val: drag.val, ghost: true, at: drag.edge ? null : pos, I: 0 }, g.s, t); ctx.globalAlpha = 1; }
+    else if (pick && hov && hov.edge) { ctx.globalAlpha = hov.ok ? 0.6 : 0.3; drawPart({ type: pick.type, e: hov.edge, val: pick.val, ghost: true, I: 0 }, g.s, t); ctx.globalAlpha = 1; }
     if (cur.short) { ctx.fillStyle = `rgba(255,93,108,${0.08 + 0.06 * Math.sin(t * 10)})`; ctx.fillRect(0, 0, w, h); }
   };
   function drawPart(p, s, t) {

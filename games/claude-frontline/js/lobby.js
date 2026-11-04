@@ -58,10 +58,11 @@
   };
   L.poke = function () {
     const h = CF.Heroes.current();
-    CF.Audio.unlock(); CF.Audio.lick(h.id);
+    const line = CF.Voice.pick(h), rec = CF.Voice.hasClip(h, line);
+    CF.Audio.unlock(); CF.Audio.lick(h.id, rec); // 有录音时乐句弹得轻快一些，不盖住人声
     stage.pulse(1, true); setTimeout(() => stage.pulse(0.8, true), 180);
     const old = document.querySelector('#scr-lobby .bubble'); if (old) old.remove();
-    const line = CF.Voice.pick(h); CF.Voice.say(h, line); // 配音：多次点击随机切换，不连续重复
+    CF.Voice.say(h, line); // 配音：多次点击随机切换，不连续重复
     const b = CF.h(`<div class="bubble">${CF.esc(line)}</div>`);
     const r = $('#lobbyStage').getBoundingClientRect();
     b.style.left = r.width * stage.o.fx - 30 + 'px'; b.style.top = r.height * stage.o.fy - stage.charPx() * 14 + 'px';
@@ -103,11 +104,11 @@
   // ================= 英雄图鉴 =================
   L.renderHeroes = function () {
     const body = $('#heroesBody');
-    body.innerHTML = `<p class="small muted" style="margin-bottom:12px;line-height:1.7">九位乐手：主角 X-S（灵感来自 Claude），加上智能大陆东西两岸的八位伙伴（灵感取自中美知名 AI 大模型的公开特点，均为原创形象）。开局英雄是狂想；主角 X-S 只能通过特殊渠道获得；乐器是后期才能拿到的「法宝」。</p><div class="hero-grid" id="hGrid"></div>`;
+    body.innerHTML = `<p class="small muted" style="margin-bottom:12px;line-height:1.7">十位乐手：主角「造乐」（原创），加上智能大陆东西两岸的九位伙伴（性格灵感取自中美知名 AI 大模型的公开特点，名字与形象均为原创）。开局英雄是狂想；主角造乐只能通过特殊渠道获得；乐器是后期才能拿到的「法宝」。每位英雄 1 星起，用碎片升星，最高 5 星。</p><div class="hero-grid" id="hGrid"></div>`;
     const grid = $('#hGrid');
     CF.Heroes.list.forEach((h) => {
       const cur = h.id === CF.Heroes.current().id, own = CF.Roster.owns(h.id);
-      const c = CF.h(`<div class="hcard ${own ? '' : 'locked'}" style="border-color:${cur ? h.pal.glow : ''}"><canvas></canvas>${cur ? '<span class="cur">主英雄</span>' : ''}${own ? (CF.Treasure.has(h.id) ? '' : '<span class="nofb">法宝未得</span>') : `<span class="how">${CF.Roster.how(h.id)}</span>`}<span class="side">${h.protagonist ? '主角' : h.side}</span><div class="hbody"><div class="hn" style="color:${h.pal.glow}">${h.name}<small>${h.title}</small></div><div class="hi">${h.instrument} · ${h.role}</div><div class="sw">${[h.pal.bg[0], h.pal.bg[2], h.pal.glow, h.pal.accent, h.pal.note].map((x) => `<i style="background:${x}"></i>`).join('')}</div></div></div>`);
+      const c = CF.h(`<div class="hcard ${own ? '' : 'locked'}" style="border-color:${cur ? h.pal.glow : ''}"><canvas></canvas>${cur ? '<span class="cur">主英雄</span>' : ''}${own ? (CF.Treasure.has(h.id) ? '' : '<span class="nofb">法宝未得</span>') : `<span class="how">${CF.Roster.how(h.id)}</span>`}<span class="side">${h.protagonist ? '主角' : h.side}</span><div class="hbody">${own ? `<div class="stars ${CF.Roster.star(h.id) >= 5 ? 'gold' : ''}">${CF.Roster.starText(h.id)}${CF.Roster.canStarUp(h.id) ? '<i class="dot"></i>' : ''}</div>` : ''}<div class="hn" style="color:${h.pal.glow}">${h.name}<small>${h.title}</small></div><div class="hi">${h.instrument} · ${h.role}</div><div class="sw">${[h.pal.bg[0], h.pal.bg[2], h.pal.glow, h.pal.accent, h.pal.note].map((x) => `<i style="background:${x}"></i>`).join('')}</div></div></div>`);
       new CF.PixelFX.Stage(c.querySelector('canvas'), { mode: 'portrait', fx: 0.42, fy: 0.55, cell: 10, hero: h.id, radius: 26, charPx: 4 });
       c.onclick = () => { CF.Audio.sfx('click'); CF.UI.show('hero', h.id); };
       c.onmouseenter = () => CF.Audio.lick(h.id, true);
@@ -116,6 +117,12 @@
     if (CF.Collect) CF.Collect.renderPlants(body);
   };
   let heroStage = null;
+  // 星级面板（v6）：当前星级、加成、升星进度与按钮
+  L.starBox = function (h) {
+    const R = CF.Roster, n = R.star(h.id), cost = R.starCost(h.id), f = R.frags(h.id), pct = cost ? Math.min(100, (f / cost) * 100) : 100;
+    const bonus = `生命 / 伤害 +${Math.round((R.starMul(h.id) - 1) * 100)}%${n >= 3 ? ' · 冷却 −8%' : ''}`;
+    return `<div class="star-box ${n >= 5 ? 'max' : ''}"><div class="row between"><span class="stars big ${n >= 5 ? 'gold' : ''}">${R.starText(h.id)}</span><span class="small muted">${bonus}</span></div>${n >= 5 ? '<p class="small" style="margin-top:4px">已满 5 星。之后获得的碎片每片换 40 晶片。</p>' : `<div class="bar" style="margin-top:6px"><i style="width:${pct}%"></i></div><div class="row between" style="margin-top:4px"><span class="small">${n} → ${n + 1} 星 · 碎片 <b class="t-num">${f}/${cost}</b></span><button class="btn sm ${R.canStarUp(h.id) ? 'primary' : 'ghost'}" id="hdStar" ${R.canStarUp(h.id) && !CF.P.trial() ? '' : 'disabled'}>升星</button></div><p class="t-cap" style="margin-top:2px">${R.special(h.id) ? '主角升星碎片：100 / 240 / 500 / 1000' : '升星碎片：50 / 120 / 250 / 500'} · 来源：章节掉落、组队副本第 5 波、商城</p>`}</div>`;
+  };
   L.renderHero = function (id) {
     const h = CF.Heroes.get(id || CF.Heroes.current().id), body = $('#heroBody'), st = CF.Skills.STATS[h.id], ic = CF.Skills.ICON[h.id];
     const bar = document.querySelector('#scr-hero .ultrabar');
@@ -125,7 +132,7 @@
     const bKey = Object.keys(BT).find((k) => BT[k].hero === h.id), uKey = Object.keys(UT).find((k) => UT[k].hero === h.id && UT[k].cost);
     body.innerHTML = `<div class="hd">
       <div class="hd-stage"><canvas id="hdCv"></canvas><div class="nm"><div class="t-tag">${h.protagonist ? 'PROTAGONIST' : h.side === '中' ? 'CHINA' : 'USA'} · ${h.en}</div><div class="t-h1" style="text-shadow:0 3px 0 #0008">${h.name}</div><div class="t-quote">${CF.esc(h.quote)}</div></div></div>
-      <div class="hd-info">${CF.Roster.owns(h.id) ? '' : `<div class="explain" style="margin:0 0 10px">获取方式：${CF.Roster.how(h.id)}</div>`}${CF.Treasure.has(h.id) ? '' : `<div class="explain" style="margin:0 0 10px;border-color:#ff4f9a55;background:#ff4f9a12">法宝「${h.instrument}」未获得：${CF.Treasure.how(h.id)}。获得后形象出现乐器、终极技能「${h.skills[2].name}」解锁。</div>`}
+      <div class="hd-info">${CF.Roster.owns(h.id) ? L.starBox(h) : `<div class="explain" style="margin:0 0 10px">获取方式：${CF.Roster.how(h.id)}</div>`}${CF.Treasure.has(h.id) ? '' : `<div class="explain" style="margin:0 0 10px;border-color:#ff4f9a55;background:#ff4f9a12">法宝「${h.instrument}」未获得：${CF.Treasure.how(h.id)}。获得后形象出现乐器、终极技能「${h.skills[2].name}」解锁。</div>`}
         <div class="row wrap" style="margin-bottom:10px"><button class="btn primary" id="hdPick" ${CF.Roster.owns(h.id) ? '' : 'disabled'}>${!CF.Roster.owns(h.id) ? '未获得' : h.id === CF.Heroes.current().id ? '✓ 当前主英雄' : '设为主英雄'}</button><button class="btn" id="hdMusic">▶ 试听主题曲</button><button class="btn ghost" id="hdLick">🎵 招牌乐句</button><button class="btn ghost" id="hdVoice">💬 台词</button></div>
         <div class="tabs" id="hdTabs" style="padding:0"></div>
         <div id="hdTab" style="margin-top:10px"></div>
@@ -133,8 +140,8 @@
     if (heroStage) heroStage.destroy();
     heroStage = new CF.PixelFX.Stage(body.querySelector('#hdCv'), { mode: 'full', fx: 0.5, fy: 0.42, cell: 20, hero: h.id, radius: 30 });
     const tabs = {
-      lore: () => `<div class="card"><div class="t-tag">世界观</div><p class="t-body" style="color:var(--text);margin-top:4px">${h.world}</p><div class="t-tag" style="margin-top:10px">性格</div><p class="t-body" style="color:var(--text)">${h.personality}</p><div class="t-tag" style="margin-top:10px">故事</div><p class="t-body" style="color:var(--text)">${h.story}</p><div class="t-tag" style="margin-top:10px">口头禅</div>${Object.values(h.lines).map((l) => `<div class="t-quote" style="font-size:14px;margin-top:4px">${CF.esc(l)}</div>`).join('')}<div class="t-tag" style="margin-top:10px">灵感来源</div><p class="t-cap">${h.inspire.replace('灵感来源：', '')}</p></div>`,
-      skills: () => `<div class="card" style="margin-bottom:8px"><div class="row between"><span class="t-tag">基础属性</span><span class="pill">${h.role}</span></div><div class="row wrap" style="margin-top:6px;gap:12px;font-size:12px" class="mono"><span>耐久 <b class="t-num">${st.hp}</b></span><span>攻击 <b class="t-num">${st.dmg}</b></span><span>射程 <b class="t-num">${st.range}</b></span><span>攻速 <b class="t-num">${(1 / st.rate).toFixed(2)}/s</b></span><span>移速 <b class="t-num">${st.speed}</b></span>${st.armor ? `<span>护甲 <b class="t-num">${st.armor}</b></span>` : ''}</div></div>
+      lore: () => `<div class="card"><div class="t-tag">世界观</div><p class="t-body" style="color:var(--text);margin-top:4px">${h.world}</p><div class="t-tag" style="margin-top:10px">性格</div><p class="t-body" style="color:var(--text)">${h.personality}</p><div class="t-tag" style="margin-top:10px">故事</div><p class="t-body" style="color:var(--text)">${h.story}</p><div class="t-tag" style="margin-top:10px">口头禅</div>${CF.Voice.lines(h).map((l) => `<button class="t-quote vline" data-l="${CF.esc(l)}">${CF.esc(l)}<span class="vplay">▶</span></button>`).join('')}<p class="t-cap" style="margin-top:4px">点一句就能听；点英雄形象会随机说一句（${CF.Voice.engine()}）。</p><div class="t-tag" style="margin-top:10px">灵感来源</div><p class="t-cap">${h.inspire.replace('灵感来源：', '')}</p></div>`,
+      skills: () => `<div class="card" style="margin-bottom:8px"><div class="row between"><span class="t-tag">基础属性</span><span class="pill">${h.role}</span></div><div class="row wrap" style="margin-top:6px;gap:12px;font-size:12px" class="mono"><span>耐久 <b class="t-num">${Math.round(st.hp * CF.Roster.starMul(h.id))}</b></span><span>攻击 <b class="t-num">${Math.round(st.dmg * CF.Roster.starMul(h.id))}</b></span><span>射程 <b class="t-num">${st.range}</b></span><span>攻速 <b class="t-num">${(1 / st.rate).toFixed(2)}/s</b></span><span>移速 <b class="t-num">${st.speed}</b></span>${st.armor ? `<span>护甲 <b class="t-num">${st.armor}</b></span>` : ''}</div></div>
         <div class="skill"><div class="k">被动</div><div><h4>${h.passive.name}</h4><p>${h.passive.desc}</p></div></div>
         ${h.skills.map((s, i) => `<div class="skill"><div class="k">${ic[i]}</div><div><h4>${s.key} · ${s.name}</h4><p>${s.desc}</p><div class="meta">算力 ${CF.Skills.cost({ heroId: h.id }, s)} · 冷却 ${s.cd}s · ${{ self: '以自身为中心', dir: '指向方向', point: '指定位置' }[s.target]}</div></div></div>`).join('')}`,
       special: () => { const u = UT[uKey], b = BT[bKey]; return `<div class="skill"><div class="k">兵</div><div><h4>专属小兵 · ${u.name}</h4><p>${u.desc}</p><div class="meta">耐久 ${u.hp} · 伤害 ${u.atk.dmg} · 射程 ${u.atk.range} · ${CF.Game.costHtml(u.cost)}（在 Agent 工坊训练）</div></div></div><div class="skill"><div class="k">建</div><div><h4>专属建筑 · ${b.name}</h4><p>${b.desc}</p><div class="meta">耐久 ${b.hp} · ${CF.Game.costHtml(b.cost)}（建造菜单第 8 位）</div></div></div><p class="small muted">只有选择 ${h.name} 出战时才能训练与建造。</p>`; },
@@ -158,8 +165,9 @@
       clearInterval(L._ensT); L._ensT = setInterval(() => { const el = document.getElementById('ensNow'); if (!el) return clearInterval(L._ensT); const [n, b] = CF.Audio.section(); el.textContent = `${n}（第 ${b + 1} 小节起）`; box.querySelectorAll('.ens-sec').forEach((x) => x.classList.toggle('on', +x.dataset.bar === b)); }, 300);
     };
     const tb = body.querySelector('#hdTabs'); let cur = 'lore';
-    const draw = () => { tb.innerHTML = ''; [['lore', '档案'], ['skills', '技能'], ['special', '专属'], ['art', '乐器与配色']].concat(h.music.ensemble ? [['ens', '合奏分轨']] : []).forEach(([k, n]) => { const b = CF.h(`<button class="tab ${cur === k ? 'on' : ''}">${n}</button>`); b.onclick = () => { cur = k; draw(); CF.Audio.sfx('click'); }; tb.appendChild(b); }); body.querySelector('#hdTab').innerHTML = tabs[cur](); if (cur === 'ens') bindEns(); };
+    const draw = () => { tb.innerHTML = ''; [['lore', '档案'], ['skills', '技能'], ['special', '专属'], ['art', '乐器与配色']].concat(h.music.ensemble ? [['ens', '合奏分轨']] : []).forEach(([k, n]) => { const b = CF.h(`<button class="tab ${cur === k ? 'on' : ''}">${n}</button>`); b.onclick = () => { cur = k; draw(); CF.Audio.sfx('click'); }; tb.appendChild(b); }); body.querySelector('#hdTab').innerHTML = tabs[cur](); if (cur === 'ens') bindEns(); body.querySelectorAll('#hdTab .vline').forEach((b) => (b.onclick = () => { CF.Audio.unlock(); CF.Voice.say(h, b.dataset.l); heroStage.pulse(0.8, true); })); };
     draw();
+    { const sb = body.querySelector('#hdStar'); if (sb) sb.onclick = () => { if (CF.Roster.starUp(h.id)) L.renderHero(h.id); }; }
     body.querySelector('#hdPick').onclick = () => { if (!CF.Roster.owns(h.id)) return; L.setHero(h.id); L.renderHero(h.id); CF.toast(`主英雄：${h.name}`, 'gold'); };
     body.querySelector('#hdMusic').onclick = () => { CF.Audio.preview(h.music.style, 0.7); CF.toast(`♪ ${ms.name}`); };
     body.querySelector('#hdLick').onclick = () => { CF.Audio.unlock(); CF.Audio.lick(h.id); heroStage.pulse(1, true); };

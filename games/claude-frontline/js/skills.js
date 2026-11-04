@@ -30,7 +30,7 @@
     const ang = Math.atan2(ty - h.y, tx - h.x), dx = Math.cos(ang), dy = Math.sin(ang);
     const K = id + key;
     switch (K) {
-      // ---------- X-S ----------
+      // ---------- 灯语（原 X-S，id 仍为 xs 以兼容存档） ----------
       case 'xsQ': g.ring(h.x, h.y, 200, 120 * m * g.bonus.riffMul, h, { knock: 46, c: P.instL, pixel: true }); g.ring(h.x, h.y, 140, 0, h, { c: P.inst, pixel: true, delay: 0.12 }); g.notes(h, 14); g.shake = 0.3; return true;
       case 'xsW': g.allies(h.x, h.y, 230).forEach((e) => { g.heal(e, 150 * m); g.buff(e, 'haste', 6, 0.4); }); g.ring(h.x, h.y, 230, 0, h, { c: '#7ee081' }); g.notes(h, 10); return true;
       case 'xsR': for (let i = 0; i < 12; i++) g.later(i * 0.5, () => { if (!h.dead) { g.ring(h.x, h.y, 220, 70 * m, h, { c: i % 2 ? P.instL : P.accent, pixel: true }); g.strum = 0.4; g.notes(h, 4); } });

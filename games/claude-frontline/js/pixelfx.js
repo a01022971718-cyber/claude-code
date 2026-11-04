@@ -3,15 +3,21 @@
 (function () {
   const CF = window.CF;
 
-  // ---------- 通用小人（Agent 等小兵使用） ----------
-  const PAL = { body: '#d97757', bodyD: '#b85f40', eye: '#1b1226', k: '#1b1226', gtr: '#8b80d6', gtrD: '#5e54b0', gtrL: '#b3abea', fret: '#c8c1f2', note: '#f2c14e', gray: '#6b6680' };
-  function drawClawd(ctx, ox, oy, px, p = {}) {
+  // ---------- 通用小机器人「信号兵」（Agent 等小兵使用；v6 原创重绘：天线 + 黑色面罩 + 蓝钢机身） ----------
+  const PAL = { body: '#7fa8d8', bodyD: '#4f6f9e', eye: '#6ff2ff', k: '#1b1226', ant: '#ffd76a', leg: '#3a4560', gtr: '#8b80d6', gtrD: '#5e54b0', gtrL: '#b3abea', fret: '#c8c1f2', note: '#f2c14e', gray: '#6b6680' };
+  function drawAgent(ctx, ox, oy, px, p = {}) {
     const bob = p.bob || 0;
     const R = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(ox + x * px), Math.round(oy + (y + bob) * px), Math.ceil(w * px), Math.ceil(h * px)); };
-    const bc = p.tint || PAL.body;
-    [2, 4, 9, 11].forEach((x, i) => R(x, 8, 1, 2 - ((p.step || 0) % 2 === i % 2 && p.walk ? 1 : 0), bc));
-    R(1, 4, 12, 4, bc); R(1, 0, 12, 4, bc); R(0, 3, 1, 2, bc); R(1, 0, 1, 4, p.tintD || PAL.bodyD);
-    if (p.blink) { R(3, 3, 2, 1, PAL.eye); R(8, 3, 2, 1, PAL.eye); } else { R(3, 2, 1, 2, PAL.eye); R(9, 2, 1, 2, PAL.eye); }
+    const bc = p.tint || PAL.body, bd = p.tintD || PAL.bodyD, st = p.walk ? (p.step || 0) % 2 : -1;
+    // 腿
+    R(3, 8, 1, st === 0 ? 1 : 2, PAL.leg); R(9, 8, 1, st === 1 ? 1 : 2, PAL.leg);
+    // 机身
+    R(3, 6, 7, 2, bc); R(3, 6, 1, 2, bd); R(5, 6, 3, 1, bd);
+    // 头 + 面罩
+    R(2, 1, 9, 5, bc); R(2, 1, 1, 5, bd); R(3, 2, 7, 2, PAL.k);
+    if (p.blink) R(4, 3, 5, 1, PAL.eye); else { R(5, 2, 1, 2, PAL.eye); R(8, 2, 1, 2, PAL.eye); }
+    // 天线
+    R(6, -1, 1, 2, PAL.k); R(6, -2, 1, 1, PAL.ant);
   }
   const NOTES = [['.XX', '.X.', 'XX.'], ['XX', '.X', 'XX'], ['X.X', 'XXX'], ['XXX', 'X.X', 'XX.']];
   const NOTE2 = ['XXXX', 'X..X', 'X..X', 'XX.XX'];
@@ -174,5 +180,5 @@
   }
   requestAnimationFrame(loop);
 
-  CF.PixelFX = { Stage, drawClawd, drawPattern, PAL, NOTES, wipe: startWipe, beat: () => beatEnv };
+  CF.PixelFX = { Stage, drawAgent, drawPattern, PAL, NOTES, wipe: startWipe, beat: () => beatEnv };
 })();

@@ -8,7 +8,7 @@
 
   // ---------- 建筑 ----------
   const BT = {
-    core: { name: '主脑', size: 2, hp: 2200, r: 46, desc: 'X-S 的主脑。被摧毁即失败。每秒产出晶片与算力，自带防御脉冲。', atk: { range: 210, dmg: 12, rate: 0.8, air: true } },
+    core: { name: '主脑', size: 2, hp: 2200, r: 46, desc: '我方的主脑。被摧毁即失败。每秒产出晶片与算力，自带防御脉冲。', atk: { range: 210, dmg: 12, rate: 0.8, air: true } },
     miner: { name: '矿机', key: '1', cost: { chip: 50 }, hp: 260, r: 22, build: 4, desc: '必须建在晶片矿或语料泉上，每秒采集 3 单位资源。', yield: 3 },
     turret: { name: '炮塔', key: '2', cost: { chip: 80, corp: 20 }, hp: 450, r: 20, build: 5, desc: '对地对空的自动防御。附近有雷达站时射程 +20%。', atk: { range: 230, dmg: 16, rate: 0.7, air: true } },
     barrier: { name: '屏障', key: '3', cost: { chip: 30 }, hp: 1000, r: 19, build: 2, desc: '高耐久的墙，乱码军团会绕行或被迫攻击它。' },
@@ -126,7 +126,7 @@
 
     // ---------- 英雄 ----------
     spawnHero(x, y, o = {}) {
-      const g = this, id = o.heroId || g.heroId, hd = CF.Heroes.get(id), st = CF.Skills.STATS[id], lv = o.lv || g.heroLv || 1, grow = 1 + 0.1 * (lv - 1);
+      const g = this, id = o.heroId || g.heroId, hd = CF.Heroes.get(id), st = CF.Skills.STATS[id], lv = o.lv || g.heroLv || 1, grow = (1 + 0.1 * (lv - 1)) * (o.clone ? 1 : CF.Roster.starMul(id));
       const mul = (o.mul || 1) * (o.clone ? 1 : 1);
       const def = Object.assign({}, UT.hero, { name: hd.name, desc: hd.title + ' · ' + hd.role, speed: st.speed, armor: st.armor || 0, atk: { range: st.range, dmg: st.dmg * grow * mul, rate: st.rate, air: true, melee: !!st.melee } });
       const u = g.addU('hero', 0, x, y, def);
@@ -185,7 +185,7 @@
       if (g.res.comp < cost) { CF.Audio.sfx('error'); return CF.toast(`算力不足（需要 ${cost}）`, 'bad'), false; }
       if (tx === undefined) { const t = g.bestTarget(h, 600); tx = t ? t.x : h.x + h.face * 120; ty = t ? t.y : h.y; }
       if (!CF.Skills.cast(g, h, key, tx, ty)) return false;
-      g.res.comp -= cost; h.cd[key] = sk.cd * (g.bonus.cdMul || 1); g.stats.riffs++; CF.Save.data.stats.riffs++;
+      g.res.comp -= cost; h.cd[key] = sk.cd * (g.bonus.cdMul || 1) * CF.Roster.starCd(g.heroId); g.stats.riffs++; CF.Save.data.stats.riffs++;
       g.strum = 0.6; h.face = tx >= h.x ? 1 : -1;
       CF.Audio.lick(g.heroId, true);
       if (key === 'R') { g.say('HERO', g.heroDef.lines.skill); CF.Audio.sfx('riff', 0.6); g.rTotal = { v: 0, t: g.time }; if (CF.Voice) CF.Voice.say(g.heroDef, g.heroDef.lines.skill); }
@@ -1008,15 +1008,36 @@
       for (const p of g.parts) { ctx.globalAlpha = 1 - p.age / p.life; ctx.fillStyle = p.c; if (p.note) CF.PixelFX.drawPattern(ctx, CF.PixelFX.NOTES[Math.abs(p.x | 0) % 4], p.x, p.y, 2, p.c); else ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); }
       ctx.globalAlpha = 1;
       // 选中目标的浮动名牌（取代信息面板）
-      if (g.sel.length === 1) { const e = g.get(g.sel[0]); if (e) { const yy = e.y - e.r - (e.air ? 34 : 22); ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; const nm = (e.heroId ? e.heroDef.name + (g.heroLv ? ' Lv' + g.heroLv : '') : e.def.name) + (e.kind === 'b' && e.queue && e.queue.length ? ' · 训练中' : ''); const w2 = ctx.measureText(nm).width + 14; ctx.fillStyle = 'rgba(9,7,20,.75)'; ctx.fillRect(e.x - w2 / 2, yy - 13, w2, 17); ctx.fillStyle = e.team === 0 ? '#ede6d6' : '#ff4f9a'; ctx.fillText(nm, e.x, yy); ctx.textAlign = 'left'; } }
+      if (g.sel.length === 1) { const e = g.get(g.sel[0]); if (e && e !== g.hero) { const yy = e.y - e.r - (e.air ? 34 : 22); ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; const nm = (e.heroId ? e.heroDef.name + (g.heroLv ? ' Lv' + g.heroLv : '') : e.def.name) + (e.kind === 'b' && e.queue && e.queue.length ? ' · 训练中' : ''); const w2 = ctx.measureText(nm).width + 14; ctx.fillStyle = 'rgba(9,7,20,.75)'; ctx.fillRect(e.x - w2 / 2, yy - 13, w2, 17); ctx.fillStyle = e.team === 0 ? '#ede6d6' : '#ff4f9a'; ctx.fillText(nm, e.x, yy); ctx.textAlign = 'left'; } }
       if (g.aim && g.hero && !g.hero.dead) { const sk = g.heroDef.skills.find((x) => x.key === g.aim.key), h = g.hero, P = g.heroDef.pal; ctx.strokeStyle = P.glow; ctx.setLineDash([6, 6]); ctx.lineWidth = 2; const mx = g.aim.x ?? h.x, my = g.aim.y ?? h.y; if (sk.target === 'dir') { const a = Math.atan2(my - h.y, mx - h.x); ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.lineTo(h.x + Math.cos(a) * 420, h.y + Math.sin(a) * 420); ctx.stroke(); } else { ctx.beginPath(); ctx.arc(mx, my, 160, 0, TAU); ctx.stroke(); } ctx.setLineDash([]); ctx.lineWidth = 1; }
       // 框选
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       if (g.box) { const { x0, y0, x1, y1 } = g.box; ctx.strokeStyle = '#6fdc8c'; ctx.fillStyle = '#6fdc8c14'; ctx.fillRect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)); ctx.strokeRect(Math.min(x0, x1) + 0.5, Math.min(y0, y1) + 0.5, Math.abs(x1 - x0), Math.abs(y1 - y0)); }
       const fl = g.fx.find((f) => f.k === 'flash'); if (fl) { ctx.globalAlpha = 0.28 * (1 - fl.t / 0.45); ctx.fillStyle = fl.c; ctx.fillRect(0, 0, g.vw, g.vh); ctx.globalAlpha = 1; }
       if (g.fogRender) g.fogRender(ctx, dpr);
+      g.drawHeroPlate(ctx);
       g.drawFloats(ctx, t);
       if (g.aim) { /* 技能瞄准提示在世界坐标中绘制 */ }
+    }
+    // ================= 英雄头顶名牌（v6：等级 / 星级从头像移到人物身上，屏幕坐标绘制，缩放时不变小） =================
+    drawHeroPlate(ctx) {
+      const g = this, h = g.hero; if (!h || h.dead) return;
+      const z = g.cam.z, sx = (h.x - g.cam.x) * z, sy = (h.y - h.r - 16 - g.cam.y) * z - 12;
+      if (sx < -60 || sx > g.vw + 60 || sy < -30 || sy > g.vh + 30) return;
+      const P = g.heroDef.pal, star = CF.Roster && CF.Roster.star ? CF.Roster.star(g.heroId) : 1;
+      const tag = g.heroLv ? 'Lv' + g.heroLv : '★' + star, nm = g.heroDef.name, sel = g.sel.includes(h.id);
+      ctx.save(); ctx.font = 'bold 11px ui-monospace,monospace';
+      const tw = ctx.measureText(tag).width + 8; ctx.font = 'bold 11px sans-serif';
+      const nw = ctx.measureText(nm).width + 8, w = tw + nw, x0 = Math.round(sx - w / 2), y0 = Math.round(sy - 9);
+      ctx.fillStyle = 'rgba(9,7,20,.78)'; ctx.fillRect(x0, y0, w, 16);
+      ctx.fillStyle = star >= 5 && !g.heroLv ? '#ffd257' : P.glow; ctx.fillRect(x0, y0, tw, 16);
+      if (sel) { ctx.strokeStyle = P.glow; ctx.lineWidth = 1; ctx.strokeRect(x0 - 0.5, y0 - 0.5, w + 1, 17); }
+      ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+      ctx.font = 'bold 11px ui-monospace,monospace'; ctx.fillStyle = '#0b0a14'; ctx.fillText(tag, x0 + 4, y0 + 8.5);
+      ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#f4f1ea'; ctx.fillText(nm, x0 + tw + 4, y0 + 8.5);
+      const p = Math.max(0, h.hp / h.maxHp); ctx.fillStyle = '#000b'; ctx.fillRect(x0, y0 + 17, w, 4);
+      ctx.fillStyle = p > 0.5 ? '#6fdc8c' : p > 0.25 ? '#e9b949' : '#ff5d6c'; ctx.fillRect(x0 + 1, y0 + 18, (w - 2) * p, 2);
+      ctx.restore();
     }
     // ================= 伤害飘字：赛事直播风（《字体美术宪法》第 14 章） =================
     // 同一目标 0.3 秒内的连续命中累加成一个数字并重新弹出；≥ 2.2 倍攻击力算暴击；英雄受到的伤害用红色小字
@@ -1166,7 +1187,7 @@
       if (b.id) this.hpBar(ctx, b, Math.max(30, r * 1.6));
     }
     drawU(ctx, u, t) {
-      const { x, y, r } = u, D = CF.PixelFX.drawClawd;
+      const { x, y, r } = u, D = CF.PixelFX.drawAgent;
       const fl = u.hit > 0;
       const ay = u.air ? y - 10 + Math.sin(t * 4 + u.id) * 2 : y;
       ctx.save();
@@ -1183,9 +1204,9 @@
         }
         case 'scout': case 'coder': case 'refactor': {
           const px = { scout: 1.25, coder: 1.5, refactor: 2.1 }[u.type];
-          const tint = fl ? '#fff' : { scout: '#f0a080', coder: '#d97757', refactor: '#b0603f' }[u.type];
+          const tint = fl ? '#fff' : { scout: '#9fd0ff', coder: '#7fa8d8', refactor: '#5a7fb8' }[u.type];
           ctx.translate(x, y); if (u.face < 0) ctx.scale(-1, 1);
-          D(ctx, -6.5 * px, -6 * px, px, { noGuitar: true, tint, tintD: '#9c4e33', walk: Math.hypot(u.vx, u.vy) > 10, step: Math.floor(u.step) });
+          D(ctx, -6.5 * px, -6 * px, px, { noGuitar: true, tint, tintD: '#3f5a86', walk: Math.hypot(u.vx, u.vy) > 10, step: Math.floor(u.step) });
           ctx.fillStyle = '#b3abea';
           if (u.type === 'scout') { ctx.fillRect(2 * px, -9 * px, px, 3 * px); ctx.fillRect(2 * px, -9 * px, 3 * px, px); }
           if (u.type === 'coder') { ctx.fillRect(-4 * px, -1 * px, 8 * px, px); }
@@ -1227,7 +1248,7 @@
         if (st.marks > 0) { ctx.fillStyle = '#ffd98a'; for (let i = 0; i < st.marks; i++) ctx.fillRect(x - st.marks * 3 + i * 6, ay + r + 4, 4, 4); }
         if (st.slow > 0) { ctx.fillStyle = 'rgba(80,170,255,.25)'; ctx.beginPath(); ctx.arc(x, ay, r + 2, 0, TAU); ctx.fill(); }
       }
-      this.hpBar(ctx, u, Math.max(22, r * 2));
+      if (u !== this.hero) this.hpBar(ctx, u, Math.max(22, r * 2));
       if (u.def.boss) { ctx.fillStyle = COLS.foe; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(u.def.name, x, ay - r - 18); ctx.textAlign = 'left'; }
     }
     drawFoe(ctx, u, x, y, r, t, fl) {

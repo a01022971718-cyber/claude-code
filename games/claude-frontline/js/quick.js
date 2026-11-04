@@ -36,6 +36,7 @@
       multi: 0, multiT: 0, packT: 5, joy: null, lastBeat: 0, beatIv: 60 / (CF.Audio.curBpm || 110), pickPitch: 0, pickT: 0, tapCd: 0, lastTitle: 0, startT: performance.now(),
     };
     if (h.power) { S.hero.dmg *= h.power; S.hero.maxHp = S.hero.hp = Math.round(S.hero.maxHp * h.power); }
+    { const sm = CF.Roster.starMul(h.id); S.hero.dmg *= sm; S.hero.maxHp = S.hero.hp = Math.round(S.hero.maxHp * sm); }
     if (h.companion) S.hero.drone = { x: 1170, y: 1160, cd: 0.5 };
     if (lvl) { S.hero.dmg *= 1 + lvl * 0.06; CF.toast(`音乐厅 Lv${lvl}：开局攻击 +${lvl * 6}%`, 'gold'); }
     beatSink = { pulse: (s) => { if (s < 0.5 || !S) return; const now = performance.now(); if (S.lastBeat) S.beatIv = CF.lerp(S.beatIv, CF.clamp((now - S.lastBeat) / 1000, 0.25, 1.2), 0.3); S.lastBeat = now; Q.onBeat(s); }, visible: () => false };

@@ -150,7 +150,7 @@
   };
   proto.applyItems = function () {
     const g = this, h = g.hero; if (!h || h.dead) return;
-    const base = CF.Skills.STATS[g.heroId], grow = 1 + 0.1 * (g.heroLv - 1), cnt = (k) => g.items.filter((i) => i === k).length;
+    const base = CF.Skills.STATS[g.heroId], grow = (1 + 0.1 * (g.heroLv - 1)) * CF.Roster.starMul(g.heroId), cnt = (k) => g.items.filter((i) => i === k).length;
     h.def.atk.dmg = (base.dmg * grow + cnt('claw') * 12) * (1 + 0.15 * cnt('crown'));
     h.def.speed = base.speed + cnt('boots') * 40;
     h.itemArmor = cnt('shield') * 4;
@@ -345,7 +345,7 @@
     const sig = g.items.join(',') + '|' + g.skillPts + '|' + g.heroLv;
     if (bar._sig === sig) return; bar._sig = sig;
     bar.innerHTML = '';
-    for (let i = 0; i < 4; i++) { const k = g.items[i]; const b = CF.h(`<button class="glass item" title="${k ? ITEMS[k].n + '：' + ITEMS[k].d : '空物品栏'}">${k ? ITEMS[k].ic : ''}${k && ITEMS[k].use ? '<i>用</i>' : ''}</button>`); b.onclick = () => g.useItem(i); bar.appendChild(b); }
+    for (let i = 0; i < 4; i++) { const k = g.items[i]; const b = CF.h(`<button class="glass item${k ? '' : ' empty'}" title="${k ? ITEMS[k].n + '：' + ITEMS[k].d : '空物品栏'}">${k ? ITEMS[k].ic : ''}${k && ITEMS[k].use ? '<i>用</i>' : ''}</button>`); b.onclick = () => g.useItem(i); bar.appendChild(b); }
     if (g.skillPts > 0) ['Q', 'W', 'R'].forEach((k) => { const b = CF.h(`<button class="glass item" style="color:var(--hero2);font-weight:900;width:auto;padding:0 6px;white-space:nowrap" title="升级 ${k} 技能">＋${k}</button>`); b.onclick = () => { g.learnSkill(k); bar._sig = ''; g.imHud(); }; bar.appendChild(b); });
   };
 })();

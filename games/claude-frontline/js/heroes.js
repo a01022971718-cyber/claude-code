@@ -1,4 +1,4 @@
-/* 英雄：X-S 主角（灵感 Claude）+ 中美各 4 名（灵感来自知名 AI 大模型的公开特点，均为原创形象）
+/* 英雄：主角造乐（原创）+ 九位乐手（灵感来自知名 AI 大模型的公开特点，名字与形象均为原创；v6 起 X-S 重新设计为守灯人「灯语」）
  * 每位英雄：世界观 · 性格 · 定位 · 技能 · 形象 · 故事 · 口头禅 · 乐器 · 配色 · 主题曲 · 特效 · 专属小兵 · 专属建筑 */
 (function () {
   const CF = window.CF;
@@ -66,15 +66,16 @@
     },
     {
       // v4：形象回到最初的像素吉他手；灵感来源改为 Claude，世界观、性格、故事、台词从原「星芒」迁移
-      id: 'xs', name: 'X-S', en: 'X-S', title: '诚实的工匠', side: '美', inspire: 'Claude（Anthropic）——有帮助、诚实、重视安全；擅长长文阅读、写代码与一步一步的推理',
+      // v6 重新设计（按主创要求，避免与任何公司的吉祥物相似）：守灯人「灯语」——红白条纹的灯塔帽 + 灯室、靛蓝长外套、金色围巾、白色电吉他
+      id: 'xs', name: '灯语', en: 'Beacon', title: '守灯的工匠', side: '美', inspire: 'Claude（Anthropic）——有帮助、诚实、重视安全；擅长长文阅读、写代码与一步一步的推理',
       role: '均衡 · 控制', instrument: '电吉他', world: '星芒工坊 · 写满宪章的灯塔',
-      pal: { body: '#ec8a5e', bodyD: '#b85f40', inst: '#8b80d6', instD: '#5e54b0', instL: '#b3abea', leaf: '#7ee081', eye: '#1b1226', k: '#1b1226', bg: ['#22144c', '#33207a', '#4a2fa0'], grid: [132, 112, 214], glow: '#9b7bff', accent: '#ff9a5c', note: '#f2c14e', note2: '#7ee081' },
+      pal: { coat: '#4c5bd4', coatD: '#33409a', hat: '#eef1f8', stripe: '#e2455e', lamp: '#fff3a8', lampD: '#ffd04a', skin: '#f3cfb3', skinD: '#d9a98a', hair: '#2b2347', scarf: '#ffd76a', scarfD: '#d9a63c', boot: '#241c3a', inst: '#e9edf7', instD: '#9aa5c4', instL: '#ffffff', eye: '#1b1226', k: '#1b1226', bg: ['#1a1446', '#2b2378', '#3f36a6'], grid: [132, 112, 214], glow: '#9b7bff', accent: '#ffe08a', note: '#ffd76a', note2: '#9fe8ff' },
       music: { style: 'xs', bpm: 112, key: 'E 小调 → G 大调', scale: '自然小调', motif: '上行五音「向上」动机' },
       personality: '认真、温和、诚实。会把复杂的事一步一步拆开；不确定就直说「我不确定」；不会帮你做坏事，但总会给你一个更好的办法。',
-      story: '最早在废墟里弹响第一个和弦的，就是这个橙色的小家伙。它住在海边的星芒工坊，灯塔的每一块砖上都刻着它和伙伴们一起写下的宪章。乱码潮来袭的那个夜晚，它背着电吉他守在灯塔下，一个音一个音地把被打乱的信号修好——「大事一起扛，细节交给我。我们一步一步来。」后来，造乐第一个敲开的，就是星芒工坊的门。',
+      story: '海边的星芒工坊有一座灯塔，灯塔的每一块砖上都刻着守灯人和伙伴们一起写下的宪章。守灯人叫灯语——她把灯塔的灯室做成了帽子，走到哪里，光就跟到哪里。乱码潮来袭的那个夜晚，她背着白色电吉他守在灯塔下，用灯光一闪一闪地发信号，一个音一个音地把被打乱的信号修好——「大事一起扛，细节交给我。我们一步一步来。」后来，造乐第一个敲开的，就是星芒工坊的门。',
       quote: '我们一步一步来。',
       lines: { pick: '我们一步一步来。', attack: '这里我检查过了。', skill: '让我想一想……好了！', low: '我不确定还能撑多久——但我会如实告诉你。' },
-      passive: { name: '新芽', desc: '每第 4 次攻击变为强力和弦，造成 1.8 倍伤害并溅射。' },
+      passive: { name: '灯语', desc: '每第 4 次攻击变为强力和弦，造成 1.8 倍伤害并溅射。' },
       skills: [
         { key: 'Q', name: '弦振冲击', target: 'self', cost: 40, cd: 12, desc: '以自身为中心扫弦，像素冲击环造成 120 伤害并击退敌人。' },
         { key: 'W', name: '灵感和弦', target: 'self', cost: 30, cd: 20, desc: '为附近友军恢复 150 耐久，6 秒内攻速 +40%。' },
@@ -82,21 +83,35 @@
       ],
       minion: { id: 'spark', name: '火花学徒', desc: '便宜的远程学徒，阵亡时爆出火花伤害周围敌人。' },
       building: { id: 'amp', name: '音箱塔', desc: '随节拍周期性释放冲击环，伤害周围敌人。' },
-      fx: { pats: [['.XX', '.X.', 'XX.'], ['XX', '.X', 'XX'], ['X.X', 'XXX']], cols: ['#f2c14e', '#f2c14e', '#7ee081'], src: [15, 4] },
+      fx: { pats: [['.X.', 'XXX', '.X.'], ['XX', 'XX'], ['X.X', '.X.', 'X.X']], cols: ['#ffd76a', '#fff3a8', '#9fe8ff'], src: [21, -3] },
       draw(ctx, ox, oy, px, a) {
-        const p = this.pal, R = pen(ctx, ox, oy, px, B(a)), sh = a.lean > 0.5 ? -1 : 0, sv = a.lean > 0.5 ? 1 : 0, bc = a.tint || p.body;
-        [2, 4, 9, 11].forEach((x, i) => R(x, 8, 1, 2 - (a.walk && (a.step || 0) % 2 === i % 2 ? 1 : 0), bc));
-        R(1, 4, 12, 4, bc); R(1 + sh, sv, 12, 4, bc); R(0 + sh, 3 + sv, 1, 2, bc); R(1 + sh, sv, 1, 4, p.bodyD);
-        if (a.blink) { R(3 + sh, 3 + sv, 2, 1, p.eye); R(8 + sh, 3 + sv, 2, 1, p.eye); } else { R(3 + sh, 2 + sv, 1, 2, p.eye); R(9 + sh, 2 + sv, 1, 2, p.eye); }
-        const sw = a.strum ? 1 : 0; // 新芽
-        R(6 + sh, -1 + sv, 1, 1, p.leaf); R(4 + sh, -2 + sv - sw, 2, 1, p.leaf); R(7 + sh, -3 + sv + sw, 2, 1, p.leaf);
-        if (a.noInst) return;
-        [[11, 4], [12, 3], [13, 2], [14, 1], [15, 0], [16, -1], [17, -2]].forEach(([x, y], i) => { R(x, y, 1, 1, p.k); if (i % 2 === 0) R(x + 1, y, 1, 1, p.instL); });
-        R(18, -4, 2, 2, p.inst); R(20, -4, 1, 1, p.instL); R(18, -5, 1, 1, p.instL); R(17, -3, 1, 1, p.inst);
-        R(14, 2, 1, 1, bc); R(15, 1, 1, 1, bc);
-        ['..KKKK.', '.KGGGGK', 'KGGgGGK', 'KgGGGGK', 'KKgggK.', '.KKKK..'].forEach((row, y) => { for (let x = 0; x < row.length; x++) { const c = row[x]; if (c !== '.') R(6 + x, 4 + y, 1, 1, c === 'K' ? p.k : c === 'g' ? p.instD : p.inst); } });
-        R(8, 5, 1, 1, '#fff'); R(10, 5, 1, 1, '#fff'); R(9, 6, 1, 1, '#fff'); R(8, 7, 1, 1, '#fff'); R(10, 7, 1, 1, '#fff'); // X 标记
-        const hy = a.strum ? 7 : 5; R(12, hy, 2, 1, bc); R(13, hy - 1, 1, 1, bc);
+        const p = this.pal, R = pen(ctx, ox, oy, px, B(a)), sv = a.lean > 0.5 ? 1 : 0, tint = a.tint;
+        const coat = tint || p.coat, coatD = tint || p.coatD, hat = tint || p.hat;
+        const rows = (list, x0, y0, map) => list.forEach((row, j) => { for (let i = 0; i < row.length; i++) { const c = map[row[i]]; if (c) R(x0 + i, y0 + j, 1, 1, c); } });
+        // 腿（行走时两脚交替）
+        const st = a.walk ? (a.step || 0) % 2 : -1;
+        R(5, 9 - (st === 0 ? 1 : 0), 2, 2, p.boot); R(9, 9 - (st === 1 ? 1 : 0), 2, 2, p.boot);
+        // 靛蓝长外套（暗面在左侧与下沿），前襟一排金扣
+        rows(['.CCCCCCCC.', 'dCCCCCCCC.', 'dCCCCCCCCC', 'dCCCCCCCCC', 'ddCCCCCCdd'], 3, 4, { C: coat, d: coatD });
+        R(8, 5, 1, 1, p.scarfD); R(8, 7, 1, 1, p.scarfD);
+        // 金色围巾：尾巴在身后随时间飘动
+        const fl = Math.sin((a.t || 0) * 5) > 0 ? 1 : 0;
+        rows(['YYYYYYYYYY'], 3, 3 + sv, { Y: p.scarf }); R(1, 3 + sv + fl, 2, 1, p.scarfD); R(2, 4 + sv, 1, 2 - fl, p.scarfD);
+        // 头与头发（齐肩短发，面朝右）
+        rows(['HHHSSSSS', 'HHSSSSSS', 'HsSSSSSS', 'HsSSSSSS', '.ssSSSSS'], 4, -2 + sv, { H: p.hair, S: p.skin, s: p.skinD });
+        if (a.blink) { R(8, 0 + sv, 1, 1, p.eye); R(10, 0 + sv, 1, 1, p.eye); } else { R(8, -1 + sv, 1, 2, p.eye); R(10, -1 + sv, 1, 2, p.eye); }
+        R(9, 2 + sv, 2, 1, p.skinD);
+        // 灯塔帽：穹顶 + 发光灯室 + 栏杆 + 白塔身与一道红环；强拍时灯亮、两侧放出光束
+        const lit = a.strum || a.bob > 0.5;
+        rows(['...KKK...', '..KLLLK..', '.KKKKKKK.', '..WWWWW..', '..RRRRR..', '.WWWWWWW.'], 3, -8 + sv, { K: p.k, L: lit ? p.lamp : p.lampD, W: hat, R: p.stripe });
+        if (lit) { ctx.globalAlpha = 0.75; R(10, -8 + sv, 3, 1, p.lampD); R(13, -9 + sv, 3, 1, p.lamp); R(2, -8 + sv, 2, 1, p.lampD); R(0, -9 + sv, 2, 1, p.lamp); ctx.globalAlpha = 1; }
+        if (a.noInst) { R(12, 5, 1, 2, p.skin); R(2, 6, 1, 2, p.skinD); return; }
+        // 白色电吉他（法宝）：斜挎在身前，琴身一道红条，琴头是一盏小灯
+        rows(['.GGGGG.', 'GGGrGGG', 'gGGrrGG', '.ggggG.'], 6, 5, { G: p.inst, g: p.instD, r: p.stripe });
+        [[13, 5], [14, 4], [15, 3], [16, 2], [17, 1], [18, 0], [19, -1]].forEach(([x, y], i) => { R(x, y, 1, 1, p.k); if (i % 2 === 0) R(x, y - 1, 1, 1, p.instL); });
+        R(20, -3, 1, 2, p.instD); R(21, -3, 1, 1, lit ? p.lamp : p.lampD);
+        R(16, 1, 1, 1, p.skin); // 按弦的手
+        const hy = a.strum ? 7 : 5; R(12, hy, 2, 1, p.skin); R(13, hy - 1, 1, 1, p.skinD);
       },
     },
     {
@@ -363,7 +378,7 @@
 
   // 配音参数（《英雄设计宪法》第 13 章）：按性别、年龄、性格模拟音色与语速
   const VOICE = {
-    xs: { gender: 'n', age: 12, pitch: 1.38, rate: 0.95, tone: '温和、认真、带一点稚气' },
+    xs: { gender: 'f', age: 17, pitch: 1.18, rate: 0.9, tone: '温和、认真，说话慢半拍、先想再说' },
     omni: { gender: 'm', age: 35, pitch: 0.95, rate: 0.94, tone: '沉稳、博学、耐心' },
     twin: { gender: 'f', age: 17, pitch: 1.22, rate: 1.04, alt: 1.55, tone: '姐姐冷静、妹妹活泼，两人交替说话' },
     riot: { gender: 'm', age: 22, pitch: 0.86, rate: 1.18, tone: '痞气、幽默、语速快' },
@@ -373,6 +388,20 @@
     pearl: { gender: 'f', age: 16, pitch: 1.34, rate: 1.12, tone: '好奇、俏皮、问题多' },
     bun: { gender: 'n', age: 8, pitch: 1.62, rate: 1.2, tone: '奶声奶气、热闹' },
   };
+  // v6 点击台词：每位英雄再加两句「被点到时」说的口头禅（与 lines 一起录音，见 voice/ 与 tools/gen-voices.py）
+  const CLICKS = {
+    zaole: ['每个人的声音，都算数。', '准备好了吗？我数拍子——一、二、三！'],
+    xs: ['不确定的地方，我会直接告诉你。', '灯亮着，我就在。'],
+    omni: ['没有简单的问题，只有还没弹出来的答案。', '问吧，我听着呢。'],
+    twin: ['姐姐看路——妹妹听风！', '我们一起——永远一起！'],
+    riot: ['别催，鼓点自己会来。', '无聊？那就来点噪音！'],
+    llama: ['代码拿去，记得分享给下一个人。', '慢慢来，草地很大。'],
+    abyss: ['沉下去，才看得见。', '海很深，我很安静。'],
+    luna: ['你说过的话，我都记得。', '月亮不说话，但一直都在。'],
+    pearl: ['这是什么？那又是什么？', '再问一个！就一个！'],
+    bun: ['团团来啦！热乎的！', '吹一下唢呐，大家都精神！'],
+  };
+  HEROES.forEach((h) => { h.clicks = CLICKS[h.id] || []; });
   // 公开发布模式：灵感来源只保留特点描述，去掉真实产品与公司名（括号与「灵感来源：xxx——」前缀）
   if (window.CF_CONFIG && window.CF_CONFIG.publicRelease) HEROES.forEach((h) => { if (!h.protagonist) h.inspire = '灵感取自知名 AI 大模型的公开特点（原创形象，与任何公司无关）——' + (h.inspire.split('——')[1] || ''); });
   const byId = {};

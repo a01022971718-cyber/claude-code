@@ -4,6 +4,7 @@
   const $ = CF.$;
   const T = (CF.Tutorial = { active: false, i: 0, flags: {} });
   const touch = () => CF.UI.touch || (window.matchMedia && window.matchMedia('(pointer:coarse)').matches);
+  const port = () => document.body.classList.contains('port');
 
   function steps(g) {
     const n0 = g.nodes[0], n1 = g.nodes.find((n) => n !== n0 && n.type === 'chip' && CF.dist(n.x, n.y, g.core.x, g.core.y) < 340) || g.nodes[1];
@@ -17,7 +18,7 @@
       { t: '⑤ 点地面移动', d: '英雄选中后，<b>点一下地面</b>就会走过去；点敌人就会攻击。路上遇到敌人也会自动开火。', ok: () => T.flags.moved },
       { t: '⑥ 释放技能', d: touch() ? '点右下角的技能按钮。需要瞄准的技能：按住按钮拖到目标处松手，或先点按钮再点战场。' : '点右下角技能按钮，或按 <b>Q / W / R</b>：技能会对准鼠标所在的位置。', dom: '#skillBar', ok: () => T.flags.cast },
       { t: '⑦ 移动视野', d: touch() ? '单指拖动平移，双指捏合缩放。' : '右键拖动平移，滚轮缩放，或者用方向键。', ok: () => T.flags.camera },
-      { t: '⑧ 指挥全军', d: touch() ? '点左下角「全军」选中所有部队；也可以<b>长按后拖动</b>框选。' : '点左下角「全军」（或按 A）选中所有部队；按住左键拖动可以框选。', dom: '#fabAll', ok: () => T.flags.boxsel },
+      { t: '⑧ 指挥全军', d: port() ? '在空地上<b>长按后拖动</b>，框住的部队都会被选中。' : touch() ? '点左下角「全军」选中所有部队；也可以<b>长按后拖动</b>框选。' : '点左下角「全军」（或按 A）选中所有部队；按住左键拖动可以框选。', dom: port() ? null : '#fabAll', ok: () => T.flags.boxsel },
       { t: '准备好了！', d: '守住 3 波进攻。随时可以在 ☰ 菜单里查看操作速查，或去大厅的「说明」页面。', btn: '开战' },
     ];
   }

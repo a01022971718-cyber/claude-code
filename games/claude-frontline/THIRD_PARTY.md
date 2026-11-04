@@ -8,13 +8,26 @@
 
 ## 商标与灵感来源
 
-游戏中提到的 ChatGPT、OpenAI、Gemini、Google、Grok、xAI、Llama、Meta、DeepSeek、Kimi、月之暗面、通义千问、阿里巴巴、豆包、字节跳动、Claude、Anthropic 等名称是其各自所有者的商标，仅用于说明英雄性格的灵感来源。本游戏是独立的学习项目，与上述公司没有任何关联、合作或背书。所有英雄的名字与形象均为原创（X-S 的形象来源见 `design/03-compliance.md` 第一部分第 1 项）。
+游戏中提到的 ChatGPT、OpenAI、Gemini、Google、Grok、xAI、Llama、Meta、DeepSeek、Kimi、月之暗面、通义千问、阿里巴巴、豆包、字节跳动、Claude、Anthropic 等名称是其各自所有者的商标，仅用于说明英雄性格的灵感来源。本游戏是独立的学习项目，与上述公司没有任何关联、合作或背书。所有英雄的名字与形象均为原创（v6 起原 X-S 已重新设计为「灯语」，见 `design/03-compliance.md` 第一部分第 1 项）。
 
 公开发布时请把 `js/config.js` 的 `publicRelease` 设为 `true`。
 
 ## 音乐与音效
 
 全部由 Web Audio API 实时合成，没有使用任何第三方录音或曲谱。玩家自行上传的音乐只在本机播放，版权由玩家自行负责。
+
+## 英雄配音（v6）
+
+`voice/` 与 `js/voice-data.js` 里的台词录音由下面的开源工具在本机离线生成，**不是真人配音演员的录音**：
+
+| 用途 | 名称 | 许可 | 是否随游戏分发 |
+|---|---|---|---|
+| 语音合成模型 | [Kokoro-82M v1.1-zh](https://huggingface.co/hexgrad/Kokoro-82M-v1.1-zh)（hexgrad；中文数据由龙猫数据提供）；sherpa-onnx 转换版 `csukuangfj/kokoro-int8-multi-lang-v1_1` | Apache-2.0 | 否，只分发生成好的 mp3 |
+| 推理框架 | [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) | Apache-2.0 | 否（只在 `tools/gen-voices.py` 里使用） |
+| 质量校验（语音识别） | sherpa-onnx Paraformer 中文小模型 `csukuangfj/sherpa-onnx-paraformer-zh-small-2024-03-09` | 见模型发布页 | 否（只用来逐条「听」录音、挑最清楚的一条） |
+| 后期 | FFmpeg（rubberband 变调、均衡、压缩、回声、响度标准化） | LGPL/GPL | 否 |
+
+公开发布、商用前请再核对一次模型许可的最新版本；如果改用真人配音，替换 `voice/` 下的 mp3 后运行 `node tools/pack-voices.mjs` 即可。
 
 ## 参考
 

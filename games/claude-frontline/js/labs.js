@@ -325,9 +325,9 @@
       ctx.fillStyle = '#e9b949'; ctx.fillRect(bx + cs * 0.3, by + cs * 0.25, cs * 0.4, cs * 0.55); ctx.fillRect(bx + cs * 0.42, by + cs * 0.18, cs * 0.16, cs * 0.08);
       // 轨迹
       if (S.bot) {
-        ctx.fillStyle = '#d9775733'; S.bot.trail.forEach(([x, y]) => ctx.fillRect(ox + x * cs + cs * 0.35, oy + y * cs + cs * 0.35, cs * 0.3, cs * 0.3));
+        ctx.fillStyle = '#7fa8d833'; S.bot.trail.forEach(([x, y]) => ctx.fillRect(ox + x * cs + cs * 0.35, oy + y * cs + cs * 0.35, cs * 0.3, cs * 0.3));
         const px = Math.max(2, Math.floor(cs / 18));
-        CF.PixelFX.drawClawd(ctx, ox + S.bot.x * cs + (cs - 13 * px) / 2, oy + S.bot.y * cs + (cs - 10 * px) / 2, px, { noGuitar: true });
+        CF.PixelFX.drawAgent(ctx, ox + S.bot.x * cs + (cs - 13 * px) / 2, oy + S.bot.y * cs + (cs - 10 * px) / 2, px, { noGuitar: true });
         const [dx, dy] = DIRS[S.bot.d];
         ctx.fillStyle = '#fff'; ctx.fillRect(ox + S.bot.x * cs + cs / 2 + dx * cs * 0.38 - 3, oy + S.bot.y * cs + cs / 2 + dy * cs * 0.38 - 3, 6, 6);
       }
@@ -516,12 +516,13 @@
   };
 
   // =================== 8. 像素工坊 ===================
-  const PIX_PAL = ['transparent', '#d97757', '#b85f40', '#1b1226', '#ede6d6', '#8b80d6', '#5b3aa8', '#e9b949', '#3fd0c9', '#ff4f9a', '#6fdc8c'];
+  // 旧存档的头像按下标存颜色，所以只在末尾追加（v6：信号兵模板用的蓝钢色）
+  const PIX_PAL = ['transparent', '#d97757', '#b85f40', '#1b1226', '#ede6d6', '#8b80d6', '#5b3aa8', '#e9b949', '#3fd0c9', '#ff4f9a', '#6fdc8c', '#7fa8d8', '#4f6f9e'];
   L.PIX_PAL = PIX_PAL;
   L.pixel = function () {
     const grid = (CF.Save.data.avatar && CF.Save.data.avatar.slice()) || new Array(256).fill(0);
     let col = 1, painting = false;
-    const body = CF.h(`<div class="lab"><div class="lab-msg">美也是一种能力。画一个 16×16 的指挥官头像，它会出现在战场通讯框里。用到 4 种以上颜色得 3 星。</div><div class="lab-main" style="align-items:flex-start"><div class="pix-grid" id="pg"></div><div class="lab-side"><div class="swatches" id="sw"></div><div class="row wrap"><button class="btn sm" id="pTpl">载入 X-S 模板</button><button class="btn sm ghost" id="pClr">清空</button></div><button class="btn primary" id="pSave">保存为指挥官头像</button><div class="lab-msg small" id="pMsg">按住拖动可以连续涂色；选透明色当橡皮擦。</div></div></div></div>`);
+    const body = CF.h(`<div class="lab"><div class="lab-msg">美也是一种能力。画一个 16×16 的指挥官头像，它会出现在战场通讯框里。用到 4 种以上颜色得 3 星。</div><div class="lab-main" style="align-items:flex-start"><div class="pix-grid" id="pg"></div><div class="lab-side"><div class="swatches" id="sw"></div><div class="row wrap"><button class="btn sm" id="pTpl">载入信号兵模板</button><button class="btn sm ghost" id="pClr">清空</button></div><button class="btn primary" id="pSave">保存为指挥官头像</button><div class="lab-msg small" id="pMsg">按住拖动可以连续涂色；选透明色当橡皮擦。</div></div></div></div>`);
     CF.modal.open({ title: '🎨 实验室 · 像素工坊', body, wide: true });
     const pg = body.querySelector('#pg'), sw = body.querySelector('#sw');
     const cells = [];
@@ -536,10 +537,11 @@
     body.querySelector('#pTpl').onclick = () => {
       const c = document.createElement('canvas'); c.width = c.height = 16; const x = c.getContext('2d');
       x.fillStyle = '#5b3aa8'; x.fillRect(0, 0, 16, 16);
-      CF.PixelFX.drawClawd(x, 1, 3, 1, { noGuitar: true });
+      CF.PixelFX.drawAgent(x, 1, 4, 1, { noGuitar: true });
       const data = x.getImageData(0, 0, 16, 16).data;
-      const hex = (r, g, b) => '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
-      for (let i = 0; i < 256; i++) { const h = hex(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]); const k = PIX_PAL.indexOf(h); grid[i] = k > 0 ? k : 6; }
+      const rgb = PIX_PAL.map((c) => (c === 'transparent' ? null : [1, 3, 5].map((k) => parseInt(c.slice(k, k + 2), 16))));
+      const near = (r, g, b) => { let bi = 6, bd = 1e9; rgb.forEach((c, k) => { if (!c) return; const d = (c[0] - r) ** 2 + (c[1] - g) ** 2 + (c[2] - b) ** 2; if (d < bd) { bd = d; bi = k; } }); return bi; };
+      for (let i = 0; i < 256; i++) grid[i] = near(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]);
       paint();
     };
     body.querySelector('#pSave').onclick = () => {
