@@ -10,8 +10,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { skinCss, collectTokens, stats } from './farm-skin.mjs';
 
-const [SRC, DST] = process.argv.slice(2);
-if (!SRC || !DST) { console.error('用法：node tools/farm-zy-build.mjs <原版目录> <输出目录>'); process.exit(1); }
+const args = process.argv.slice(2), EMBED = args.includes('--embed');
+const [SRC, DST] = args.filter((a) => !a.startsWith('--'));
+// --embed：并进造月之路的版本（游戏里的 farm/）：多带 zy-bridge.js（返回、学习计时、安卓导出），以及口语评分用的 vendor/vosk.js
+const VOSK = (args.find((a) => a.startsWith('--vosk=')) || '').slice(7);
+if (!SRC || !DST) { console.error('用法：node tools/farm-zy-build.mjs <原版目录> <输出目录> [--embed --vosk=<vosk.js 路径>]'); process.exit(1); }
 const ROOT = path.dirname(path.dirname(new URL(import.meta.url).pathname));
 
 // ---------- 1. 原版文件原样复制 ----------
@@ -52,7 +55,7 @@ fs.writeFileSync(path.join(DST, 'zy', 'zy-farm-skin.css'), '/* 自动生成（to
 const ENGINE = ['config.js', 'core.js', 'icons.js', 'heroes.js', 'audio.js', 'pixelfx.js'];
 fs.writeFileSync(path.join(DST, 'zy', 'zy-engine.js'), '/* 《造月之路》引擎（自动拼接自 js/' + ENGINE.join('、js/') + '） */\n' +
   ENGINE.map((f) => `/* ===== js/${f} ===== */\n` + fs.readFileSync(path.join(ROOT, 'js', f), 'utf8')).join('\n'));
-for (const f of ['zy.css', 'zy-farm.js']) fs.copyFileSync(path.join(ROOT, 'farm-zy-src', f), path.join(DST, 'zy', f));
+for (const f of ['zy.css', 'zy-farm.js'].concat(EMBED ? ['zy-bridge.js'] : [])) fs.copyFileSync(path.join(ROOT, 'farm-zy-src', f), path.join(DST, 'zy', f));
 
 // ---------- 4. 接进页面 ----------
 // 背景音乐：加一个「英雄主题曲」选项，并设为农场 / 地图 / 玩法的默认曲（四位一体）；原版的三首小曲和上传音乐都还在
@@ -60,7 +63,21 @@ const n0 = html.length;
 html = html.replace("const bgmOpts = () => [['', '不放'],", "const bgmOpts = () => [['', '不放'], ['zy:hero', '英雄主题曲（跟随主题英雄）'],");
 html = html.replace("const BGM_DEF = { farm: 'gen:field', map: 'gen:happy', mod: 'gen:happy' };", "const BGM_DEF = { farm: 'zy:hero', map: 'zy:hero', mod: 'zy:hero' };");
 if (!html.includes("['zy:hero', '英雄主题曲") || !html.includes("farm: 'zy:hero'")) throw new Error('背景音乐的接入点没找到（原版代码变了？）');
-html = html.replace(/<\/body>/, '<link rel="stylesheet" href="zy/zy-farm-skin.css"><link rel="stylesheet" href="zy/zy.css"><script src="zy/zy-engine.js"></script><script src="zy/zy-farm.js"></script></body>');
+// 主角：豆豆换成主题英雄（zy-farm.js 换掉 ddHD / ddSpr），这几行改成按英雄画布自带的落脚点（zyLx / zyLy）摆放
+const DDP = [
+  ["putK(ds, Math.round(dx * 2) / 2, Math.round(dy * 2) / 2 + hy, 10, 24, K_DD,", "putK(ds, Math.round(dx * 2) / 2, Math.round(dy * 2) / 2 + hy, d0.zyLx || 10, d0.zyLy || 24, K_DD,"],
+  ["dimSpr(d0, .3, 'hddd' + df)", "dimSpr(d0, .3, 'hddd' + df + (d0.zyKey || ''))"],
+  ["g.drawImage(ddSpr('chef', df), dx - 10, 36 + hop);", "{ const _dd = ddSpr('chef', df); g.drawImage(_dd, dx - (_dd.zyLx || 10), 36 + hop + 24 - (_dd.zyLy || 24)); }"],
+  ["g.drawImage(ddSpr('chef', df), 140, 78);", "{ const _dd = ddSpr('chef', df); g.drawImage(_dd, 150 - (_dd.zyLx || 10), 78 + 24 - (_dd.zyLy || 24)); }"],
+];
+for (const [a, b] of DDP) { if (!html.includes(a)) throw new Error('画豆豆的代码没找到：' + a.slice(0, 40)); html = html.split(a).join(b); }
+html = html.replace(/<\/body>/, '<link rel="stylesheet" href="zy/zy-farm-skin.css"><link rel="stylesheet" href="zy/zy.css"><script src="zy/zy-engine.js"></script><script src="zy/zy-farm.js"></script>'
+  + (EMBED ? '<script src="zy/zy-bridge.js"></script>' : '') + '</body>');
+if (EMBED) {
+  if (VOSK) { fs.mkdirSync(path.join(DST, 'vendor'), { recursive: true }); fs.copyFileSync(VOSK, path.join(DST, 'vendor', 'vosk.js')); }
+  for (const f of ['LICENSE-phaser.md']) { const from = path.join(ROOT, 'farm-zy-src', f); if (fs.existsSync(from)) fs.copyFileSync(from, path.join(DST, 'vendor', f)); }
+  fs.copyFileSync(path.join(ROOT, 'farm-zy-src', 'NOTICE.md'), path.join(DST, 'NOTICE.md'));
+}
 if (html.length === n0) throw new Error('没有改动页面');
 fs.writeFileSync(path.join(DST, 'index.html'), html);
 console.log(`完成：深色底 ${stats.decl} 条声明 / ${stats.colors} 处颜色；引擎 ${ENGINE.length} 个文件；输出 ${DST}`);

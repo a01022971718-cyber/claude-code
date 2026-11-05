@@ -158,3 +158,41 @@ html.zy input,html.zy textarea,html.zy select{background:var(--zy-bg2)!important
 
 /* ---------- 第 9 章：减少动效 ---------- */
 @media (prefers-reduced-motion:reduce){html.zy .btn.green::after{animation:none}}
+
+/* ---------- 种子卡牌（和造月之路左侧建造栏 .bb-card 同一套：发亮 = 拿着，变暗 = 没有种子） ---------- */
+.zy-seeds{display:flex;flex-wrap:wrap;gap:8px;padding:2px 0}
+.zy-seed{position:relative;flex:0 0 66px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px 5px;border-radius:10px;border:1px solid #3a3357;
+  background:#1d1930;color:#ede6d6;font:600 12px/1.2 "PingFang SC","Microsoft YaHei",system-ui,sans-serif;cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform .12s,box-shadow .12s}
+.zy-seed .zy-sic{display:block;height:32px}.zy-seed .zy-sic img{width:32px;height:32px;image-rendering:pixelated}
+.zy-seed .zy-snm{white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.zy-seed .zy-sct{font:700 11px/1 ui-monospace,Menlo,Consolas,monospace;color:#ffe08a}
+.zy-seed:active{transform:scale(.95)}
+.zy-seed.poor{opacity:.5;filter:grayscale(.55)}
+.zy-seed.pick{border-color:var(--hero,#9b7bff);background:rgba(var(--hero-rgb,155,123,255),.2);box-shadow:0 0 0 1px var(--hero,#9b7bff),0 0 calc(8px + var(--beat,0)*12px) rgba(var(--hero-rgb,155,123,255),.85)}
+.zy-seed.drag{opacity:.55}
+.zy-seed-ghost{position:fixed;z-index:9990;pointer-events:none;width:48px;height:48px;transform:translate(-50%,-85%);filter:drop-shadow(0 8px 10px rgba(0,0,0,.6))}
+.zy-seed-ghost img{width:48px;height:48px;image-rendering:pixelated}
+.zy-seed-ghost::after{content:"";position:absolute;left:50%;top:100%;width:34px;height:14px;margin:4px 0 0 -17px;border-radius:50%;border:2px solid transparent}
+.zy-seed-ghost.ok::after{border-color:#6fdc8c;background:rgba(111,220,140,.25)}
+.zy-seed-ghost.no::after{border-color:#ff5d6c;background:rgba(255,93,108,.25)}
+html.zy .ovl #bHarvest{background:linear-gradient(180deg,#ffb14a,#ff7a45)!important;color:#2a1206!important;border-color:#ffc27a!important;font-weight:800}
+
+/* ---------- 从造月之路进来时：返回键、悬浮学习计时（zy-bridge.js） ---------- */
+.zy-back{flex:none;width:30px;height:36px;border-radius:9px;border:1px solid rgba(255,255,255,.2);background:rgba(9,7,20,.6);color:#ede6d6;font:800 20px/1 system-ui,sans-serif;cursor:pointer;padding:0}
+.zy-back:active{transform:scale(.94)}
+.zy-timer{position:fixed;z-index:9998;width:64px;height:64px;border-radius:50%;display:grid;place-items:center;cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;
+  background:radial-gradient(circle,#0b0820d9 52%,#0b082066 70%,transparent 72%);filter:drop-shadow(0 4px 12px #0009);opacity:.9}
+.zy-timer svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.zy-timer .rb{fill:none;stroke:#ffffff1c;stroke-width:6}
+.zy-timer .ri{fill:none;stroke:#4ef0ff;stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset .9s linear}
+.zy-timer .ro{fill:none;stroke:#ffd257;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .9s linear}
+.zy-timer .ro-g{fill:none;stroke:#ffd25750;stroke-width:5;stroke-linecap:round}
+.zy-timer .zy-ic2{position:relative;font:800 13px/1 "Avenir Next","Segoe UI",Arial,sans-serif;letter-spacing:.06em;color:#e8f6ff}
+.zy-timer .zy-bank{position:absolute;right:3px;top:3px;width:11px;height:11px;border-radius:50%;background:#ffd257;box-shadow:0 0 6px #ffd257;display:none}
+.zy-timer.has-bank .zy-bank{display:block}
+.zy-hint{position:fixed;z-index:10000;left:50%;top:18%;transform:translateX(-50%);max-width:min(86vw,360px);padding:12px 14px;border-radius:12px;background:rgba(9,7,20,.92);
+  border:1px solid rgba(var(--hero-rgb,155,123,255),.7);color:#ede6d6;font:400 13px/1.7 "PingFang SC","Microsoft YaHei",system-ui,sans-serif;box-shadow:0 8px 30px #000a}
+.zy-hint b{display:block;font-size:15px;margin-bottom:4px;color:#ffe08a}
+.zy-upbtn{position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center}
+.zy-upbtn input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:100px}
+.zy-btn.zy-ghost{background:transparent;border-color:#3a3357;color:#ede6d6}

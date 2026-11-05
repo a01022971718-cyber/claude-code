@@ -33,21 +33,15 @@ v7 起录音经过「分句演绎 + 情绪模板 + 挑 take」的加工（见 `t
 
 ## 英语田园（v8，`farm/`）
 
-英语田园是主创之前做的「生而向星」英语农场（v1.10.0），按《造月之路》的 UI 宪法换了皮（`tools/farm-skin.mjs`、`farm/zaoyue-skin.css`、`farm/zaoyue-bridge.js`）。它自带的第三方代码与素材：
+英语田园是主创的「豆豆的田园厨房」（第 27 版），按《造月之路》的做法改造（`tools/farm-zy-build.mjs`、`farm-zy-src/`）。它自带的第三方代码与素材见 `farm/NOTICE.md`：
 
-| 组件 | 许可 | 位置 / 说明 |
+| 组件 | 许可 | 说明 |
 |---|---|---|
-| [Phaser](https://phaser.io) 3.90.0（arcade 物理版） | MIT | `farm/vendor/phaser.min.js`，许可 `farm/vendor/LICENSE-phaser.md`（v8 补上，取自 phaserjs/phaser 仓库） |
-| [JSZip](https://stuk.github.io/jszip/) | MIT 或 GPL-3.0 双许可（选 MIT） | `farm/vendor/jszip.min.js`，许可 `farm/vendor/LICENSE-jszip.md` |
-| [vosk-browser](https://github.com/ccoreilly/vosk-browser) 0.0.8（Vosk / Kaldi 的 WebAssembly 版，加了下载进度补丁） | Apache-2.0 | `farm/vendor/vosk.js`；口语评分模型 vosk-model-small-en-us-0.15（Apache-2.0）不随包分发，第一次使用时下载 |
-| kokoro-js 1.2.1（含 transformers.js） | Apache-2.0 | `farm/vendor/kokoro/` |
-| └ 其中打包的 phonemizer（**espeak-ng**） | **GPL-3.0** | 随包分发时须满足 GPL-3.0，见 `design/03-compliance.md` 第一部分第 11 项 |
-| onnxruntime-web 1.22 | MIT | `farm/vendor/kokoro/ort-wasm-simd-threaded.jsep.mjs` |
-| Kokoro-82M v1.0 ONNX 模型、af_heart 等英文声音 | Apache-2.0 | 不随包分发，第一次使用时下载；`farm/voice.js` 里的示范发音由它预先合成 |
-| 字体 Fusion Pixel（子集改名为 "Doudou Pixel CJK"）、Jersey 10、ZCOOL 快乐体、Noto Sans SC | SIL OFL 1.1 | `farm/vendor/fonts/OFL-*.txt`（Fusion Pixel 与 Jersey 10 的许可文件 v8 补上，取自各自仓库）。换皮后界面文字改用系统字体；字体文件仍原样保留在包里（不删原版资源） |
-| 场景画、图标、豆豆等角色 | 主创提供 | 来自「生而向星」安装包 |
-
-详细说明见 `farm/vendor/NOTICE-voice.md`。
+| [Phaser](https://phaser.io) 3.90 | MIT | `farm/vendor/phaser.min.js`，许可 `farm/vendor/LICENSE-phaser.md` |
+| [vosk-browser](https://github.com/ccoreilly/vosk-browser) 0.0.8（加了下载进度补丁） | Apache-2.0 | `farm/vendor/vosk.js`；口语评分模型 vosk-model-small-en-us-0.15（Apache-2.0）第一次使用时下载，不随包分发 |
+| 示范发音 `farm/voice.js` | Kokoro-82M 合成（Apache-2.0） | 预先合成好的录音 |
+| 内联字体 Fusion Pixel（子集改名 "Doudou Pixel CJK"）、Jersey 10 | SIL OFL 1.1 | |
+| 场景画、作物、小动物客人 | 主创提供 | |
 
 ## 参考
 

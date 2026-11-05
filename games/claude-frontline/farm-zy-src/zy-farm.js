@@ -132,7 +132,7 @@
       if (e.target === ov || e.target.closest('[data-x]')) return close();
       const hb = e.target.closest('.zy-hero');
       if (hb) {
-        cfg.hero = hb.dataset.id; CF.Save.data.hero = cfg.hero; keep(); H.applyTheme(cfg.hero);
+        cfg.hero = hb.dataset.id; CF.Save.data.hero = cfg.hero; keep(); H.applyTheme(cfg.hero); heroChanged();
         ov.querySelectorAll('.zy-hero').forEach((x) => x.classList.toggle('on', x === hb));
         if (heroMusic) { A.screen = null; A.play('menu'); }
         CF.PixelFX.wipe();
@@ -148,7 +148,147 @@
     if (typeof BGM !== 'undefined') { BGM.cur = null; try { bgmSet(); } catch (e) { /* 田园还没加载完 */ } }
   }
 
+  // ---------- 主角：豆豆换成主题英雄（主创要求：删掉豆豆，选哪位英雄，场景里就是哪位） ----------
+  // 原版用 ddHD（农场高清画面）和 ddSpr（厨房、小馆、头像）画豆豆；这里换成英雄的像素形象（英雄自带乐器，走路时一步一弹）。
+  // 画布带上落脚点 zyLx / zyLy，构建脚本把原版画豆豆的几行改成读这个落脚点（tools/farm-zy-build.mjs）。
+  const HSPR = new Map();
+  function heroSprite(w, h, p, cx, feet, f, hd) {
+    const key = [cfg.hero, w, h, p, f, hd ? 1 : 0].join(':');
+    if (HSPR.has(key)) return HSPR.get(key);
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+    H.get(cfg.hero).draw(g, cx - 10 * p, feet - 11 * p, p, { bob: f ? 1 : 0, strum: f ? 1 : 0, t: f * 0.3 });
+    let out = c;
+    if (hd && typeof hdOutline === 'function') { try { out = hdOutline(c) || c; } catch (e) { out = c; } }
+    out.zyLx = cx / (hd ? 2 : 1); out.zyLy = feet / (hd ? 2 : 1); out.zyKey = cfg.hero;
+    HSPR.set(key, out); return out;
+  }
+  if (typeof ddHD === 'function') window.ddHD = (f) => heroSprite(72, 58, 2.2, 36, 52, f, true);
+  if (typeof ddSpr === 'function') window.ddSpr = (hat, f) => heroSprite(28, 26, 1, 14, 24, f, false);
+  function heroChanged() {
+    HSPR.clear();
+    const hero = H.get(cfg.hero);
+    try { if (typeof DD_LINES !== 'undefined') DD_LINES[0] = `Hi! I'm ${hero.en}.`; } catch (e) { /* 原版没有这句 */ }
+    try {
+      meImg.dd = null; URLS.delete('dd:farm:0');
+      const ava = document.querySelector('#ava'); if (ava) { ava.innerHTML = im('dd:farm:0', ddSpr('farm', 0), 2); ava.title = hero.name; }
+    } catch (e) { /* 田园还没加载完 */ }
+  }
+
+  // ---------- 种子卡牌（主创要求：和沉浸模式左侧建造栏同一套交互） ----------
+  // 点一下卡牌 = 拿起种子（卡牌发亮），再点一块空地 = 种下，种完自动放下；再点同一张卡牌或 Esc = 取消。
+  // 按住卡牌拖到空地上松手 = 种下；松手在卡牌栏上、或者不是空地 = 取消并说明原因。没有种子的卡牌变暗，点它打开种子店。
+  let pick = null, drag = null, bar = null, ghost = null;
+  const seedOk = () => farmOk() && typeof CROP_IDS !== 'undefined' && typeof CROPS !== 'undefined';
+  function seedBar() {
+    if (!seedOk()) return;
+    const tools = document.querySelector('#v-farm .tools'); if (!tools) return;
+    if (!bar || !bar.isConnected) {
+      bar = document.createElement('div'); bar.className = 'zy-seeds'; bar.setAttribute('role', 'toolbar'); bar.setAttribute('aria-label', '种子卡牌：点一下再点空地，或者直接拖到空地上');
+      tools.parentNode.insertBefore(bar, tools); bindBar(bar);
+    }
+    // 原来这个位置的「一键收获」挪到农场画面左上角（和标签、装扮在一起），功能不变
+    const hv = document.getElementById('bHarvest'), ovl = document.querySelector('#v-farm .ovl');
+    if (hv && ovl && hv.parentNode !== ovl) ovl.appendChild(hv);
+    if (pick && SEEDHAND !== pick) pick = null;   // 原版的「完成」按钮放下了种子
+    const ids = CROP_IDS.filter((id) => (CROPS[id].lv || 1) <= (S.lv || 1) || (S.seeds[id] || 0) > 0);
+    const sig = ids.map((id) => id + ':' + (S.seeds[id] || 0)).join(',') + '|' + (pick || '');
+    if (bar.dataset.sig === sig) return; bar.dataset.sig = sig;
+    bar.innerHTML = ids.map((id) => {
+      const n = S.seeds[id] || 0, c = CROPS[id];
+      return `<button type="button" class="zy-seed${n ? '' : ' poor'}${pick === id ? ' pick' : ''}" data-seed="${id}" title="${esc(c.zh)} ${esc(c.en)}：${n ? '点一下再点空地，或者拖到空地上' : '没有种子了，点一下去种子店'}">`
+        + `<span class="zy-sic">${itemImg(id, 2)}</span><span class="zy-snm">${esc(c.zh)}</span><span class="zy-sct">×${n}</span></button>`;
+    }).join('') || '<p class="zy-dim">还没有种子：去种子店买一包吧。</p>';
+  }
+  function setPick(id) {
+    pick = id; SEEDHAND = id; try { syncSeedHand(); } catch (e) { /* 原版函数 */ }
+    if (id) toast(`拿起了${CROPS[id].zh}种子：点一块空地种下（再点卡牌取消）`);
+    seedBar();
+  }
+  function plotUnder(x, y) {
+    const cv = document.getElementById('farmCv'); if (!cv) return -1;
+    const r = cv.getBoundingClientRect(); if (x < r.left || x > r.right || y < r.top || y > r.bottom) return -1;
+    return plotAt((x - r.left) * FARM.w / r.width - FARM.ox, (y - r.top) * FARM.h / r.height);
+  }
+  function dropOn(k, id) {
+    const p = S.plots[k], q = PLOTS[k];
+    if (!p.open) return toast('这块地还没开垦：点一下地块可以开垦');
+    if (p.crop) return toast('这块地已经种上了');
+    if (p.dead) return toast('先点一下地块，把枯苗清掉');
+    walkTo(q.x + 13, q.y + 5); DD.hop = 1; plant(k, id);
+  }
+  function bindBar(el) {
+    el.addEventListener('pointerdown', (e) => {
+      const c = e.target.closest('.zy-seed'); if (!c) return;
+      e.preventDefault(); drag = { id: c.dataset.seed, pid: e.pointerId, sx: e.clientX, sy: e.clientY, on: false, card: c };
+      try { c.setPointerCapture(e.pointerId); } catch (er) { /* 合成事件 */ }
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!drag || drag.pid !== e.pointerId) return;
+      if (!drag.on && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 10) {
+        if (!(S.seeds[drag.id] > 0)) { toast(`${CROPS[drag.id].zh}种子用完了，去种子店买`); drag = null; return; }
+        drag.on = true; drag.card.classList.add('drag');
+        ghost = document.createElement('div'); ghost.className = 'zy-seed-ghost'; ghost.innerHTML = itemImg(drag.id, 3); document.body.appendChild(ghost);
+      }
+      if (!drag.on) return;
+      ghost.style.left = e.clientX + 'px'; ghost.style.top = e.clientY + 'px';
+      const k = plotUnder(e.clientX, e.clientY), p = k >= 0 && S.plots[k];
+      ghost.classList.toggle('ok', !!(p && p.open && !p.crop && !p.dead)); ghost.classList.toggle('no', k >= 0 && !(p && p.open && !p.crop && !p.dead));
+      if (k >= 0) { sel = k; selT = performance.now(); }
+    });
+    const up = (e) => {
+      if (!drag || drag.pid !== e.pointerId) return;
+      const d = drag; drag = null; d.card.classList.remove('drag'); if (ghost) { ghost.remove(); ghost = null; }
+      ac(); SFX.click();
+      if (!d.on) {   // 点一下
+        if (!(S.seeds[d.id] > 0)) { const b = document.getElementById('bShop'); if (b) b.click(); return; }
+        return setPick(pick === d.id ? null : d.id);
+      }
+      const r = el.getBoundingClientRect();
+      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) return toast('已取消');
+      const k = plotUnder(e.clientX, e.clientY);
+      if (k < 0) return toast('取消：没有放在地块上');
+      dropOn(k, d.id);
+    };
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', (e) => { if (drag && drag.pid === e.pointerId) { drag.card.classList.remove('drag'); drag = null; if (ghost) { ghost.remove(); ghost = null; } } });
+  }
+  addEventListener('keydown', (e) => { if (e.key === 'Escape' && pick) setPick(null); });
+  if (typeof plant === 'function') {
+    const plant0 = plant;
+    window.plant = function (k, id) { const r = plant0.apply(this, arguments); if (pick && pick === id) { pick = null; SEEDHAND = null; try { syncSeedHand(); } catch (e) { /* 原版函数 */ } } seedBar(); return r; };
+  }
+  if (typeof refresh === 'function') {
+    const refresh0 = refresh;
+    window.refresh = function () { const r = refresh0.apply(this, arguments); try { seedBar(); } catch (e) { /* 田园还没加载完 */ } return r; };
+  }
+
+  // ---------- 上传本地文件（主创反馈：claude.ai 里点上传没反应） ----------
+  // 原版是「点按钮 → 程序替你点隐藏的选文件框」。电脑浏览器里没问题，但 claude.ai 的部分设备会拦下这种「代点」。
+  // 在 claude.ai 里改成弹出一个真正的「选择文件」按钮，手指直接点它；选好的文件原样交回原版的处理逻辑。
+  // 并进造月之路（安卓安装包）时由系统的文件选择器处理，不走这里。
+  if (window.claude && !window.XSNative) {
+    const click0 = HTMLInputElement.prototype.click;
+    HTMLInputElement.prototype.click = function () {
+      if (this.type !== 'file' || this.zyDirect) return click0.call(this);
+      const orig = this;
+      document.querySelectorAll('.zy-up').forEach((x) => x.remove());
+      const ov = document.createElement('div'); ov.className = 'zy-pick zy-up';
+      ov.innerHTML = '<div class="zy-pick-card" role="dialog" aria-modal="true" aria-label="选择文件"><div class="zy-pick-body"><h3>选择文件</h3><p class="zy-dim">点下面的按钮，从手机或电脑里选一个文件。</p>'
+        + '<div class="zy-pick-foot"><label class="zy-btn zy-upbtn">选择文件<input type="file"></label><button type="button" class="zy-btn zy-ghost" data-x>取消</button></div></div></div>';
+      const inp = ov.querySelector('input'); inp.zyDirect = true; if (orig.accept) inp.accept = orig.accept; inp.multiple = orig.multiple;
+      inp.addEventListener('change', () => {
+        try { const dt = new DataTransfer(); [...inp.files].forEach((f) => dt.items.add(f)); orig.files = dt.files; } catch (e) { /* 老浏览器 */ }
+        ov.remove(); orig.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('[data-x]')) ov.remove(); });
+      document.body.appendChild(ov);
+    };
+  }
+
   // ---------- 启动 ----------
+  heroChanged();
+  seedBar();
   if (!cfg.off) { root.classList.add('zy'); H.applyTheme(cfg.hero); }
   if (typeof BGM !== 'undefined') { BGM.cur = null; try { bgmSet(); } catch (e) { /* 田园还没加载完 */ } }
   decorate();

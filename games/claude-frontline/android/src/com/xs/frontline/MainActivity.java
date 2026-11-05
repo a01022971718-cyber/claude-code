@@ -43,7 +43,7 @@ import java.util.Map;
  * - 存档保存在 WebView 的 localStorage / IndexedDB 中，离线可玩；
  * - 设置里的「本地文件」可以从手机里选音乐（onShowFileChooser）；
  * - 英雄配音调用系统中文语音合成（XSNative.speak），没有中文语音包时游戏自动改用像素音。
- * v0.8 英语田园（assets/farm/，原「生而向星」）：
+ * v0.8 英语田园（assets/farm/；0.8.1 起是「豆豆的田园厨房」造月之路版，0.8.0 是旧版「生而向星」）：
  * - 用 https://appassets.androidplatform.net/farm/… 加载（shouldInterceptRequest 从 assets 读文件），田园需要 https 来源才能用
  *   fetch、Web Worker、WebAssembly、浏览器缓存（发音模型和口语评分模型下载一次后缓存）。
  * - 大厅 ↔ 田园用 XSNative.openFarm / backToGame 整页切换（https 页面不能自己跳到 file://）。
