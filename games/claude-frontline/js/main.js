@@ -23,6 +23,7 @@
   window.addEventListener('keydown', unlock, { once: true });
   CF.Icons.watch(); // 全部 emoji → 像素图标（UI 宪法第 12 章）
   CF.UI.show('lobby');
+  CF.Farm.checkReturn(); // 从英语田园回来：结算田园里的学习时间
   CF.P.checkAch();
   document.addEventListener('visibilitychange', () => { if (document.hidden) { CF.Save.save(); const g = CF.Game.current; if (g && !g.over) g.paused = true; } });
   window.CF_DEBUG = CF; // 方便在控制台调试

@@ -9,6 +9,8 @@ cd "$(dirname "$0")/.."
 OUT=android/build; rm -rf "$OUT"; mkdir -p "$OUT"/{res,classes,dex,assets} release
 node build.mjs
 cp dist/claude-frontline.html "$OUT/assets/index.html"
+# 英语田园（v0.8）：整个 farm/ 目录放进 assets/farm/，由 MainActivity 用 https://appassets.androidplatform.net/farm/ 提供
+cp -r farm "$OUT/assets/farm"
 "$BT/aapt2" compile --dir android/res -o "$OUT/res.zip"
 "$BT/aapt2" link -o "$OUT/base.apk" -I "$ANDROID_JAR" --manifest android/AndroidManifest.xml \
   --min-sdk-version 24 --target-sdk-version 34 -A "$OUT/assets" "$OUT/res.zip" --java "$OUT/gen" --auto-add-overlay

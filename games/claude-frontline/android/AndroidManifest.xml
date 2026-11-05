@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.xs.frontline"
-    android:versionCode="7"
-    android:versionName="0.7.0">
+    android:versionCode="8"
+    android:versionName="0.8.0">
     <!-- 快速模式的震动反馈 -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- v0.8 英语田园：第一次下载英文发音模型 / 口语评分模型、检查课程更新（不联网时其余功能照常） -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- v0.8 英语田园：口语评分（第一次用到时才弹窗申请；录音只在手机本地识别，不上传） -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <application
         android:label="造月之路"
         android:icon="@drawable/ic_launcher"

@@ -100,6 +100,7 @@
   S.onAttack = function (g, a, t, atk) {
     let mul = 1;
     if (a.heroId) CF.Audio.heroHit(a.heroId, false); // 英雄打击音效：按各自乐器
+    if (a === g.hero && CF.SkillCost) CF.SkillCost.onHit(g, a);
     if (a.heroId) {
       const id = a.heroId;
       if (id === 'zaole') { a.ens = (a.ens || 0) + 1; if (a.ens >= 9) { a.ens = 0; mul *= 3; g.ring(a.x, a.y, 200, atk.dmg * 1.5, a, { c: a.heroDef.pal.accent, pixel: true }); g.allies(a.x, a.y, 260).forEach((e) => g.buff(e, 'haste', 4, 0.3)); g.notes(a, 9); } }

@@ -35,7 +35,7 @@
       return false;
     },
     activate() { const s = d(); if (s.bank <= 0) return; s.until = Math.max(Date.now(), s.until) + s.bank * 60000; CF.toast(`无限体力已启用：${s.bank} 分钟`, 'gold', 3000); s.bank = 0; CF.Save.save(); St.paint(); },
-    explain: () => `<div class="explain">学习类内容（学院、实验室、电路工坊）<b>不消耗体力</b>。<br>· 一次连续学习满 <b>25 分钟</b>（中途不离开学习页面）→ 得 <b>5 分钟</b>无限体力；<br>· 零散学习累计满 <b>40 分钟</b>（例如今天 10 分钟、明天 10 分钟）→ 得 <b>10 分钟</b>无限体力。<br>无限体力会先存起来，你想玩的时候再点「启用」。</div>`,
+    explain: () => `<div class="explain">学习类内容（学院、实验室、电路工坊、英语田园）<b>不消耗体力</b>。<br>· 一次连续学习满 <b>25 分钟</b>（中途不离开学习页面）→ 得 <b>5 分钟</b>无限体力；<br>· 零散学习累计满 <b>40 分钟</b>（例如今天 10 分钟、明天 10 分钟）→ 得 <b>10 分钟</b>无限体力。<br>无限体力会先存起来，你想玩的时候再点「启用」。</div>`,
     // 每秒调用：统计学习时间
     tick(dt) {
       const s = d(), cur = CF.UI && CF.UI.cur, learning = LEARN.includes(cur) && !document.hidden;
@@ -48,6 +48,16 @@
     },
     endSession() { const s = d(); if (s.sess > 0) { s.pool += s.sess; s.sess = 0; } while (s.pool >= POOL) { s.pool -= POOL; s.bank += 10; CF.toast('外圈满了：零散学习累计 40 分钟！获得 10 分钟无限体力（已存入）', 'gold', 4000); St.ringDone('o'); } CF.Save.save(); },
     learnInfo() { const s = d(); return { sess: s.sess, pool: s.pool, bank: s.bank, total: s.total }; },
+    // 在别的页面（英语田园）里学习的时间：回来时一次性结算。规则与 tick 相同：先接着本次连续学习算内圈，离开后余下的进外圈
+    credit(sec, from) {
+      sec = Math.min(Math.floor(+sec || 0), 6 * 3600); if (sec <= 0) return;
+      const s = d(); let got = 0;
+      s.sess += sec; s.total += sec;
+      while (s.sess >= SESSION) { s.sess -= SESSION; s.bank += 5; got += 5; }
+      if (got) { CF.Audio.sfx('unlock'); setTimeout(() => St.ringDone('i'), 600); }
+      St.endSession(); CF.Save.save(); St.paint();
+      CF.toast(`${from}学习 ${Math.max(1, Math.round(sec / 60))} 分钟已计入学习计时${got ? `，连续学习满 25 分钟：+${got} 分钟无限体力（已存入）` : ''}`, 'gold', 4500);
+    },
     // 大厅右上角的体力胶囊 + 学习页的计时条
     paint() {
       const el = CF.$('#lobbyStamina'); if (el) el.innerHTML = St.unlimited() ? `⚡ <b class="t-num">∞</b><span class="small">${CF.fmtTime(St.leftMs() / 1000)}</span>` : `⚡ <b class="t-num">${St.cur()}</b><span class="small">/${MAX}</span>${d().bank ? `<i class="bank">+${d().bank}′</i>` : ''}`;

@@ -135,6 +135,7 @@
       u.cd = { Q: 0, W: 0, R: 0 }; u.skillLv = o.skillLv || g.skillLv || { Q: 1, W: 1, R: 1 };
       if (o.clone) { u.clone = true; u.life = o.life; }
       if (hd.companion && !o.clone) u.drone = { x: x - 30, y: y - 40, cd: 0.5, a: 0 };
+      CF.SkillCost.init(u);
       return u;
     }
     // 波次清空：重叠的波次一起结算，保证每一波的奖励都发到
@@ -181,11 +182,11 @@
       if (key === 'R' && !CF.Treasure.has(g.heroId)) { CF.Audio.sfx('error'); return CF.toast(`需要${CF.Treasure.name(g.heroId)}：${CF.Treasure.how(g.heroId)}`, 'bad', 3200), false; }
       if (h.cd[key] > 0) return CF.toast(`${sk.name} 冷却中 ${Math.ceil(h.cd[key])}s`), false;
       if (h.st && h.st.stun > 0) return CF.toast('眩晕中，无法施法'), false;
-      const cost = CF.Skills.cost(h, sk);
-      if (g.res.comp < cost) { CF.Audio.sfx('error'); return CF.toast(`算力不足（需要 ${cost}）`, 'bad'), false; }
+      // v8：技能不再消耗建造资源（算力），按「技能释放条件」方案判定（js/skillcost.js）
+      if (!CF.SkillCost.can(h, sk)) { CF.Audio.sfx('error'); return CF.toast(CF.SkillCost.why(h, sk), 'bad'), false; }
       if (tx === undefined) { const t = g.bestTarget(h, 600); tx = t ? t.x : h.x + h.face * 120; ty = t ? t.y : h.y; }
       if (!CF.Skills.cast(g, h, key, tx, ty)) return false;
-      g.res.comp -= cost; h.cd[key] = sk.cd * (g.bonus.cdMul || 1) * CF.Roster.starCd(g.heroId); g.stats.riffs++; CF.Save.data.stats.riffs++;
+      CF.SkillCost.pay(h, sk); h.cd[key] = sk.cd * (g.bonus.cdMul || 1) * CF.Roster.starCd(g.heroId) * CF.SkillCost.cdMul(); g.stats.riffs++; CF.Save.data.stats.riffs++;
       g.strum = 0.6; h.face = tx >= h.x ? 1 : -1;
       CF.Audio.lick(g.heroId, true);
       if (key === 'R') { g.say('HERO', g.heroDef.lines.skill); CF.Audio.sfx('riff', 0.6); g.rTotal = { v: 0, t: g.time }; if (CF.Voice) CF.Voice.event(g.heroDef, 'skill'); }
@@ -459,8 +460,10 @@
       // 研究与英雄
       g.researchCd = Math.max(0, g.researchCd - dt);
       if (g.hero.dead) { g.heroRespawn -= dt; if (g.heroRespawn <= 0 && !g.core.dead) { g.hero = g.spawnHero(g.core.x + 60, g.core.y + 40); CF.UI.say('HERO', g.heroDef.lines.revive || '我回来了。继续演奏！'); if (CF.Voice) CF.Voice.event(g.heroDef, 'revive'); CF.UI.selDirty = true; } }
+      if (g.hero && !g.hero.dead) CF.SkillCost.tick(g.hero, dt);
       for (const e of g.ents) if (e.heroId && !e.dead) { for (const k in e.cd) e.cd[k] = Math.max(0, e.cd[k] - dt); CF.Skills.tick(g, e, dt); }
       if (g.mates.length) g.updMates(dt);
+      if (g.rally) g.updRally(dt);
       for (const e of g.ents) if (e.drone && !e.dead) g.updDrone(e, dt);
       if (g.wave > g.clearedN && !g.spawnQ.length && alive === 0 && !g.ents.some((e) => e.team === 1 && e.kind === 'u' && !e.dead)) g.flushWaves();
       // 实体
@@ -792,6 +795,34 @@
       });
     }
     orderAttack(units, t) { units.forEach((u) => { if (this.canHit(u, t)) { u.order = { t: 'attack', id: t.id }; u.tgt = t.id; u.path = null; } else this.orderMove([u], t.x, t.y, true); }); }
+    // ---------- 全军集结旗（v8，沉浸模式）：拖小旗到某个点，全军向那里集结，全部到达后小旗消失 ----------
+    setRally(x, y) {
+      const g = this, units = g.myUnits(g.allArmy()).filter((u) => u !== g.hero && !u.mate && !u.clone);
+      if (!units.length) { CF.toast('现在还没有部队——去 Agent 工坊训练一些', 'bad'); return false; }
+      if (!units[0].air && !g.walkXY(x, y)) { const c = g.nearestWalk(...g.cellOf(x, y)); x = c[0] * CELL + 20; y = c[1] * CELL + 20; }
+      g.orderMove(units, x, y, true);
+      g.rally = { x, y, ids: units.map((u) => u.id), t: 0, n: units.length };
+      g.fx.push({ k: 'ring', x, y, r: 0, max: 90, t: 0, c: '#ffd257', pixel: true });
+      CF.Audio.sfx('alert', 0.5); CF.toast(`全军 ${units.length} 个单位向集结点前进`, 'gold', 1400);
+      return true;
+    }
+    updRally(dt) {
+      const g = this, R = g.rally; if (!R) return;
+      R.t += dt;
+      const alive = R.ids.map((id) => g.get(id)).filter((u) => u && !u.dead);
+      R.arrived = alive.filter((u) => CF.dist(u.x, u.y, R.x, R.y) < 70 + Math.sqrt(alive.length) * 16).length; R.alive = alive.length;
+      if (!alive.length || R.arrived >= alive.length || R.t > 45) { if (alive.length && R.arrived >= alive.length) { g.fx.push({ k: 'ring', x: R.x, y: R.y, r: 0, max: 130, t: 0, c: '#6fdc8c', pixel: true }); CF.toast('全军已集结', 'good', 1200); } g.rally = null; }
+    }
+    drawRally(ctx, t) {
+      const R = this.rally; if (!R) return;
+      const { x, y } = R, wave = Math.sin(t * 6) * 2;
+      ctx.save(); ctx.globalAlpha = 0.25 + 0.15 * Math.sin(t * 4); ctx.strokeStyle = '#ffd257'; ctx.lineWidth = 2; ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.arc(x, y, 70, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+      ctx.fillStyle = '#5a4a3a'; ctx.fillRect(x - 1, y - 34, 3, 36);
+      ctx.fillStyle = '#ffd257'; ctx.beginPath(); ctx.moveTo(x + 2, y - 34); ctx.lineTo(x + 24, y - 28 + wave); ctx.lineTo(x + 2, y - 20); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ff5d6c'; ctx.fillRect(x + 6, y - 30 + wave * 0.5, 6, 4);
+      ctx.font = 'bold 11px ui-monospace,monospace'; ctx.textAlign = 'center'; ctx.fillStyle = '#ffe9a8'; ctx.fillText(`${R.arrived || 0}/${R.alive ?? R.n}`, x + 10, y - 38); ctx.textAlign = 'left';
+      ctx.restore();
+    }
     orderStop(units) { units.forEach((u) => { u.order = { t: 'idle' }; u.path = null; u.tgt = null; u.guard = { x: u.x, y: u.y }; }); }
     orderHold(units) { units.forEach((u) => { u.order = { t: 'hold' }; u.path = null; u.guard = { x: u.x, y: u.y }; }); CF.toast('驻守：原地攻击射程内的敌人'); }
     pushTarget() {
@@ -1010,6 +1041,7 @@
       }
       for (const p of g.parts) { ctx.globalAlpha = 1 - p.age / p.life; ctx.fillStyle = p.c; if (p.note) CF.PixelFX.drawPattern(ctx, CF.PixelFX.NOTES[Math.abs(p.x | 0) % 4], p.x, p.y, 2, p.c); else ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); }
       ctx.globalAlpha = 1;
+      g.drawRally(ctx, t);
       // 选中目标的浮动名牌（取代信息面板）
       if (g.sel.length === 1) { const e = g.get(g.sel[0]); if (e && e !== g.hero) { const yy = e.y - e.r - (e.air ? 34 : 22); ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; const nm = (e.heroId ? e.heroDef.name + (g.heroLv ? ' Lv' + g.heroLv : '') : e.def.name) + (e.kind === 'b' && e.queue && e.queue.length ? ' · 训练中' : ''); const w2 = ctx.measureText(nm).width + 14; ctx.fillStyle = 'rgba(9,7,20,.75)'; ctx.fillRect(e.x - w2 / 2, yy - 13, w2, 17); ctx.fillStyle = e.team === 0 ? '#ede6d6' : '#ff4f9a'; ctx.fillText(nm, e.x, yy); ctx.textAlign = 'left'; } }
       if (g.aim && g.hero && !g.hero.dead) { const sk = g.heroDef.skills.find((x) => x.key === g.aim.key), h = g.hero, P = g.heroDef.pal; ctx.strokeStyle = P.glow; ctx.setLineDash([6, 6]); ctx.lineWidth = 2; const mx = g.aim.x ?? h.x, my = g.aim.y ?? h.y; if (sk.target === 'dir') { const a = Math.atan2(my - h.y, mx - h.x); ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.lineTo(h.x + Math.cos(a) * 420, h.y + Math.sin(a) * 420); ctx.stroke(); } else { ctx.beginPath(); ctx.arc(mx, my, 160, 0, TAU); ctx.stroke(); } ctx.setLineDash([]); ctx.lineWidth = 1; }
@@ -1040,6 +1072,7 @@
       ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#f4f1ea'; ctx.fillText(nm, x0 + tw + 4, y0 + 8.5);
       const p = Math.max(0, h.hp / h.maxHp); ctx.fillStyle = '#000b'; ctx.fillRect(x0, y0 + 17, w, 4);
       ctx.fillStyle = p > 0.5 ? '#6fdc8c' : p > 0.25 ? '#e9b949' : '#ff5d6c'; ctx.fillRect(x0 + 1, y0 + 18, (w - 2) * p, 2);
+      CF.SkillCost.drawPlate(ctx, h, x0, y0 + 22, w);
       ctx.restore();
     }
     // ================= 伤害飘字：赛事直播风（《字体美术宪法》第 14 章） =================

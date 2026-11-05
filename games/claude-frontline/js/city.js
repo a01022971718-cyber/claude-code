@@ -71,9 +71,24 @@
     fuse: { name: '保险丝', ic: '∽', vals: [0.5, 1, 2, 10], unit: 'A', R: 0.05 },
     solar: { name: '太阳能板', ic: '☀', polar: true, vals: [0, 25, 50, 100], Isc: 0.5, Rsh: 18 }, // 诺顿等效：短路电流 × 光照，开路电压约 9 V
     ldr: { name: '光敏电阻', ic: '⊘', vals: [0, 50, 100] },          // 光照 0 / 50 / 100 %：暗 10 kΩ → 亮 200 Ω
+    // ---- v8 新元件：满足具身智能 / 航空航天的常用需求 ----
+    pot: { name: '电位器', ic: '⊿', vals: [0, 25, 50, 75, 100] },     // 10 kΩ 可调电阻：旋钮 % → 阻值
+    ntc: { name: '热敏电阻', ic: 't°', vals: [0, 25, 60, 100] },      // NTC 10 kΩ@25 ℃，B = 3950；温度越高电阻越小
+    buzzer: { name: '蜂鸣器', ic: '♪', R: 40 },                        // 电流超过 20 mA 就响
+    zener: { name: '稳压二极管', ic: '▷|z', polar: true, Vf: 0.7, Vz: 5.1, rd: 2 }, // 反向击穿电压 5.1 V
+    coil: { name: '继电器线圈', ic: '⌇', R: 60, ch: true },            // 线圈电流 > 40 mA 时，同一通道的触点吸合
+    contact: { name: '继电器触点', ic: '⌐◦', ch: true },
+    mosfet: { name: 'MOSFET 开关', ic: 'Q', ch: true },                // 同一通道的单片机输出高电平时导通（0.05 Ω）
+    mcu: { name: '单片机', ic: '▦', R: 150, ch: true, vals: ['on', 'blink', 'dark', 'hot'] }, // 两端电压 > 3 V 才运行「小程序」
   };
+  const PROG = { on: '常开', blink: '闪烁 1 Hz', dark: '天黑就开', hot: '过热就关' };
+  const potR = (v) => Math.max(10, 10000 * (v ?? 50) / 100);
+  const ntcR = (T) => 10000 * Math.exp(3950 * (1 / ((T ?? 25) + 273.15) - 1 / 298.15));
+  // 单片机的「小程序」：按通道输出高 / 低电平（读取同一通道的光敏 / 热敏电阻）
+  const mcuOut = (parts, p, t) => { if (!p.pwr) return false; const ch = p.ch || 'A', same = (ty) => parts.filter((q) => q.type === ty && (q.ch || 'A') === ch);
+    switch (p.val) { case 'blink': return Math.floor(t * 2) % 2 === 0; case 'dark': return same('ldr').some((q) => (q.val ?? 100) < 50); case 'hot': return !same('ntc').some((q) => (q.val ?? 25) >= 60); default: return true; } };
   const ldrR = (light) => 200 + 9800 * (1 - light / 100);
-  const DEF = { resistor: 100, battery: 6, cap: 0.001, fuse: 1, solar: 100, ldr: 100 };
+  const DEF = { resistor: 100, battery: 6, cap: 0.001, fuse: 1, solar: 100, ldr: 100, pot: 50, ntc: 25, mcu: 'on' };
   const DIODES = { led: PARTS.led, diode: PARTS.diode };
   const node = (c, r) => r * COLS + c;
   const ends = (e) => { const [k, c, r] = e.split(','); const ci = +c, ri = +r; return k === 'h' ? [node(ci, ri), node(ci + 1, ri)] : [node(ci, ri), node(ci, ri + 1)]; };
@@ -94,7 +109,10 @@
   function solve(parts, dt = 0.02) {
     const N = COLS * ROWS, bat = parts.find((p) => p.type === 'battery');
     const ref = bat ? ends(bat.e)[bat.flip ? 0 : 1] : 0; // 电池负极接地
-    parts.forEach((p) => { if (DIODES[p.type] && p.dOn === undefined) p.dOn = false; });
+    parts.forEach((p) => { if (DIODES[p.type] && p.dOn === undefined) p.dOn = false; if (p.type === 'zener' && p.zs === undefined) p.zs = 0; ['coil', 'contact', 'mosfet', 'mcu'].includes(p.type) && !p.ch && (p.ch = 'A'); });
+    // 控制层：继电器触点看同通道线圈的电流（上一轮），MOSFET 看同通道单片机的输出（上一轮）
+    const ctrl = () => { for (const p of parts) { if (p.type === 'contact') p.closed = parts.some((q) => q.type === 'coil' && q.ch === p.ch && Math.abs(q.I || 0) > 0.04); if (p.type === 'mosfet') p.closed = parts.some((q) => q.type === 'mcu' && q.ch === p.ch && mcuOut(parts, q, simT)); } };
+    ctrl();
     let v = null;
     for (let it = 0; it < 14; it++) {
       const G = Array.from({ length: N }, () => new Float64Array(N)), I = new Float64Array(N);
@@ -111,6 +129,13 @@
           case 'battery': { const g = 1 / 0.05; g2(pos, neg, g); I[pos] += p.val * g; I[neg] -= p.val * g; break; }
           case 'led': case 'diode': { const D = DIODES[p.type]; if (p.burnt) { g2(a, b, 1e-9); break; } if (p.dOn) { const g = 1 / D.rd; g2(pos, neg, g); I[pos] += D.Vf * g; I[neg] -= D.Vf * g; } else g2(pos, neg, 1e-9); break; }
           case 'motor': g2(a, b, 1 / (p.stall ? PARTS.motor.Rstall : PARTS.motor.R)); break;
+          case 'pot': g2(a, b, 1 / potR(p.val)); break;
+          case 'ntc': g2(a, b, 1 / ntcR(p.val)); break;
+          case 'buzzer': g2(a, b, 1 / PARTS.buzzer.R); break;
+          case 'coil': g2(a, b, 1 / PARTS.coil.R); break;
+          case 'mcu': g2(a, b, 1 / PARTS.mcu.R); break;
+          case 'contact': case 'mosfet': g2(a, b, p.closed ? 1 / 0.05 : 1e-9); break;
+          case 'zener': { const Z = PARTS.zener, g = 1 / Z.rd; if (p.zs === 1) { g2(pos, neg, g); I[pos] += Z.Vf * g; I[neg] -= Z.Vf * g; } else if (p.zs === -1) { g2(neg, pos, g); I[neg] += Z.Vz * g; I[pos] -= Z.Vz * g; } else g2(pos, neg, 1e-9); break; }
           case 'fuse': g2(a, b, p.blown ? 1e-9 : 1 / PARTS.fuse.R); break;
           case 'ldr': g2(a, b, 1 / ldrR(p.val ?? 100)); break;
           case 'solar': { const isc = PARTS.solar.Isc * ((p.val ?? 100) / 100); g2(pos, neg, 1 / PARTS.solar.Rsh); I[pos] += isc; I[neg] -= isc; break; }
@@ -124,6 +149,12 @@
       let changed = false;
       for (const p of parts) if (DIODES[p.type] && !p.burnt) { const D = DIODES[p.type], [a, b] = ends(p.e), vd = p.flip ? v[b] - v[a] : v[a] - v[b]; const want = p.dOn ? (vd - D.Vf) / D.rd > 0 : vd > D.Vf; if (want !== p.dOn) { p.dOn = want; changed = true; } }
       // 保险丝：电流超过额定值就熔断（每次只熔断电流最大的一根，再重新求解，避免「一起烧」的假象）
+      for (const p of parts) if (p.type === 'zener') { const Z = PARTS.zener, [a, b] = ends(p.e), vd = p.flip ? v[b] - v[a] : v[a] - v[b]; const want = vd > Z.Vf ? 1 : -vd > Z.Vz ? -1 : (p.zs === 1 && vd > Z.Vf - 0.05) ? 1 : (p.zs === -1 && -vd > Z.Vz - 0.05) ? -1 : 0; if (want !== p.zs) { p.zs = want; changed = true; } }
+      // 控制层迭代：算出线圈电流、单片机是否上电，再更新触点 / MOSFET
+      if (!changed && parts.some((p) => p.type === 'contact' || p.type === 'mosfet' || p.type === 'mcu')) {
+        for (const p of parts) { const [a, b] = ends(p.e); if (p.type === 'coil') p.I = (v[a] - v[b]) / PARTS.coil.R; if (p.type === 'mcu') p.pwr = Math.abs(v[a] - v[b]) > 3; }
+        const before = parts.map((p) => p.closed).join(); ctrl(); if (parts.map((p) => p.closed).join() !== before) changed = true;
+      }
       if (!changed) { let worst = null, wr = 1; for (const p of parts) if (p.type === 'fuse' && !p.blown) { const [a, b] = ends(p.e), r = Math.abs((v[a] - v[b]) / PARTS.fuse.R) / p.val; if (r > wr) { wr = r; worst = p; } } if (worst) { worst.blown = true; changed = true; } }
       if (!changed) break;
     }
@@ -143,6 +174,13 @@
         case 'led': { const vd = p.flip ? -vab : vab; p.I = p.dOn && !p.burnt ? (vd - PARTS.led.Vf) / PARTS.led.rd : 0; break; }
         case 'diode': { const vd = p.flip ? -vab : vab; p.I = (p.dOn ? (vd - PARTS.diode.Vf) / PARTS.diode.rd : 0) * (p.flip ? -1 : 1); break; }
         case 'motor': p.I = vab / (p.stall ? PARTS.motor.Rstall : PARTS.motor.R); break;
+        case 'pot': p.I = vab / potR(p.val); break;
+        case 'ntc': p.I = vab / ntcR(p.val); break;
+        case 'buzzer': p.I = vab / PARTS.buzzer.R; break;
+        case 'coil': p.I = vab / PARTS.coil.R; break;
+        case 'mcu': p.I = vab / PARTS.mcu.R; p.pwr = Math.abs(vab) > 3; p.out = mcuOut(parts, p, simT); break;
+        case 'contact': case 'mosfet': p.I = p.closed ? vab / 0.05 : 0; break;
+        case 'zener': { const Z = PARTS.zener, vd = p.flip ? -vab : vab; p.I = (p.zs === 1 ? (vd - Z.Vf) / Z.rd : p.zs === -1 ? (vd + Z.Vz) / Z.rd : 0) * (p.flip ? -1 : 1); break; }
         case 'fuse': p.I = p.blown ? 0 : vab / PARTS.fuse.R; break;
         case 'ldr': p.I = vab / ldrR(p.val ?? 100); break;
         case 'solar': { const vt = p.flip ? -vab : vab; p.I = PARTS.solar.Isc * ((p.val ?? 100) / 100) - vt / PARTS.solar.Rsh; break; }
@@ -152,6 +190,8 @@
     return { v, short };
   }
   C.solve = solve; C.PARTS = PARTS;
+  // 在指定大小的电路板上求解（解析电路、测试用）
+  C.withGrid = (c, r, fn) => { const a0 = COLS, b0 = ROWS; COLS = c; ROWS = r; try { return fn(); } finally { COLS = a0; ROWS = b0; } };
 
   // ================= 实验 =================
   const V = (e, type, o = {}) => Object.assign({ e, type, fixed: true }, o);
@@ -186,6 +226,13 @@
       know: '保险丝串联在电路里，电流超过额定值就熔断，保护电路和设备。', bridge: '电机堵转时不再转动，反电动势 E = 0，电流 I = U / R线圈 一下子涨到正常时的好几倍，线圈会发热烧毁。保险丝的额定电流要选在「正常电流」和「堵转电流」之间。点电机可以「模拟堵转」看看电流有多大。',
       hint: '先接好回路，看电流表或读数里电机的正常电流（约 0.74 A）；堵转时电机只剩约 1 Ω，电流约 5 A。保险丝点一下可以换额定值，熔断后点「换新保险丝」。',
       check: (P, T) => P.some((p) => p.type === 'fuse') && T((ps) => ps.forEach((p) => { if (p.type === 'fuse') p.blown = false; if (p.type === 'motor') p.stall = false; }), (Q) => Q.every((p) => p.type !== 'fuse' || !p.blown) && Q.some(spin)) && T((ps) => ps.forEach((p) => { if (p.type === 'fuse') p.blown = false; if (p.type === 'motor') p.stall = true; }), (Q) => Q.some((p) => p.type === 'fuse' && p.blown)) },
+    { id: 'e7', mod: 'emb', cols: 9, rows: 6, lv: '衔接', title: '继电器：小电流控制大电机', goal: '用 4.5 V 控制电源、开关和继电器线圈做一个「控制回路」，用继电器触点去开关 9 V 动力电源上的电机：开关闭合电机转，断开电机停。', fixed: [V('v,1,1', 'battery', { val: 4.5, label: '控制电源' }), V('v,1,3', 'battery', { val: 9, label: '动力电源' }), V('v,7,3', 'motor', { label: '关节电机' })], pal: { wire: 18, switch: 1, coil: 1, contact: 1 },
+      know: '继电器是一个用电磁铁控制的开关：线圈通电产生磁性，把触点吸合。小电流的控制回路就能开关大电流的动力回路。', bridge: '机器人里「主控板」只能输出几十毫安，而关节电机要几安培——中间必须有继电器或功率晶体管做「放大」。线圈和触点之间没有导线相连，叫电气隔离。点线圈 / 触点可以换通道（A / B / C），同一通道的线圈控制同一通道的触点。',
+      hint: '上面一圈：控制电源 → 开关 → 线圈 → 回控制电源。下面一圈：动力电源 → 继电器触点 → 电机 → 回动力电源。两圈之间不用导线连。', check: (P, T) => { const m = (Q) => byLabel(Q, '关节电机'); return P.some((p) => p.type === 'coil') && P.some((p) => p.type === 'contact') && T((ps) => ps.forEach((p) => p.type === 'switch' && (p.on = true)), (Q) => spin(m(Q)) && Q.filter((p) => p.type === 'coil').every((c) => Math.abs(c.I) < 0.2)) && T((ps) => ps.forEach((p) => p.type === 'switch' && (p.on = false)), (Q) => !spin(m(Q))); } },
+    { id: 'e8', mod: 'emb', cols: 9, rows: 6, lv: '大学', title: '天黑自动开灯：单片机小程序', goal: '给单片机供电，选好它的小程序，让它通过 MOSFET 控制路灯：光敏传感器读到「亮」时灯灭，读到「暗」时灯亮。', fixed: [V('v,1,2', 'battery', { val: 6 }), V('v,7,2', 'bulb', { label: '路灯' }), V('h,4,5', 'ldr', { val: 100, label: '光敏传感器', ch: 'A' })], pal: { wire: 18, mcu: 1, mosfet: 1 },
+      know: '传感器负责「感觉」，单片机负责「判断」，MOSFET 负责「动手」——这就是所有智能设备的基本结构：感知 → 决策 → 执行。', bridge: '单片机的程序就是一句「如果……就……」：如果光照 < 50%，就把通道 A 置为高电平。MOSFET 是电压控制的开关，栅极一点点电流就能控制很大的漏极电流。机器人的每个关节、每个传感器都是这样一圈一圈接起来的。',
+      hint: '单片机并联在电池两端供电；路灯和 MOSFET 串成一条支路，也接在电池两端。点单片机「换程序」，选「天黑就开」；它和 MOSFET、光敏传感器都要在同一个通道（A）。点光敏传感器改光照试试。',
+      check: (P, T) => { const setL = (l) => (ps) => ps.forEach((p) => p.type === 'ldr' && (p.val = l)); const lamp = (Q) => working(byLabel(Q, '路灯')); return P.some((p) => p.type === 'mcu') && P.some((p) => p.type === 'mosfet') && T(setL(100), (Q) => !lamp(Q)) && T(setL(0), (Q) => lamp(Q)); } },
   ];
   // ---------- v7 模块二：航空航天（卫星电源与配电） 11 × 7 电路板 ----------
   const GND5 = ['v,1,2', 'v,1,3', 'v,1,4', 'v,3,2', 'v,3,3', 'v,3,4', 'v,8,4'].concat(hs(1, 7, 5)).map(W);
@@ -211,6 +258,9 @@
       know: '保险丝要串在它保护的那一路里；额定电流要大于这一路的正常电流。', bridge: '「选择性保护」：哪一路出故障就只断开哪一路，其余设备照常工作。飞机和航天器的配电系统按「设备 → 支路 → 主母线」一级级设置保护。动量轮卡死时电流约 8 A——10 A 的保险丝根本不会断。',
       hint: '三个橙色框是保险丝的位置。先算每一路的正常电流：加热器 9 V / 20 Ω、信标灯 9 V / 10 Ω、动量轮 9 V / 8 Ω；额定值要比它大一点，又不能大到故障时也不断。',
       check: (P, T) => { const L = ['加热器', '信标灯', '动量轮']; if (P.filter((p) => p.type === 'fuse').length !== 3) return false; const reset = (ps) => ps.forEach((p) => { if (p.type === 'fuse') p.blown = false; p.fault = false; p.stall = false; }); const ok = (Q) => L.map((l) => working(byLabel(Q, l))); if (!T(reset, (Q) => ok(Q).every(Boolean))) return false; return L.every((l, k) => T((ps) => { reset(ps); const d = ps.find((p) => p.label === l); if (d.type === 'motor') d.stall = true; else d.fault = true; }, (Q) => { const o = ok(Q); return !o[k] && o.filter(Boolean).length === 2; })); } },
+    { id: 'a6', mod: 'aero', cols: 11, rows: 7, lv: '衔接', title: '稳压管保护传感器接口', goal: '9 V 母线给一个只能承受 5 V 左右的传感器接口供电：用一个电阻和一个稳压二极管，把接口电压稳在 4.8–5.4 V。', fixed: [V('v,1,2', 'battery', { val: 9, label: '母线' }), V('v,6,2', 'voltmeter', { label: '传感器接口' })], pal: { wire: 14, resistor: 1, zener: 1 }, defs: { resistor: 330 },
+      know: '稳压二极管反着接（尖朝上、横杠在上面）时，两端电压超过 5.1 V 就会「击穿」导电，把电压稳住；多出来的电压由串联的电阻承担。', bridge: '卫星上一条母线要给很多不同电压的设备供电，最简单的稳压就是「限流电阻 + 稳压管」：R = (U − Uz) / I = (9 − 5.1) / 0.012 ≈ 330 Ω。电流大的场合要换成稳压芯片（LDO）或 DC-DC 变换器。',
+      hint: '母线正极 → 电阻 → 稳压管上端；稳压管下端回到母线负极。稳压管要反着放（点它「翻转极性」），传感器接口并在稳压管两端。', check: (P) => { const vm = byLabel(P, '传感器接口'), v = vm ? Math.abs(vm.V) : 0; return P.some((p) => p.type === 'zener') && v >= 4.8 && v <= 5.4; } },
   ];
   const isLit = (p) => p.type === 'bulb' && Math.abs(p.I) > 0.08;
   const series = (ps) => ps.length > 1 && ps.every((p) => Math.abs(Math.abs(p.I) - Math.abs(ps[0].I)) < 0.002 && Math.abs(p.I) > 0.01);
@@ -253,6 +303,30 @@
       quiz: { q: '电容电压升到 63%（约 3.8 V）大约用了多久？', opts: ['0.1 秒', '1 秒', '10 秒'], a: 1 } },
   ].concat(EMB, AERO);
   C.LABS = LABS;
+  // 标准答案（v8：四次没通过时一键摆出）。写法：类型@边[=数值][+闭合][^翻转]；边的列号可以写范围（h,1-6,2）；!switch = 闭合题目给定的开关
+  C.ANS = {
+    k1: 'wire@h,1-4,1 wire@h,1-4,2', k2: 'wire@h,1,1 switch@h,2,1+ wire@h,3-4,1 wire@h,1-4,2', k3: 'bulb@h,1,1 bulb@h,2,1 wire@h,3,1 ammeter@v,4,1 wire@h,1-3,2',
+    k4: 'switch@h,2,1+ bulb@v,3,1 wire@h,2,2 wire@v,2,0 wire@h,2-3,0 switch@v,4,0+ bulb@v,4,1 wire@h,3,2', k5: 'wire@h,1-2,1 wire@h,4,1 ammeter@v,5,1 wire@h,1-4,2 wire@v,3,0 voltmeter@h,3,0 wire@v,4,0',
+    k6: 'resistor@h,1,1=20 wire@h,2,1 resistor@v,3,1=10 wire@h,1-2,2 voltmeter@v,4,1 wire@h,3,1 wire@h,3,2', k7: 'resistor@h,1,1=200 wire@h,2-4,1 wire@h,1-4,2',
+    k8: 'ammeter@h,0,1 wire@h,1,1 ammeter@h,2,1 wire@v,2,0 wire@h,2-4,0 ammeter@v,5,0', k9: 'resistor@v,4,1=200', k10: '!switch',
+    e1: 'switch@h,3,2+ wire@h,1-2,2 wire@h,4-5,2 wire@h,1-5,3', e2: 'battery@v,1,2=3 battery@v,1,3=3 wire@v,7,3 wire@h,1-6,2 wire@h,1-6,4', e3: 'ammeter@h,1,2 wire@h,2-6,2 wire@h,1-6,3',
+    e4: 'wire@h,1-2,2 resistor@v,3,2=1000 ldr@v,3,3=100 wire@v,1,3 wire@h,1-2,4 voltmeter@v,4,3 wire@h,3,3 wire@h,3,4', e5: 'wire@v,1,2 switch@v,4,1 switch@v,4,2 switch@v,5,1 switch@v,5,2 wire@h,1-4,1 wire@h,1-4,3',
+    e6: 'fuse@h,3,2=1 wire@h,1-2,2 wire@h,4-5,2 wire@h,1-5,3', e7: 'switch@h,1,1+ wire@h,2,1 coil@v,3,1 wire@h,1-2,2 wire@h,1,3 contact@h,2,3 wire@h,3-6,3 wire@h,1-6,4',
+    e8: 'wire@h,1-2,2 mcu@v,3,2=dark wire@h,1-2,3 wire@h,3,2 mosfet@h,4,2 wire@h,5-6,2 wire@h,3-6,3',
+    a1: 'wire@h,1-7,2 wire@h,1-7,3', a2: 'switch@v,4,2+ switch@v,6,2+ switch@v,8,2+ wire@v,1,3 wire@h,1-7,2 wire@h,1-7,4', a3: 'diode@h,1,2 wire@h,2-8,2 wire@h,1-8,3',
+    a4: 'diode@h,1,1 wire@v,2,0 diode@h,3,1 wire@v,4,0 wire@v,8,0-2 wire@h,2-7,0', a5: 'fuse@v,4,2=1 fuse@v,6,2=1 fuse@v,8,2=2', a6: 'resistor@h,1,2=330 wire@h,2-4,2 zener@v,5,2^ wire@h,5,2 wire@h,5,3 wire@h,1-4,3',
+  };
+  // 展开答案字符串 → 元件列表（测试和「摆出答案」共用）
+  C.expandAns = function (str) {
+    const out = [];
+    (str || '').split(' ').filter(Boolean).forEach((tok) => {
+      if (tok.startsWith('!')) { out.push({ cmd: tok.slice(1) }); return; }
+      const m = tok.match(/^(\w+)@([hv]),(\d+)(?:-(\d+))?,(\d+)(?:-(\d+))?(?:=([\w.]+))?(\+)?(\^)?$/); if (!m) return;
+      const [, type, k, c0, c1, r0, r1, val, on, flip] = m;
+      for (let c = +c0; c <= +(c1 || c0); c++) for (let r = +r0; r <= +(r1 || r0); r++) out.push({ type, e: `${k},${c},${r}`, val: val !== undefined ? (isNaN(+val) ? val : +val) : undefined, on: type === 'switch' ? !!on : undefined, flip: !!flip });
+    });
+    return out;
+  };
   C._cur = () => cur; C._load = (i) => load(i); C._pick = () => pick; // 测试与调试用
   C._edgeXY = (e) => edgeMid(e);
 
@@ -283,11 +357,13 @@
   const used = (type) => cur.parts.filter((p) => p.type === type && !p.fixed).length;
   const left = (type) => (cur.sandbox ? 99 : (cur.lab.pal[type] || 0) - used(type));
 
+  C.loadLab = (L) => { load(L); if (C.renderList) C.renderList(); };
   function load(i) {
-    const L = i === 'sandbox' ? { id: 'sandbox', lv: '自由', title: '自由搭建', goal: '没有题目，随便搭。可以用全部已解锁的元件，电路照样实时计算。', fixed: [], pal: {}, know: '试试：同一个电池，接一个灯泡和接两个并联的灯泡，电流表读数有什么不同？', bridge: '真正的电子工程师也是这样——先在仿真里试，再动手焊板子。', hint: '元件不限量。' } : LABS[i];
-    COLS = L.cols || (i === 'sandbox' ? 11 : 7); ROWS = L.rows || (i === 'sandbox' ? 7 : 5); view.z = 1; view.x = 0; view.y = 0;
-    cur = { i, lab: L, sandbox: i === 'sandbox', parts: L.fixed.map((p) => Object.assign({ val: DEF[p.type], on: p.type === 'switch' ? false : undefined }, p)), quiz: false, st: {} };
-    if (cur.sandbox) cur.parts = (data().cw.sandbox || []).map((p) => Object.assign({}, p));
+    const L = typeof i === 'object' ? i : i === 'sandbox' ? { id: 'sandbox', lv: '自由', title: '自由搭建', goal: '没有题目，随便搭。可以用全部已解锁的元件，电路照样实时计算。', fixed: [], pal: {}, know: '试试：同一个电池，接一个灯泡和接两个并联的灯泡，电流表读数有什么不同？', bridge: '真正的电子工程师也是这样——先在仿真里试，再动手焊板子。', hint: '元件不限量。' } : LABS[i];
+    COLS = L.cols || (i === 'sandbox' ? 17 : 7); ROWS = L.rows || (i === 'sandbox' ? 11 : 5); view.z = 1; view.x = 0; view.y = 0;
+    cur = { i: typeof i === 'object' ? 'custom' : i, lab: L, sandbox: i === 'sandbox' || !!L.free, parts: L.fixed.map((p) => Object.assign({ val: DEF[p.type], on: p.type === 'switch' ? false : undefined }, p)), quiz: false, st: {} };
+    if (i === 'sandbox') cur.parts = (data().cw.sandbox || []).map((p) => Object.assign({}, p));
+    if (L.preset) cur.parts = cur.parts.concat(L.preset.map((p) => Object.assign({ fixed: false }, p)));
     chart = []; simT = 0; sel = null; pick = null; hov = null;
     C.renderSide(); C.renderTray();
   }
@@ -299,9 +375,28 @@
     if (r.short) return CF.toast('短路了！电池两端被导线直接连通，电流极大——真实电路会发热甚至起火。', 'bad', 3600);
     if (cur.sandbox) return CF.toast('自由搭建没有标准答案——看看电表读数是不是和你算的一样？');
     const ok = cur.lab.check(cur.parts, T, cur.st);
-    if (!ok) { CF.Audio.sfx('error'); return CF.toast('还没达到目标。点「提示」看看思路。', 'bad'); }
+    if (!ok) {
+      CF.Audio.sfx('error'); cur.fails = (cur.fails || 0) + 1;
+      if (cur.fails >= 4 && C.ANS[cur.lab.id]) return C.explain();
+      return CF.toast(`还没达到目标（第 ${cur.fails} 次）。${cur.fails === 3 ? '再错一次就给你看讲解和答案。' : '点「提示」看看思路。'}`, 'bad');
+    }
     if (cur.lab.quiz && !cur.quiz) return C.quiz();
     C.win();
+  };
+  // 四次没通过：讲解 + 一键摆出正确答案（v8，主创要求）
+  C.explain = function () {
+    const L = cur.lab;
+    CF.modal.open({ title: `讲解 · ${L.title}`, body: `<div class="cw-explain"><p><b>目标：</b>${L.goal}</p><p><b>怎么接：</b>${L.hint}</p><p><b>为什么：</b>${L.know}</p><p class="small muted"><b>再往深一层：</b>${L.bridge}</p>${L.quiz ? `<p class="small"><b>计算题：</b>${L.quiz.q} 答案：${L.quiz.opts[L.quiz.a]}</p>` : ''}<p class="small muted">看了答案也能完成实验，但首次奖励减半。</p></div>`,
+      foot: [{ text: '我再试试', cls: 'ghost' }, { text: '摆出正确答案', cls: 'primary', onClick: () => { CF.modal.close(); C.showAnswer(); } }] });
+  };
+  C.showAnswer = function () {
+    const id = cur.lab.id, i = cur.i; load(i === 'custom' ? cur.lab : i); cur.answered = true; cur.fails = 4;
+    C.expandAns(C.ANS[id]).forEach((q) => {
+      if (q.cmd === 'switch') { cur.parts.forEach((p) => { if (p.type === 'switch') p.on = true; }); if (cur.lab.rc) { cur.st.rcStart = simT; chart = []; } return; }
+      if (cur.parts.some((p) => p.e === q.e)) return;
+      cur.parts.push({ type: q.type, e: q.e, fixed: false, ans: true, val: q.val !== undefined ? q.val : defVal(q.type), on: q.on, flip: q.flip || undefined });
+    });
+    C.renderTray(); CF.toast('正确答案已经摆好：看看电流怎么走，再点「检查」完成实验', 'gold', 3000);
   };
   C.quiz = function () {
     const q = cur.lab.quiz, body = CF.h(`<div><p style="line-height:1.8">${q.q}</p><div class="quiz-opts"></div></div>`);
@@ -313,7 +408,8 @@
     CF.Audio.sfx('win');
     if (first) {
       data().cw.solved[L.id] = { t: Date.now() };
-      const got = C.add({ chip: 200 + cur.i * 40, corp: 120 + cur.i * 20, comp: 20 + cur.i * 5 });
+      const half = cur.answered ? 0.5 : 1, got = C.add({ chip: (200 + cur.i * 40) * half, corp: (120 + cur.i * 20) * half, comp: (20 + cur.i * 5) * half });
+      if (C.grantPart) C.grantPart(L.id);
       CF.P.addXP({ type: 'p', amt: 12 + cur.i, dims: { zhi: 0.4 }, domain: 'emb', label: '电路工坊' });
       CF.modal.open({ title: `实验完成 · ${L.title}`, body: `<p style="line-height:1.8">✅ ${L.goal}</p><div class="explain"><b>高中：</b>${L.know}<br><b>大学：</b>${L.bridge}</div><p class="small" style="margin-top:8px">奖励：晶片 +${got.chip} · 语料 +${got.corp} · 算力 +${got.comp} · 电网多了一台发电机组（每小时 +30 晶片）</p>`, foot: [{ text: '留在这里', cls: 'ghost' }].concat(cur.i < LABS.length - 1 ? [{ text: '下一个实验 ▶', cls: 'primary', onClick: () => { CF.modal.close(); load(cur.i + 1); } }] : []) });
     } else CF.toast('实验完成！（已领取过奖励）', 'gold');
@@ -341,7 +437,7 @@
     raf = requestAnimationFrame(loop);
     clearInterval(timer); timer = setInterval(() => { C.tick(); C.renderTop(); }, 5000);
   };
-  C.leave = function () { cancelAnimationFrame(raf); clearInterval(timer); if (cur && cur.sandbox) data().cw.sandbox = cur.parts.map((p) => ({ e: p.e, type: p.type, val: p.val, on: p.on, flip: p.flip })); CF.Save.save(); };
+  C.leave = function () { cancelAnimationFrame(raf); clearInterval(timer); if (cur && cur.i === 'sandbox') data().cw.sandbox = cur.parts.map((p) => ({ e: p.e, type: p.type, val: p.val, on: p.on, flip: p.flip })); CF.Save.save(); };
   C.resize = function () { if (!cv) return; const dpr = Math.min(2, window.devicePixelRatio || 1); cv.width = cv.clientWidth * dpr; cv.height = cv.clientHeight * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); };
   C.renderTop = function () {
     const el = $('#cwRes'); if (!el) return;
@@ -369,7 +465,8 @@
   };
   C.placeAt = function (e2) {
     if (!pick || !e2) return false;
-    if (cur.parts.some((q) => q.e === e2)) { CF.toast('这条边已经有元件了', 'bad', 1200); CF.Audio.sfx('error'); return false; }
+    const occ = cur.parts.find((q) => q.e === e2);
+    if (occ) { if (!occ.fixed) { cur.parts = cur.parts.filter((q) => q !== occ); CF.Audio.sfx('hover'); CF.toast(`拿走了「${PARTS[occ.type].name}」（选中状态下再点已放的元件 = 取消放置）`, '', 1400); C.renderTray(); return true; } CF.toast('这是题目给定的元件，不能拿走', 'bad', 1200); CF.Audio.sfx('error'); return false; }
     cur.parts.push({ type: pick.type, val: pick.val, on: pick.type === 'switch' ? true : undefined, e: e2, fixed: false });
     CF.Audio.sfx('place');
     if (left(pick.type) <= 0) pick = null; // 用完自动取消；还有库存就保持选中，可以连续放
@@ -429,8 +526,10 @@
   C.openPop = function (p) {
     const pop = $('#cwPop'), [x, y] = edgeMid(p.e), D = PARTS[p.type], btns = [];
     if (p.type === 'switch') btns.push([p.on ? '断开' : '闭合', () => { p.on = !p.on; if (cur.lab.rc && p.on) { cur.st.rcStart = simT; chart = []; } }]);
-    if (D.vals && (!p.fixed || p.type === 'solar' || p.type === 'ldr')) btns.push([p.type === 'solar' || p.type === 'ldr' ? '改光照' : '换值', () => { const i = D.vals.indexOf(p.val); p.val = D.vals[(i + 1) % D.vals.length]; if (p.type === 'fuse') p.blown = false; }]);
+    if (D.vals && p.type !== 'mcu' && (!p.fixed || ['solar', 'ldr', 'ntc', 'pot'].includes(p.type))) btns.push([p.type === 'solar' || p.type === 'ldr' ? '改光照' : p.type === 'ntc' ? '改温度' : p.type === 'pot' ? '拧旋钮' : '换值', () => { const i = D.vals.indexOf(p.val); p.val = D.vals[(i + 1) % D.vals.length]; if (p.type === 'fuse') p.blown = false; }]);
     if (p.type === 'fuse' && p.blown) btns.push(['换新保险丝', () => { p.blown = false; }]);
+    if (D.ch) btns.push([`换通道（${p.ch || 'A'}）`, () => { p.ch = { A: 'B', B: 'C', C: 'A' }[p.ch || 'A']; }]);
+    if (p.type === 'mcu') btns.push([`换程序（${PROG[p.val] || PROG.on}）`, () => { const i = D.vals.indexOf(p.val || 'on'); p.val = D.vals[(i + 1) % D.vals.length]; }]);
     if (p.type === 'motor') btns.push([p.stall ? '松开（恢复转动）' : '模拟堵转', () => { p.stall = !p.stall; }]);
     if (D.polar && !p.fixed) btns.push(['翻转极性', () => { p.flip = !p.flip; p.dOn = undefined; }]);
     if (!p.fixed) btns.push(['拿走', () => { cur.parts = cur.parts.filter((q) => q !== p); C.renderTray(); }]);
@@ -439,7 +538,7 @@
     pop.style.left = x + 'px'; pop.style.top = y + 'px'; pop.classList.remove('hidden');
   };
   C.closePop = () => { const p = $('#cwPop'); if (p) p.classList.add('hidden'); };
-  const fmtVal = (p) => (p.type === 'cap' ? `${p.val * 1e6} μF` : p.type === 'resistor' ? (p.val >= 1000 ? p.val / 1000 + ' kΩ' : p.val + ' Ω') : p.type === 'fuse' ? p.val + ' A' : p.type === 'solar' || p.type === 'ldr' ? `光照 ${p.val ?? 100}%` : p.val + ' V');
+  const fmtVal = (p) => (p.type === 'pot' ? `旋钮 ${p.val ?? 50}% · ${(potR(p.val) / 1000).toFixed(1)} kΩ` : p.type === 'ntc' ? `${p.val ?? 25} ℃` : p.type === 'mcu' ? PROG[p.val] || PROG.on : p.type === 'cap' ? `${p.val * 1e6} μF` : p.type === 'resistor' ? (p.val >= 1000 ? p.val / 1000 + ' kΩ' : p.val + ' Ω') : p.type === 'fuse' ? p.val + ' A' : p.type === 'solar' || p.type === 'ldr' ? `光照 ${p.val ?? 100}%` : p.val + ' V');
   const fmtI = (i) => (Math.abs(i) < 1 ? (Math.abs(i) * 1000).toFixed(1) + ' mA' : Math.abs(i).toFixed(2) + ' A');
 
   // 每帧：电容时间推进 + LED 烧毁判定 + 读数
@@ -448,12 +547,12 @@
     const steps = cur.lab.rc ? 2 : 1;
     for (let k = 0; k < steps; k++) {
       const r = solve(cur.parts, 0.02); cur.short = r.short;
-      cur.parts.forEach((p) => { if (p.type === 'cap') p.vc = p.vcNext; if (p.type === 'fuse' && p.blown && !p._seen) { p._seen = true; CF.Audio.sfx('error'); CF.toast(`保险丝熔断了（额定 ${p.val} A）！点它「换新保险丝」或换个额定值。`, 'bad', 3000); } if (p.type === 'fuse' && !p.blown) p._seen = false; if (p.type === 'led' && p.I > 0.03 && !p.burnt) { p.burnt = true; CF.Audio.sfx('error'); CF.toast('LED 烧坏了！电流超过 30 mA。拿掉它旁边的电阻换个更大的，再点「重置」。', 'bad', 3600); } });
+      cur.parts.forEach((p) => { if (p.type === 'cap') p.vc = p.vcNext; if (p.type === 'buzzer' && Math.abs(p.I || 0) > 0.02 && (!p._bz || simT - p._bz > 0.5)) { p._bz = simT; CF.Audio.sfx('hover'); } if (p.type === 'fuse' && p.blown && !p._seen) { p._seen = true; CF.Audio.sfx('error'); CF.toast(`保险丝熔断了（额定 ${p.val} A）！点它「换新保险丝」或换个额定值。`, 'bad', 3000); } if (p.type === 'fuse' && !p.blown) p._seen = false; if (p.type === 'led' && p.I > 0.03 && !p.burnt) { p.burnt = true; CF.Audio.sfx('error'); CF.toast('LED 烧坏了！电流超过 30 mA。拿掉它旁边的电阻换个更大的，再点「重置」。', 'bad', 3600); } });
       simT += 0.02;
     }
     if (cur.lab.rc) { const c = cur.parts.find((p) => p.type === 'cap'); if (cur.st.rcStart !== undefined) { chart.push([simT - cur.st.rcStart, c.vc || 0]); if (chart.length > 400) chart.shift(); if (simT - cur.st.rcStart > 3) cur.st.rcDone = true; } C.drawChart(); }
     const rd = $('#cwRead');
-    if (rd && Math.floor(simT * 5) !== cur._rt) { cur._rt = Math.floor(simT * 5); rd.innerHTML = cur.parts.filter((p) => ['ammeter', 'voltmeter', 'bulb', 'led', 'cap', 'motor', 'fuse', 'diode', 'solar'].includes(p.type)).map((p) => `<span>${p.label || PARTS[p.type].name}：${p.type === 'voltmeter' || p.type === 'cap' ? Math.abs(p.type === 'cap' ? p.vc || 0 : p.V).toFixed(2) + ' V' : p.type === 'led' && p.burnt ? '已烧坏' : p.type === 'fuse' && p.blown ? '已熔断' : p.type === 'motor' && p.stall ? fmtI(p.I) + '（堵转）' : fmtI(p.I)}</span>`).join('') + (cur.short ? '<span style="color:#ff5d6c">⚠ 短路</span>' : ''); }
+    if (rd && Math.floor(simT * 5) !== cur._rt) { cur._rt = Math.floor(simT * 5); rd.innerHTML = cur.parts.filter((p) => ['ammeter', 'voltmeter', 'bulb', 'led', 'cap', 'motor', 'fuse', 'diode', 'solar', 'buzzer', 'zener', 'coil', 'mcu'].includes(p.type)).map((p) => `<span>${p.label || PARTS[p.type].name}：${p.type === 'voltmeter' || p.type === 'cap' ? Math.abs(p.type === 'cap' ? p.vc || 0 : p.V).toFixed(2) + ' V' : p.type === 'led' && p.burnt ? '已烧坏' : p.type === 'fuse' && p.blown ? '已熔断' : p.type === 'motor' && p.stall ? fmtI(p.I) + '（堵转）' : fmtI(p.I)}</span>`).join('') + (cur.short ? '<span style="color:#ff5d6c">⚠ 短路</span>' : ''); }
   };
   C.drawChart = function () {
     const c2 = $('#cwChart'); if (!c2) return; const w = c2.clientWidth, h = c2.clientHeight; if (c2.width !== w) { c2.width = w; c2.height = h; }
@@ -508,6 +607,13 @@
       case 'fuse': { lead(14 * k); ctx.strokeStyle = p.blown ? '#ff5d6c' : '#ede6d6'; ctx.lineWidth = 2; ctx.strokeRect(-14 * k, -6 * k, 28 * k, 12 * k); ctx.beginPath(); if (p.blown) { ctx.moveTo(-12 * k, 0); ctx.lineTo(-3 * k, 3 * k); ctx.moveTo(3 * k, -3 * k); ctx.lineTo(12 * k, 0); } else { ctx.moveTo(-12 * k, 0); ctx.lineTo(12 * k, 0); } ctx.stroke(); ctx.rotate(-ang); ctx.fillStyle = p.blown ? '#ff5d6c' : '#9fe8ff'; ctx.font = '11px sans-serif'; ctx.fillText(p.blown ? '熔断' : fmtVal(p), 10, -12); break; }
       case 'solar': { lead(16 * k); const lv = (p.val ?? 100) / 100; ctx.fillStyle = '#1a2a5a'; ctx.fillRect(-16 * k, -11 * k, 32 * k, 22 * k); ctx.strokeStyle = '#4ef0ff'; ctx.lineWidth = 1.5; ctx.strokeRect(-16 * k, -11 * k, 32 * k, 22 * k); for (let i = 1; i < 4; i++) { ctx.beginPath(); ctx.moveTo(-16 * k + i * 8 * k, -11 * k); ctx.lineTo(-16 * k + i * 8 * k, 11 * k); ctx.stroke(); } ctx.beginPath(); ctx.moveTo(-16 * k, 0); ctx.lineTo(16 * k, 0); ctx.stroke(); if (lv > 0) { ctx.fillStyle = `rgba(255,220,90,${0.25 + 0.5 * lv})`; ctx.fillRect(-16 * k, -11 * k, 32 * k, 22 * k); }
         ctx.rotate(-ang); ctx.fillStyle = '#ffd257'; ctx.font = '11px sans-serif'; ctx.fillText(`☀ ${p.val ?? 100}%`, 14, -14); ctx.fillStyle = '#ede6d6'; ctx.fillText(p.flip ? '−' : '+', -4, p.flip ? 26 : -18); break; }
+      case 'pot': { lead(16 * k); ctx.strokeStyle = '#ede6d6'; ctx.lineWidth = 2.5; ctx.strokeRect(-16 * k, -7 * k, 32 * k, 14 * k); ctx.strokeStyle = '#ffb14a'; ctx.beginPath(); ctx.moveTo(-14 * k, 12 * k); ctx.lineTo(14 * k, -12 * k); ctx.stroke(); ctx.fillStyle = '#ffb14a'; ctx.fillRect(12 * k, -14 * k, 4, 4); ctx.rotate(-ang); ctx.fillStyle = '#9fe8ff'; ctx.font = '11px sans-serif'; ctx.fillText(fmtVal(p), 12, 18); break; }
+      case 'ntc': { lead(16 * k); ctx.strokeStyle = '#ede6d6'; ctx.lineWidth = 2.5; ctx.strokeRect(-16 * k, -7 * k, 32 * k, 14 * k); const hot = (p.val ?? 25) / 100; ctx.fillStyle = `rgba(255,${Math.round(180 - 120 * hot)},80,${0.25 + 0.5 * hot})`; ctx.fillRect(-15 * k, -6 * k, 30 * k, 12 * k); ctx.rotate(-ang); ctx.fillStyle = '#9fe8ff'; ctx.font = '11px sans-serif'; ctx.fillText(`${p.val ?? 25} ℃`, 12, 18); break; }
+      case 'buzzer': { lead(13 * k); const on = I > 0.02; ctx.fillStyle = '#0b1424'; ctx.beginPath(); ctx.arc(0, 0, 13 * k, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = on ? '#ffd257' : '#ede6d6'; ctx.lineWidth = 2.5; ctx.stroke(); if (on) { ctx.globalAlpha = 0.5 + 0.5 * Math.sin(t * 30); for (let i = 1; i <= 2; i++) { ctx.beginPath(); ctx.arc(0, 0, (13 + i * 6) * k, -0.6, 0.6); ctx.stroke(); } ctx.globalAlpha = 1; } ctx.rotate(-ang); ctx.fillStyle = on ? '#ffd257' : '#ede6d6'; ctx.font = `bold ${Math.round(12 * k)}px sans-serif`; ctx.textAlign = 'center'; ctx.fillText('♪', 0, 4 * k); ctx.textAlign = 'left'; break; }
+      case 'zener': { lead(9 * k); const on = Math.abs(p.I || 0) > 0.001; ctx.fillStyle = on ? '#4ef0ff' : '#5a8a9a'; ctx.save(); if (p.flip) ctx.scale(-1, 1); ctx.beginPath(); ctx.moveTo(-9 * k, -9 * k); ctx.lineTo(9 * k, 0); ctx.lineTo(-9 * k, 9 * k); ctx.closePath(); ctx.fill(); ctx.fillRect(8 * k, -10 * k, 3, 20 * k); ctx.fillRect(8 * k, -10 * k, -5 * k, 3); ctx.fillRect(11 * k, 7 * k, 5 * k, 3); ctx.restore(); ctx.rotate(-ang); ctx.fillStyle = '#4ef0ff'; ctx.font = '10px sans-serif'; ctx.fillText('5.1V', 10, -12); break; }
+      case 'coil': { lead(16 * k); ctx.strokeStyle = Math.abs(p.I || 0) > 0.04 ? '#c8ff2e' : '#ede6d6'; ctx.lineWidth = 2.5; ctx.strokeRect(-16 * k, -8 * k, 32 * k, 16 * k); ctx.beginPath(); for (let i = 0; i < 4; i++) ctx.arc(-11 * k + i * 7.5 * k, 0, 3.5 * k, Math.PI, 0); ctx.stroke(); ctx.rotate(-ang); ctx.fillStyle = '#c8ff2e'; ctx.font = 'bold 11px sans-serif'; ctx.fillText('线圈 ' + (p.ch || 'A'), 12, -14); break; }
+      case 'contact': case 'mosfet': { lead(14 * k); const on = !!p.closed; if (p.type === 'contact') { ctx.fillStyle = '#ede6d6'; ctx.fillRect(-14 * k - 2, -2, 4, 4); ctx.fillRect(14 * k - 2, -2, 4, 4); ctx.strokeStyle = on ? '#6fdc8c' : '#ffb14a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-14 * k, 0); ctx.lineTo(14 * k, on ? 0 : -12 * k); ctx.stroke(); ctx.setLineDash([3, 3]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, -6 * k); ctx.lineTo(0, -18 * k); ctx.stroke(); ctx.setLineDash([]); } else { ctx.fillStyle = '#0b1424'; ctx.fillRect(-13 * k, -10 * k, 26 * k, 20 * k); ctx.strokeStyle = on ? '#6fdc8c' : '#9d96ad'; ctx.lineWidth = 2; ctx.strokeRect(-13 * k, -10 * k, 26 * k, 20 * k); ctx.fillStyle = on ? '#6fdc8c' : '#9d96ad'; ctx.font = `bold ${Math.round(11 * k)}px ui-monospace,monospace`; ctx.save(); ctx.rotate(-ang); ctx.textAlign = 'center'; ctx.fillText('Q', 0, 4 * k); ctx.restore(); } ctx.rotate(-ang); ctx.fillStyle = on ? '#6fdc8c' : '#ffb14a'; ctx.font = 'bold 11px sans-serif'; ctx.fillText((p.type === 'contact' ? '触点 ' : 'MOS ') + (p.ch || 'A'), 12, -14); break; }
+      case 'mcu': { lead(18 * k); ctx.fillStyle = '#141a2e'; ctx.fillRect(-18 * k, -12 * k, 36 * k, 24 * k); ctx.strokeStyle = p.pwr ? '#4ef0ff' : '#5a5f7a'; ctx.lineWidth = 2; ctx.strokeRect(-18 * k, -12 * k, 36 * k, 24 * k); ctx.fillStyle = '#c9d4ff'; for (let i = 0; i < 4; i++) { ctx.fillRect(-14 * k + i * 8 * k, -15 * k, 3, 3 * k); ctx.fillRect(-14 * k + i * 8 * k, 12 * k, 3, 3 * k); } ctx.fillStyle = p.out ? '#6fdc8c' : '#ff5d6c'; ctx.fillRect(12 * k, -8 * k, 4 * k, 4 * k); ctx.rotate(-ang); ctx.fillStyle = '#4ef0ff'; ctx.font = 'bold 11px sans-serif'; ctx.fillText(`单片机 ${p.ch || 'A'} · ${PROG[p.val] || PROG.on}`, 14, -16); break; }
       case 'ldr': { lead(16 * k); ctx.strokeStyle = '#ede6d6'; ctx.lineWidth = 2.5; ctx.strokeRect(-16 * k, -7 * k, 32 * k, 14 * k); ctx.strokeStyle = '#ffd257'; ctx.lineWidth = 1.5; for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.moveTo(-6 * k + i * 8 * k, -22 * k); ctx.lineTo(-1 * k + i * 8 * k, -11 * k); ctx.stroke(); } ctx.rotate(-ang); ctx.fillStyle = '#9fe8ff'; ctx.font = '11px sans-serif'; ctx.fillText(`光照 ${p.val ?? 100}%`, 12, 18); break; }
     }
     // 电流流动：沿元件移动的小方块，速度与电流大小相关

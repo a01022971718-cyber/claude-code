@@ -655,6 +655,8 @@ input[type=range]{width:100%;accent-color:var(--orange);touch-action:pan-x;heigh
 .compact .lob-hero .nm{font-size:26px}
 .compact .lob-nav button{min-width:48px;padding:4px 6px}
 .compact .lob-nav button span{font-size:15px}
+/* v8：竖屏窄屏底部导航 9 个入口一行放下（原来 .compact 的 48px 最小宽度会把「说明」挤出屏幕） */
+@media (max-width:560px){.lob-nav button,.compact .lob-nav button{min-width:0;flex:1 1 0;padding:4px 1px;white-space:nowrap}}
 .compact .lob-side{display:none}
 .compact .city-bottom .cbtn{min-width:56px}
 /* 手机横屏（高 ≤ 520）：大厅分区不重叠；主城底部建造栏再缩小 60% */
@@ -770,3 +772,54 @@ input[type=range]{width:100%;accent-color:var(--orange);touch-action:pan-x;heigh
 @media (max-width:900px){.cw-mod{padding:4px 6px;align-self:center}}
 .vline .vtype{flex:none;font-style:normal;font-size:9px;padding:1px 5px;border-radius:5px;background:rgba(var(--hero-rgb),.25);color:#fff;font-family:var(--ui,sans-serif)}
 .vline .vtxt{flex:1}
+
+/* ---------- v8：左侧建造栏（植物大战僵尸式）与全军集结旗 ---------- */
+#fabBuild{display:none!important}
+.moba .hud-bl{display:none}
+.bb-col{position:absolute;left:6px;top:132px;z-index:6;display:flex;flex-direction:column;gap:4px;max-height:calc(100% - 150px);overflow-y:auto;scrollbar-width:none;padding:2px;touch-action:pan-y}
+.bb-col::-webkit-scrollbar{display:none}
+.bb-card{position:relative;width:54px;flex:none;display:flex;flex-direction:column;align-items:center;gap:0;padding:3px 2px 2px;border-radius:10px;background:rgba(9,7,20,.72);border:1px solid rgba(255,255,255,.14);color:#ede6d6;font-size:9px;line-height:1.15;touch-action:none;user-select:none}
+.bb-card .bb-ic{display:block;width:30px;height:30px;font-style:normal}.bb-card .bb-ic > *{width:30px;height:30px;image-rendering:pixelated;display:block}
+.bb-card .bb-nm{white-space:nowrap;overflow:hidden;max-width:50px;text-overflow:ellipsis}
+.bb-card .bb-cost{font-size:8px;font-family:var(--mono);opacity:.9;white-space:nowrap}
+.bb-card .bb-key{position:absolute;left:3px;top:1px;font-size:8px;font-style:normal;opacity:.5;font-family:var(--mono)}
+.bb-card.pick{border-color:#6fdc8c;box-shadow:0 0 0 2px #6fdc8c66,0 0 12px #6fdc8c55;transform:translateX(4px)}
+.bb-card.drag{opacity:.55}
+.bb-card.poor{opacity:.55;filter:saturate(.5)}
+.bb-card.lock{opacity:.3;filter:grayscale(1)}
+.compact .bb-col{top:112px;gap:3px}.compact .bb-card{width:46px}.compact .bb-card .bb-ic,.compact .bb-card .bb-ic > *{width:24px;height:24px}.compact .bb-card .bb-nm{display:none}
+.land .bb-col{top:96px}
+.port .bb-col{top:150px;max-height:calc(100% - 420px)}
+.moba .mb-zone{left:62px}
+.compact .comms{left:62px}.comms{left:68px}
+.mb-army{right:150px;bottom:178px;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;align-content:center;gap:1px;font-size:9px;color:#ffe9a8;touch-action:none}
+.mb-army .pi{width:20px;height:20px;color:#ffd257}
+.mb-cancel{left:-70px;top:40px}
+.mb-cam{bottom:auto;top:150px}
+.compact .mb-cam{top:118px;bottom:auto}.port .mb-cam{top:96px;bottom:auto}
+.mb-flag-ghost{position:absolute;z-index:9;width:34px;height:34px;margin:-40px 0 0 -6px;pointer-events:none;color:#ffd257;filter:drop-shadow(0 2px 4px #000)}
+.mb-flag-ghost .pi{width:34px;height:34px}.mb-flag-ghost.bad{color:#ff5d6c}
+
+/* ---------- v8：物品说明卡（《物品宪法》） ---------- */
+.it-card{padding:10px 12px;border-radius:12px;background:#ffffff08;border:1px solid #ffffff14;margin-bottom:8px}
+.it-hd{display:flex;align-items:center;gap:8px}.it-hd b{font-size:15px}
+.it-ic{width:20px;height:20px;display:grid;place-items:center}.it-ic .pi{width:18px;height:18px}
+.it-tag{font-size:10px;padding:1px 6px;border-radius:6px;background:rgba(var(--hero-rgb),.25)}
+.it-rar{font-size:10px;margin-left:auto;font-weight:800}
+.it-world{font-size:12px;color:#d6ccf7;line-height:1.7;margin:6px 0;font-style:italic}
+.it-sec{font-size:12px;line-height:1.7;margin-top:4px}.it-sec em{font-style:normal;color:var(--hero2);font-weight:800;margin-right:6px}
+.it-sec ul{margin:2px 0 0 18px;padding:0}.it-sec p{display:inline}
+.it-tabs{flex-wrap:wrap;margin-bottom:8px}
+.it-list{max-height:56vh;overflow:auto}
+.hud-res .r{cursor:pointer}
+#lobbyRes{cursor:pointer}
+
+/* ---------- v8：装配图、电路解析、讲解 ---------- */
+.as{display:flex;flex-wrap:wrap;gap:12px}.as-sys{flex:1 1 260px}
+.as-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px;padding:10px;border-radius:14px;background:radial-gradient(ellipse at 50% 40%,rgba(var(--hero-rgb),.18),transparent 70%),#0b1424;border:1px solid rgba(var(--hero-rgb),.3)}
+.as-slot{display:flex;flex-direction:column;gap:2px;padding:8px 6px;border-radius:10px;background:#ffffff08;border:1px dashed #ffffff30;color:#9d96ad;text-align:center;font-size:11px;min-height:58px;justify-content:center}
+.as-slot b{font-size:12px}.as-slot span{font-size:9px;line-height:1.3}
+.as-slot.got{border:1px solid #6fdc8c;background:#6fdc8c18;color:#e8fff0;box-shadow:0 0 10px #6fdc8c44}
+.as-flow{margin:6px 0 0 18px;padding:0;line-height:1.8;font-size:13px}.as-flow b{color:var(--hero2);margin-right:8px}
+.cw-explain p{line-height:1.8;margin-bottom:6px}
+.cx-parse textarea{background:#0b1424;color:#ede6d6;border:1px solid #ffffff22;border-radius:8px;padding:8px;font-size:13px;resize:vertical}

@@ -171,6 +171,7 @@
     $('#mmBox').classList.toggle('min', document.body.classList.contains('compact') && window.innerWidth < 700);
     UI.buildSkillBar();
     if (CF.Moba) { if (CF.Moba.wanted(L)) CF.Moba.enable(g); else CF.Moba.disable(); }
+    if (CF.BuildBar) CF.BuildBar.mount(g);
     UI.renderObj(true);
     if (CF.Tutorial) CF.Tutorial.maybeStart(g);
     cancelAnimationFrame(raf); lastT = performance.now();
@@ -196,6 +197,7 @@
   UI.leaveBattle = function () {
     UI.buildMode(false);
     if (CF.Moba) CF.Moba.disable();
+    if (CF.BuildBar) CF.BuildBar.unmount();
     cancelAnimationFrame(raf);
     if (CF.Game.current) { CF.Game.current.destroy(); CF.Game.current = null; }
     UI.keys.clear(); UI.closeRadial();
@@ -226,6 +228,7 @@
     const g = CF.Game.current; if (!g) return;
     // 英雄残血时说一句濒危台词（每条命一次，回到 60% 以上重置）
     if (g.hero && !g.hero.dead && CF.Voice) { const p = g.hero.hp / g.hero.maxHp; if (p < 0.25 && !g.hero._lowSaid) { g.hero._lowSaid = true; CF.Voice.event(g.heroDef, 'low'); } else if (p > 0.6) g.hero._lowSaid = false; }
+    if (CF.BuildBar) CF.BuildBar.refresh();
     $('#rChip').textContent = CF.fmtNum(g.res.chip); $('#rCorp').textContent = CF.fmtNum(g.res.corp); $('#rComp').textContent = CF.fmtNum(g.res.comp);
     $('#rChipR').textContent = `+${g.rate.chip.toFixed(0)}`; $('#rCorpR').textContent = `+${g.rate.corp.toFixed(0)}`; $('#rCompR').textContent = `+${g.rate.comp.toFixed(1)}`;
     const sup = $('#supTxt');
@@ -286,7 +289,7 @@
     let bar = $('#placeBar');
     if (!bar) { bar = CF.h('<div id="placeBar" class="glass place-bar"><span class="pn"></span><button class="pb ok" title="放置">✓</button><button class="pb no" title="取消">✕</button></div>'); $('#field').appendChild(bar); bar.addEventListener('pointerdown', (e) => e.stopPropagation()); bar.querySelector('.ok').onclick = (e) => { e.stopPropagation(); UI.confirmPlace(); }; bar.querySelector('.no').onclick = (e) => { e.stopPropagation(); UI.cancelPlace(); }; }
     const d = CF.Game.BT[type]; bar.querySelector('.pn').innerHTML = `${d.name} <span class="c">${CF.Game.costHtml(d.cost)}</span>`;
-    bar.classList.remove('hidden'); UI.updPlace();
+    bar.classList.remove('hidden'); UI.updPlace(); if (o.noBar) bar.classList.add('hidden');
     CF.Audio.sfx('hover'); CF.bus.emit('placing', type);
   };
   UI.movePlace = function (clientX, clientY, touch) {
@@ -354,12 +357,12 @@
   UI.updSkillBar = function () {
     const g = CF.Game.current, h = g.hero;
     CF.$$('#skillBar .sk').forEach((b, i) => {
-      const sk = g.heroDef.skills[i], cd = h && !h.dead ? h.cd[sk.key] : 0, cost = h ? CF.Skills.cost(h, sk) : sk.cost;
-      b.querySelector('.cdm').style.setProperty('--cd', (cd > 0 ? (cd / (sk.cd * (g.bonus.cdMul || 1) * CF.Roster.starCd(g.heroId))) * 100 : 0) + '%');
+      const sk = g.heroDef.skills[i], cd = h && !h.dead ? h.cd[sk.key] : 0, cost = h ? CF.SkillCost.cost(h, sk).short : '';
+      b.querySelector('.cdm').style.setProperty('--cd', (cd > 0 ? (cd / (sk.cd * (g.bonus.cdMul || 1) * CF.Roster.starCd(g.heroId) * CF.SkillCost.cdMul())) * 100 : 0) + '%');
       b.querySelector('.cdt').textContent = cd > 0 ? Math.ceil(cd) : '';
       b.querySelector('.cost').textContent = cost;
       const lock = g.L.immersive && sk.key === 'R' && (g.heroLv || 1) < 6 && !CF.P.trial();
-      b.classList.toggle('na', !h || h.dead || g.res.comp < cost || lock);
+      b.classList.toggle('na', !h || h.dead || !CF.SkillCost.can(h, sk) || lock);
       b.classList.toggle('aim', UI.aimKey === sk.key);
     });
   };
@@ -501,6 +504,7 @@
     cv.addEventListener('pointerdown', (e) => {
       const g = G(); if (!g || g.over) return;
       CF.Audio.unlock();
+      if (CF.BuildBar && CF.BuildBar.onFieldDown(e)) return; // 左侧建造栏选中了建筑：点战场就放下
       try { cv.setPointerCapture(e.pointerId); } catch (er) {}
       const p = local(e);
       UI.touch = e.pointerType !== 'mouse';
@@ -561,6 +565,7 @@
     };
     cv.addEventListener('pointerup', up);
     cv.addEventListener('pointercancel', (e) => { P.delete(e.pointerId); pan = null; box = null; pinch = null; clearTimeout(hold && hold.t); const g = G(); if (g) g.box = null; });
+    cv.addEventListener('pointermove', (e) => { if (CF.BuildBar) CF.BuildBar.onFieldMove(e); });
     cv.addEventListener('wheel', (e) => { const g = G(); if (!g) return; e.preventDefault(); const p = local(e); g.zoomAt(p.x, p.y, e.deltaY < 0 ? 1.12 : 1 / 1.12); CF.bus.emit('camera'); }, { passive: false });
     // 小地图
     const mm = $('#miniCanvas');
@@ -646,6 +651,7 @@
       <div id="bgmRows"></div>
       <div class="sec-title">画面与玩法</div>
       <div class="set-row"><span class="nm">画质</span><div class="ctl"><select id="setQ"><option value="high">高（推荐）</option><option value="low">低（旧手机更流畅）</option></select></div></div>
+      <div class="set-row"><span class="nm">技能释放条件<br><small class="muted" id="setSkillDesc"></small></span><div class="ctl"><select id="setSkillCost"><option value="energy">① 能量（MOBA 蓝条）</option><option value="cd">② 纯冷却</option><option value="beat">③ 节拍充能</option></select></div></div>
       <div class="set-row"><span class="nm">沉浸模式操控</span><div class="ctl"><select id="setMoba"><option value="moba">摇杆 + 技能轮盘（王者 / 英雄联盟手游）</option><option value="classic">经典点击（RTS）</option></select></div></div>
       <div class="set-row"><span class="nm">英雄配音</span><div class="ctl"><select id="setVoice"><option value="auto">英雄录音（推荐）</option><option value="tts">系统中文语音</option><option value="pixel">像素音</option><option value="off">关闭</option></select><span class="small muted" id="setVoiceEng"></span><button class="btn sm ghost" id="setVoiceTry">试听</button></div></div>
       <div class="set-row"><span class="nm">英雄音效</span><div class="ctl"><label class="check" style="padding:0"><input type="checkbox" id="setHeroSfx"><span>点击、打击音效使用主英雄的乐器（连续点击会弹出主题曲动机）</span></label></div></div>
@@ -683,6 +689,7 @@
       row.querySelector('.tr').onclick = () => { A.unlock(); const prev = A.screen; A.screen = null; A.play(key); CF.toast(`试听：${A.SCREENS[key]}（离开设置页恢复）`); UI._restoreMusic = prev; };
       rows.appendChild(row);
     }
+    $('#setSkillCost').value = CF.SkillCost.mode(); $('#setSkillDesc').textContent = CF.SkillCost.MODES[CF.SkillCost.mode()].desc; $('#setSkillCost').onchange = (e) => { s.skillCost = e.target.value; CF.Save.save(); $('#setSkillDesc').textContent = CF.SkillCost.MODES[e.target.value].desc; CF.toast('技能释放条件：' + CF.SkillCost.MODES[e.target.value].name); };
     $('#setMoba').value = s.mobaCtl === 'classic' ? 'classic' : 'moba'; $('#setMoba').onchange = (e) => { s.mobaCtl = e.target.value; CF.Save.save(); CF.toast(e.target.value === 'classic' ? '沉浸模式改为经典点击操控' : '沉浸模式改为摇杆 + 技能轮盘'); };
     $('#setVoice').value = s.voice || 'auto'; $('#setVoiceEng').textContent = '当前：' + CF.Voice.engine(); $('#setVoice').onchange = (e) => { s.voice = e.target.value; CF.Save.save(); $('#setVoiceEng').textContent = '当前：' + CF.Voice.engine(); };
     $('#setVoiceTry').onclick = () => { CF.Audio.unlock(); CF.Voice.line(CF.Heroes.current()); };

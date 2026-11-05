@@ -31,6 +31,7 @@
       <div class="mb-zone"><div class="mb-base"><i class="mb-knob"></i></div></div>
       <div class="mb-cluster">
         <div class="mb-cancel hidden">${CF.Icons ? CF.Icons.svg('lock', 'pi') : ''}<span>取消</span></div>
+        <button class="glass mb-army" title="全军：点一下选中全部部队；按住拖到战场上 = 插集结旗">${CF.Icons ? CF.Icons.svg('flag', 'pi') : '⚑'}<span>全军</span></button>
         <button class="mb-atk" title="普攻：按住持续攻击最近的敌人">${CF.Icons ? CF.Icons.svg('swords', 'pi') : '⚔'}<span>普攻</span></button>
       </div>
       <button class="glass mb-cam" title="切换镜头（Y）"></button>
@@ -43,7 +44,7 @@
       const b = CF.h(`<button class="sk mb-sk mb-${sk.key}" data-k="${sk.key}"><span class="key">${sk.key}</span>${CF.Icons ? CF.Icons.skill(hd.id, i) : sk.key}<span class="cost"></span><i class="cdm"></i><span class="cdt"></span><b class="mb-up hidden">＋</b></button>`);
       bindSkill(b, sk); cl.appendChild(b);
     });
-    bindJoy(); bindAtk(root.querySelector('.mb-atk'));
+    bindJoy(); bindAtk(root.querySelector('.mb-atk')); bindArmy(root.querySelector('.mb-army'));
     camBtn.onclick = () => { CF.Audio.sfx('click'); M.setCam(M.cam === 'follow' ? 'free' : 'follow', 'btn'); };
     const mm = CF.$('#miniCanvas'); mm.addEventListener('pointerdown', onMini);
     window.addEventListener('keydown', onKey);
@@ -82,6 +83,25 @@
     });
     const up = (e) => { if (!joy || joy.id !== e.pointerId) return; joy = null; knob.style.transform = ''; base.classList.remove('on'); base.style.left = ''; base.style.top = ''; const g = G(); if (g) g.stick = null; };
     zone.addEventListener('pointerup', up); zone.addEventListener('pointercancel', up);
+  }
+
+  // ---------- 全军：点 = 选中全部部队；拖 = 插集结旗 ----------
+  function bindArmy(b) {
+    let d = null, ghost = null;
+    b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); CF.Audio.unlock(); d = { id: e.pointerId, sx: e.clientX, sy: e.clientY, on: false }; try { b.setPointerCapture(e.pointerId); } catch (er) { /* 合成事件 */ } });
+    b.addEventListener('pointermove', (e) => {
+      if (!d || d.id !== e.pointerId) return;
+      if (!d.on && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) > 12) { d.on = true; ghost = CF.h(`<div class="mb-flag-ghost">${CF.Icons ? CF.Icons.svg('flag', 'pi') : '⚑'}</div>`); document.getElementById('field').appendChild(ghost); }
+      if (d.on && ghost) { const r = CF.appRect(document.getElementById('field')), p = P(e); ghost.style.left = (p.x - r.left) + 'px'; ghost.style.top = (p.y - r.top) + 'px'; ghost.classList.toggle('bad', b.contains(document.elementFromPoint(e.clientX, e.clientY))); }
+    });
+    const up = (e) => {
+      if (!d || d.id !== e.pointerId) return; const was = d.on; d = null; if (ghost) { ghost.remove(); ghost = null; }
+      const g = G(); if (!g) return;
+      if (!was) { const ids = g.allArmy().filter((id) => id !== (g.hero && g.hero.id)); CF.UI.sel(ids); CF.bus.emit('boxsel', ids.length); CF.Audio.sfx('click'); CF.toast(ids.length ? `选中全军 ${ids.length} 个单位（按住「全军」拖到战场上可以插集结旗）` : '现在还没有部队', '', 1600); return; }
+      if (b.contains(document.elementFromPoint(e.clientX, e.clientY))) { CF.toast('已取消', '', 800); return; }
+      const w = CF.UI.worldAt(e.clientX, e.clientY, true); if (w) g.setRally(w[0], w[1]);
+    };
+    b.addEventListener('pointerup', up); b.addEventListener('pointercancel', () => { d = null; if (ghost) { ghost.remove(); ghost = null; } });
   }
 
   // ---------- 普攻键 ----------
@@ -155,13 +175,13 @@
     }
     if (++frameN % 5) return;
     root.querySelectorAll('.mb-sk').forEach((b) => {
-      const sk = g.heroDef.skills.find((x) => x.key === b.dataset.k), cd = h.dead ? 0 : h.cd[sk.key], cost = CF.Skills.cost(h, sk);
-      const full = sk.cd * (g.bonus.cdMul || 1) * CF.Roster.starCd(g.heroId);
+      const sk = g.heroDef.skills.find((x) => x.key === b.dataset.k), cd = h.dead ? 0 : h.cd[sk.key], cost = CF.SkillCost.cost(h, sk).short;
+      const full = sk.cd * (g.bonus.cdMul || 1) * CF.Roster.starCd(g.heroId) * CF.SkillCost.cdMul();
       b.querySelector('.cdm').style.setProperty('--cd', (cd > 0 ? (cd / full) * 100 : 0) + '%');
       b.querySelector('.cdt').textContent = cd > 0 ? Math.ceil(cd) : '';
       b.querySelector('.cost').textContent = cost;
       const lock = (sk.key === 'R' && ((g.L.immersive && (g.heroLv || 1) < 6 && !CF.P.trial()) || !CF.Treasure.has(g.heroId)));
-      b.classList.toggle('na', h.dead || g.res.comp < cost || lock);
+      b.classList.toggle('na', h.dead || !CF.SkillCost.can(h, sk) || lock);
       const up = b.querySelector('.mb-up'), maxLv = sk.key === 'R' ? (g.heroLv >= 10 ? 3 : g.heroLv >= 8 ? 2 : g.heroLv >= 6 ? 1 : 0) : Math.min(4, 1 + Math.floor(((g.heroLv || 1) + 1) / 2));
       up.classList.toggle('hidden', !(g.skillPts > 0 && g.skillLv && g.skillLv[sk.key] < maxLv));
     });
