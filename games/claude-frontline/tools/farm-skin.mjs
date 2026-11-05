@@ -222,13 +222,6 @@ imm2 = imm2.replace(/Object\.assign\(UI4BASE,IMM6_COLORS\);Object\.assign\(UI4PR
 if (!imm2.includes('造月:UI4BASE') || !imm2.includes("panel:'#1d1930'")) throw new Error('immersive-v6.js 的默认配色没有替换成功');
 fs.writeFileSync(path.join(DST, 'immersive-v6.js'), imm2);
 
-// 发音模型：原版安卓壳有 AndroidFiles 时从本地代理下载；我们的壳没有这个代理，只有声明了 voiceLocal 才走本地，否则直接从 GitHub Pages 下载
-const up = fs.readFileSync(path.join(SRC, 'updates-v7.js'), 'utf8');
-const up2 = up.replace("host:window.AndroidFiles?new URL('vendor/kokoro/',location.href).href:MODEL_HOST7", "host:(window.AndroidFiles&&AndroidFiles.voiceLocal&&AndroidFiles.voiceLocal())?new URL('vendor/kokoro/',location.href).href:MODEL_HOST7");
-if (up2 === up) throw new Error('updates-v7.js 的模型地址没有替换成功');
-// 安装包更新：原版会提示下载独立的「生而向星」APK（com.doudou.farm）。并进造月之路后只认造月之路自己的包名，
-// 不会再提示装另一个 App；课程、语音包等内容更新照常
-const up3 = up2.replace("a.package==='com.doudou.farm'", "a.package==='com.xs.frontline'");
-if (up3 === up2) throw new Error('updates-v7.js 的包名检查没有替换成功');
-fs.writeFileSync(path.join(DST, 'updates-v7.js'), up3);
+// 主创要求（v8）：「只改 UI，其它的不要动」——功能逻辑一律用原版，这里只改颜色和界面；updates-v7.js 等逻辑文件原样复制
+fs.copyFileSync(path.join(SRC, 'updates-v7.js'), path.join(DST, 'updates-v7.js'));
 console.log(`换色完成：${files.length} 个 CSS + index.html，${stats.decl} 条声明，${stats.colors} 处颜色`);

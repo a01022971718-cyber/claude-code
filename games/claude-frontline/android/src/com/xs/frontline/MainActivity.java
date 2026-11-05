@@ -27,8 +27,13 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -43,13 +48,19 @@ import java.util.Map;
  *   fetch、Web Worker、WebAssembly、浏览器缓存（发音模型和口语评分模型下载一次后缓存）。
  * - 大厅 ↔ 田园用 XSNative.openFarm / backToGame 整页切换（https 页面不能自己跳到 file://）。
  * - AndroidFiles：田园原版安卓壳的接口（导出备份、麦克风权限、版本号、网络类型、震动），保留原版功能。
+ *   版本号按田园原版（1.10.0 / build 39）返回，田园自己的更新检查和原版一样。
+ * - 英文发音模型：和原版安卓壳一样，田园向本地 vendor/kokoro/onnx-community/… 要模型文件；第一次从原版的下载地址取回并存到手机里，以后离线可用。
+ *   田园的代码一行没改（主创要求：只改 UI，其它不动）。
  * - 新增权限：联网（第一次下载发音 / 口语评分模型、检查更新）、录音（口语评分，用的时候才申请）。
  */
 public class MainActivity extends Activity {
-    static final String APP_VERSION = "0.8.0";
-    static final int APP_VERSION_CODE = 8;
     static final String ASSET_HOST = "appassets.androidplatform.net";
     static final String GAME_URL = "file:///android_asset/index.html";
+    // 田园原版（生而向星 1.10.0 / build 39）的版本号与发音模型下载地址（取自原版安装包）
+    static final String FARM_VERSION = "1.10.0";
+    static final int FARM_VERSION_CODE = 39;
+    static final String FARM_MODEL_PREFIX = "farm/vendor/kokoro/onnx-community/";
+    static final String FARM_MODEL_BASE = "https://raw.githubusercontent.com/a01022971718-cyber/mv/7ae3df3a59544f34ce380e8fa512a2f85b395ddb/game/";
 
     private WebView web;
     private TextToSpeech tts;
@@ -127,7 +138,36 @@ public class MainActivity extends Activity {
             InputStream in = getAssets().open(path);
             return new WebResourceResponse(m, enc, 200, "OK", headers, in);
         } catch (Exception e) {
+            if (path.startsWith(FARM_MODEL_PREFIX) && !path.contains("..")) {
+                File f = farmModel(path.substring("farm/".length()));
+                if (f != null) {
+                    try { return new WebResourceResponse(m, enc, 200, "OK", headers, new FileInputStream(f)); } catch (Exception e2) { /* 读不出来 */ }
+                }
+            }
             return new WebResourceResponse("text/plain", "utf-8", 404, "Not Found", headers, new ByteArrayInputStream(new byte[0]));
+        }
+    }
+
+    // 田园的英文发音模型：手机里有就用，没有就从原版地址下载一次（在 WebView 的后台线程里执行）
+    File farmModel(String rel) {
+        File f = new File(new File(getFilesDir(), "farm-voice"), rel);
+        if (f.isFile() && f.length() > 0) return f;
+        File tmp = new File(f.getPath() + ".download");
+        try {
+            File dir = f.getParentFile();
+            if (dir != null) dir.mkdirs();
+            HttpURLConnection c = (HttpURLConnection) new URL(FARM_MODEL_BASE + rel).openConnection();
+            c.setConnectTimeout(15000); c.setReadTimeout(60000);
+            if (c.getResponseCode() != 200) { c.disconnect(); return null; }
+            InputStream in = c.getInputStream();
+            OutputStream os = new FileOutputStream(tmp);
+            byte[] buf = new byte[65536]; int n;
+            while ((n = in.read(buf)) > 0) os.write(buf, 0, n);
+            os.close(); in.close(); c.disconnect();
+            return tmp.renameTo(f) ? f : null;
+        } catch (Exception e) {
+            tmp.delete();
+            return null;
         }
     }
 
@@ -409,9 +449,9 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void requestMicrophone() { act.requestMicFromJs(); }
         @JavascriptInterface
-        public String appVersion() { return "1.10.0（造月之路 " + APP_VERSION + "）"; }
+        public String appVersion() { return FARM_VERSION; }
         @JavascriptInterface
-        public int appVersionCode() { return APP_VERSION_CODE; }
+        public int appVersionCode() { return FARM_VERSION_CODE; }
         @JavascriptInterface
         public String networkKind() { return act.networkKind(); }
         @JavascriptInterface
