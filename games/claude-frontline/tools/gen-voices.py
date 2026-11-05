@@ -202,7 +202,9 @@ def main():
     ap.add_argument('--model', required=True)
     ap.add_argument('--asr')
     ap.add_argument('--only')
+    ap.add_argument('--redo', type=float, help='只重录 report.json 里拼音错误率 ≥ 这个值的台词（每句 8 条 take）')
     args = ap.parse_args()
+    prev_rep = json.load(open(os.path.join(VOICE, 'report.json'), encoding='utf-8')) if args.redo is not None else {}
     lines = json.load(open(os.path.join(VOICE, 'lines.json'), encoding='utf-8'))
     cast = json.load(open(os.path.join(VOICE, 'cast.json'), encoding='utf-8'))
     tts = tts_engine(args.model)
@@ -215,20 +217,26 @@ def main():
                 continue
             c = cast[hid]
             d = os.path.join(VOICE, hid); os.makedirs(d, exist_ok=True)
-            for f in os.listdir(d):
-                if f.endswith('.mp3'):
-                    os.remove(os.path.join(d, f))
+            if args.redo is None:
+                for f in os.listdir(d):
+                    if f.endswith('.mp3'):
+                        os.remove(os.path.join(d, f))
             items = [(k, v) for k, v in h['lines'].items()] + [(f'click{i + 1}', v) for i, v in enumerate(h['clicks'])]
             seen, manifest[hid] = set(), {}
             for key, text in items:
                 if not text or text in seen:
                     continue
                 seen.add(text)
+                if args.redo is not None:
+                    old = prev_rep.get(hid, {}).get(text)
+                    if old and old['per'] < args.redo:
+                        manifest[hid][text] = f'{hid}/{key}.mp3'; report.setdefault(hid, {})[text] = old; continue
                 emo = EMO[key]
                 speed = c['speed'] * emo['speed']
                 out = os.path.join(d, f'{key}.mp3')
                 takes = []
-                for ti, (mode, sm) in enumerate(TAKES if rec else TAKES[:1]):
+                tk = TAKES + [('phrase', 0.86), ('line', 0.88), ('phrase', 1.08), ('line', 1.1)] if args.redo is not None else TAKES
+                for ti, (mode, sm) in enumerate(tk if rec else tk[:1]):
                     tag = f'{hid}_{key}_{ti}'
                     x = perform(tts, text, c, emo, speed * sm, mode, tmp, tag)
                     wav, mp3 = os.path.join(tmp, tag + '.wav'), os.path.join(tmp, tag + '.mp3')
@@ -250,11 +258,11 @@ def main():
                 report.setdefault(hid, {})[text] = {'type': key, 'asr': best['hyp'], 'cer': round(best['cer'], 3), 'per': round(best['per'], 3), 'take': f"{best['mode']}×{best['sp']}", 'expr': round(best['expr'], 2), 'sec': round(best['sec'], 2)}
                 print(hid, key, text, f'{os.path.getsize(out) / 1024:.1f}KB', report[hid][text], flush=True)
     mp = os.path.join(VOICE, 'manifest.json')
-    old = json.load(open(mp, encoding='utf-8')) if args.only and os.path.exists(mp) else {}
+    old = json.load(open(mp, encoding='utf-8')) if (args.only or args.redo is not None) and os.path.exists(mp) else {}
     old.update(manifest); json.dump(old, open(mp, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     if report:
         rp = os.path.join(VOICE, 'report.json')
-        prev = json.load(open(rp, encoding='utf-8')) if args.only and os.path.exists(rp) else {}
+        prev = json.load(open(rp, encoding='utf-8')) if (args.only or args.redo is not None) and os.path.exists(rp) else {}
         prev.update(report); json.dump(prev, open(rp, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
         allv = [v for hh in prev.values() for v in hh.values()]
         n = len(allv)
