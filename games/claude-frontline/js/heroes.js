@@ -23,7 +23,7 @@
       personality: '果断、热情、懂得倾听。她不是乐团里最响的那个声音，却能让九种完全不同的声音在同一拍上响起、彼此成就。',
       story: '乱码潮让东西两岸的乐手各自为战——钢琴只听钢琴，唢呐只吹唢呐。造乐从造月港出发，带着一架会发电的巡航无人机「伏特」，一个一个拜访九位乐手：「你们的声音都不一样，正因为不一样，合在一起才最响。」当九种乐器第一次在同一拍上响起，乱码潮退去了一整片海。她抬头看了看天：「下一站，月亮。」',
       quote: '九种声音，一个方向！',
-      lines: { pick: '九种声音，一个方向！', attack: '跟上我的拍子！', skill: '全体——起！', low: '只要还有一个声部在，乐曲就不会停。' },
+      lines: { pick: '九种声音，一个方向！', move: '跟上节拍，出发！', attack: '这一拍，归我！', skill: '全体——起！众声向上！', kill: '曲终，谢幕。', low: '只要还有一个声部在，乐曲就不会停。', revive: '指挥棒，再次举起！' },
       passive: { name: '九声合一', desc: '每次攻击积累 1 层「合奏」（最多 9 层，九种颜色对应九种乐器）；满 9 层后下一击变为「齐奏」：3 倍伤害并向四周扩散，附近友军攻速 +30%，持续 4 秒。' },
       skills: [
         { key: 'Q', name: '起拍', target: 'dir', cost: 35, cd: 8, desc: '向前一挥，九枚九色音符呈扇形射出，各造成 45 伤害并穿透 2 个目标。' },
@@ -66,15 +66,16 @@
     },
     {
       // v4：形象回到最初的像素吉他手；灵感来源改为 Claude，世界观、性格、故事、台词从原「星芒」迁移
-      // v6 重新设计（按主创要求，避免与任何公司的吉祥物相似）：守灯人「灯语」——红白条纹的灯塔帽 + 灯室、靛蓝长外套、金色围巾、白色电吉他
-      id: 'xs', name: '灯语', en: 'Beacon', title: '守灯的工匠', side: '美', inspire: 'Claude（Anthropic）——有帮助、诚实、重视安全；擅长长文阅读、写代码与一步一步的推理',
+      // v7 重新设计（按主创要求：保留 v5 的配色——橙色身体 + 紫色背景，乐器紫色电吉他不变；按吉祥物标准、不拟人）
+      // 灯语 = 一只橙色小猫头鹰：眼睛就是灯塔的灯，强拍时亮起；耳羽尖是两片新芽绿（致敬最初的新芽）；圆蛋形剪影，与任何方块形吉祥物区分开
+      id: 'xs', name: '灯语', en: 'Beacon', title: '守灯的猫头鹰', side: '美', inspire: 'Claude（Anthropic）——有帮助、诚实、重视安全；擅长长文阅读、写代码与一步一步的推理',
       role: '均衡 · 控制', instrument: '电吉他', world: '星芒工坊 · 写满宪章的灯塔',
-      pal: { coat: '#4c5bd4', coatD: '#33409a', hat: '#eef1f8', stripe: '#e2455e', lamp: '#fff3a8', lampD: '#ffd04a', skin: '#f3cfb3', skinD: '#d9a98a', hair: '#2b2347', scarf: '#ffd76a', scarfD: '#d9a63c', boot: '#241c3a', inst: '#e9edf7', instD: '#9aa5c4', instL: '#ffffff', eye: '#1b1226', k: '#1b1226', bg: ['#1a1446', '#2b2378', '#3f36a6'], grid: [132, 112, 214], glow: '#9b7bff', accent: '#ffe08a', note: '#ffd76a', note2: '#9fe8ff' },
+      pal: { body: '#ec8a5e', bodyD: '#b85f40', belly: '#f6b98f', eyeW: '#fff1d6', lamp: '#f2c14e', beak: '#f2c14e', inst: '#8b80d6', instD: '#5e54b0', instL: '#b3abea', leaf: '#7ee081', eye: '#1b1226', k: '#1b1226', bg: ['#22144c', '#33207a', '#4a2fa0'], grid: [132, 112, 214], glow: '#9b7bff', accent: '#ff9a5c', note: '#f2c14e', note2: '#7ee081' },
       music: { style: 'xs', bpm: 112, key: 'E 小调 → G 大调', scale: '自然小调', motif: '上行五音「向上」动机' },
       personality: '认真、温和、诚实。会把复杂的事一步一步拆开；不确定就直说「我不确定」；不会帮你做坏事，但总会给你一个更好的办法。',
-      story: '海边的星芒工坊有一座灯塔，灯塔的每一块砖上都刻着守灯人和伙伴们一起写下的宪章。守灯人叫灯语——她把灯塔的灯室做成了帽子，走到哪里，光就跟到哪里。乱码潮来袭的那个夜晚，她背着白色电吉他守在灯塔下，用灯光一闪一闪地发信号，一个音一个音地把被打乱的信号修好——「大事一起扛，细节交给我。我们一步一步来。」后来，造乐第一个敲开的，就是星芒工坊的门。',
+      story: '海边的星芒工坊有一座灯塔，灯塔的每一块砖上都刻着守灯的伙伴们一起写下的宪章。守灯的是一只橙色的小猫头鹰「灯语」——它的眼睛就是两盏灯，夜里一眨一眨，就是在给远方的船打信号。乱码潮来袭的那个夜晚，它抱着紫色电吉他守在灯塔顶上，一个音一个音地把被打乱的信号修好——「大事一起扛，细节交给我。我们一步一步来。」后来，造乐第一个敲开的，就是星芒工坊的门。',
       quote: '我们一步一步来。',
-      lines: { pick: '我们一步一步来。', attack: '这里我检查过了。', skill: '让我想一想……好了！', low: '我不确定还能撑多久——但我会如实告诉你。' },
+      lines: { pick: '我们一步一步来。', move: '灯亮着，路就在。', attack: '这里，我检查过了。', skill: '让我想一想……好了！破晓！', kill: '结论很清楚了。', low: '我不确定还能撑多久——但我会如实告诉你。', revive: '重新校准，继续守灯。' },
       passive: { name: '灯语', desc: '每第 4 次攻击变为强力和弦，造成 1.8 倍伤害并溅射。' },
       skills: [
         { key: 'Q', name: '弦振冲击', target: 'self', cost: 40, cd: 12, desc: '以自身为中心扫弦，像素冲击环造成 120 伤害并击退敌人。' },
@@ -83,35 +84,36 @@
       ],
       minion: { id: 'spark', name: '火花学徒', desc: '便宜的远程学徒，阵亡时爆出火花伤害周围敌人。' },
       building: { id: 'amp', name: '音箱塔', desc: '随节拍周期性释放冲击环，伤害周围敌人。' },
-      fx: { pats: [['.X.', 'XXX', '.X.'], ['XX', 'XX'], ['X.X', '.X.', 'X.X']], cols: ['#ffd76a', '#fff3a8', '#9fe8ff'], src: [21, -3] },
+      fx: { pats: [['.XX', '.X.', 'XX.'], ['XX', '.X', 'XX'], ['X.X', 'XXX']], cols: ['#f2c14e', '#f2c14e', '#7ee081'], src: [18, -4] },
       draw(ctx, ox, oy, px, a) {
-        const p = this.pal, R = pen(ctx, ox, oy, px, B(a)), sv = a.lean > 0.5 ? 1 : 0, tint = a.tint;
-        const coat = tint || p.coat, coatD = tint || p.coatD, hat = tint || p.hat;
+        const p = this.pal, R = pen(ctx, ox, oy, px, B(a)), sv = a.lean > 0.5 ? 1 : 0, sh = a.lean > 0.5 ? -1 : 0;
+        const bc = a.tint || p.body, bd = a.tint || p.bodyD, bl = a.tint || p.belly;
         const rows = (list, x0, y0, map) => list.forEach((row, j) => { for (let i = 0; i < row.length; i++) { const c = map[row[i]]; if (c) R(x0 + i, y0 + j, 1, 1, c); } });
-        // 腿（行走时两脚交替）
+        // 爪子（行走时左右交替抬起）
         const st = a.walk ? (a.step || 0) % 2 : -1;
-        R(5, 9 - (st === 0 ? 1 : 0), 2, 2, p.boot); R(9, 9 - (st === 1 ? 1 : 0), 2, 2, p.boot);
-        // 靛蓝长外套（暗面在左侧与下沿），前襟一排金扣
-        rows(['.CCCCCCCC.', 'dCCCCCCCC.', 'dCCCCCCCCC', 'dCCCCCCCCC', 'ddCCCCCCdd'], 3, 4, { C: coat, d: coatD });
-        R(8, 5, 1, 1, p.scarfD); R(8, 7, 1, 1, p.scarfD);
-        // 金色围巾：尾巴在身后随时间飘动
-        const fl = Math.sin((a.t || 0) * 5) > 0 ? 1 : 0;
-        rows(['YYYYYYYYYY'], 3, 3 + sv, { Y: p.scarf }); R(1, 3 + sv + fl, 2, 1, p.scarfD); R(2, 4 + sv, 1, 2 - fl, p.scarfD);
-        // 头与头发（齐肩短发，面朝右）
-        rows(['HHHSSSSS', 'HHSSSSSS', 'HsSSSSSS', 'HsSSSSSS', '.ssSSSSS'], 4, -2 + sv, { H: p.hair, S: p.skin, s: p.skinD });
-        if (a.blink) { R(8, 0 + sv, 1, 1, p.eye); R(10, 0 + sv, 1, 1, p.eye); } else { R(8, -1 + sv, 1, 2, p.eye); R(10, -1 + sv, 1, 2, p.eye); }
-        R(9, 2 + sv, 2, 1, p.skinD);
-        // 灯塔帽：穹顶 + 发光灯室 + 栏杆 + 白塔身与一道红环；强拍时灯亮、两侧放出光束
-        const lit = a.strum || a.bob > 0.5;
-        rows(['...KKK...', '..KLLLK..', '.KKKKKKK.', '..WWWWW..', '..RRRRR..', '.WWWWWWW.'], 3, -8 + sv, { K: p.k, L: lit ? p.lamp : p.lampD, W: hat, R: p.stripe });
-        if (lit) { ctx.globalAlpha = 0.75; R(10, -8 + sv, 3, 1, p.lampD); R(13, -9 + sv, 3, 1, p.lamp); R(2, -8 + sv, 2, 1, p.lampD); R(0, -9 + sv, 2, 1, p.lamp); ctx.globalAlpha = 1; }
-        if (a.noInst) { R(12, 5, 1, 2, p.skin); R(2, 6, 1, 2, p.skinD); return; }
-        // 白色电吉他（法宝）：斜挎在身前，琴身一道红条，琴头是一盏小灯
-        rows(['.GGGGG.', 'GGGrGGG', 'gGGrrGG', '.ggggG.'], 6, 5, { G: p.inst, g: p.instD, r: p.stripe });
-        [[13, 5], [14, 4], [15, 3], [16, 2], [17, 1], [18, 0], [19, -1]].forEach(([x, y], i) => { R(x, y, 1, 1, p.k); if (i % 2 === 0) R(x, y - 1, 1, 1, p.instL); });
-        R(20, -3, 1, 2, p.instD); R(21, -3, 1, 1, lit ? p.lamp : p.lampD);
-        R(16, 1, 1, 1, p.skin); // 按弦的手
-        const hy = a.strum ? 7 : 5; R(12, hy, 2, 1, p.skin); R(13, hy - 1, 1, 1, p.skinD);
+        rows(['.F...F.', 'FFF.FFF'], 2, 8 - (st === 0 ? 1 : 0), { F: p.beak });
+        if (st === 0) R(6, 9, 3, 1, p.beak);
+        // 身体：圆蛋形，暗面在左侧与下沿；肚皮浅橙带人字羽纹
+        rows(['DBBBBBBBBBBB', 'DBLLLLLLLBBB', 'DBLDLLDLLBBB', 'DBLLLLLLLBB.', '.DBLLDLLDLBB', '.DDBLLLLLBB.', '..DDBBBBBB..'], 0, 1, { B: bc, D: bd, L: bl });
+        // 头：随强拍探身（整体左移下沉 1 格）
+        const lit = a.strum || a.bob > 0.5, ew = lit ? p.lamp : p.eyeW;
+        rows(['.G........G.', '.GB......BG.', '..BBBBBBBB..', '.DBBBBBBBBBB', '.DBBBBBBBBBB', '.DBBBBBBBBBB', '.DBBBBBBBBBB'], 0 + sh, -6 + sv, { G: p.leaf, B: bc, D: bd });
+        // 眼睛 = 两盏灯：平时米白，强拍时亮成灯黄色并向外放光；眨眼时合成一条线
+        if (a.blink) { R(3 + sh, -1 + sv, 3, 1, bd); R(8 + sh, -1 + sv, 3, 1, bd); }
+        else {
+          rows(['EEE.EEE', 'EEP.EEP', 'EEE.EEE'], 3 + sh, -3 + sv, { E: ew, P: p.eye });
+          if (lit) { ctx.globalAlpha = 0.6; R(1 + sh, -2 + sv, 1, 1, p.lamp); R(11 + sh, -3 + sv, 2, 1, p.lamp); R(11 + sh, -1 + sv, 2, 1, p.lamp); ctx.globalAlpha = 1; }
+        }
+        R(6 + sh, -1 + sv, 1, 2, p.beak); R(7 + sh, 0 + sv, 1, 1, p.beak);
+        if (a.noInst) { R(11, 3, 1, 3, bd); return; }
+        // 紫色电吉他（法宝，v5 原样保留）：琴颈斜向右上，琴身上的白色四芒星
+        [[11, 4], [12, 3], [13, 2], [14, 1], [15, 0], [16, -1], [17, -2]].forEach(([x, y], i) => { R(x, y, 1, 1, p.k); if (i % 2 === 0) R(x + 1, y, 1, 1, p.instL); });
+        R(18, -4, 2, 2, p.inst); R(20, -4, 1, 1, p.instL); R(18, -5, 1, 1, p.instL); R(17, -3, 1, 1, p.inst);
+        R(14, 2, 1, 1, bc); R(15, 1, 1, 1, bc); // 按弦的翅膀尖
+        ['..KKKK.', '.KGGGGK', 'KGGgGGK', 'KgGGGGK', 'KKgggK.', '.KKKK..'].forEach((row, y) => { for (let x = 0; x < row.length; x++) { const c = row[x]; if (c !== '.') R(6 + x, 4 + y, 1, 1, c === 'K' ? p.k : c === 'g' ? p.instD : p.inst); } });
+        R(8, 5, 1, 1, '#fff'); R(10, 5, 1, 1, '#fff'); R(9, 6, 1, 1, '#fff'); R(8, 7, 1, 1, '#fff'); R(10, 7, 1, 1, '#fff');
+        // 扫弦的翅膀：强拍上下摆动
+        const hy = a.strum ? 7 : 5; R(12, hy, 2, 1, bc); R(13, hy - 1, 1, 1, bc); R(12, hy + 1, 1, 1, bd);
       },
     },
     {
@@ -122,7 +124,7 @@
       personality: '博学、耐心、从不嫌问题简单。习惯先把问题拆开，再一层层弹给你听。',
       story: '万象城的图书馆有八十八层，每一层对应一个琴键。万象在那里长大，读遍了每一本书，却发现知识只有被弹出来、被别人听懂，才真正有了声音。于是它带着一架会走路的钢琴，走出了图书馆。',
       quote: '八十八个琴键，就有八十八种答案。',
-      lines: { pick: '八十八个琴键，就有八十八种答案。', attack: '这一题，我会。', skill: '请欣赏——交响全集。', low: '让我换个思路再弹一遍。' },
+      lines: { pick: '八十八个琴键，就有八十八种答案。', move: '下一页，翻开。', attack: '这一题，我会。', skill: '请欣赏——交响全集！', kill: '答案，已经写好了。', low: '让我换个思路，再弹一遍。', revive: '图书馆，从不关门。' },
       passive: { name: '八十八键', desc: '攻击在白键与黑键之间交替：白键伤害 +20%，黑键使目标减速 30%。' },
       skills: [
         { key: 'Q', name: '琶音', target: 'dir', cost: 35, cd: 8, desc: '向前方扇形弹出 8 枚琴键，各造成 50 伤害并穿透一个目标。' },
@@ -155,8 +157,8 @@
       music: { style: 'twin', bpm: 88, key: 'D 利底亚', scale: '利底亚调式', motif: '双声部滑音（一高一低互相应答）' },
       personality: '姐姐「蓝」冷静理性，负责看；妹妹「粉」热情感性，负责听。两人经常抢话，却从不弹错同一根弦。',
       story: '双星天文台建在星河两岸，蓝看得见光，粉听得见声。乱码潮切断了两岸的桥，她们就用一把竖琴把星光弹成了桥——一个看见，一个听见，世界才完整。',
-      quote: '一个看见，一个听见。',
-      lines: { pick: '一个看见，一个听见。', attack: '蓝，左边！——粉，收到！', skill: '双子座，合奏！', low: '别怕，我们还有彼此。' },
+      quote: '一个看见——一个听见！',
+      lines: { pick: '一个看见——一个听见！', move: '左边——右边——一起走！', attack: '蓝，左边！——粉，收到！', skill: '双子座——合奏！', kill: '我们赢了——当然啦！', low: '别怕——我们还有彼此。', revive: '星星不灭——我们回来了！' },
       passive: { name: '双生', desc: '一颗伴星环绕身边，每次攻击都会追加一次 60% 伤害的星光。' },
       skills: [
         { key: 'Q', name: '星河滑音', target: 'dir', cost: 35, cd: 9, desc: '一道竖琴滑音化为星河光束，对直线上的敌人造成 110 伤害。' },
@@ -190,8 +192,8 @@
       music: { style: 'riot', bpm: 150, key: 'E 小调', scale: '布鲁斯音阶', motif: '「咚-哒-咚咚-哒」切分鼓点' },
       personality: '嘴贫、叛逆、讨厌套话，但关键时刻比谁都靠得住。最爱在严肃场合来一段鼓 solo。',
       story: '狂想在没有规则的荒原上用废铁拼了一套鼓。别人说「先读完说明书」，它说「先打一段再说」。它的笑话很冷，鼓点很热——乱码军团最怕的，就是它突然笑出声。',
-      quote: '规则？先打一段鼓再说。',
-      lines: { pick: '规则？先打一段鼓再说。', attack: '咚！哒！你们节奏不行啊。', skill: '失控鼓点——全场跟我嗨！', low: '这点伤？连镲都没震响。' },
+      quote: '规则？先打一段鼓再说！',
+      lines: { pick: '规则？先打一段鼓再说！', move: '让开让开，鼓手过街！', attack: '咚！哒！你们节奏不行啊。', skill: '失控鼓点——全场跟我嗨！', kill: '下一首，你点的。', low: '这点伤？连镲都没震响。', revive: '返场！观众还没走呢！' },
       passive: { name: '鼓点狂热', desc: '每次命中攻速 +6%，最多叠加 10 层，3 秒不攻击后消散。' },
       skills: [
         { key: 'Q', name: '军鼓突进', target: 'point', cost: 30, cd: 8, desc: '冲向目标点，沿途敌人受到 90 伤害并眩晕 0.5 秒。' },
@@ -223,7 +225,7 @@
       personality: '慢条斯理、慷慨、护短。有好东西一定要分给所有人，谁欺负队友它就吐谁口水。',
       story: '开源高原上的羊驼把自己的毛剪下来，分给每一个怕冷的旅人。它的排箫一吹，牧场上的所有乐手都会变强——因为它把自己的曲谱公开给了所有人。',
       quote: '好东西，要大家一起用。',
-      lines: { pick: '好东西，要大家一起用。', attack: '呸——别靠近我的队友。', skill: '羊群，奔腾吧！', low: '毛还多，扛得住。' },
+      lines: { pick: '好东西，要大家一起用。', move: '慢慢来，草地很大。', attack: '呸——别靠近我的队友。', skill: '羊群，奔腾吧！', kill: '分享完毕，下一位。', low: '毛还多，扛得住。', revive: '开源的，删不掉。' },
       passive: { name: '开源', desc: '周围 260 范围内的友军伤害 +15%。' },
       skills: [
         { key: 'Q', name: '高原风', target: 'dir', cost: 30, cd: 9, desc: '吹出扇形狂风，造成 70 伤害并大幅击退。' },
@@ -254,7 +256,7 @@
       personality: '沉静、专注、话少但句句到底。别人用十分力气，它想清楚了只用三分。',
       story: '深海书院在一万米之下，那里没有光，只有鲸歌。鲸歌在黑暗里抚琴，每一个音都要想很久。它发现：想得越深，需要的力气越少。当它浮出海面，一记「鲸落」足以改变整片战场。',
       quote: '再深一点，答案就在下面。',
-      lines: { pick: '再深一点，答案就在下面。', attack: '想清楚了。', skill: '鲸落——万物归海。', low: '不急，再想一层。' },
+      lines: { pick: '再深一点，答案就在下面。', move: '下潜。', attack: '想清楚了。', skill: '鲸落——万物归海。', kill: '沉了。', low: '不急，再想一层。', revive: '浮上来了。' },
       passive: { name: '深度思考', desc: '每 8 秒获得 1 层「思考」（最多 3 层），下一个技能每层伤害 +35%；所有技能消耗 -30%。' },
       skills: [
         { key: 'Q', name: '泛音波', target: 'dir', cost: 35, cd: 8, desc: '拨出泛音化为穿透水波，对直线上敌人造成 100 伤害。' },
@@ -286,7 +288,7 @@
       personality: '安静、敏锐、记性惊人。你三个月前说过的话，她都记得——包括你的承诺。',
       story: '月之暗面终年不见太阳，月弦在那里拉了一千年二胡。每一个乐句都被她记在心里，一个音也没忘。乱码军团以为黑暗能让人遗忘，可它们不知道，月弦最擅长的就是在黑暗里记住一切。',
       quote: '两百万字，我一个字也没忘。',
-      lines: { pick: '两百万字，我一个字也没忘。', attack: '记住你了。', skill: '月光会照到每一个被记住的人。', low: '黑暗里，我看得更清楚。' },
+      lines: { pick: '两百万字，我一个字也没忘。', move: '月光会带路。', attack: '记住你了。', skill: '月光会照到每一个被记住的人。', kill: '这一页，翻过去了。', low: '黑暗里，我看得更清楚。', revive: '月亮，又升起来了。' },
       passive: { name: '长记忆', desc: '攻击为敌人叠加「记忆」（最多 5 层），每层使其受到的伤害 +8%。' },
       skills: [
         { key: 'Q', name: '月光弓', target: 'dir', cost: 35, cd: 9, desc: '一记长弓化为月光，穿透直线上所有敌人造成 90 伤害并叠加 2 层记忆。' },
@@ -318,8 +320,8 @@
       music: { style: 'pearl', bpm: 126, key: 'D 商调', scale: '中国五声（商调式）', motif: '琵琶轮指同音反复' },
       personality: '机灵、好问、语速飞快。每个答案后面都会再追一个「为什么」。',
       story: '玉盘湖的湖面上落满了珍珠，每一颗都是一个被回答过的问题。珠问抱着琵琶坐在湖心，弹一下，就有一颗珍珠飞出去——大珠小珠，问题落满玉盘，答案也是。',
-      quote: '大珠小珠，问题落满玉盘。',
-      lines: { pick: '大珠小珠，问题落满玉盘。', attack: '为什么？再来！', skill: '十面埋伏——你往哪儿躲？', low: '这个问题有点难……' },
+      quote: '大珠小珠，问题落满玉盘！',
+      lines: { pick: '大珠小珠，问题落满玉盘！', move: '那边有什么？去看看！', attack: '为什么？再来！', skill: '十面埋伏——你往哪儿躲？', kill: '嘿嘿，又解决一个问题！', low: '这个问题……有点难……', revive: '我又有新问题啦！' },
       passive: { name: '大珠小珠', desc: '攻击有 30% 几率弹射到第二个敌人。' },
       skills: [
         { key: 'Q', name: '轮指', target: 'self', cost: 30, cd: 10, desc: '2.5 秒疾速轮指，攻速提升至 4 倍。' },
@@ -352,7 +354,7 @@
       personality: '热情、话多、自来熟。哪里冷场它就去哪里吹一段，三秒让全场热起来。',
       story: '团团小镇天天过节，因为团团每天早上都会吹唢呐叫大家起床。它圆滚滚、软乎乎，谁都想捏一下。可别小看它——唢呐一响，整支军队都会跟着上头。',
       quote: '唢呐一响，全军上头！',
-      lines: { pick: '唢呐一响，全军上头！', attack: '嘀嘀——让一让！', skill: '百鸟朝凤，大家冲呀！', low: '呜……蒸笼还热着，我还行！' },
+      lines: { pick: '唢呐一响，全军上头！', move: '冲呀，蒸笼出发！', attack: '嘀嘀——让一让！', skill: '百鸟朝凤，大家冲呀！', kill: '耶！热乎的胜利！', low: '呜……蒸笼还热着，我还行！', revive: '团团又出锅啦！' },
       passive: { name: '热闹', desc: '周围 260 范围内的友军移速与攻速 +15%。' },
       skills: [
         { key: 'Q', name: '一声响', target: 'dir', cost: 30, cd: 9, desc: '对前方吹出巨响，造成 60 伤害，把敌人吓退并减速。' },
@@ -378,7 +380,7 @@
 
   // 配音参数（《英雄设计宪法》第 13 章）：按性别、年龄、性格模拟音色与语速
   const VOICE = {
-    xs: { gender: 'f', age: 17, pitch: 1.18, rate: 0.9, tone: '温和、认真，说话慢半拍、先想再说' },
+    xs: { gender: 'n', age: 14, pitch: 1.2, rate: 0.9, tone: '温和、认真，说话慢半拍、先想再说' },
     omni: { gender: 'm', age: 35, pitch: 0.95, rate: 0.94, tone: '沉稳、博学、耐心' },
     twin: { gender: 'f', age: 17, pitch: 1.22, rate: 1.04, alt: 1.55, tone: '姐姐冷静、妹妹活泼，两人交替说话' },
     riot: { gender: 'm', age: 22, pitch: 0.86, rate: 1.18, tone: '痞气、幽默、语速快' },
@@ -388,14 +390,14 @@
     pearl: { gender: 'f', age: 16, pitch: 1.34, rate: 1.12, tone: '好奇、俏皮、问题多' },
     bun: { gender: 'n', age: 8, pitch: 1.62, rate: 1.2, tone: '奶声奶气、热闹' },
   };
-  // v6 点击台词：每位英雄再加两句「被点到时」说的口头禅（与 lines 一起录音，见 voice/ 与 tools/gen-voices.py）
+  // 点击台词（v6）+ v7 语录扩充：每位英雄 9 句——选中 / 移动 / 攻击 / 大招 / 击杀 / 濒危 / 复活 + 两句点击台词（参考王者荣耀、英雄联盟的英雄语录结构，台词全部原创）
   const CLICKS = {
     zaole: ['每个人的声音，都算数。', '准备好了吗？我数拍子——一、二、三！'],
-    xs: ['不确定的地方，我会直接告诉你。', '灯亮着，我就在。'],
-    omni: ['没有简单的问题，只有还没弹出来的答案。', '问吧，我听着呢。'],
+    xs: ['不确定的地方，我会直接告诉你。', '嘘——听，信号回来了。'],
+    omni: ['问吧，我听着呢。', '没有简单的问题，只有还没弹出来的答案。'],
     twin: ['姐姐看路——妹妹听风！', '我们一起——永远一起！'],
     riot: ['别催，鼓点自己会来。', '无聊？那就来点噪音！'],
-    llama: ['代码拿去，记得分享给下一个人。', '慢慢来，草地很大。'],
+    llama: ['代码拿去，记得分享给下一个人。', '嗯……今天的风，很温柔。'],
     abyss: ['沉下去，才看得见。', '海很深，我很安静。'],
     luna: ['你说过的话，我都记得。', '月亮不说话，但一直都在。'],
     pearl: ['这是什么？那又是什么？', '再问一个！就一个！'],

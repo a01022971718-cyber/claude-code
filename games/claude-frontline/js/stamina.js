@@ -43,15 +43,55 @@
       inLearn = true;
       if (Date.now() - lastInput > IDLE) return; // 挂机不计时
       s.sess += dt; s.total += dt;
-      if (s.sess >= SESSION) { s.sess -= SESSION; s.bank += 5; CF.Audio.sfx('unlock'); CF.toast('连续学习 25 分钟！获得 5 分钟无限体力（已存入，随时启用）', 'gold', 4000); }
+      if (s.sess >= SESSION) { s.sess -= SESSION; s.bank += 5; CF.Audio.sfx('unlock'); CF.toast('内圈满了：连续学习 25 分钟！获得 5 分钟无限体力（已存入，随时启用）', 'gold', 4000); St.ringDone('i'); }
       CF.Save.save();
     },
-    endSession() { const s = d(); if (s.sess > 0) { s.pool += s.sess; s.sess = 0; } while (s.pool >= POOL) { s.pool -= POOL; s.bank += 10; CF.toast('零散学习累计 40 分钟！获得 10 分钟无限体力（已存入）', 'gold', 4000); } CF.Save.save(); },
+    endSession() { const s = d(); if (s.sess > 0) { s.pool += s.sess; s.sess = 0; } while (s.pool >= POOL) { s.pool -= POOL; s.bank += 10; CF.toast('外圈满了：零散学习累计 40 分钟！获得 10 分钟无限体力（已存入）', 'gold', 4000); St.ringDone('o'); } CF.Save.save(); },
     learnInfo() { const s = d(); return { sess: s.sess, pool: s.pool, bank: s.bank, total: s.total }; },
     // 大厅右上角的体力胶囊 + 学习页的计时条
     paint() {
       const el = CF.$('#lobbyStamina'); if (el) el.innerHTML = St.unlimited() ? `⚡ <b class="t-num">∞</b><span class="small">${CF.fmtTime(St.leftMs() / 1000)}</span>` : `⚡ <b class="t-num">${St.cur()}</b><span class="small">/${MAX}</span>${d().bank ? `<i class="bank">+${d().bank}′</i>` : ''}`;
-      const lt = CF.$('#learnTimer'); if (lt) { const s = d(), show = LEARN.includes(CF.UI && CF.UI.cur); lt.classList.toggle('hidden', !show); lt.classList.toggle('top', CF.UI.cur === 'city'); if (show) lt.innerHTML = `<span>学习计时</span><b class="t-num">${CF.fmtTime(s.sess)}</b><span class="small">/ 25:00</span><i style="--p:${(s.sess / SESSION) * 100}%"></i><span class="small">零散累计 ${Math.floor(s.pool / 60)}/40 分</span>${s.bank ? `<span class="small c-chip">已存 ${s.bank} 分钟无限体力</span>` : ''}`; }
+      const lt = CF.$('#learnTimer'); if (lt) {
+        const s = d(), show = LEARN.includes(CF.UI && CF.UI.cur); lt.classList.toggle('hidden', !show);
+        if (show) { St.ring(lt); St.setRing(lt, s.sess / SESSION, s.pool / POOL, Math.min(1, (s.pool + s.sess) / POOL), s.bank > 0); }
+      }
+    },
+    // ---------- 悬浮双环计时器（v7，主创要求：可拖动；内圈 25 分钟、外圈 40 分钟；不显示时间，只显示进度并在到达时提醒） ----------
+    ring(lt) {
+      if (lt._ring) return;
+      lt._ring = true; lt.className = 'learn-timer';
+      const C = (r) => 2 * Math.PI * r;
+      lt.innerHTML = `<svg viewBox="0 0 72 72" aria-hidden="true"><circle class="rb" cx="36" cy="36" r="31"/><circle class="ro-g" cx="36" cy="36" r="31" stroke-dasharray="${C(31)}"/><circle class="ro" cx="36" cy="36" r="31" stroke-dasharray="${C(31)}"/><circle class="rb" cx="36" cy="36" r="22"/><circle class="ri" cx="36" cy="36" r="22" stroke-dasharray="${C(22)}"/></svg><span class="lt-ic">${CF.Icons ? CF.Icons.svg('book', 'pi') : '📖'}</span><i class="lt-bank" title="已存入无限体力"></i>`;
+      lt.title = '学习计时：内圈 = 连续学习 25 分钟，外圈 = 零散累计 40 分钟（淡色部分是这一次还没结算的学习）。拖动可以移开；点一下看说明。';
+      // 位置：记在存档设置里（换手机也跟着走）；默认右下角
+      const set = CF.Save.data.settings, place = () => {
+        const pos = set.timerPos || { x: 0.92, y: 0.84 }, w = lt.offsetWidth || 72, h = lt.offsetHeight || 72;
+        lt.style.left = Math.round(CF.clamp(pos.x * innerWidth - w / 2, 4, innerWidth - w - 4)) + 'px';
+        lt.style.top = Math.round(CF.clamp(pos.y * innerHeight - h / 2, 4, innerHeight - h - 4)) + 'px';
+      };
+      place(); window.addEventListener('resize', place);
+      let drag = null;
+      lt.addEventListener('pointerdown', (e) => { drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, x0: lt.offsetLeft, y0: lt.offsetTop, moved: false }; try { lt.setPointerCapture(e.pointerId); } catch (er) { /* 合成事件 */ } e.preventDefault(); });
+      lt.addEventListener('pointermove', (e) => { if (!drag || drag.id !== e.pointerId) return; const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy; if (Math.hypot(dx, dy) > 6) drag.moved = true; if (!drag.moved) return; lt.classList.add('drag'); lt.style.left = CF.clamp(drag.x0 + dx, 4, innerWidth - lt.offsetWidth - 4) + 'px'; lt.style.top = CF.clamp(drag.y0 + dy, 4, innerHeight - lt.offsetHeight - 4) + 'px'; });
+      const up = (e) => {
+        if (!drag || drag.id !== e.pointerId) return; const moved = drag.moved; drag = null; lt.classList.remove('drag');
+        if (moved) { set.timerPos = { x: (lt.offsetLeft + lt.offsetWidth / 2) / innerWidth, y: (lt.offsetTop + lt.offsetHeight / 2) / innerHeight }; CF.Save.save(); }
+        else St.ringHelp();
+      };
+      lt.addEventListener('pointerup', up); lt.addEventListener('pointercancel', up);
+    },
+    setRing(lt, pi, po, pg, bank) {
+      const q = (sel, p, r) => { const c = lt.querySelector(sel); if (c) c.style.strokeDashoffset = (2 * Math.PI * r * (1 - CF.clamp(p, 0, 1))).toFixed(2); };
+      q('.ri', pi, 22); q('.ro', po, 31); q('.ro-g', pg, 31);
+      lt.classList.toggle('has-bank', bank);
+    },
+    ringDone(which) {
+      const lt = CF.$('#learnTimer'); if (navigator.vibrate) try { navigator.vibrate([60, 60, 120]); } catch (e) { /* 不支持 */ }
+      if (!lt) return; lt.classList.remove('done-i', 'done-o'); void lt.offsetWidth; lt.classList.add('done-' + which); setTimeout(() => lt.classList.remove('done-' + which), 2400);
+    },
+    ringHelp() {
+      CF.Audio.sfx('click');
+      CF.modal.open({ title: '学习计时', body: `<div class="ring-help"><svg viewBox="0 0 72 72"><circle class="rb" cx="36" cy="36" r="31"/><circle class="ro" cx="36" cy="36" r="31" style="stroke-dasharray:195;stroke-dashoffset:70"/><circle class="rb" cx="36" cy="36" r="22"/><circle class="ri" cx="36" cy="36" r="22" style="stroke-dasharray:138;stroke-dashoffset:40"/></svg><div><p><b style="color:#4ef0ff">内圈</b>：一次连续学习，转满一圈（25 分钟）得 5 分钟无限体力。</p><p><b style="color:#ffd257">外圈</b>：没连续满 25 分钟的零散学习都会累计，转满一圈（40 分钟）得 10 分钟无限体力。淡色部分是这一次还没结算的学习。</p><p class="small muted">计时器不显示具体时间，只显示进度；转满时会响铃、振动并提示。可以按住拖到任何位置。</p></div></div>`, foot: [{ text: '好的', cls: 'primary' }] });
     },
     open() {
       const s = d();

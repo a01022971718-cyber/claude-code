@@ -66,7 +66,19 @@
   const V = (CF.Voice = {
     hasClip,
     clips: (h) => Object.keys(DATA()[h.id] || {}).length,
-    lines: (h) => [h.lines.pick, h.lines.attack, h.lines.skill, h.lines.low, h.quote].concat(h.clicks || []).filter((x, i, a) => x && a.indexOf(x) === i),
+    TYPES: [['pick', '选中'], ['move', '移动'], ['attack', '攻击'], ['skill', '大招'], ['kill', '击杀'], ['low', '濒危'], ['revive', '复活']],
+    lines: (h) => ['pick', 'move', 'attack', 'skill', 'kill', 'low', 'revive'].map((k) => h.lines[k]).concat([h.quote], h.clicks || []).filter((x, i, a) => x && a.indexOf(x) === i),
+    // 每句台词的类型（用于界面标签）
+    typeOf(h, text) { const t = V.TYPES.find(([k]) => h.lines[k] === text); return t ? t[1] : '点击'; },
+    // 战斗事件配音（v7，参考 MOBA）：每种事件有冷却，优先级高的不会被低的打断
+    event(h, type) {
+      const CD = { move: 9, attack: 6, kill: 7, revive: 0, low: 0, skill: 0, ack: 5 }, PRI = { skill: 5, low: 4, revive: 4, kill: 3, attack: 2, ack: 2, move: 1 };
+      const now = performance.now() / 1000; V._evT = V._evT || {};
+      if (now - (V._evT[type] || -99) < (CD[type] || 0)) return false;
+      if (V.speakingPri && V.speaking && CF.Audio.ctx && V.speaking > CF.Audio.ctx.currentTime && V.speakingPri > (PRI[type] || 1)) return false;
+      const text = h.lines[type]; if (!text) return false;
+      V._evT[type] = now; V.speakingPri = PRI[type] || 1; V.say(h, text); return true;
+    },
     // 随机一句，不和上一句重复
     pick(h) { const ls = V.lines(h); let s; do { s = ls[Math.floor(Math.random() * ls.length)]; } while (ls.length > 1 && s === last[h.id]); last[h.id] = s; return s; },
     say(h, text) {
@@ -98,7 +110,7 @@
     },
     line(h) { const s = V.pick(h); V.say(h, s); return s; },
     // 战斗里点到英雄时的应答（参考魔兽争霸 3 的单位应答）：5 秒冷却，避免刷屏
-    ack(h) { const now = performance.now(); if (V._ackT !== undefined && now - V._ackT < 5000) return; V._ackT = now; const ls = [h.lines.pick, h.lines.attack].concat(h.clicks || []); let s; do { s = ls[Math.floor(Math.random() * ls.length)]; } while (ls.length > 1 && s === last[h.id]); last[h.id] = s; V.say(h, s); },
+    ack(h) { const now = performance.now(); if (V._ackT !== undefined && now - V._ackT < 5000) return; V._ackT = now; V.speakingPri = 2; const ls = [h.lines.pick, h.lines.move, h.lines.attack].concat(h.clicks || []); let s; do { s = ls[Math.floor(Math.random() * ls.length)]; } while (ls.length > 1 && s === last[h.id]); last[h.id] = s; V.say(h, s); },
     engine: () => (mode() === 'off' ? '关闭' : mode() === 'pixel' ? '像素音' : mode() === 'auto' && Object.keys(DATA()).length ? '英雄录音' : native() ? '系统语音（安卓）' : synth() && zhVoices.length ? '浏览器语音' : '像素音（当前设备没有中文语音）'),
   });
 })();

@@ -27,6 +27,8 @@
 | 质量校验（语音识别） | sherpa-onnx Paraformer 中文小模型 `csukuangfj/sherpa-onnx-paraformer-zh-small-2024-03-09` | 见模型发布页 | 否（只用来逐条「听」录音、挑最清楚的一条） |
 | 后期 | FFmpeg（rubberband 变调、均衡、压缩、回声、响度标准化） | LGPL/GPL | 否 |
 
+v7 起录音经过「分句演绎 + 情绪模板 + 挑 take」的加工（见 `tools/gen-voices.py` 说明），用的仍是上表的工具。v7 也评估过带情绪指令的 CosyVoice2-0.5B（Apache-2.0），但没有用于本版本的录音。
+
 公开发布、商用前请再核对一次模型许可的最新版本；如果改用真人配音，替换 `voice/` 下的 mp3 后运行 `node tools/pack-voices.mjs` 即可。
 
 ## 参考

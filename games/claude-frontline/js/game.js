@@ -188,7 +188,7 @@
       g.res.comp -= cost; h.cd[key] = sk.cd * (g.bonus.cdMul || 1) * CF.Roster.starCd(g.heroId); g.stats.riffs++; CF.Save.data.stats.riffs++;
       g.strum = 0.6; h.face = tx >= h.x ? 1 : -1;
       CF.Audio.lick(g.heroId, true);
-      if (key === 'R') { g.say('HERO', g.heroDef.lines.skill); CF.Audio.sfx('riff', 0.6); g.rTotal = { v: 0, t: g.time }; if (CF.Voice) CF.Voice.say(g.heroDef, g.heroDef.lines.skill); }
+      if (key === 'R') { g.say('HERO', g.heroDef.lines.skill); CF.Audio.sfx('riff', 0.6); g.rTotal = { v: 0, t: g.time }; if (CF.Voice) CF.Voice.event(g.heroDef, 'skill'); }
       CF.bus.emit('hero:cast', key);
       return true;
     }
@@ -458,7 +458,7 @@
       g.goal = goal;
       // 研究与英雄
       g.researchCd = Math.max(0, g.researchCd - dt);
-      if (g.hero.dead) { g.heroRespawn -= dt; if (g.heroRespawn <= 0 && !g.core.dead) { g.hero = g.spawnHero(g.core.x + 60, g.core.y + 40); CF.UI.say('HERO', '我回来了。继续演奏！'); CF.UI.selDirty = true; } }
+      if (g.hero.dead) { g.heroRespawn -= dt; if (g.heroRespawn <= 0 && !g.core.dead) { g.hero = g.spawnHero(g.core.x + 60, g.core.y + 40); CF.UI.say('HERO', g.heroDef.lines.revive || '我回来了。继续演奏！'); if (CF.Voice) CF.Voice.event(g.heroDef, 'revive'); CF.UI.selDirty = true; } }
       for (const e of g.ents) if (e.heroId && !e.dead) { for (const k in e.cd) e.cd[k] = Math.max(0, e.cd[k] - dt); CF.Skills.tick(g, e, dt); }
       if (g.mates.length) g.updMates(dt);
       for (const e of g.ents) if (e.drone && !e.dead) g.updDrone(e, dt);
@@ -573,6 +573,8 @@
       const g = this, d = u.def;
       if (u.type === 'proto') return g.updProto(u, dt);
       if (u.st && u.st.stun > 0) { u.vx *= 0.5; u.vy *= 0.5; return; }
+      // MOBA 摇杆（v7）：摇杆推着英雄走，移动时不自动攻击；松手后原地停下
+      if (u === g.hero && g.stick) { const s = g.stick; u.order = { t: 'idle' }; u.path = null; u.tgt = null; u.atkCd -= dt; g.steer(u, u.x + s.x * 80, u.y + s.y * 80, dt); u.guard = { x: u.x, y: u.y }; return; }
       if (u.team === 2 && g.imCreep) return g.imCreep(u, dt);
       u.atkCd -= dt; u.scan -= dt;
       if ((u.clone || u.mate) && g.hero && !g.hero.dead && u.order.t === 'idle' && CF.dist(u.x, u.y, g.hero.x, g.hero.y) > (u.mate ? 170 : 120)) u.guard = { x: g.hero.x + 40, y: g.hero.y + (u.mate ? (g.mates.indexOf(u) ? 60 : -60) : 20) };
@@ -738,6 +740,7 @@
         if (g.onScreen(e.x, e.y)) CF.Audio.sfx('boom', big ? 0.9 : 0.35);
         const w = g.stats.waves[g.stats.waves.length - 1];
         if (e.team === 1) {
+          if (e.kind === 'u' && g.hero && e.lastHitBy === g.hero.id && CF.Voice && (e.def.boss || e.type === 'phantom' || Math.random() < 0.35)) CF.Voice.event(g.heroDef, 'kill');
           if (e.kind === 'u' && g.hero && e.lastHitBy === g.hero.id) { g.streak = g.streak.filter((x) => g.time - x < 4); g.streak.push(g.time); const n = g.streak.length, M = { 5: ['五连破', 'PENTA BREAK'], 10: ['十连破', 'RAMPAGE'], 15: ['超神', 'GODLIKE'], 20: ['无双', 'UNSTOPPABLE'] }; if (M[n]) { g.streakBanner = { txt: M[n][0], en: M[n][1], t: g.time }; CF.Audio.sfx('levelup', 0.4); } }
           if (e.kind === 'u' && e.def.bounty) { g.stats.kills++; if (w) w.killed++; const b = e.def.bounty || {}; for (const k in b) g.res[k] += b[k]; }
           if (e.def.boss) { g.bossDone.add(e.type); g.boss = null; CF.UI.bossBar(null); CF.Audio.play('battle'); CF.toast(`${e.def.name} 被击败！`, 'gold', 3000); CF.UI.say('HERO', '漂亮！这段 solo 献给你，指挥官。'); }

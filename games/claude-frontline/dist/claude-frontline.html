@@ -161,10 +161,24 @@ textarea,input[type=text]{-webkit-user-select:text;user-select:text;touch-action
 .lob-stam{display:flex;align-items:baseline;gap:3px;background:#0b0820b3;border:1px solid #ffffff1f;border-radius:99px;padding:6px 12px;font-size:13px;color:#ffe08a}
 .lob-stam b{font-size:14px}.lob-stam .small{color:#ffffffaa}
 .lob-stam .bank{font-style:normal;font-size:10px;color:#2a1206;background:var(--gold);border-radius:6px;padding:0 4px;margin-left:4px}
-.learn-timer{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:99px;background:#0b0820e6;border:1px solid rgba(var(--hero-rgb),.6);font-size:12px;box-shadow:0 0 calc(6px + var(--beat)*10px) rgba(var(--hero-rgb),.4);pointer-events:none}
-.learn-timer i{width:80px;height:5px;border-radius:3px;background:linear-gradient(90deg,var(--hero2) var(--p),#ffffff22 var(--p))}
+.learn-timer{position:fixed;z-index:30;width:72px;height:72px;border-radius:50%;display:grid;place-items:center;cursor:grab;touch-action:none;user-select:none;background:radial-gradient(circle,#0b0820d9 52%,#0b082066 70%,transparent 72%);filter:drop-shadow(0 4px 12px #0009);opacity:.9;animation:lt-float 4s ease-in-out infinite;transition:opacity .2s}
+.learn-timer:hover,.learn-timer.drag{opacity:1}.learn-timer.drag{cursor:grabbing;animation:none}
 .learn-timer.hidden{display:none}
-.learn-timer.top{bottom:18px;left:auto;right:24px;transform:none}
+.learn-timer svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.learn-timer .rb,.ring-help .rb{fill:none;stroke:#ffffff1c;stroke-width:6}
+.learn-timer .ri,.ring-help .ri{fill:none;stroke:#4ef0ff;stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset .9s linear;filter:drop-shadow(0 0 3px #4ef0ffaa)}
+.learn-timer .ro,.ring-help .ro{fill:none;stroke:#ffd257;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .9s linear;filter:drop-shadow(0 0 3px #ffd257aa)}
+.learn-timer .ro-g{fill:none;stroke:#ffd25750;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .9s linear}
+.learn-timer .lt-ic{position:relative;width:22px;height:22px;color:#e8f6ff;opacity:.85}.learn-timer .lt-ic svg{position:static;transform:none;width:22px;height:22px}
+.learn-timer .lt-bank{position:absolute;right:4px;top:4px;width:12px;height:12px;border-radius:50%;background:#ffd257;box-shadow:0 0 6px #ffd257;display:none}
+.learn-timer.has-bank .lt-bank{display:block}
+.learn-timer.done-i{animation:lt-done-i 2.4s ease-out}.learn-timer.done-o{animation:lt-done-o 2.4s ease-out}
+@keyframes lt-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes lt-done-i{0%,40%,80%{transform:scale(1.25);filter:drop-shadow(0 0 18px #4ef0ff)}20%,60%,100%{transform:scale(1);filter:drop-shadow(0 4px 12px #0009)}}
+@keyframes lt-done-o{0%,40%,80%{transform:scale(1.25);filter:drop-shadow(0 0 18px #ffd257)}20%,60%,100%{transform:scale(1);filter:drop-shadow(0 4px 12px #0009)}}
+.ring-help{display:flex;gap:14px;align-items:center}.ring-help svg{width:96px;height:96px;flex:none;transform:rotate(-90deg)}.ring-help p{line-height:1.7;margin-bottom:6px}
+@media (prefers-reduced-motion:reduce){.learn-timer{animation:none}}
+
 .land .lob-stam{padding:4px 8px;font-size:11px}
 .icon-btn{width:38px;height:38px;border-radius:11px;background:#0b0820b3;border:1px solid #ffffff1f;font-size:16px;display:grid;place-items:center;transition:var(--d1)}
 .icon-btn:hover{border-color:rgba(var(--hero-rgb),.9)}
@@ -721,6 +735,50 @@ input[type=range]{width:100%;accent-color:var(--orange);touch-action:pan-x;heigh
 .port .hud-res{flex-wrap:wrap;row-gap:2px;max-width:calc(100vw - 196px)}
 .port .hud-res .sup{flex-basis:100%;border-left:none;padding-left:0;font-size:10px}
 .port.compact .comms{top:100px}
+
+/* ---------- 沉浸模式 MOBA 操控（v7，《游戏界面视觉宪法》第 18 章） ---------- */
+#mobaUI{position:absolute;inset:0;z-index:6;pointer-events:none}
+#mobaUI > *{pointer-events:auto}
+.mb-zone{position:absolute;left:0;bottom:0;width:38%;height:56%;touch-action:none}
+.mb-base{position:absolute;left:96px;top:calc(100% - 96px);width:124px;height:124px;margin:-62px 0 0 -62px;border-radius:50%;background:radial-gradient(circle,rgba(var(--hero-rgb),.10),rgba(9,7,20,.35) 70%);border:2px solid rgba(255,255,255,.16);opacity:.55;transition:opacity .15s}
+.mb-base.on{opacity:1;border-color:rgba(var(--hero-rgb),.7)}
+.mb-knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fff,rgba(var(--hero-rgb),.9) 60%,rgba(var(--hero-rgb),.6));box-shadow:0 0 calc(6px + var(--beat)*10px) rgba(var(--hero-rgb),.8)}
+.mb-cluster{position:absolute;right:0;bottom:0;width:236px;height:236px;pointer-events:none}
+.mb-cluster > *{pointer-events:auto;position:absolute}
+.mb-atk{right:20px;bottom:20px;width:84px;height:84px;border-radius:50%;display:grid;place-items:center;align-content:center;gap:1px;font-size:10px;font-weight:800;color:#fff;background:radial-gradient(circle at 50% 35%,rgba(var(--hero-rgb),.7),rgba(9,7,20,.9));border:3px solid rgba(var(--hero-rgb),.95);box-shadow:0 0 calc(8px + var(--beat)*14px) rgba(var(--hero-rgb),.7);touch-action:none}
+.mb-atk .pi{width:30px;height:30px}.mb-atk.down{transform:scale(.92)}.mb-atk.na{filter:grayscale(.8) brightness(.6)}
+.mb-sk{touch-action:none}
+.mb-sk.mb-Q{right:132px;bottom:30px}
+.mb-sk.mb-W{right:110px;bottom:108px}
+.mb-sk.mb-R{right:32px;bottom:130px}
+.mb-sk .mb-up{position:absolute;right:-2px;top:-2px;width:20px;height:20px;border-radius:50%;background:#ffd257;color:#1a1020;font-size:14px;line-height:20px;text-align:center;font-weight:900;box-shadow:0 0 6px #ffd257;z-index:2}
+.mb-sk .mb-up.hidden{display:none}
+.mb-cancel{left:-8px;top:-6px;width:58px;height:58px;border-radius:50%;display:grid;place-items:center;align-content:center;font-size:10px;color:#ffd0d6;background:rgba(255,93,108,.18);border:2px dashed #ff5d6c;transition:transform .12s}
+.mb-cancel .pi{width:18px;height:18px}.mb-cancel.over{transform:scale(1.25);background:rgba(255,93,108,.5);color:#fff}
+.mb-cancel.hidden{display:none}
+.mb-cam{position:absolute;right:12px;bottom:246px;display:flex;align-items:center;gap:4px;padding:5px 10px;border-radius:99px;font-size:11px;color:#dfe8ff}
+.mb-cam .pi{width:14px;height:14px}.mb-cam.on{border-color:rgba(var(--hero-rgb),.9);color:#fff}
+.moba #skillBar,.moba #portrait{display:none}
+.moba .hud-br{bottom:262px;right:10px}
+.moba .hud-bl{left:auto;right:248px;bottom:12px}
+.moba .hud-bl .fabx{width:46px;height:46px}
+.compact #mobaUI .mb-cluster{transform:scale(.86);transform-origin:bottom right}
+.compact .mb-cam{bottom:212px}
+.compact.moba .hud-br{bottom:226px}
+.port .mb-zone{width:46%;height:42%}
+.port .mb-cluster{transform:scale(.8);transform-origin:bottom right}
+.port .mb-cam{bottom:200px}
+.port.moba .hud-br{bottom:212px}
+.moba .item.empty{display:none}
+/* 电路工坊 v7：模块分组与镜头按钮 */
+.cw-mod{font-size:10px;letter-spacing:.08em;color:var(--dim);padding:8px 4px 2px;font-weight:800;white-space:nowrap}
+.cw-mod-emb{color:#c8ff2e}.cw-mod-aero{color:#4ef0ff}
+.cw-cam{position:absolute;right:8px;top:8px;display:flex;gap:4px;z-index:2}
+.cw-cam .hb{width:30px;height:30px;font-size:16px}
+.cw-cam .btn.on{border-color:var(--hero2);color:var(--hero2)}
+@media (max-width:900px){.cw-mod{padding:4px 6px;align-self:center}}
+.vline .vtype{flex:none;font-style:normal;font-size:9px;padding:1px 5px;border-radius:5px;background:rgba(var(--hero-rgb),.25);color:#fff;font-family:var(--ui,sans-serif)}
+.vline .vtxt{flex:1}
 
 </style>
 </head>
@@ -1950,7 +2008,7 @@ window.CF_CONFIG = {
       personality: '果断、热情、懂得倾听。她不是乐团里最响的那个声音，却能让九种完全不同的声音在同一拍上响起、彼此成就。',
       story: '乱码潮让东西两岸的乐手各自为战——钢琴只听钢琴，唢呐只吹唢呐。造乐从造月港出发，带着一架会发电的巡航无人机「伏特」，一个一个拜访九位乐手：「你们的声音都不一样，正因为不一样，合在一起才最响。」当九种乐器第一次在同一拍上响起，乱码潮退去了一整片海。她抬头看了看天：「下一站，月亮。」',
       quote: '九种声音，一个方向！',
-      lines: { pick: '九种声音，一个方向！', attack: '跟上我的拍子！', skill: '全体——起！', low: '只要还有一个声部在，乐曲就不会停。' },
+      lines: { pick: '九种声音，一个方向！', move: '跟上节拍，出发！', attack: '这一拍，归我！', skill: '全体——起！众声向上！', kill: '曲终，谢幕。', low: '只要还有一个声部在，乐曲就不会停。', revive: '指挥棒，再次举起！' },
       passive: { name: '九声合一', desc: '每次攻击积累 1 层「合奏」（最多 9 层，九种颜色对应九种乐器）；满 9 层后下一击变为「齐奏」：3 倍伤害并向四周扩散，附近友军攻速 +30%，持续 4 秒。' },
       skills: [
         { key: 'Q', name: '起拍', target: 'dir', cost: 35, cd: 8, desc: '向前一挥，九枚九色音符呈扇形射出，各造成 45 伤害并穿透 2 个目标。' },
@@ -1993,15 +2051,16 @@ window.CF_CONFIG = {
     },
     {
       // v4：形象回到最初的像素吉他手；灵感来源改为 Claude，世界观、性格、故事、台词从原「星芒」迁移
-      // v6 重新设计（按主创要求，避免与任何公司的吉祥物相似）：守灯人「灯语」——红白条纹的灯塔帽 + 灯室、靛蓝长外套、金色围巾、白色电吉他
-      id: 'xs', name: '灯语', en: 'Beacon', title: '守灯的工匠', side: '美', inspire: 'Claude（Anthropic）——有帮助、诚实、重视安全；擅长长文阅读、写代码与一步一步的推理',
+      // v7 重新设计（按主创要求：保留 v5 的配色——橙色身体 + 紫色背景，乐器紫色电吉他不变；按吉祥物标准、不拟人）
+      // 灯语 = 一只橙色小猫头鹰：眼睛就是灯塔的灯，强拍时亮起；耳羽尖是两片新芽绿（致敬最初的新芽）；圆蛋形剪影，与任何方块形吉祥物区分开
+      id: 'xs', name: '灯语', en: 'Beacon', title: '守灯的猫头鹰', side: '美', inspire: 'Claude（Anthropic）——有帮助、诚实、重视安全；擅长长文阅读、写代码与一步一步的推理',
       role: '均衡 · 控制', instrument: '电吉他', world: '星芒工坊 · 写满宪章的灯塔',
-      pal: { coat: '#4c5bd4', coatD: '#33409a', hat: '#eef1f8', stripe: '#e2455e', lamp: '#fff3a8', lampD: '#ffd04a', skin: '#f3cfb3', skinD: '#d9a98a', hair: '#2b2347', scarf: '#ffd76a', scarfD: '#d9a63c', boot: '#241c3a', inst: '#e9edf7', instD: '#9aa5c4', instL: '#ffffff', eye: '#1b1226', k: '#1b1226', bg: ['#1a1446', '#2b2378', '#3f36a6'], grid: [132, 112, 214], glow: '#9b7bff', accent: '#ffe08a', note: '#ffd76a', note2: '#9fe8ff' },
+      pal: { body: '#ec8a5e', bodyD: '#b85f40', belly: '#f6b98f', eyeW: '#fff1d6', lamp: '#f2c14e', beak: '#f2c14e', inst: '#8b80d6', instD: '#5e54b0', instL: '#b3abea', leaf: '#7ee081', eye: '#1b1226', k: '#1b1226', bg: ['#22144c', '#33207a', '#4a2fa0'], grid: [132, 112, 214], glow: '#9b7bff', accent: '#ff9a5c', note: '#f2c14e', note2: '#7ee081' },
       music: { style: 'xs', bpm: 112, key: 'E 小调 → G 大调', scale: '自然小调', motif: '上行五音「向上」动机' },
       personality: '认真、温和、诚实。会把复杂的事一步一步拆开；不确定就直说「我不确定」；不会帮你做坏事，但总会给你一个更好的办法。',
-      story: '海边的星芒工坊有一座灯塔，灯塔的每一块砖上都刻着守灯人和伙伴们一起写下的宪章。守灯人叫灯语——她把灯塔的灯室做成了帽子，走到哪里，光就跟到哪里。乱码潮来袭的那个夜晚，她背着白色电吉他守在灯塔下，用灯光一闪一闪地发信号，一个音一个音地把被打乱的信号修好——「大事一起扛，细节交给我。我们一步一步来。」后来，造乐第一个敲开的，就是星芒工坊的门。',
+      story: '海边的星芒工坊有一座灯塔，灯塔的每一块砖上都刻着守灯的伙伴们一起写下的宪章。守灯的是一只橙色的小猫头鹰「灯语」——它的眼睛就是两盏灯，夜里一眨一眨，就是在给远方的船打信号。乱码潮来袭的那个夜晚，它抱着紫色电吉他守在灯塔顶上，一个音一个音地把被打乱的信号修好——「大事一起扛，细节交给我。我们一步一步来。」后来，造乐第一个敲开的，就是星芒工坊的门。',
       quote: '我们一步一步来。',
-      lines: { pick: '我们一步一步来。', attack: '这里我检查过了。', skill: '让我想一想……好了！', low: '我不确定还能撑多久——但我会如实告诉你。' },
+      lines: { pick: '我们一步一步来。', move: '灯亮着，路就在。', attack: '这里，我检查过了。', skill: '让我想一想……好了！破晓！', kill: '结论很清楚了。', low: '我不确定还能撑多久——但我会如实告诉你。', revive: '重新校准，继续守灯。' },
       passive: { name: '灯语', desc: '每第 4 次攻击变为强力和弦，造成 1.8 倍伤害并溅射。' },
       skills: [
         { key: 'Q', name: '弦振冲击', target: 'self', cost: 40, cd: 12, desc: '以自身为中心扫弦，像素冲击环造成 120 伤害并击退敌人。' },
@@ -2010,35 +2069,36 @@ window.CF_CONFIG = {
       ],
       minion: { id: 'spark', name: '火花学徒', desc: '便宜的远程学徒，阵亡时爆出火花伤害周围敌人。' },
       building: { id: 'amp', name: '音箱塔', desc: '随节拍周期性释放冲击环，伤害周围敌人。' },
-      fx: { pats: [['.X.', 'XXX', '.X.'], ['XX', 'XX'], ['X.X', '.X.', 'X.X']], cols: ['#ffd76a', '#fff3a8', '#9fe8ff'], src: [21, -3] },
+      fx: { pats: [['.XX', '.X.', 'XX.'], ['XX', '.X', 'XX'], ['X.X', 'XXX']], cols: ['#f2c14e', '#f2c14e', '#7ee081'], src: [18, -4] },
       draw(ctx, ox, oy, px, a) {
-        const p = this.pal, R = pen(ctx, ox, oy, px, B(a)), sv = a.lean > 0.5 ? 1 : 0, tint = a.tint;
-        const coat = tint || p.coat, coatD = tint || p.coatD, hat = tint || p.hat;
+        const p = this.pal, R = pen(ctx, ox, oy, px, B(a)), sv = a.lean > 0.5 ? 1 : 0, sh = a.lean > 0.5 ? -1 : 0;
+        const bc = a.tint || p.body, bd = a.tint || p.bodyD, bl = a.tint || p.belly;
         const rows = (list, x0, y0, map) => list.forEach((row, j) => { for (let i = 0; i < row.length; i++) { const c = map[row[i]]; if (c) R(x0 + i, y0 + j, 1, 1, c); } });
-        // 腿（行走时两脚交替）
+        // 爪子（行走时左右交替抬起）
         const st = a.walk ? (a.step || 0) % 2 : -1;
-        R(5, 9 - (st === 0 ? 1 : 0), 2, 2, p.boot); R(9, 9 - (st === 1 ? 1 : 0), 2, 2, p.boot);
-        // 靛蓝长外套（暗面在左侧与下沿），前襟一排金扣
-        rows(['.CCCCCCCC.', 'dCCCCCCCC.', 'dCCCCCCCCC', 'dCCCCCCCCC', 'ddCCCCCCdd'], 3, 4, { C: coat, d: coatD });
-        R(8, 5, 1, 1, p.scarfD); R(8, 7, 1, 1, p.scarfD);
-        // 金色围巾：尾巴在身后随时间飘动
-        const fl = Math.sin((a.t || 0) * 5) > 0 ? 1 : 0;
-        rows(['YYYYYYYYYY'], 3, 3 + sv, { Y: p.scarf }); R(1, 3 + sv + fl, 2, 1, p.scarfD); R(2, 4 + sv, 1, 2 - fl, p.scarfD);
-        // 头与头发（齐肩短发，面朝右）
-        rows(['HHHSSSSS', 'HHSSSSSS', 'HsSSSSSS', 'HsSSSSSS', '.ssSSSSS'], 4, -2 + sv, { H: p.hair, S: p.skin, s: p.skinD });
-        if (a.blink) { R(8, 0 + sv, 1, 1, p.eye); R(10, 0 + sv, 1, 1, p.eye); } else { R(8, -1 + sv, 1, 2, p.eye); R(10, -1 + sv, 1, 2, p.eye); }
-        R(9, 2 + sv, 2, 1, p.skinD);
-        // 灯塔帽：穹顶 + 发光灯室 + 栏杆 + 白塔身与一道红环；强拍时灯亮、两侧放出光束
-        const lit = a.strum || a.bob > 0.5;
-        rows(['...KKK...', '..KLLLK..', '.KKKKKKK.', '..WWWWW..', '..RRRRR..', '.WWWWWWW.'], 3, -8 + sv, { K: p.k, L: lit ? p.lamp : p.lampD, W: hat, R: p.stripe });
-        if (lit) { ctx.globalAlpha = 0.75; R(10, -8 + sv, 3, 1, p.lampD); R(13, -9 + sv, 3, 1, p.lamp); R(2, -8 + sv, 2, 1, p.lampD); R(0, -9 + sv, 2, 1, p.lamp); ctx.globalAlpha = 1; }
-        if (a.noInst) { R(12, 5, 1, 2, p.skin); R(2, 6, 1, 2, p.skinD); return; }
-        // 白色电吉他（法宝）：斜挎在身前，琴身一道红条，琴头是一盏小灯
-        rows(['.GGGGG.', 'GGGrGGG', 'gGGrrGG', '.ggggG.'], 6, 5, { G: p.inst, g: p.instD, r: p.stripe });
-        [[13, 5], [14, 4], [15, 3], [16, 2], [17, 1], [18, 0], [19, -1]].forEach(([x, y], i) => { R(x, y, 1, 1, p.k); if (i % 2 === 0) R(x, y - 1, 1, 1, p.instL); });
-        R(20, -3, 1, 2, p.instD); R(21, -3, 1, 1, lit ? p.lamp : p.lampD);
-        R(16, 1, 1, 1, p.skin); // 按弦的手
-        const hy = a.strum ? 7 : 5; R(12, hy, 2, 1, p.skin); R(13, hy - 1, 1, 1, p.skinD);
+        rows(['.F...F.', 'FFF.FFF'], 2, 8 - (st === 0 ? 1 : 0), { F: p.beak });
+        if (st === 0) R(6, 9, 3, 1, p.beak);
+        // 身体：圆蛋形，暗面在左侧与下沿；肚皮浅橙带人字羽纹
+        rows(['DBBBBBBBBBBB', 'DBLLLLLLLBBB', 'DBLDLLDLLBBB', 'DBLLLLLLLBB.', '.DBLLDLLDLBB', '.DDBLLLLLBB.', '..DDBBBBBB..'], 0, 1, { B: bc, D: bd, L: bl });
+        // 头：随强拍探身（整体左移下沉 1 格）
+        const lit = a.strum || a.bob > 0.5, ew = lit ? p.lamp : p.eyeW;
+        rows(['.G........G.', '.GB......BG.', '..BBBBBBBB..', '.DBBBBBBBBBB', '.DBBBBBBBBBB', '.DBBBBBBBBBB', '.DBBBBBBBBBB'], 0 + sh, -6 + sv, { G: p.leaf, B: bc, D: bd });
+        // 眼睛 = 两盏灯：平时米白，强拍时亮成灯黄色并向外放光；眨眼时合成一条线
+        if (a.blink) { R(3 + sh, -1 + sv, 3, 1, bd); R(8 + sh, -1 + sv, 3, 1, bd); }
+        else {
+          rows(['EEE.EEE', 'EEP.EEP', 'EEE.EEE'], 3 + sh, -3 + sv, { E: ew, P: p.eye });
+          if (lit) { ctx.globalAlpha = 0.6; R(1 + sh, -2 + sv, 1, 1, p.lamp); R(11 + sh, -3 + sv, 2, 1, p.lamp); R(11 + sh, -1 + sv, 2, 1, p.lamp); ctx.globalAlpha = 1; }
+        }
+        R(6 + sh, -1 + sv, 1, 2, p.beak); R(7 + sh, 0 + sv, 1, 1, p.beak);
+        if (a.noInst) { R(11, 3, 1, 3, bd); return; }
+        // 紫色电吉他（法宝，v5 原样保留）：琴颈斜向右上，琴身上的白色四芒星
+        [[11, 4], [12, 3], [13, 2], [14, 1], [15, 0], [16, -1], [17, -2]].forEach(([x, y], i) => { R(x, y, 1, 1, p.k); if (i % 2 === 0) R(x + 1, y, 1, 1, p.instL); });
+        R(18, -4, 2, 2, p.inst); R(20, -4, 1, 1, p.instL); R(18, -5, 1, 1, p.instL); R(17, -3, 1, 1, p.inst);
+        R(14, 2, 1, 1, bc); R(15, 1, 1, 1, bc); // 按弦的翅膀尖
+        ['..KKKK.', '.KGGGGK', 'KGGgGGK', 'KgGGGGK', 'KKgggK.', '.KKKK..'].forEach((row, y) => { for (let x = 0; x < row.length; x++) { const c = row[x]; if (c !== '.') R(6 + x, 4 + y, 1, 1, c === 'K' ? p.k : c === 'g' ? p.instD : p.inst); } });
+        R(8, 5, 1, 1, '#fff'); R(10, 5, 1, 1, '#fff'); R(9, 6, 1, 1, '#fff'); R(8, 7, 1, 1, '#fff'); R(10, 7, 1, 1, '#fff');
+        // 扫弦的翅膀：强拍上下摆动
+        const hy = a.strum ? 7 : 5; R(12, hy, 2, 1, bc); R(13, hy - 1, 1, 1, bc); R(12, hy + 1, 1, 1, bd);
       },
     },
     {
@@ -2049,7 +2109,7 @@ window.CF_CONFIG = {
       personality: '博学、耐心、从不嫌问题简单。习惯先把问题拆开，再一层层弹给你听。',
       story: '万象城的图书馆有八十八层，每一层对应一个琴键。万象在那里长大，读遍了每一本书，却发现知识只有被弹出来、被别人听懂，才真正有了声音。于是它带着一架会走路的钢琴，走出了图书馆。',
       quote: '八十八个琴键，就有八十八种答案。',
-      lines: { pick: '八十八个琴键，就有八十八种答案。', attack: '这一题，我会。', skill: '请欣赏——交响全集。', low: '让我换个思路再弹一遍。' },
+      lines: { pick: '八十八个琴键，就有八十八种答案。', move: '下一页，翻开。', attack: '这一题，我会。', skill: '请欣赏——交响全集！', kill: '答案，已经写好了。', low: '让我换个思路，再弹一遍。', revive: '图书馆，从不关门。' },
       passive: { name: '八十八键', desc: '攻击在白键与黑键之间交替：白键伤害 +20%，黑键使目标减速 30%。' },
       skills: [
         { key: 'Q', name: '琶音', target: 'dir', cost: 35, cd: 8, desc: '向前方扇形弹出 8 枚琴键，各造成 50 伤害并穿透一个目标。' },
@@ -2082,8 +2142,8 @@ window.CF_CONFIG = {
       music: { style: 'twin', bpm: 88, key: 'D 利底亚', scale: '利底亚调式', motif: '双声部滑音（一高一低互相应答）' },
       personality: '姐姐「蓝」冷静理性，负责看；妹妹「粉」热情感性，负责听。两人经常抢话，却从不弹错同一根弦。',
       story: '双星天文台建在星河两岸，蓝看得见光，粉听得见声。乱码潮切断了两岸的桥，她们就用一把竖琴把星光弹成了桥——一个看见，一个听见，世界才完整。',
-      quote: '一个看见，一个听见。',
-      lines: { pick: '一个看见，一个听见。', attack: '蓝，左边！——粉，收到！', skill: '双子座，合奏！', low: '别怕，我们还有彼此。' },
+      quote: '一个看见——一个听见！',
+      lines: { pick: '一个看见——一个听见！', move: '左边——右边——一起走！', attack: '蓝，左边！——粉，收到！', skill: '双子座——合奏！', kill: '我们赢了——当然啦！', low: '别怕——我们还有彼此。', revive: '星星不灭——我们回来了！' },
       passive: { name: '双生', desc: '一颗伴星环绕身边，每次攻击都会追加一次 60% 伤害的星光。' },
       skills: [
         { key: 'Q', name: '星河滑音', target: 'dir', cost: 35, cd: 9, desc: '一道竖琴滑音化为星河光束，对直线上的敌人造成 110 伤害。' },
@@ -2117,8 +2177,8 @@ window.CF_CONFIG = {
       music: { style: 'riot', bpm: 150, key: 'E 小调', scale: '布鲁斯音阶', motif: '「咚-哒-咚咚-哒」切分鼓点' },
       personality: '嘴贫、叛逆、讨厌套话，但关键时刻比谁都靠得住。最爱在严肃场合来一段鼓 solo。',
       story: '狂想在没有规则的荒原上用废铁拼了一套鼓。别人说「先读完说明书」，它说「先打一段再说」。它的笑话很冷，鼓点很热——乱码军团最怕的，就是它突然笑出声。',
-      quote: '规则？先打一段鼓再说。',
-      lines: { pick: '规则？先打一段鼓再说。', attack: '咚！哒！你们节奏不行啊。', skill: '失控鼓点——全场跟我嗨！', low: '这点伤？连镲都没震响。' },
+      quote: '规则？先打一段鼓再说！',
+      lines: { pick: '规则？先打一段鼓再说！', move: '让开让开，鼓手过街！', attack: '咚！哒！你们节奏不行啊。', skill: '失控鼓点——全场跟我嗨！', kill: '下一首，你点的。', low: '这点伤？连镲都没震响。', revive: '返场！观众还没走呢！' },
       passive: { name: '鼓点狂热', desc: '每次命中攻速 +6%，最多叠加 10 层，3 秒不攻击后消散。' },
       skills: [
         { key: 'Q', name: '军鼓突进', target: 'point', cost: 30, cd: 8, desc: '冲向目标点，沿途敌人受到 90 伤害并眩晕 0.5 秒。' },
@@ -2150,7 +2210,7 @@ window.CF_CONFIG = {
       personality: '慢条斯理、慷慨、护短。有好东西一定要分给所有人，谁欺负队友它就吐谁口水。',
       story: '开源高原上的羊驼把自己的毛剪下来，分给每一个怕冷的旅人。它的排箫一吹，牧场上的所有乐手都会变强——因为它把自己的曲谱公开给了所有人。',
       quote: '好东西，要大家一起用。',
-      lines: { pick: '好东西，要大家一起用。', attack: '呸——别靠近我的队友。', skill: '羊群，奔腾吧！', low: '毛还多，扛得住。' },
+      lines: { pick: '好东西，要大家一起用。', move: '慢慢来，草地很大。', attack: '呸——别靠近我的队友。', skill: '羊群，奔腾吧！', kill: '分享完毕，下一位。', low: '毛还多，扛得住。', revive: '开源的，删不掉。' },
       passive: { name: '开源', desc: '周围 260 范围内的友军伤害 +15%。' },
       skills: [
         { key: 'Q', name: '高原风', target: 'dir', cost: 30, cd: 9, desc: '吹出扇形狂风，造成 70 伤害并大幅击退。' },
@@ -2181,7 +2241,7 @@ window.CF_CONFIG = {
       personality: '沉静、专注、话少但句句到底。别人用十分力气，它想清楚了只用三分。',
       story: '深海书院在一万米之下，那里没有光，只有鲸歌。鲸歌在黑暗里抚琴，每一个音都要想很久。它发现：想得越深，需要的力气越少。当它浮出海面，一记「鲸落」足以改变整片战场。',
       quote: '再深一点，答案就在下面。',
-      lines: { pick: '再深一点，答案就在下面。', attack: '想清楚了。', skill: '鲸落——万物归海。', low: '不急，再想一层。' },
+      lines: { pick: '再深一点，答案就在下面。', move: '下潜。', attack: '想清楚了。', skill: '鲸落——万物归海。', kill: '沉了。', low: '不急，再想一层。', revive: '浮上来了。' },
       passive: { name: '深度思考', desc: '每 8 秒获得 1 层「思考」（最多 3 层），下一个技能每层伤害 +35%；所有技能消耗 -30%。' },
       skills: [
         { key: 'Q', name: '泛音波', target: 'dir', cost: 35, cd: 8, desc: '拨出泛音化为穿透水波，对直线上敌人造成 100 伤害。' },
@@ -2213,7 +2273,7 @@ window.CF_CONFIG = {
       personality: '安静、敏锐、记性惊人。你三个月前说过的话，她都记得——包括你的承诺。',
       story: '月之暗面终年不见太阳，月弦在那里拉了一千年二胡。每一个乐句都被她记在心里，一个音也没忘。乱码军团以为黑暗能让人遗忘，可它们不知道，月弦最擅长的就是在黑暗里记住一切。',
       quote: '两百万字，我一个字也没忘。',
-      lines: { pick: '两百万字，我一个字也没忘。', attack: '记住你了。', skill: '月光会照到每一个被记住的人。', low: '黑暗里，我看得更清楚。' },
+      lines: { pick: '两百万字，我一个字也没忘。', move: '月光会带路。', attack: '记住你了。', skill: '月光会照到每一个被记住的人。', kill: '这一页，翻过去了。', low: '黑暗里，我看得更清楚。', revive: '月亮，又升起来了。' },
       passive: { name: '长记忆', desc: '攻击为敌人叠加「记忆」（最多 5 层），每层使其受到的伤害 +8%。' },
       skills: [
         { key: 'Q', name: '月光弓', target: 'dir', cost: 35, cd: 9, desc: '一记长弓化为月光，穿透直线上所有敌人造成 90 伤害并叠加 2 层记忆。' },
@@ -2245,8 +2305,8 @@ window.CF_CONFIG = {
       music: { style: 'pearl', bpm: 126, key: 'D 商调', scale: '中国五声（商调式）', motif: '琵琶轮指同音反复' },
       personality: '机灵、好问、语速飞快。每个答案后面都会再追一个「为什么」。',
       story: '玉盘湖的湖面上落满了珍珠，每一颗都是一个被回答过的问题。珠问抱着琵琶坐在湖心，弹一下，就有一颗珍珠飞出去——大珠小珠，问题落满玉盘，答案也是。',
-      quote: '大珠小珠，问题落满玉盘。',
-      lines: { pick: '大珠小珠，问题落满玉盘。', attack: '为什么？再来！', skill: '十面埋伏——你往哪儿躲？', low: '这个问题有点难……' },
+      quote: '大珠小珠，问题落满玉盘！',
+      lines: { pick: '大珠小珠，问题落满玉盘！', move: '那边有什么？去看看！', attack: '为什么？再来！', skill: '十面埋伏——你往哪儿躲？', kill: '嘿嘿，又解决一个问题！', low: '这个问题……有点难……', revive: '我又有新问题啦！' },
       passive: { name: '大珠小珠', desc: '攻击有 30% 几率弹射到第二个敌人。' },
       skills: [
         { key: 'Q', name: '轮指', target: 'self', cost: 30, cd: 10, desc: '2.5 秒疾速轮指，攻速提升至 4 倍。' },
@@ -2279,7 +2339,7 @@ window.CF_CONFIG = {
       personality: '热情、话多、自来熟。哪里冷场它就去哪里吹一段，三秒让全场热起来。',
       story: '团团小镇天天过节，因为团团每天早上都会吹唢呐叫大家起床。它圆滚滚、软乎乎，谁都想捏一下。可别小看它——唢呐一响，整支军队都会跟着上头。',
       quote: '唢呐一响，全军上头！',
-      lines: { pick: '唢呐一响，全军上头！', attack: '嘀嘀——让一让！', skill: '百鸟朝凤，大家冲呀！', low: '呜……蒸笼还热着，我还行！' },
+      lines: { pick: '唢呐一响，全军上头！', move: '冲呀，蒸笼出发！', attack: '嘀嘀——让一让！', skill: '百鸟朝凤，大家冲呀！', kill: '耶！热乎的胜利！', low: '呜……蒸笼还热着，我还行！', revive: '团团又出锅啦！' },
       passive: { name: '热闹', desc: '周围 260 范围内的友军移速与攻速 +15%。' },
       skills: [
         { key: 'Q', name: '一声响', target: 'dir', cost: 30, cd: 9, desc: '对前方吹出巨响，造成 60 伤害，把敌人吓退并减速。' },
@@ -2305,7 +2365,7 @@ window.CF_CONFIG = {
 
   // 配音参数（《英雄设计宪法》第 13 章）：按性别、年龄、性格模拟音色与语速
   const VOICE = {
-    xs: { gender: 'f', age: 17, pitch: 1.18, rate: 0.9, tone: '温和、认真，说话慢半拍、先想再说' },
+    xs: { gender: 'n', age: 14, pitch: 1.2, rate: 0.9, tone: '温和、认真，说话慢半拍、先想再说' },
     omni: { gender: 'm', age: 35, pitch: 0.95, rate: 0.94, tone: '沉稳、博学、耐心' },
     twin: { gender: 'f', age: 17, pitch: 1.22, rate: 1.04, alt: 1.55, tone: '姐姐冷静、妹妹活泼，两人交替说话' },
     riot: { gender: 'm', age: 22, pitch: 0.86, rate: 1.18, tone: '痞气、幽默、语速快' },
@@ -2315,14 +2375,14 @@ window.CF_CONFIG = {
     pearl: { gender: 'f', age: 16, pitch: 1.34, rate: 1.12, tone: '好奇、俏皮、问题多' },
     bun: { gender: 'n', age: 8, pitch: 1.62, rate: 1.2, tone: '奶声奶气、热闹' },
   };
-  // v6 点击台词：每位英雄再加两句「被点到时」说的口头禅（与 lines 一起录音，见 voice/ 与 tools/gen-voices.py）
+  // 点击台词（v6）+ v7 语录扩充：每位英雄 9 句——选中 / 移动 / 攻击 / 大招 / 击杀 / 濒危 / 复活 + 两句点击台词（参考王者荣耀、英雄联盟的英雄语录结构，台词全部原创）
   const CLICKS = {
     zaole: ['每个人的声音，都算数。', '准备好了吗？我数拍子——一、二、三！'],
-    xs: ['不确定的地方，我会直接告诉你。', '灯亮着，我就在。'],
-    omni: ['没有简单的问题，只有还没弹出来的答案。', '问吧，我听着呢。'],
+    xs: ['不确定的地方，我会直接告诉你。', '嘘——听，信号回来了。'],
+    omni: ['问吧，我听着呢。', '没有简单的问题，只有还没弹出来的答案。'],
     twin: ['姐姐看路——妹妹听风！', '我们一起——永远一起！'],
     riot: ['别催，鼓点自己会来。', '无聊？那就来点噪音！'],
-    llama: ['代码拿去，记得分享给下一个人。', '慢慢来，草地很大。'],
+    llama: ['代码拿去，记得分享给下一个人。', '嗯……今天的风，很温柔。'],
     abyss: ['沉下去，才看得见。', '海很深，我很安静。'],
     luna: ['你说过的话，我都记得。', '月亮不说话，但一直都在。'],
     pearl: ['这是什么？那又是什么？', '再问一个！就一个！'],
@@ -2448,7 +2508,19 @@ window.CF_VOICE_DATA = {"zaole":{"九种声音，一个方向！":"SUQzBAAAAAAAI
   const V = (CF.Voice = {
     hasClip,
     clips: (h) => Object.keys(DATA()[h.id] || {}).length,
-    lines: (h) => [h.lines.pick, h.lines.attack, h.lines.skill, h.lines.low, h.quote].concat(h.clicks || []).filter((x, i, a) => x && a.indexOf(x) === i),
+    TYPES: [['pick', '选中'], ['move', '移动'], ['attack', '攻击'], ['skill', '大招'], ['kill', '击杀'], ['low', '濒危'], ['revive', '复活']],
+    lines: (h) => ['pick', 'move', 'attack', 'skill', 'kill', 'low', 'revive'].map((k) => h.lines[k]).concat([h.quote], h.clicks || []).filter((x, i, a) => x && a.indexOf(x) === i),
+    // 每句台词的类型（用于界面标签）
+    typeOf(h, text) { const t = V.TYPES.find(([k]) => h.lines[k] === text); return t ? t[1] : '点击'; },
+    // 战斗事件配音（v7，参考 MOBA）：每种事件有冷却，优先级高的不会被低的打断
+    event(h, type) {
+      const CD = { move: 9, attack: 6, kill: 7, revive: 0, low: 0, skill: 0, ack: 5 }, PRI = { skill: 5, low: 4, revive: 4, kill: 3, attack: 2, ack: 2, move: 1 };
+      const now = performance.now() / 1000; V._evT = V._evT || {};
+      if (now - (V._evT[type] || -99) < (CD[type] || 0)) return false;
+      if (V.speakingPri && V.speaking && CF.Audio.ctx && V.speaking > CF.Audio.ctx.currentTime && V.speakingPri > (PRI[type] || 1)) return false;
+      const text = h.lines[type]; if (!text) return false;
+      V._evT[type] = now; V.speakingPri = PRI[type] || 1; V.say(h, text); return true;
+    },
     // 随机一句，不和上一句重复
     pick(h) { const ls = V.lines(h); let s; do { s = ls[Math.floor(Math.random() * ls.length)]; } while (ls.length > 1 && s === last[h.id]); last[h.id] = s; return s; },
     say(h, text) {
@@ -2480,7 +2552,7 @@ window.CF_VOICE_DATA = {"zaole":{"九种声音，一个方向！":"SUQzBAAAAAAAI
     },
     line(h) { const s = V.pick(h); V.say(h, s); return s; },
     // 战斗里点到英雄时的应答（参考魔兽争霸 3 的单位应答）：5 秒冷却，避免刷屏
-    ack(h) { const now = performance.now(); if (V._ackT !== undefined && now - V._ackT < 5000) return; V._ackT = now; const ls = [h.lines.pick, h.lines.attack].concat(h.clicks || []); let s; do { s = ls[Math.floor(Math.random() * ls.length)]; } while (ls.length > 1 && s === last[h.id]); last[h.id] = s; V.say(h, s); },
+    ack(h) { const now = performance.now(); if (V._ackT !== undefined && now - V._ackT < 5000) return; V._ackT = now; V.speakingPri = 2; const ls = [h.lines.pick, h.lines.move, h.lines.attack].concat(h.clicks || []); let s; do { s = ls[Math.floor(Math.random() * ls.length)]; } while (ls.length > 1 && s === last[h.id]); last[h.id] = s; V.say(h, s); },
     engine: () => (mode() === 'off' ? '关闭' : mode() === 'pixel' ? '像素音' : mode() === 'auto' && Object.keys(DATA()).length ? '英雄录音' : native() ? '系统语音（安卓）' : synth() && zhVoices.length ? '浏览器语音' : '像素音（当前设备没有中文语音）'),
   });
 })();
@@ -3594,15 +3666,55 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       inLearn = true;
       if (Date.now() - lastInput > IDLE) return; // 挂机不计时
       s.sess += dt; s.total += dt;
-      if (s.sess >= SESSION) { s.sess -= SESSION; s.bank += 5; CF.Audio.sfx('unlock'); CF.toast('连续学习 25 分钟！获得 5 分钟无限体力（已存入，随时启用）', 'gold', 4000); }
+      if (s.sess >= SESSION) { s.sess -= SESSION; s.bank += 5; CF.Audio.sfx('unlock'); CF.toast('内圈满了：连续学习 25 分钟！获得 5 分钟无限体力（已存入，随时启用）', 'gold', 4000); St.ringDone('i'); }
       CF.Save.save();
     },
-    endSession() { const s = d(); if (s.sess > 0) { s.pool += s.sess; s.sess = 0; } while (s.pool >= POOL) { s.pool -= POOL; s.bank += 10; CF.toast('零散学习累计 40 分钟！获得 10 分钟无限体力（已存入）', 'gold', 4000); } CF.Save.save(); },
+    endSession() { const s = d(); if (s.sess > 0) { s.pool += s.sess; s.sess = 0; } while (s.pool >= POOL) { s.pool -= POOL; s.bank += 10; CF.toast('外圈满了：零散学习累计 40 分钟！获得 10 分钟无限体力（已存入）', 'gold', 4000); St.ringDone('o'); } CF.Save.save(); },
     learnInfo() { const s = d(); return { sess: s.sess, pool: s.pool, bank: s.bank, total: s.total }; },
     // 大厅右上角的体力胶囊 + 学习页的计时条
     paint() {
       const el = CF.$('#lobbyStamina'); if (el) el.innerHTML = St.unlimited() ? `⚡ <b class="t-num">∞</b><span class="small">${CF.fmtTime(St.leftMs() / 1000)}</span>` : `⚡ <b class="t-num">${St.cur()}</b><span class="small">/${MAX}</span>${d().bank ? `<i class="bank">+${d().bank}′</i>` : ''}`;
-      const lt = CF.$('#learnTimer'); if (lt) { const s = d(), show = LEARN.includes(CF.UI && CF.UI.cur); lt.classList.toggle('hidden', !show); lt.classList.toggle('top', CF.UI.cur === 'city'); if (show) lt.innerHTML = `<span>学习计时</span><b class="t-num">${CF.fmtTime(s.sess)}</b><span class="small">/ 25:00</span><i style="--p:${(s.sess / SESSION) * 100}%"></i><span class="small">零散累计 ${Math.floor(s.pool / 60)}/40 分</span>${s.bank ? `<span class="small c-chip">已存 ${s.bank} 分钟无限体力</span>` : ''}`; }
+      const lt = CF.$('#learnTimer'); if (lt) {
+        const s = d(), show = LEARN.includes(CF.UI && CF.UI.cur); lt.classList.toggle('hidden', !show);
+        if (show) { St.ring(lt); St.setRing(lt, s.sess / SESSION, s.pool / POOL, Math.min(1, (s.pool + s.sess) / POOL), s.bank > 0); }
+      }
+    },
+    // ---------- 悬浮双环计时器（v7，主创要求：可拖动；内圈 25 分钟、外圈 40 分钟；不显示时间，只显示进度并在到达时提醒） ----------
+    ring(lt) {
+      if (lt._ring) return;
+      lt._ring = true; lt.className = 'learn-timer';
+      const C = (r) => 2 * Math.PI * r;
+      lt.innerHTML = `<svg viewBox="0 0 72 72" aria-hidden="true"><circle class="rb" cx="36" cy="36" r="31"/><circle class="ro-g" cx="36" cy="36" r="31" stroke-dasharray="${C(31)}"/><circle class="ro" cx="36" cy="36" r="31" stroke-dasharray="${C(31)}"/><circle class="rb" cx="36" cy="36" r="22"/><circle class="ri" cx="36" cy="36" r="22" stroke-dasharray="${C(22)}"/></svg><span class="lt-ic">${CF.Icons ? CF.Icons.svg('book', 'pi') : '📖'}</span><i class="lt-bank" title="已存入无限体力"></i>`;
+      lt.title = '学习计时：内圈 = 连续学习 25 分钟，外圈 = 零散累计 40 分钟（淡色部分是这一次还没结算的学习）。拖动可以移开；点一下看说明。';
+      // 位置：记在存档设置里（换手机也跟着走）；默认右下角
+      const set = CF.Save.data.settings, place = () => {
+        const pos = set.timerPos || { x: 0.92, y: 0.84 }, w = lt.offsetWidth || 72, h = lt.offsetHeight || 72;
+        lt.style.left = Math.round(CF.clamp(pos.x * innerWidth - w / 2, 4, innerWidth - w - 4)) + 'px';
+        lt.style.top = Math.round(CF.clamp(pos.y * innerHeight - h / 2, 4, innerHeight - h - 4)) + 'px';
+      };
+      place(); window.addEventListener('resize', place);
+      let drag = null;
+      lt.addEventListener('pointerdown', (e) => { drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, x0: lt.offsetLeft, y0: lt.offsetTop, moved: false }; try { lt.setPointerCapture(e.pointerId); } catch (er) { /* 合成事件 */ } e.preventDefault(); });
+      lt.addEventListener('pointermove', (e) => { if (!drag || drag.id !== e.pointerId) return; const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy; if (Math.hypot(dx, dy) > 6) drag.moved = true; if (!drag.moved) return; lt.classList.add('drag'); lt.style.left = CF.clamp(drag.x0 + dx, 4, innerWidth - lt.offsetWidth - 4) + 'px'; lt.style.top = CF.clamp(drag.y0 + dy, 4, innerHeight - lt.offsetHeight - 4) + 'px'; });
+      const up = (e) => {
+        if (!drag || drag.id !== e.pointerId) return; const moved = drag.moved; drag = null; lt.classList.remove('drag');
+        if (moved) { set.timerPos = { x: (lt.offsetLeft + lt.offsetWidth / 2) / innerWidth, y: (lt.offsetTop + lt.offsetHeight / 2) / innerHeight }; CF.Save.save(); }
+        else St.ringHelp();
+      };
+      lt.addEventListener('pointerup', up); lt.addEventListener('pointercancel', up);
+    },
+    setRing(lt, pi, po, pg, bank) {
+      const q = (sel, p, r) => { const c = lt.querySelector(sel); if (c) c.style.strokeDashoffset = (2 * Math.PI * r * (1 - CF.clamp(p, 0, 1))).toFixed(2); };
+      q('.ri', pi, 22); q('.ro', po, 31); q('.ro-g', pg, 31);
+      lt.classList.toggle('has-bank', bank);
+    },
+    ringDone(which) {
+      const lt = CF.$('#learnTimer'); if (navigator.vibrate) try { navigator.vibrate([60, 60, 120]); } catch (e) { /* 不支持 */ }
+      if (!lt) return; lt.classList.remove('done-i', 'done-o'); void lt.offsetWidth; lt.classList.add('done-' + which); setTimeout(() => lt.classList.remove('done-' + which), 2400);
+    },
+    ringHelp() {
+      CF.Audio.sfx('click');
+      CF.modal.open({ title: '学习计时', body: `<div class="ring-help"><svg viewBox="0 0 72 72"><circle class="rb" cx="36" cy="36" r="31"/><circle class="ro" cx="36" cy="36" r="31" style="stroke-dasharray:195;stroke-dashoffset:70"/><circle class="rb" cx="36" cy="36" r="22"/><circle class="ri" cx="36" cy="36" r="22" style="stroke-dasharray:138;stroke-dashoffset:40"/></svg><div><p><b style="color:#4ef0ff">内圈</b>：一次连续学习，转满一圈（25 分钟）得 5 分钟无限体力。</p><p><b style="color:#ffd257">外圈</b>：没连续满 25 分钟的零散学习都会累计，转满一圈（40 分钟）得 10 分钟无限体力。淡色部分是这一次还没结算的学习。</p><p class="small muted">计时器不显示具体时间，只显示进度；转满时会响铃、振动并提示。可以按住拖到任何位置。</p></div></div>`, foot: [{ text: '好的', cls: 'primary' }] });
     },
     open() {
       const s = d();
@@ -5110,7 +5222,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       g.res.comp -= cost; h.cd[key] = sk.cd * (g.bonus.cdMul || 1) * CF.Roster.starCd(g.heroId); g.stats.riffs++; CF.Save.data.stats.riffs++;
       g.strum = 0.6; h.face = tx >= h.x ? 1 : -1;
       CF.Audio.lick(g.heroId, true);
-      if (key === 'R') { g.say('HERO', g.heroDef.lines.skill); CF.Audio.sfx('riff', 0.6); g.rTotal = { v: 0, t: g.time }; if (CF.Voice) CF.Voice.say(g.heroDef, g.heroDef.lines.skill); }
+      if (key === 'R') { g.say('HERO', g.heroDef.lines.skill); CF.Audio.sfx('riff', 0.6); g.rTotal = { v: 0, t: g.time }; if (CF.Voice) CF.Voice.event(g.heroDef, 'skill'); }
       CF.bus.emit('hero:cast', key);
       return true;
     }
@@ -5380,7 +5492,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       g.goal = goal;
       // 研究与英雄
       g.researchCd = Math.max(0, g.researchCd - dt);
-      if (g.hero.dead) { g.heroRespawn -= dt; if (g.heroRespawn <= 0 && !g.core.dead) { g.hero = g.spawnHero(g.core.x + 60, g.core.y + 40); CF.UI.say('HERO', '我回来了。继续演奏！'); CF.UI.selDirty = true; } }
+      if (g.hero.dead) { g.heroRespawn -= dt; if (g.heroRespawn <= 0 && !g.core.dead) { g.hero = g.spawnHero(g.core.x + 60, g.core.y + 40); CF.UI.say('HERO', g.heroDef.lines.revive || '我回来了。继续演奏！'); if (CF.Voice) CF.Voice.event(g.heroDef, 'revive'); CF.UI.selDirty = true; } }
       for (const e of g.ents) if (e.heroId && !e.dead) { for (const k in e.cd) e.cd[k] = Math.max(0, e.cd[k] - dt); CF.Skills.tick(g, e, dt); }
       if (g.mates.length) g.updMates(dt);
       for (const e of g.ents) if (e.drone && !e.dead) g.updDrone(e, dt);
@@ -5495,6 +5607,8 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       const g = this, d = u.def;
       if (u.type === 'proto') return g.updProto(u, dt);
       if (u.st && u.st.stun > 0) { u.vx *= 0.5; u.vy *= 0.5; return; }
+      // MOBA 摇杆（v7）：摇杆推着英雄走，移动时不自动攻击；松手后原地停下
+      if (u === g.hero && g.stick) { const s = g.stick; u.order = { t: 'idle' }; u.path = null; u.tgt = null; u.atkCd -= dt; g.steer(u, u.x + s.x * 80, u.y + s.y * 80, dt); u.guard = { x: u.x, y: u.y }; return; }
       if (u.team === 2 && g.imCreep) return g.imCreep(u, dt);
       u.atkCd -= dt; u.scan -= dt;
       if ((u.clone || u.mate) && g.hero && !g.hero.dead && u.order.t === 'idle' && CF.dist(u.x, u.y, g.hero.x, g.hero.y) > (u.mate ? 170 : 120)) u.guard = { x: g.hero.x + 40, y: g.hero.y + (u.mate ? (g.mates.indexOf(u) ? 60 : -60) : 20) };
@@ -5660,6 +5774,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
         if (g.onScreen(e.x, e.y)) CF.Audio.sfx('boom', big ? 0.9 : 0.35);
         const w = g.stats.waves[g.stats.waves.length - 1];
         if (e.team === 1) {
+          if (e.kind === 'u' && g.hero && e.lastHitBy === g.hero.id && CF.Voice && (e.def.boss || e.type === 'phantom' || Math.random() < 0.35)) CF.Voice.event(g.heroDef, 'kill');
           if (e.kind === 'u' && g.hero && e.lastHitBy === g.hero.id) { g.streak = g.streak.filter((x) => g.time - x < 4); g.streak.push(g.time); const n = g.streak.length, M = { 5: ['五连破', 'PENTA BREAK'], 10: ['十连破', 'RAMPAGE'], 15: ['超神', 'GODLIKE'], 20: ['无双', 'UNSTOPPABLE'] }; if (M[n]) { g.streakBanner = { txt: M[n][0], en: M[n][1], t: g.time }; CF.Audio.sfx('levelup', 0.4); } }
           if (e.kind === 'u' && e.def.bounty) { g.stats.kills++; if (w) w.killed++; const b = e.def.bounty || {}; for (const k in b) g.res[k] += b[k]; }
           if (e.def.boss) { g.bossDone.add(e.type); g.boss = null; CF.UI.bossBar(null); CF.Audio.play('battle'); CF.toast(`${e.def.name} 被击败！`, 'gold', 3000); CF.UI.say('HERO', '漂亮！这段 solo 献给你，指挥官。'); }
@@ -6875,6 +6990,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     $('#bossBar').classList.add('hidden'); $('#comms').classList.add('hidden');
     $('#mmBox').classList.toggle('min', document.body.classList.contains('compact') && window.innerWidth < 700);
     UI.buildSkillBar();
+    if (CF.Moba) { if (CF.Moba.wanted(L)) CF.Moba.enable(g); else CF.Moba.disable(); }
     UI.renderObj(true);
     if (CF.Tutorial) CF.Tutorial.maybeStart(g);
     cancelAnimationFrame(raf); lastT = performance.now();
@@ -6882,7 +6998,8 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       raf = requestAnimationFrame(loop);
       const g2 = CF.Game.current; if (!g2 || UI.cur !== 'battle') return;
       const dt = (now - lastT) / 1000; lastT = now;
-      if (UI.keys.size && !CF.modal.isOpen()) { const sp = (700 * dt) / g2.cam.z; if (UI.keys.has('ArrowLeft')) g2.cam.x -= sp; if (UI.keys.has('ArrowRight')) g2.cam.x += sp; if (UI.keys.has('ArrowUp')) g2.cam.y -= sp; if (UI.keys.has('ArrowDown')) g2.cam.y += sp; g2.clampCam(); }
+      if (CF.Moba && CF.Moba.active) CF.Moba.frame(g2, dt);
+      if (UI.keys.size && !CF.modal.isOpen() && !(CF.Moba && CF.Moba.active)) { const sp = (700 * dt) / g2.cam.z; if (UI.keys.has('ArrowLeft')) g2.cam.x -= sp; if (UI.keys.has('ArrowRight')) g2.cam.x += sp; if (UI.keys.has('ArrowUp')) g2.cam.y -= sp; if (UI.keys.has('ArrowDown')) g2.cam.y += sp; g2.clampCam(); }
       g2.frame(dt);
       if (UI.place) { UI.edgePan(dt); UI.updPlace(); }
       g2.render(UI.gctx, UI.dpr);
@@ -6898,6 +7015,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
   };
   UI.leaveBattle = function () {
     UI.buildMode(false);
+    if (CF.Moba) CF.Moba.disable();
     cancelAnimationFrame(raf);
     if (CF.Game.current) { CF.Game.current.destroy(); CF.Game.current = null; }
     UI.keys.clear(); UI.closeRadial();
@@ -6927,7 +7045,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
   UI.hud = function () {
     const g = CF.Game.current; if (!g) return;
     // 英雄残血时说一句濒危台词（每条命一次，回到 60% 以上重置）
-    if (g.hero && !g.hero.dead && CF.Voice) { const p = g.hero.hp / g.hero.maxHp; if (p < 0.25 && !g.hero._lowSaid) { g.hero._lowSaid = true; CF.Voice.say(g.heroDef, g.heroDef.lines.low); } else if (p > 0.6) g.hero._lowSaid = false; }
+    if (g.hero && !g.hero.dead && CF.Voice) { const p = g.hero.hp / g.hero.maxHp; if (p < 0.25 && !g.hero._lowSaid) { g.hero._lowSaid = true; CF.Voice.event(g.heroDef, 'low'); } else if (p > 0.6) g.hero._lowSaid = false; }
     $('#rChip').textContent = CF.fmtNum(g.res.chip); $('#rCorp').textContent = CF.fmtNum(g.res.corp); $('#rComp').textContent = CF.fmtNum(g.res.comp);
     $('#rChipR').textContent = `+${g.rate.chip.toFixed(0)}`; $('#rCorpR').textContent = `+${g.rate.corp.toFixed(0)}`; $('#rCompR').textContent = `+${g.rate.comp.toFixed(1)}`;
     const sup = $('#supTxt');
@@ -7188,8 +7306,9 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
         CF.Audio.sfx('hover'); return;
       }
       if (units.length) {
-        if (e && e.team !== 0 && (e.team === 1 || e.team === 2)) { g.orderAttack(units, e); clickFx(e.x, e.y, '#ff5d6c'); CF.Audio.sfx('click'); return; }
-        g.orderMove(units, wx, wy, true); clickFx(wx, wy, '#6fdc8c'); CF.Audio.sfx('hover'); CF.bus.emit('moved'); return;
+        const withHero = CF.Voice && g.hero && units.includes(g.hero);
+        if (e && e.team !== 0 && (e.team === 1 || e.team === 2)) { g.orderAttack(units, e); clickFx(e.x, e.y, '#ff5d6c'); CF.Audio.sfx('click'); if (withHero) CF.Voice.event(g.heroDef, 'attack'); return; }
+        g.orderMove(units, wx, wy, true); clickFx(wx, wy, '#6fdc8c'); CF.Audio.sfx('hover'); CF.bus.emit('moved'); if (withHero) CF.Voice.event(g.heroDef, 'move'); return;
       }
       const b = g.sel.length === 1 ? g.get(g.sel[0]) : null;
       if (b && b.team === 0 && b.def.trains) { b.rally = { x: wx, y: wy }; clickFx(wx, wy, '#6fdc8c'); CF.toast('集结点已设置'); return; }
@@ -7234,7 +7353,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       if (pan && pan.id === e.pointerId) {
         const dx = p.x - pan.x, dy = p.y - pan.y;
         if (Math.hypot(dx, dy) > 8) { pan.moved = true; clearTimeout(hold && hold.t); }
-        if (pan.moved) { g.cam.x = pan.cx - dx / g.cam.z; g.cam.y = pan.cy - dy / g.cam.z; g.clampCam(); CF.bus.emit('camera'); }
+        if (pan.moved && !(CF.Moba && CF.Moba.locked())) { g.cam.x = pan.cx - dx / g.cam.z; g.cam.y = pan.cy - dy / g.cam.z; g.clampCam(); CF.bus.emit('camera'); }
         if (UI.aimKey && g.aim) { const w = g.toWorld(p.x, p.y); g.aim.x = w[0]; g.aim.y = w[1]; }
       }
     });
@@ -7347,6 +7466,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       <div id="bgmRows"></div>
       <div class="sec-title">画面与玩法</div>
       <div class="set-row"><span class="nm">画质</span><div class="ctl"><select id="setQ"><option value="high">高（推荐）</option><option value="low">低（旧手机更流畅）</option></select></div></div>
+      <div class="set-row"><span class="nm">沉浸模式操控</span><div class="ctl"><select id="setMoba"><option value="moba">摇杆 + 技能轮盘（王者 / 英雄联盟手游）</option><option value="classic">经典点击（RTS）</option></select></div></div>
       <div class="set-row"><span class="nm">英雄配音</span><div class="ctl"><select id="setVoice"><option value="auto">英雄录音（推荐）</option><option value="tts">系统中文语音</option><option value="pixel">像素音</option><option value="off">关闭</option></select><span class="small muted" id="setVoiceEng"></span><button class="btn sm ghost" id="setVoiceTry">试听</button></div></div>
       <div class="set-row"><span class="nm">英雄音效</span><div class="ctl"><label class="check" style="padding:0"><input type="checkbox" id="setHeroSfx"><span>点击、打击音效使用主英雄的乐器（连续点击会弹出主题曲动机）</span></label></div></div>
       <div class="set-row"><span class="nm">减少动效</span><div class="ctl"><label class="check" style="padding:0"><input type="checkbox" id="setRM"><span>关闭转场与大部分闪烁、波纹（对光敏感或晕动时建议开启）</span></label></div></div>
@@ -7383,6 +7503,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       row.querySelector('.tr').onclick = () => { A.unlock(); const prev = A.screen; A.screen = null; A.play(key); CF.toast(`试听：${A.SCREENS[key]}（离开设置页恢复）`); UI._restoreMusic = prev; };
       rows.appendChild(row);
     }
+    $('#setMoba').value = s.mobaCtl === 'classic' ? 'classic' : 'moba'; $('#setMoba').onchange = (e) => { s.mobaCtl = e.target.value; CF.Save.save(); CF.toast(e.target.value === 'classic' ? '沉浸模式改为经典点击操控' : '沉浸模式改为摇杆 + 技能轮盘'); };
     $('#setVoice').value = s.voice || 'auto'; $('#setVoiceEng').textContent = '当前：' + CF.Voice.engine(); $('#setVoice').onchange = (e) => { s.voice = e.target.value; CF.Save.save(); $('#setVoiceEng').textContent = '当前：' + CF.Voice.engine(); };
     $('#setVoiceTry').onclick = () => { CF.Audio.unlock(); CF.Voice.line(CF.Heroes.current()); };
     $('#setHeroSfx').checked = s.heroSfx !== false; $('#setHeroSfx').onchange = (e) => { s.heroSfx = e.target.checked; CF.Save.save(); };
@@ -7643,7 +7764,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     if (heroStage) heroStage.destroy();
     heroStage = new CF.PixelFX.Stage(body.querySelector('#hdCv'), { mode: 'full', fx: 0.5, fy: 0.42, cell: 20, hero: h.id, radius: 30 });
     const tabs = {
-      lore: () => `<div class="card"><div class="t-tag">世界观</div><p class="t-body" style="color:var(--text);margin-top:4px">${h.world}</p><div class="t-tag" style="margin-top:10px">性格</div><p class="t-body" style="color:var(--text)">${h.personality}</p><div class="t-tag" style="margin-top:10px">故事</div><p class="t-body" style="color:var(--text)">${h.story}</p><div class="t-tag" style="margin-top:10px">口头禅</div>${CF.Voice.lines(h).map((l) => `<button class="t-quote vline" data-l="${CF.esc(l)}">${CF.esc(l)}<span class="vplay">▶</span></button>`).join('')}<p class="t-cap" style="margin-top:4px">点一句就能听；点英雄形象会随机说一句（${CF.Voice.engine()}）。</p><div class="t-tag" style="margin-top:10px">灵感来源</div><p class="t-cap">${h.inspire.replace('灵感来源：', '')}</p></div>`,
+      lore: () => `<div class="card"><div class="t-tag">世界观</div><p class="t-body" style="color:var(--text);margin-top:4px">${h.world}</p><div class="t-tag" style="margin-top:10px">性格</div><p class="t-body" style="color:var(--text)">${h.personality}</p><div class="t-tag" style="margin-top:10px">故事</div><p class="t-body" style="color:var(--text)">${h.story}</p><div class="t-tag" style="margin-top:10px">口头禅</div>${CF.Voice.lines(h).map((l) => `<button class="t-quote vline" data-l="${CF.esc(l)}"><em class="vtype">${CF.Voice.typeOf(h, l)}</em><span class="vtxt">${CF.esc(l)}</span><span class="vplay">▶</span></button>`).join('')}<p class="t-cap" style="margin-top:4px">点一句就能听；点英雄形象会随机说一句（${CF.Voice.engine()}）。</p><div class="t-tag" style="margin-top:10px">灵感来源</div><p class="t-cap">${h.inspire.replace('灵感来源：', '')}</p></div>`,
       skills: () => `<div class="card" style="margin-bottom:8px"><div class="row between"><span class="t-tag">基础属性</span><span class="pill">${h.role}</span></div><div class="row wrap" style="margin-top:6px;gap:12px;font-size:12px" class="mono"><span>耐久 <b class="t-num">${Math.round(st.hp * CF.Roster.starMul(h.id))}</b></span><span>攻击 <b class="t-num">${Math.round(st.dmg * CF.Roster.starMul(h.id))}</b></span><span>射程 <b class="t-num">${st.range}</b></span><span>攻速 <b class="t-num">${(1 / st.rate).toFixed(2)}/s</b></span><span>移速 <b class="t-num">${st.speed}</b></span>${st.armor ? `<span>护甲 <b class="t-num">${st.armor}</b></span>` : ''}</div></div>
         <div class="skill"><div class="k">被动</div><div><h4>${h.passive.name}</h4><p>${h.passive.desc}</p></div></div>
         ${h.skills.map((s, i) => `<div class="skill"><div class="k">${ic[i]}</div><div><h4>${s.key} · ${s.name}</h4><p>${s.desc}</p><div class="meta">算力 ${CF.Skills.cost({ heroId: h.id }, s)} · 冷却 ${s.cd}s · ${{ self: '以自身为中心', dir: '指向方向', point: '指定位置' }[s.target]}</div></div></div>`).join('')}`,
@@ -7775,6 +7896,180 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       <div class="sec-title">学习 → 战力</div>
       <p class="small muted" style="line-height:1.9">知识经验 → 起始晶片；实操经验 → 起始语料；完成实验 → 算力产出；线下任务 → 英雄技能伤害；「体」→ 英雄耐久；主城研究所 → 全军伤害 / 护甲；主城英雄殿 → 英雄属性。真正的成长发生在游戏之外——线下任务要真的去做。</p>`;
     $('#startTut').onclick = () => { CF.Save.data.tutorial.done = false; CF.UI.startBattle(CF.Levels.get('L1'), true); };
+  };
+})();
+
+</script>
+<script>
+/* js/moba.js */
+/* 沉浸模式的 MOBA 操控（v7，参考王者荣耀、英雄联盟手游；规则见《游戏界面视觉宪法》第 18 章）
+ * - 左手：动态摇杆。在屏幕左下区域任意位置按下就出现摇杆，拖动控制英雄移动，松手英雄停下（附近有敌人会自动反击）。
+ * - 右手：普攻键 + 三个技能键排成弧形。技能键：点一下 = 自动对准最近的敌人释放；按住拖动 = 瞄准（方向 / 落点），松手释放；
+ *   拖到「取消」圈上松手 = 不放。普攻键按住会持续攻击最近的敌人。
+ * - 镜头：跟随镜头（一直跟着英雄，拖动战场不会移动镜头）/ 自由镜头（单指拖动平移）。右上角按钮或 Y 键切换；点小地图会自动切到自由镜头。
+ * - 电脑：方向键 = 摇杆，Q / W / R 仍然对准鼠标释放。
+ * 设置里可以改回「经典点击」操控。 */
+(function () {
+  const CF = window.CF;
+  const M = (CF.Moba = { active: false, cam: 'follow' });
+  const S = () => CF.Save.data.settings;
+  const JR = 56, AR = 72; // 摇杆最大半径、技能瞄准最大半径（屏幕像素）
+  let root = null, zone, base, knob, cancel, camBtn, joy = null, aim = null, atkHeld = false, atkT = 0, frameN = 0;
+  const P = (e) => CF.appPoint(e.clientX, e.clientY);
+  const center = (el) => { const r = CF.appRect(el); return [r.left + r.width / 2, r.top + r.height / 2]; };
+  const G = () => CF.Game.current;
+
+  M.wanted = (L) => !!(L && L.immersive) && S().mobaCtl !== 'classic';
+  M.locked = () => M.active && M.cam === 'follow';
+
+  M.setCam = function (mode, why) {
+    M.cam = mode; S().mobaCam = mode; CF.Save.save();
+    if (camBtn) { camBtn.innerHTML = `${CF.Icons ? CF.Icons.svg(mode === 'follow' ? 'target' : 'map', 'pi') : ''}<span>${mode === 'follow' ? '跟随镜头' : '自由镜头'}</span>`; camBtn.classList.toggle('on', mode === 'follow'); }
+    if (why) CF.toast(mode === 'follow' ? '跟随镜头：镜头一直跟着英雄' : '自由镜头：拖动战场移动镜头' + (why === 'mini' ? '（点小地图时自动切换）' : ''), '', 1600);
+  };
+
+  M.enable = function (g) {
+    M.disable();
+    const field = CF.$('#field');
+    root = CF.h(`<div id="mobaUI">
+      <div class="mb-zone"><div class="mb-base"><i class="mb-knob"></i></div></div>
+      <div class="mb-cluster">
+        <div class="mb-cancel hidden">${CF.Icons ? CF.Icons.svg('lock', 'pi') : ''}<span>取消</span></div>
+        <button class="mb-atk" title="普攻：按住持续攻击最近的敌人">${CF.Icons ? CF.Icons.svg('swords', 'pi') : '⚔'}<span>普攻</span></button>
+      </div>
+      <button class="glass mb-cam" title="切换镜头（Y）"></button>
+    </div>`);
+    field.appendChild(root);
+    zone = root.querySelector('.mb-zone'); base = root.querySelector('.mb-base'); knob = root.querySelector('.mb-knob');
+    cancel = root.querySelector('.mb-cancel'); camBtn = root.querySelector('.mb-cam');
+    const cl = root.querySelector('.mb-cluster'), hd = g.heroDef;
+    hd.skills.forEach((sk, i) => {
+      const b = CF.h(`<button class="sk mb-sk mb-${sk.key}" data-k="${sk.key}"><span class="key">${sk.key}</span>${CF.Icons ? CF.Icons.skill(hd.id, i) : sk.key}<span class="cost"></span><i class="cdm"></i><span class="cdt"></span><b class="mb-up hidden">＋</b></button>`);
+      bindSkill(b, sk); cl.appendChild(b);
+    });
+    bindJoy(); bindAtk(root.querySelector('.mb-atk'));
+    camBtn.onclick = () => { CF.Audio.sfx('click'); M.setCam(M.cam === 'follow' ? 'free' : 'follow', 'btn'); };
+    const mm = CF.$('#miniCanvas'); mm.addEventListener('pointerdown', onMini);
+    window.addEventListener('keydown', onKey);
+    document.body.classList.add('moba'); M.active = true;
+    M.setCam(S().mobaCam || 'follow');
+    if (!S().mobaTipSeen) { S().mobaTipSeen = true; CF.Save.save(); setTimeout(() => CF.toast('新操控：左手摇杆移动；右手技能——点一下自动释放，按住拖动瞄准，拖到「取消」松手不放', 'gold', 5200), 900); }
+  };
+  M.disable = function () {
+    if (root) root.remove(); root = null; joy = null; aim = null; atkHeld = false;
+    const mm = CF.$('#miniCanvas'); if (mm) mm.removeEventListener('pointerdown', onMini);
+    window.removeEventListener('keydown', onKey);
+    document.body.classList.remove('moba'); M.active = false;
+    const g = G(); if (g) { g.stick = null; g.aim = null; }
+  };
+  function onMini() { if (M.locked()) M.setCam('free', 'mini'); }
+  function onKey(e) {
+    if (CF.UI.cur !== 'battle' || CF.modal.isOpen() || (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName))) return;
+    if (e.key === 'y' || e.key === 'Y') M.setCam(M.cam === 'follow' ? 'free' : 'follow', 'key');
+  }
+
+  // ---------- 左手摇杆（动态：按在哪里，摇杆就出现在哪里） ----------
+  function bindJoy() {
+    zone.addEventListener('pointerdown', (e) => {
+      if (joy) return; e.preventDefault(); e.stopPropagation(); CF.Audio.unlock();
+      const p = P(e), zr = CF.appRect(zone);
+      joy = { id: e.pointerId, cx: p.x, cy: p.y, x: 0, y: 0 };
+      base.style.left = (p.x - zr.left) + 'px'; base.style.top = (p.y - zr.top) + 'px'; base.classList.add('on');
+      try { zone.setPointerCapture(e.pointerId); } catch (er) { /* 合成事件 */ }
+    });
+    zone.addEventListener('pointermove', (e) => {
+      if (!joy || joy.id !== e.pointerId) return;
+      const p = P(e); let dx = p.x - joy.cx, dy = p.y - joy.cy; const d = Math.hypot(dx, dy);
+      if (d > JR) { dx *= JR / d; dy *= JR / d; }
+      knob.style.transform = `translate(${dx}px,${dy}px)`;
+      joy.x = dx / JR; joy.y = dy / JR;
+    });
+    const up = (e) => { if (!joy || joy.id !== e.pointerId) return; joy = null; knob.style.transform = ''; base.classList.remove('on'); base.style.left = ''; base.style.top = ''; const g = G(); if (g) g.stick = null; };
+    zone.addEventListener('pointerup', up); zone.addEventListener('pointercancel', up);
+  }
+
+  // ---------- 普攻键 ----------
+  function attackNearest() {
+    const g = G(), h = g && g.hero; if (!h || h.dead) return;
+    const t = g.bestTarget(h, h.def.atk.range + 240);
+    if (t) { g.orderAttack([h], t); if (CF.Voice) CF.Voice.event(g.heroDef, 'attack'); }
+  }
+  function bindAtk(b) {
+    b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); CF.Audio.unlock(); atkHeld = true; atkT = 0; b.classList.add('down'); attackNearest(); try { b.setPointerCapture(e.pointerId); } catch (er) { /* 合成事件 */ } });
+    const up = () => { atkHeld = false; b.classList.remove('down'); };
+    b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
+  }
+
+  // ---------- 技能键：点击释放 / 拖动瞄准 / 拖到取消 ----------
+  function aimPoint(g, sk, vx, vy) {
+    const h = g.hero, len = Math.hypot(vx, vy);
+    if (sk.target === 'dir') { const ux = len > 0.05 ? vx / len : h.face, uy = len > 0.05 ? vy / len : 0; return [h.x + ux * 320, h.y + uy * 320]; }
+    return [h.x + vx * 520, h.y + vy * 520];
+  }
+  const overCancel = (p) => { const [x, y] = center(cancel), r = CF.appRect(cancel); return Math.hypot(p.x - x, p.y - y) < r.width * 0.7; };
+  function bindSkill(b, sk) {
+    b.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); e.stopPropagation(); CF.Audio.unlock();
+      const g = G(); if (!g || !g.hero || g.hero.dead) return;
+      if (e.target.classList.contains('mb-up')) { g.learnSkill(sk.key); if (g.imHud) { CF.$('#itemBar')._sig = ''; g.imHud(); } return; }
+      const [cx, cy] = center(b);
+      aim = { id: e.pointerId, sk, b, cx, cy, vx: 0, vy: 0, moved: false, cancel: false };
+      if (sk.target !== 'self') cancel.classList.remove('hidden');
+      b.classList.add('aim');
+      try { b.setPointerCapture(e.pointerId); } catch (er) { /* 合成事件 */ }
+    });
+    b.addEventListener('pointermove', (e) => {
+      if (!aim || aim.id !== e.pointerId || aim.sk.target === 'self') return;
+      const p = P(e), g = G(); let dx = p.x - aim.cx, dy = p.y - aim.cy; const d = Math.hypot(dx, dy);
+      if (d > 14) aim.moved = true; if (!aim.moved) return;
+      if (d > AR) { dx *= AR / d; dy *= AR / d; }
+      aim.vx = dx / AR; aim.vy = dy / AR; aim.cancel = overCancel(p);
+      cancel.classList.toggle('over', aim.cancel);
+      if (g && g.hero) { const [x, y] = aimPoint(g, aim.sk, aim.vx, aim.vy); g.aim = aim.cancel ? null : { key: aim.sk.key, x, y }; }
+    });
+    const up = (e) => {
+      if (!aim || aim.id !== e.pointerId) return;
+      const a = aim; aim = null; a.b.classList.remove('aim'); cancel.classList.add('hidden'); cancel.classList.remove('over');
+      const g = G(); if (!g) return; g.aim = null;
+      if (a.cancel) { CF.Audio.sfx('hover'); return; }
+      if (a.sk.target === 'self') { g.heroCast(a.sk.key); return; }
+      if (a.moved) { const [x, y] = aimPoint(g, a.sk, a.vx, a.vy); g.heroCast(a.sk.key, x, y); return; }
+      // 点一下：自动对准最近的敌人；附近没有敌人就朝面向的方向放
+      const t = g.bestTarget(g.hero, 650);
+      if (t) g.heroCast(a.sk.key, t.x, t.y); else g.heroCast(a.sk.key);
+    };
+    b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
+  }
+
+  // ---------- 每帧：摇杆 → 英雄，普攻连发，镜头跟随，技能键状态 ----------
+  M.frame = function (g, dt) {
+    if (!M.active || !g.hero) return;
+    const h = g.hero, K = CF.UI.keys;
+    let sx = joy ? joy.x : 0, sy = joy ? joy.y : 0;
+    if (!joy && K && K.size) { sx = (K.has('ArrowRight') ? 1 : 0) - (K.has('ArrowLeft') ? 1 : 0); sy = (K.has('ArrowDown') ? 1 : 0) - (K.has('ArrowUp') ? 1 : 0); const l = Math.hypot(sx, sy) || 1; sx /= l; sy /= l; }
+    const m = Math.hypot(sx, sy);
+    const was = !!g.stick;
+    g.stick = !h.dead && !atkHeld && m > 0.18 ? { x: sx / m, y: sy / m } : null;
+    if (g.stick && !was && CF.Voice) CF.Voice.event(g.heroDef, 'move');
+    if (atkHeld) { atkT -= dt; if (atkT <= 0) { atkT = 0.3; attackNearest(); } }
+    if (M.cam === 'follow' && !h.dead) {
+      const look = aim && aim.moved ? 110 : 0, tx = h.x + (aim ? aim.vx * look : 0), ty = h.y + (aim ? aim.vy * look : 0);
+      const c = g.cam, cx = c.x + g.viewW() / 2, cy = c.y + g.viewH() / 2, k = Math.min(1, dt * 7);
+      g.centerOn(cx + (tx - cx) * k, cy + (ty - cy) * k);
+    }
+    if (++frameN % 5) return;
+    root.querySelectorAll('.mb-sk').forEach((b) => {
+      const sk = g.heroDef.skills.find((x) => x.key === b.dataset.k), cd = h.dead ? 0 : h.cd[sk.key], cost = CF.Skills.cost(h, sk);
+      const full = sk.cd * (g.bonus.cdMul || 1) * CF.Roster.starCd(g.heroId);
+      b.querySelector('.cdm').style.setProperty('--cd', (cd > 0 ? (cd / full) * 100 : 0) + '%');
+      b.querySelector('.cdt').textContent = cd > 0 ? Math.ceil(cd) : '';
+      b.querySelector('.cost').textContent = cost;
+      const lock = (sk.key === 'R' && ((g.L.immersive && (g.heroLv || 1) < 6 && !CF.P.trial()) || !CF.Treasure.has(g.heroId)));
+      b.classList.toggle('na', h.dead || g.res.comp < cost || lock);
+      const up = b.querySelector('.mb-up'), maxLv = sk.key === 'R' ? (g.heroLv >= 10 ? 3 : g.heroLv >= 8 ? 2 : g.heroLv >= 6 ? 1 : 0) : Math.min(4, 1 + Math.floor(((g.heroLv || 1) + 1) / 2));
+      up.classList.toggle('hidden', !(g.skillPts > 0 && g.skillLv && g.skillLv[sk.key] < maxLv));
+    });
+    root.querySelector('.mb-atk').classList.toggle('na', h.dead);
   };
 })();
 
@@ -8159,7 +8454,9 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
 (function () {
   const CF = window.CF;
   const $ = CF.$;
-  const COLS = 7, ROWS = 5, GW = 1e4, HOUR = 3600 * 1000;
+  // v7：电路板大小随实验变化（基础 7 × 5；具身智能 9 × 6；航空航天、自由搭建 11 × 7）
+  let COLS = 7, ROWS = 5;
+  const GW = 1e4, HOUR = 3600 * 1000;
   const C = (CF.City = {});
 
   // ================= 数据（仓库沿用旧主城的 res，旧存档资源不丢） =================
@@ -8185,7 +8482,8 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     return C.add({ chip: (150 + stars * 120) * k, corp: (90 + stars * 70) * k, comp: (15 + stars * 15) * k });
   };
   // 电路学得越多，战场越强（学习 → 战力）
-  C.bonus = function () { const n = solvedN(); return { atkMul: 1 + n * 0.02, bldMul: 1 + n * 0.02, heroMul: 1 + n * 0.015, extraCoders: n >= 5 ? 1 : 0, startChip: n * 20, solved: n }; };
+  // v7：实验变多了，战斗加成最多按 12 个实验计算
+  C.bonus = function () { const n = Math.min(12, solvedN()); return { atkMul: 1 + n * 0.02, bldMul: 1 + n * 0.02, heroMul: 1 + n * 0.015, extraCoders: n >= 5 ? 1 : 0, startChip: n * 20, solved: n }; };
   C.level = (type) => (type === 'hall' ? Math.floor(solvedN() / 3) : 0);
 
   // ================= 电网（轻养成） =================
@@ -8213,7 +8511,16 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     voltmeter: { name: '电压表', ic: 'Ⓥ' },
     led: { name: '发光二极管', ic: '▷|', polar: true, Vf: 2, rd: 10, Imax: 0.02 },
     cap: { name: '电容', ic: '||', vals: [0.0005, 0.001, 0.002], unit: 'F' },
+    // ---- v7 新元件（具身智能 / 航空航天模块） ----
+    motor: { name: '电机', ic: 'Ⓜ', R: 8, Rstall: 1 },               // 正常转动时等效 8 Ω（含反电动势的简化）；堵转时只剩线圈电阻 1 Ω
+    diode: { name: '二极管', ic: '▷|', polar: true, Vf: 0.7, rd: 0.5 }, // 硅二极管：正向压降约 0.7 V
+    fuse: { name: '保险丝', ic: '∽', vals: [0.5, 1, 2, 10], unit: 'A', R: 0.05 },
+    solar: { name: '太阳能板', ic: '☀', polar: true, vals: [0, 25, 50, 100], Isc: 0.5, Rsh: 18 }, // 诺顿等效：短路电流 × 光照，开路电压约 9 V
+    ldr: { name: '光敏电阻', ic: '⊘', vals: [0, 50, 100] },          // 光照 0 / 50 / 100 %：暗 10 kΩ → 亮 200 Ω
   };
+  const ldrR = (light) => 200 + 9800 * (1 - light / 100);
+  const DEF = { resistor: 100, battery: 6, cap: 0.001, fuse: 1, solar: 100, ldr: 100 };
+  const DIODES = { led: PARTS.led, diode: PARTS.diode };
   const node = (c, r) => r * COLS + c;
   const ends = (e) => { const [k, c, r] = e.split(','); const ci = +c, ri = +r; return k === 'h' ? [node(ci, ri), node(ci + 1, ri)] : [node(ci, ri), node(ci, ri + 1)]; };
   // 解线性方程组（高斯消元，部分主元）
@@ -8233,22 +8540,26 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
   function solve(parts, dt = 0.02) {
     const N = COLS * ROWS, bat = parts.find((p) => p.type === 'battery');
     const ref = bat ? ends(bat.e)[bat.flip ? 0 : 1] : 0; // 电池负极接地
-    parts.forEach((p) => { if (p.type === 'led' && p.dOn === undefined) p.dOn = false; });
+    parts.forEach((p) => { if (DIODES[p.type] && p.dOn === undefined) p.dOn = false; });
     let v = null;
-    for (let it = 0; it < 10; it++) {
+    for (let it = 0; it < 14; it++) {
       const G = Array.from({ length: N }, () => new Float64Array(N)), I = new Float64Array(N);
       const g2 = (a, b, g) => { G[a][a] += g; G[b][b] += g; G[a][b] -= g; G[b][a] -= g; };
       for (const p of parts) {
         const [a, b] = ends(p.e), pos = p.flip ? b : a, neg = p.flip ? a : b;
         switch (p.type) {
           case 'wire': g2(a, b, GW); break;
-          case 'resistor': g2(a, b, 1 / p.val); break;
-          case 'bulb': g2(a, b, 1 / PARTS.bulb.R); break;
+          case 'resistor': g2(a, b, 1 / (p.fault ? 0.1 : p.val)); break;
+          case 'bulb': g2(a, b, 1 / (p.fault ? 0.1 : PARTS.bulb.R)); break;
           case 'ammeter': g2(a, b, 1 / PARTS.ammeter.R); break;
           case 'voltmeter': g2(a, b, 1e-7); break;
           case 'switch': g2(a, b, p.on ? GW : 1e-9); break;
           case 'battery': { const g = 1 / 0.05; g2(pos, neg, g); I[pos] += p.val * g; I[neg] -= p.val * g; break; }
-          case 'led': { if (p.burnt) { g2(a, b, 1e-9); break; } if (p.dOn) { const g = 1 / PARTS.led.rd; g2(pos, neg, g); I[pos] += PARTS.led.Vf * g; I[neg] -= PARTS.led.Vf * g; } else g2(pos, neg, 1e-9); break; }
+          case 'led': case 'diode': { const D = DIODES[p.type]; if (p.burnt) { g2(a, b, 1e-9); break; } if (p.dOn) { const g = 1 / D.rd; g2(pos, neg, g); I[pos] += D.Vf * g; I[neg] -= D.Vf * g; } else g2(pos, neg, 1e-9); break; }
+          case 'motor': g2(a, b, 1 / (p.stall ? PARTS.motor.Rstall : PARTS.motor.R)); break;
+          case 'fuse': g2(a, b, p.blown ? 1e-9 : 1 / PARTS.fuse.R); break;
+          case 'ldr': g2(a, b, 1 / ldrR(p.val ?? 100)); break;
+          case 'solar': { const isc = PARTS.solar.Isc * ((p.val ?? 100) / 100); g2(pos, neg, 1 / PARTS.solar.Rsh); I[pos] += isc; I[neg] -= isc; break; }
           case 'cap': { const g = p.val / dt, vp = p.vc || 0; g2(a, b, g); I[a] += g * vp; I[b] -= g * vp; break; }
         }
       }
@@ -8257,7 +8568,9 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       v = gauss(G, I);
       // 二极管状态迭代
       let changed = false;
-      for (const p of parts) if (p.type === 'led' && !p.burnt) { const [a, b] = ends(p.e), vd = p.flip ? v[b] - v[a] : v[a] - v[b]; const want = p.dOn ? (vd - PARTS.led.Vf) / PARTS.led.rd > 0 : vd > PARTS.led.Vf; if (want !== p.dOn) { p.dOn = want; changed = true; } }
+      for (const p of parts) if (DIODES[p.type] && !p.burnt) { const D = DIODES[p.type], [a, b] = ends(p.e), vd = p.flip ? v[b] - v[a] : v[a] - v[b]; const want = p.dOn ? (vd - D.Vf) / D.rd > 0 : vd > D.Vf; if (want !== p.dOn) { p.dOn = want; changed = true; } }
+      // 保险丝：电流超过额定值就熔断（每次只熔断电流最大的一根，再重新求解，避免「一起烧」的假象）
+      if (!changed) { let worst = null, wr = 1; for (const p of parts) if (p.type === 'fuse' && !p.blown) { const [a, b] = ends(p.e), r = Math.abs((v[a] - v[b]) / PARTS.fuse.R) / p.val; if (r > wr) { wr = r; worst = p; } } if (worst) { worst.blown = true; changed = true; } }
       if (!changed) break;
     }
     // 每个元件的电流（a → b 为正）与两端电压
@@ -8267,13 +8580,18 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       p.V = vab;
       switch (p.type) {
         case 'wire': p.I = vab * GW; break;
-        case 'resistor': p.I = vab / p.val; break;
-        case 'bulb': p.I = vab / PARTS.bulb.R; break;
+        case 'resistor': p.I = vab / (p.fault ? 0.1 : p.val); break;
+        case 'bulb': p.I = vab / (p.fault ? 0.1 : PARTS.bulb.R); break;
         case 'ammeter': p.I = vab / PARTS.ammeter.R; break;
         case 'voltmeter': p.I = vab * 1e-7; break;
         case 'switch': p.I = vab * (p.on ? GW : 1e-9); break;
         case 'battery': { const vt = p.flip ? -vab : vab; p.I = (p.val - vt) / 0.05; if (p.I > 8) short = true; break; }
         case 'led': { const vd = p.flip ? -vab : vab; p.I = p.dOn && !p.burnt ? (vd - PARTS.led.Vf) / PARTS.led.rd : 0; break; }
+        case 'diode': { const vd = p.flip ? -vab : vab; p.I = (p.dOn ? (vd - PARTS.diode.Vf) / PARTS.diode.rd : 0) * (p.flip ? -1 : 1); break; }
+        case 'motor': p.I = vab / (p.stall ? PARTS.motor.Rstall : PARTS.motor.R); break;
+        case 'fuse': p.I = p.blown ? 0 : vab / PARTS.fuse.R; break;
+        case 'ldr': p.I = vab / ldrR(p.val ?? 100); break;
+        case 'solar': { const vt = p.flip ? -vab : vab; p.I = PARTS.solar.Isc * ((p.val ?? 100) / 100) - vt / PARTS.solar.Rsh; break; }
         case 'cap': { const g = p.val / dt; p.I = g * (vab - (p.vc || 0)); p.vcNext = vab; break; }
       }
     }
@@ -8283,6 +8601,63 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
 
   // ================= 实验 =================
   const V = (e, type, o = {}) => Object.assign({ e, type, fixed: true }, o);
+  const W = (e) => V(e, 'wire');
+  const spin = (p) => p && p.type === 'motor' && Math.abs(p.I) > 0.3;
+  const working = (p) => p && (p.type === 'motor' ? Math.abs(p.I) > 0.3 : p.type === 'bulb' ? Math.abs(p.I) > 0.08 : Math.abs(p.I) > 0.05);
+  const byLabel = (P, l) => P.find((p) => p.label === l);
+  const hs = (from, to, r) => { const o = []; for (let c = from; c <= to; c++) o.push(`h,${c},${r}`); return o; };
+  // 枚举所有开关组合（最多 4 个开关 = 16 种），用于 H 桥之类「找出正确组合」的判定
+  const combos = (P, T, test) => { const n = P.filter((p) => p.type === 'switch').length, out = []; for (let m = 0; m < 1 << n; m++) out.push(T((ps) => ps.filter((p) => p.type === 'switch').forEach((sw, i) => (sw.on = !!(m & (1 << i)))), test)); return out; };
+  // ---------- v7 模块一：具身智能（机器人的电机、传感器、驱动） 9 × 6 电路板 ----------
+  const EMB = [
+    { id: 'e1', mod: 'emb', cols: 9, rows: 6, lv: '高中', title: '让电机转起来', goal: '用导线和开关把电池和电机连成回路：开关闭合电机转，断开电机停。', fixed: [V('v,1,2', 'battery', { val: 6 }), V('v,6,2', 'motor')], pal: { wire: 14, switch: 1 },
+      know: '电动机把电能转化为机械能：通电线圈在磁场中受力转动（左手定则）。开关串联在回路里控制通断。', bridge: '电机可以看成「电阻 + 反电动势」：转得越快，反电动势 E 越大，电流 I = (U − E) / R 越小。机器人关节里的电机就是靠控制电压和电流来控制转速和力矩的。',
+      hint: '和「开关控制」那一关一样：电池上端沿第 3 排接线点走到电机上端，开关串在中间；电机下端沿第 4 排回到电池下端。', check: (P, T) => T((ps) => ps.filter((p) => p.type === 'switch').forEach((x) => (x.on = true)), (Q) => Q.some(spin)) && T((ps) => ps.filter((p) => p.type === 'switch').forEach((x) => (x.on = false)), (Q) => !Q.some(spin)) },
+    { id: 'e2', mod: 'emb', cols: 9, rows: 6, lv: '高中', title: '电池串联：更有力', goal: '一节 3 V 电池推不动关节电机。用两节电池串联，让电机电流达到 0.6 A 以上。', fixed: [V('v,7,2', 'motor')], pal: { wire: 16, battery: 2 }, defs: { battery: 3 },
+      know: '电池串联时，总电压等于各节电压之和：U = U₁ + U₂。电压越高，电机电流越大、转得越有力。', bridge: '电机功率 P = U · I。机器人的电池包就是很多节锂电池先串联提高电压（例如 6 节 × 3.7 V ≈ 22 V），再并联提高容量。',
+      hint: '两节电池上下叠着竖放（都是长片朝上），上面那节的负极接下面那节的正极。再把最上端和最下端分别连到电机两端。', check: (P) => P.some((p) => p.type === 'motor' && Math.abs(p.I) >= 0.6) },
+    { id: 'e3', mod: 'emb', cols: 9, rows: 6, lv: '高中', title: '左右轮：电机并联', goal: '左轮、右轮两个电机并联在同一节电池上都转起来，并用电流表测干路电流。', fixed: [V('v,1,2', 'battery', { val: 6 }), V('v,5,2', 'motor', { label: '左轮' }), V('v,7,2', 'motor', { label: '右轮' })], pal: { wire: 16, ammeter: 1 },
+      know: '并联电路各支路电压相等；干路电流等于各支路电流之和：I = I₁ + I₂。', bridge: '两个电机同时启动时电流叠加，电池必须能提供足够的「峰值电流」——这就是为什么机器人电池除了容量（mAh），还要看放电倍率（C 数）。',
+      hint: '电池上端经过电流表接到第 3 排，第 3 排连到两个电机的上端；两个电机的下端都连到第 4 排，再回到电池下端。',
+      check: (P) => { const L = byLabel(P, '左轮'), R = byLabel(P, '右轮'), A = P.find((p) => p.type === 'ammeter'); return spin(L) && spin(R) && A && Math.abs(Math.abs(A.I) - Math.abs(L.I) - Math.abs(R.I)) < 0.01; } },
+    { id: 'e4', mod: 'emb', cols: 9, rows: 6, lv: '衔接', title: '巡线机器人的光敏传感器', goal: '用光敏电阻和一个电阻做分压，电压表接在光敏电阻两端：亮的时候读数低于 1.5 V，暗的时候高于 4 V。', fixed: [V('v,1,2', 'battery', { val: 6 })], pal: { wire: 12, resistor: 1, ldr: 1, voltmeter: 1 },
+      know: '光敏电阻的阻值随光照变化：光越强电阻越小（这里：亮 200 Ω，暗 10 kΩ）。串联分压：U光 = U · R光 / (R + R光)。', bridge: '这就是巡线小车、自动路灯的传感器：把「光的强弱」变成「电压的高低」，再交给单片机的 ADC（模数转换器）读成数字。电阻要选在亮暗两个阻值之间，输出的变化才明显。',
+      hint: '电阻在上、光敏电阻在下串在电池两端，电压表并在光敏电阻两边。点电阻换值：100 Ω 太小（亮的时候也有 4 V），试试 1 kΩ。点光敏电阻可以改光照，看看读数怎么变。',
+      check: (P, T) => { const setL = (l) => (ps) => ps.forEach((p) => p.type === 'ldr' && (p.val = l)); const vm = (Q) => { const m = Q.find((p) => p.type === 'voltmeter'); return m ? Math.abs(m.V) : -1; }; return P.some((p) => p.type === 'ldr') && T(setL(100), (Q) => vm(Q) >= 0 && vm(Q) < 1.5) && T(setL(0), (Q) => vm(Q) > 4); } },
+    { id: 'e5', mod: 'emb', cols: 9, rows: 6, lv: '衔接', title: 'H 桥：电机正反转', goal: '用四个开关搭一个 H 桥：一组开关闭合电机正转，另一组闭合电机反转。', fixed: [V('v,1,1', 'battery', { val: 6 }), V('h,4,2', 'motor')], pal: { wire: 18, switch: 4 },
+      know: '电流方向改变，电机受力方向也改变（左手定则），所以电机反转。', bridge: 'H 桥是机器人驱动电机最基本的电路：四个开关（真实电路里是 MOSFET 晶体管）对角两两导通。注意：同一侧上下两个开关同时闭合会把电源直接短路（「直通」），电机驱动芯片里专门设计了「死区时间」防止这种情况。',
+      hint: '电池上端接出第 2 排作「正极轨」，下端经第 4 排作「负极轨」。电机两端各竖着接两个开关：一个通正极轨、一个通负极轨——四个开关和电机正好组成字母 H。',
+      check: (P, T) => { const m = (Q) => Q.find((p) => p.type === 'motor').I; const r = combos(P, T, (Q) => m(Q)); return r.some((i) => i > 0.3) && r.some((i) => i < -0.3); } },
+    { id: 'e6', mod: 'emb', cols: 9, rows: 6, lv: '大学', title: '堵转保护：选对保险丝', goal: '给电机串一个保险丝：正常转动时不熔断，电机被卡住（堵转）时熔断。', fixed: [V('v,1,2', 'battery', { val: 6 }), V('v,6,2', 'motor')], pal: { wire: 14, fuse: 1 }, defs: { fuse: 0.5 },
+      know: '保险丝串联在电路里，电流超过额定值就熔断，保护电路和设备。', bridge: '电机堵转时不再转动，反电动势 E = 0，电流 I = U / R线圈 一下子涨到正常时的好几倍，线圈会发热烧毁。保险丝的额定电流要选在「正常电流」和「堵转电流」之间。点电机可以「模拟堵转」看看电流有多大。',
+      hint: '先接好回路，看电流表或读数里电机的正常电流（约 0.74 A）；堵转时电机只剩约 1 Ω，电流约 5 A。保险丝点一下可以换额定值，熔断后点「换新保险丝」。',
+      check: (P, T) => P.some((p) => p.type === 'fuse') && T((ps) => ps.forEach((p) => { if (p.type === 'fuse') p.blown = false; if (p.type === 'motor') p.stall = false; }), (Q) => Q.every((p) => p.type !== 'fuse' || !p.blown) && Q.some(spin)) && T((ps) => ps.forEach((p) => { if (p.type === 'fuse') p.blown = false; if (p.type === 'motor') p.stall = true; }), (Q) => Q.some((p) => p.type === 'fuse' && p.blown)) },
+  ];
+  // ---------- v7 模块二：航空航天（卫星电源与配电） 11 × 7 电路板 ----------
+  const GND5 = ['v,1,2', 'v,1,3', 'v,1,4', 'v,3,2', 'v,3,3', 'v,3,4', 'v,8,4'].concat(hs(1, 7, 5)).map(W);
+  const BUS = hs(1, 7, 2).map(W).concat(['v,1,3'].concat(hs(1, 7, 4)).map(W));
+  const AERO = [
+    { id: 'a1', mod: 'aero', cols: 11, rows: 7, lv: '高中', title: '太阳能板点亮信标灯', goal: '用导线把太阳能板和信标灯连成回路，让灯亮起来。', fixed: [V('v,1,2', 'solar', { val: 100 }), V('v,8,2', 'bulb', { label: '信标灯' })], pal: { wire: 18 },
+      know: '太阳能电池把光能直接转化为电能；光照越强，产生的电流越大。', bridge: '光伏电池更像一个「电流源」：短路电流和光照强度成正比。卫星的太阳翼由成千上万片光伏电池串并联而成，国际空间站的太阳翼总发电功率在 100 千瓦量级。',
+      hint: '太阳能板上端（正极）沿第 3 排连到灯的上端，下端沿第 4 排回来。连好后点太阳能板改光照，看灯怎么变化。', check: (P) => P.some((p) => p.type === 'bulb' && Math.abs(p.I) > 0.08),
+      quiz: { q: '把光照从 100% 调到 25%，灯泡电流大约变成原来的多少？（提示：电流源）', opts: ['约 1/4', '约 1/2', '几乎不变'], a: 0 } },
+    { id: 'a2', mod: 'aero', cols: 11, rows: 7, lv: '高中', title: '卫星配电母线', goal: '从电池接出一条主母线，给信标灯、动量轮、加热器三路并联供电，每一路各有一个开关，可以单独关掉。', fixed: [V('v,1,2', 'battery', { val: 9 }), V('v,4,3', 'bulb', { label: '信标灯' }), V('v,6,3', 'motor', { label: '动量轮' }), V('v,8,3', 'resistor', { val: 100, label: '加热器' })], pal: { wire: 24, switch: 3 },
+      know: '并联电路各支路互不影响，每条支路可以单独控制。', bridge: '航天器的「配电单元」把一条主电源母线分给各个设备，每一路都有独立的开关（真实卫星里是继电器或固态功率控制器），哪个设备出故障就单独切掉哪一路。',
+      hint: '第 3 排做正极母线（接电池上端），第 5 排做负极母线（接电池下端）。三个设备上端各竖着接一个开关到正极母线，下端接到负极母线。',
+      check: (P, T) => { const L = ['信标灯', '动量轮', '加热器'], S = P.filter((p) => p.type === 'switch'); if (S.length !== 3) return false; const st = (Q) => L.map((l) => working(byLabel(Q, l))); const all = T((ps) => ps.forEach((p) => p.type === 'switch' && (p.on = true)), (Q) => st(Q).every(Boolean)); const solo = [0, 1, 2].every((k) => T((ps) => { let i = 0; ps.forEach((p) => { if (p.type === 'switch') p.on = i++ !== k; }); }, (Q) => st(Q).filter(Boolean).length === 2)); return all && solo; } },
+    { id: 'a3', mod: 'aero', cols: 11, rows: 7, lv: '衔接', title: '防反充二极管', goal: '让太阳能板给蓄电池充电：有光时蓄电池被充电；进入地球阴影（光照 0）时，蓄电池不能反过来向太阳能板放电，负载照常工作。', fixed: [V('v,1,2', 'solar', { val: 100 }), V('v,7,2', 'battery', { val: 6, label: '蓄电池' }), V('v,9,2', 'resistor', { val: 100, label: '负载' })], pal: { wire: 20, diode: 1 },
+      know: '二极管只允许电流单向通过：正向导通（约 0.7 V 压降），反向截止。', bridge: '卫星每绕地球一圈都要进出地球阴影。没有隔离时，阴影里的蓄电池会反过来向太阳翼放电；真实卫星的电源控制器用二极管（或「理想二极管」电路）把太阳翼和蓄电池隔开。',
+      hint: '太阳能板正极 → 二极管（三角形尖朝向蓄电池）→ 蓄电池正极和负载上端；三者的下端连在一起。连好后点太阳能板把光照调到 0 试试。',
+      check: (P, T) => { const setL = (l) => (ps) => ps.forEach((p) => p.type === 'solar' && (p.val = l)); const bat = (Q) => byLabel(Q, '蓄电池'), sol = (Q) => Q.find((p) => p.type === 'solar'); return P.some((p) => p.type === 'diode') && T(setL(100), (Q) => bat(Q).I < -0.01) && T(setL(0), (Q) => Math.abs(sol(Q).I) < 0.001 && working(byLabel(Q, '负载'))); } },
+    { id: 'a4', mod: 'aero', cols: 11, rows: 7, lv: '衔接', title: '冗余供电：二极管「或门」', goal: '用两个二极管让 A、B 两路电源一起给关键载荷供电：任何一路电压掉下来（故障），另一路照常供电，而且不会反灌进坏掉的那一路。', fixed: [V('v,1,1', 'battery', { val: 6, label: '电源 A' }), V('v,3,1', 'battery', { val: 6, label: '电源 B' }), V('v,8,3', 'bulb', { label: '关键载荷' })].concat(GND5), pal: { wire: 16, diode: 2 },
+      know: '两个二极管把两路电源「或」在一起：哪一路电压高，哪一路供电；另一路的二极管自动截止。', bridge: '航天器讲究「单点故障不致命」：关键设备至少有两路供电。二极管或门（OR-ing）保证一路电源坏了、电压掉下来时，好的那一路不会反灌进坏的那一路。',
+      hint: '负极已经接好（最下面一排）。A、B 的正极各串一个二极管（尖朝外），汇到第 1 排的正极母线，再沿右边竖着接到关键载荷的上端。',
+      check: (P, T) => { const A = (Q) => byLabel(Q, '电源 A'), B = (Q) => byLabel(Q, '电源 B'), L = (Q) => working(byLabel(Q, '关键载荷')); const fail = (lab) => (ps) => ps.forEach((p) => p.label === lab && (p.val = 1.5)); return P.filter((p) => p.type === 'diode').length === 2 && T(() => {}, L) && T(fail('电源 A'), (Q) => L(Q) && Math.abs(A(Q).I) < 0.001) && T(fail('电源 B'), (Q) => L(Q) && Math.abs(B(Q).I) < 0.001); } },
+    { id: 'a5', mod: 'aero', cols: 11, rows: 7, lv: '大学', title: '分区保护：保险丝的选择性', goal: '在三条支路里各放一个保险丝：正常时都不熔断；哪一路出故障（短路或卡死），就只熔断哪一路，其余设备照常工作。', fixed: [V('v,1,2', 'battery', { val: 9 }), V('v,4,3', 'resistor', { val: 20, label: '加热器' }), V('v,6,3', 'bulb', { label: '信标灯' }), V('v,8,3', 'motor', { label: '动量轮' })].concat(BUS), pal: { fuse: 3, wire: 2 }, defs: { fuse: 0.5 }, slots: ['v,4,2', 'v,6,2', 'v,8,2'],
+      know: '保险丝要串在它保护的那一路里；额定电流要大于这一路的正常电流。', bridge: '「选择性保护」：哪一路出故障就只断开哪一路，其余设备照常工作。飞机和航天器的配电系统按「设备 → 支路 → 主母线」一级级设置保护。动量轮卡死时电流约 8 A——10 A 的保险丝根本不会断。',
+      hint: '三个橙色框是保险丝的位置。先算每一路的正常电流：加热器 9 V / 20 Ω、信标灯 9 V / 10 Ω、动量轮 9 V / 8 Ω；额定值要比它大一点，又不能大到故障时也不断。',
+      check: (P, T) => { const L = ['加热器', '信标灯', '动量轮']; if (P.filter((p) => p.type === 'fuse').length !== 3) return false; const reset = (ps) => ps.forEach((p) => { if (p.type === 'fuse') p.blown = false; p.fault = false; p.stall = false; }); const ok = (Q) => L.map((l) => working(byLabel(Q, l))); if (!T(reset, (Q) => ok(Q).every(Boolean))) return false; return L.every((l, k) => T((ps) => { reset(ps); const d = ps.find((p) => p.label === l); if (d.type === 'motor') d.stall = true; else d.fault = true; }, (Q) => { const o = ok(Q); return !o[k] && o.filter(Boolean).length === 2; })); } },
+  ];
   const isLit = (p) => p.type === 'bulb' && Math.abs(p.I) > 0.08;
   const series = (ps) => ps.length > 1 && ps.every((p) => Math.abs(Math.abs(p.I) - Math.abs(ps[0].I)) < 0.002 && Math.abs(p.I) > 0.01);
   const RAILS = ['h,0,1', 'h,0,3', 'v,0,2', 'h,1,1', 'h,2,1', 'h,3,1', 'h,1,3', 'h,2,3', 'h,3,3'];
@@ -8322,26 +8697,42 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       know: '电容可以储存电荷；充电时电压不是瞬间到达电源电压，而是越来越慢地接近。', bridge: '电容电压 u(t) = U(1 − e^(−t/RC))，τ = RC 叫时间常数：经过一个 τ，电压达到 63%；经过 5τ 基本充满。这是一阶微分方程最经典的例子。',
       hint: '点一下开关让它闭合，看右边曲线到 63%（约 3.8 V）用了多久。R = 1 kΩ，C = 1000 μF。', check: (P, T, st) => st.rcDone,
       quiz: { q: '电容电压升到 63%（约 3.8 V）大约用了多久？', opts: ['0.1 秒', '1 秒', '10 秒'], a: 1 } },
-  ];
+  ].concat(EMB, AERO);
   C.LABS = LABS;
   C._cur = () => cur; C._load = (i) => load(i); C._pick = () => pick; // 测试与调试用
   C._edgeXY = (e) => edgeMid(e);
 
   // ================= 工坊界面 =================
   let cur = null, cv, ctx, raf = 0, timer = 0, drag = null, sel = null, chart = [], simT = 0, pick = null, hov = null;
-  const geo = () => { const w = cv.clientWidth, h = cv.clientHeight, s = Math.min((w - 70) / (COLS - 1), (h - 70) / (ROWS - 1)); return { s, ox: (w - s * (COLS - 1)) / 2, oy: (h - s * (ROWS - 1)) / 2 }; };
+  // 镜头（v7）：固定镜头 = 整块电路板正好放进画面；自由镜头 = 可以缩放（滚轮 / 双指 / 按钮）和拖动空白处平移
+  const view = { z: 1, x: 0, y: 0 };
+  const camMode = () => CF.Save.data.settings.cwCam || 'fixed';
+  const geo = () => { const w = cv.clientWidth, h = cv.clientHeight, s0 = Math.min((w - 70) / (COLS - 1), (h - 70) / (ROWS - 1)), z = view.z; return { s: s0 * z, ox: ((w - s0 * (COLS - 1)) / 2 - w / 2) * z + w / 2 + view.x, oy: ((h - s0 * (ROWS - 1)) / 2 - h / 2) * z + h / 2 + view.y }; };
+  C.zoomAt = function (sx, sy, f) {
+    if (camMode() === 'fixed') C.setCam('free', true);
+    const w = cv.clientWidth / 2, h = cv.clientHeight / 2, z2 = CF.clamp(view.z * f, 0.6, 3.2), k = z2 / view.z;
+    view.x = sx - w - (sx - w - view.x) * k; view.y = sy - h - (sy - h - view.y) * k; view.z = z2;
+  };
+  C.setCam = function (mode, auto) {
+    CF.Save.data.settings.cwCam = mode; CF.Save.save();
+    if (mode === 'fixed') { view.z = 1; view.x = 0; view.y = 0; }
+    const b = $('#cwCamMode'); if (b) { b.textContent = mode === 'fixed' ? '固定镜头' : '自由镜头'; b.classList.toggle('on', mode === 'fixed'); }
+    if (auto) CF.toast('已切到自由镜头：滚轮 / 双指缩放，拖动空白处平移；点「固定镜头」回到全图', '', 2200);
+  };
   const nodeXY = (n) => { const g = geo(); return [g.ox + (n % COLS) * g.s, g.oy + Math.floor(n / COLS) * g.s]; };
   const edgeMid = (e) => { const [a, b] = ends(e).map(nodeXY); return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; };
   const allEdges = () => { const out = []; for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) { if (c < COLS - 1) out.push(`h,${c},${r}`); if (r < ROWS - 1) out.push(`v,${c},${r}`); } return out; };
   const nearestEdge = (x, y) => { let best = null, bd = 1e9; allEdges().forEach((e) => { const [mx, my] = edgeMid(e), d = Math.hypot(mx - x, my - y); if (d < bd) { bd = d; best = e; } }); return bd < geo().s * 0.45 ? best : null; };
   const done = (id) => !!data().cw.solved[id];
-  const unlocked = (i) => CF.P.trial() || i === 0 || done(LABS[i - 1].id);
+  // 每个模块各自从第一关开始解锁（模块一开始就能玩，难度都从高中起步）
+  const unlocked = (i) => { if (CF.P.trial() || i === 0) return true; const L = LABS[i], P = LABS[i - 1]; return (P.mod || 'base') !== (L.mod || 'base') || done(P.id); };
   const used = (type) => cur.parts.filter((p) => p.type === type && !p.fixed).length;
   const left = (type) => (cur.sandbox ? 99 : (cur.lab.pal[type] || 0) - used(type));
 
   function load(i) {
     const L = i === 'sandbox' ? { id: 'sandbox', lv: '自由', title: '自由搭建', goal: '没有题目，随便搭。可以用全部已解锁的元件，电路照样实时计算。', fixed: [], pal: {}, know: '试试：同一个电池，接一个灯泡和接两个并联的灯泡，电流表读数有什么不同？', bridge: '真正的电子工程师也是这样——先在仿真里试，再动手焊板子。', hint: '元件不限量。' } : LABS[i];
-    cur = { i, lab: L, sandbox: i === 'sandbox', parts: L.fixed.map((p) => Object.assign({ val: p.type === 'resistor' ? 100 : p.type === 'battery' ? 6 : p.type === 'cap' ? 0.001 : undefined, on: p.type === 'switch' ? false : undefined }, p)), quiz: false, st: {} };
+    COLS = L.cols || (i === 'sandbox' ? 11 : 7); ROWS = L.rows || (i === 'sandbox' ? 7 : 5); view.z = 1; view.x = 0; view.y = 0;
+    cur = { i, lab: L, sandbox: i === 'sandbox', parts: L.fixed.map((p) => Object.assign({ val: DEF[p.type], on: p.type === 'switch' ? false : undefined }, p)), quiz: false, st: {} };
     if (cur.sandbox) cur.parts = (data().cw.sandbox || []).map((p) => Object.assign({}, p));
     chart = []; simT = 0; sel = null; pick = null; hov = null;
     C.renderSide(); C.renderTray();
@@ -8378,7 +8769,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
   C.enter = function () {
     const sc = $('#scr-city');
     sc.innerHTML = `<div class="cw"><div class="cw-top"><button class="glass hb" id="cwBack" title="返回大厅">←</button><div class="cw-title"><b>电路工坊</b><span class="small">从高中电路图到大学电路 · 学习不消耗体力</span></div><div class="glass cw-res" id="cwRes"></div></div>
-      <div class="cw-main"><div class="cw-list" id="cwList"></div><div class="cw-board"><canvas id="cwCanvas"></canvas><div class="glass cw-pop hidden" id="cwPop"></div></div><div class="cw-side" id="cwSide"></div></div>
+      <div class="cw-main"><div class="cw-list" id="cwList"></div><div class="cw-board"><canvas id="cwCanvas"></canvas><div class="glass cw-pop hidden" id="cwPop"></div><div class="cw-cam"><button class="glass hb" id="cwZin" title="放大">＋</button><button class="glass hb" id="cwZout" title="缩小">－</button><button class="glass btn sm" id="cwCamMode" title="固定镜头：整块电路板放进画面；自由镜头：可以缩放和拖动"></button></div></div><div class="cw-side" id="cwSide"></div></div>
       <div class="glass cw-tray" id="cwTray"></div></div>`;
     cv = $('#cwCanvas'); ctx = cv.getContext('2d');
     $('#cwBack').onclick = () => CF.UI.show('lobby');
@@ -8387,6 +8778,10 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     load(firstOpen < 0 ? 0 : firstOpen);
     C.bindBoard();
     C.resize();
+    C.setCam(camMode());
+    $('#cwZin').onclick = () => { CF.Audio.sfx('click'); C.zoomAt(cv.clientWidth / 2, cv.clientHeight / 2, 1.25); };
+    $('#cwZout').onclick = () => { CF.Audio.sfx('click'); C.zoomAt(cv.clientWidth / 2, cv.clientHeight / 2, 0.8); };
+    $('#cwCamMode').onclick = () => { CF.Audio.sfx('click'); C.setCam(camMode() === 'fixed' ? 'free' : 'fixed'); };
     cancelAnimationFrame(raf); let last = performance.now();
     const loop = (now) => { raf = requestAnimationFrame(loop); const dt = Math.min(0.05, (now - last) / 1000); last = now; C.step(dt); C.render(); };
     raf = requestAnimationFrame(loop);
@@ -8402,7 +8797,8 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
   };
   C.renderList = function () {
     const el = $('#cwList'); el.innerHTML = '';
-    LABS.forEach((L, i) => { const b = CF.h(`<button class="cw-lab ${done(L.id) ? 'done' : ''} ${unlocked(i) ? '' : 'locked'} ${cur && cur.i === i ? 'on' : ''}"><span class="lv lv-${L.lv}">${L.lv}</span><b>${i + 1}. ${L.title}</b>${done(L.id) ? '<i>✓</i>' : ''}</button>`); b.onclick = () => { if (!unlocked(i)) return CF.toast('先完成上一个实验', 'bad'); CF.Audio.sfx('click'); load(i); C.renderList(); }; el.appendChild(b); });
+    let mod = null; const MODS = { base: '基础电路 · 高中 → 大学', emb: '具身智能模块 · 机器人', aero: '航空航天模块 · 卫星电源' };
+    LABS.forEach((L, i) => { if ((L.mod || 'base') !== mod) { mod = L.mod || 'base'; el.appendChild(CF.h(`<div class="cw-mod cw-mod-${mod}">${MODS[mod]}</div>`)); } const b = CF.h(`<button class="cw-lab ${done(L.id) ? 'done' : ''} ${unlocked(i) ? '' : 'locked'} ${cur && cur.i === i ? 'on' : ''}"><span class="lv lv-${L.lv}">${L.lv}</span><b>${i + 1}. ${L.title}</b>${done(L.id) ? '<i>✓</i>' : ''}</button>`); b.onclick = () => { if (!unlocked(i)) return CF.toast('先完成上一个实验', 'bad'); CF.Audio.sfx('click'); load(i); C.renderList(); }; el.appendChild(b); });
     const sb = CF.h(`<button class="cw-lab ${cur && cur.sandbox ? 'on' : ''}"><span class="lv lv-自由">自由</span><b>自由搭建</b></button>`); sb.onclick = () => { load('sandbox'); C.renderList(); }; el.appendChild(sb);
   };
   C.renderSide = function () {
@@ -8410,7 +8806,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     el.innerHTML = `<div class="t-tag">${L.lv === '高中' ? 'HIGH SCHOOL' : L.lv === '衔接' ? 'BRIDGE' : L.lv === '大学' ? 'UNIVERSITY' : 'SANDBOX'} · ${L.lv}</div><h3>${L.title}</h3><p class="cw-goal">${L.goal}</p><div class="cw-know"><b>高中</b>${L.know}</div><div class="cw-know uni"><b>大学</b>${L.bridge}</div><div id="cwRead" class="cw-read"></div><div class="row wrap" style="gap:6px;margin-top:8px"><button class="btn sm primary" id="cwCheck">检查</button><button class="btn sm" id="cwHint">提示</button><button class="btn sm ghost" id="cwReset">重置</button></div>${L.rc ? '<canvas id="cwChart" class="cw-chart"></canvas>' : ''}`;
     $('#cwCheck').onclick = C.check; $('#cwHint').onclick = () => CF.modal.open({ title: '提示', body: `<p style="line-height:1.8">${L.hint}</p>`, foot: [{ text: '好的', cls: 'primary' }] }); $('#cwReset').onclick = () => { load(cur.i); };
   };
-  const defVal = (t) => (t === 'resistor' ? (cur.lab.id === 'k7' ? 200 : 100) : t === 'battery' ? 6 : t === 'cap' ? 0.001 : undefined);
+  const defVal = (t) => (cur.lab.defs && cur.lab.defs[t] !== undefined ? cur.lab.defs[t] : t === 'resistor' && cur.lab.id === 'k7' ? 200 : DEF[t]);
   // 点选放置（v6，参考植物大战僵尸：点一下卡片选中，再点电路板上的空边放下；也可以直接拖）
   C.setPick = function (t) {
     pick = t && left(t) > 0 ? { type: t, val: defVal(t) } : null; hov = null;
@@ -8455,11 +8851,23 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       if (e2 && !cur.parts.some((p) => p.e === e2)) { cur.parts.push(Object.assign(d.from || { type: d.type, val: d.val, on: d.type === 'switch' ? true : undefined }, { e: e2, fixed: false })); CF.Audio.sfx('place'); C.renderTray(); }
       else if (d.from) { cur.parts.push(d.from); }
     });
+    // 自由镜头：滚轮缩放、双指缩放、拖动空白处平移
+    const ptrs = new Map(); let pan = null, pinch = null;
+    cv.addEventListener('wheel', (e) => { e.preventDefault(); const [x, y] = local(e); C.zoomAt(x, y, e.deltaY < 0 ? 1.12 : 1 / 1.12); }, { passive: false });
+    cv.addEventListener('pointermove', (e) => {
+      if (!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, local(e));
+      if (pinch && ptrs.size >= 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); C.zoomAt((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, d / pinch.d); pinch.d = d; return; }
+      if (pan && pan.id === e.pointerId) { const [x, y] = local(e); view.x += x - pan.x; view.y += y - pan.y; pan.x = x; pan.y = y; }
+    });
+    const endPtr = (e) => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; if (pan && pan.id === e.pointerId) pan = null; };
+    cv.addEventListener('pointerup', endPtr); cv.addEventListener('pointercancel', endPtr);
     cv.addEventListener('pointerdown', (e) => {
+      ptrs.set(e.pointerId, local(e));
+      if (ptrs.size === 2) { if (drag && drag.from) cur.parts.push(drag.from); drag = null; pan = null; const [a, b] = [...ptrs.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]) || 1 }; if (camMode() === 'fixed') C.setCam('free', true); return; }
       const [x, y] = local(e), e2 = nearestEdge(x, y), p = e2 && cur.parts.find((q) => q.e === e2);
       C.closePop();
       if (pick) { if (e.button === 2) { C.setPick(null); return; } if (!e2) { C.setPick(null); return; } C.placeAt(e2); return; }
-      if (!p) return;
+      if (!p) { if (camMode() === 'free') { pan = { id: e.pointerId, x, y }; } return; }
       if (p.fixed) { C.openPop(p); return; }
       cur.parts = cur.parts.filter((q) => q !== p); drag = { from: p, type: p.type, sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY }; C.dragMove(e);
     });
@@ -8467,7 +8875,9 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
   C.openPop = function (p) {
     const pop = $('#cwPop'), [x, y] = edgeMid(p.e), D = PARTS[p.type], btns = [];
     if (p.type === 'switch') btns.push([p.on ? '断开' : '闭合', () => { p.on = !p.on; if (cur.lab.rc && p.on) { cur.st.rcStart = simT; chart = []; } }]);
-    if (D.vals && !p.fixed) btns.push(['换值', () => { const i = D.vals.indexOf(p.val); p.val = D.vals[(i + 1) % D.vals.length]; }]);
+    if (D.vals && (!p.fixed || p.type === 'solar' || p.type === 'ldr')) btns.push([p.type === 'solar' || p.type === 'ldr' ? '改光照' : '换值', () => { const i = D.vals.indexOf(p.val); p.val = D.vals[(i + 1) % D.vals.length]; if (p.type === 'fuse') p.blown = false; }]);
+    if (p.type === 'fuse' && p.blown) btns.push(['换新保险丝', () => { p.blown = false; }]);
+    if (p.type === 'motor') btns.push([p.stall ? '松开（恢复转动）' : '模拟堵转', () => { p.stall = !p.stall; }]);
     if (D.polar && !p.fixed) btns.push(['翻转极性', () => { p.flip = !p.flip; p.dOn = undefined; }]);
     if (!p.fixed) btns.push(['拿走', () => { cur.parts = cur.parts.filter((q) => q !== p); C.renderTray(); }]);
     if (!btns.length) { CF.toast(`${p.label || D.name}（题目给定，不能改动）`); return; }
@@ -8475,7 +8885,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     pop.style.left = x + 'px'; pop.style.top = y + 'px'; pop.classList.remove('hidden');
   };
   C.closePop = () => { const p = $('#cwPop'); if (p) p.classList.add('hidden'); };
-  const fmtVal = (p) => (p.type === 'cap' ? `${p.val * 1e6} μF` : p.type === 'resistor' ? (p.val >= 1000 ? p.val / 1000 + ' kΩ' : p.val + ' Ω') : p.val + ' V');
+  const fmtVal = (p) => (p.type === 'cap' ? `${p.val * 1e6} μF` : p.type === 'resistor' ? (p.val >= 1000 ? p.val / 1000 + ' kΩ' : p.val + ' Ω') : p.type === 'fuse' ? p.val + ' A' : p.type === 'solar' || p.type === 'ldr' ? `光照 ${p.val ?? 100}%` : p.val + ' V');
   const fmtI = (i) => (Math.abs(i) < 1 ? (Math.abs(i) * 1000).toFixed(1) + ' mA' : Math.abs(i).toFixed(2) + ' A');
 
   // 每帧：电容时间推进 + LED 烧毁判定 + 读数
@@ -8484,12 +8894,12 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     const steps = cur.lab.rc ? 2 : 1;
     for (let k = 0; k < steps; k++) {
       const r = solve(cur.parts, 0.02); cur.short = r.short;
-      cur.parts.forEach((p) => { if (p.type === 'cap') p.vc = p.vcNext; if (p.type === 'led' && p.I > 0.03 && !p.burnt) { p.burnt = true; CF.Audio.sfx('error'); CF.toast('LED 烧坏了！电流超过 30 mA。拿掉它旁边的电阻换个更大的，再点「重置」。', 'bad', 3600); } });
+      cur.parts.forEach((p) => { if (p.type === 'cap') p.vc = p.vcNext; if (p.type === 'fuse' && p.blown && !p._seen) { p._seen = true; CF.Audio.sfx('error'); CF.toast(`保险丝熔断了（额定 ${p.val} A）！点它「换新保险丝」或换个额定值。`, 'bad', 3000); } if (p.type === 'fuse' && !p.blown) p._seen = false; if (p.type === 'led' && p.I > 0.03 && !p.burnt) { p.burnt = true; CF.Audio.sfx('error'); CF.toast('LED 烧坏了！电流超过 30 mA。拿掉它旁边的电阻换个更大的，再点「重置」。', 'bad', 3600); } });
       simT += 0.02;
     }
     if (cur.lab.rc) { const c = cur.parts.find((p) => p.type === 'cap'); if (cur.st.rcStart !== undefined) { chart.push([simT - cur.st.rcStart, c.vc || 0]); if (chart.length > 400) chart.shift(); if (simT - cur.st.rcStart > 3) cur.st.rcDone = true; } C.drawChart(); }
     const rd = $('#cwRead');
-    if (rd && Math.floor(simT * 5) !== cur._rt) { cur._rt = Math.floor(simT * 5); rd.innerHTML = cur.parts.filter((p) => ['ammeter', 'voltmeter', 'bulb', 'led', 'cap'].includes(p.type)).map((p) => `<span>${p.label || PARTS[p.type].name}：${p.type === 'voltmeter' || p.type === 'cap' ? Math.abs(p.type === 'cap' ? p.vc || 0 : p.V).toFixed(2) + ' V' : p.type === 'led' && p.burnt ? '已烧坏' : fmtI(p.I)}</span>`).join('') + (cur.short ? '<span style="color:#ff5d6c">⚠ 短路</span>' : ''); }
+    if (rd && Math.floor(simT * 5) !== cur._rt) { cur._rt = Math.floor(simT * 5); rd.innerHTML = cur.parts.filter((p) => ['ammeter', 'voltmeter', 'bulb', 'led', 'cap', 'motor', 'fuse', 'diode', 'solar'].includes(p.type)).map((p) => `<span>${p.label || PARTS[p.type].name}：${p.type === 'voltmeter' || p.type === 'cap' ? Math.abs(p.type === 'cap' ? p.vc || 0 : p.V).toFixed(2) + ' V' : p.type === 'led' && p.burnt ? '已烧坏' : p.type === 'fuse' && p.blown ? '已熔断' : p.type === 'motor' && p.stall ? fmtI(p.I) + '（堵转）' : fmtI(p.I)}</span>`).join('') + (cur.short ? '<span style="color:#ff5d6c">⚠ 短路</span>' : ''); }
   };
   C.drawChart = function () {
     const c2 = $('#cwChart'); if (!c2) return; const w = c2.clientWidth, h = c2.clientHeight; if (c2.width !== w) { c2.width = w; c2.height = h; }
@@ -8510,6 +8920,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     const hs = drag || hov, hl = hs && hs.edge, busy = pick ? new Set(cur.parts.map((q) => q.e)) : null;
     allEdges().forEach((e) => { const [a, b] = ends(e).map(nodeXY); ctx.strokeStyle = e === hl ? (hs.ok ? '#6fdc8c' : '#ff5d6c') : busy && !busy.has(e) ? `rgba(111,220,140,${0.16 + beat * 0.22})` : '#ffffff10'; ctx.lineWidth = e === hl ? 4 : 2; ctx.setLineDash(e === hl ? [] : [3, 5]); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); });
     ctx.setLineDash([]); ctx.lineWidth = 1;
+    (cur.lab.slots || []).forEach((e) => { if (cur.parts.some((p) => p.e === e)) return; const [mx, my] = edgeMid(e); ctx.strokeStyle = `rgba(255,177,74,${0.5 + beat * 0.5})`; ctx.lineWidth = 2; ctx.strokeRect(mx - 12, my - 20, 24, 40); ctx.lineWidth = 1; });
     if (cur.lab.slot && !cur.parts.some((p) => p.e === cur.lab.slot)) { const [mx, my] = edgeMid(cur.lab.slot); ctx.strokeStyle = `rgba(255,177,74,${0.5 + beat * 0.5})`; ctx.strokeRect(mx - 14, my - 22, 28, 44); ctx.fillStyle = '#ffb14a'; ctx.font = '11px sans-serif'; ctx.fillText('R₃ ?', mx + 16, my); }
     cur.parts.forEach((p) => drawPart(p, g.s, t));
     // 节点
@@ -8522,7 +8933,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
   function drawPart(p, s, t) {
     let [a, b] = ends(p.e).map(nodeXY);
     if (p.at) { const half = s / 2; a = [p.at[0] - half, p.at[1]]; b = [p.at[0] + half, p.at[1]]; }
-    const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, ang = Math.atan2(b[1] - a[1], b[0] - a[0]), L = Math.hypot(b[0] - a[0], b[1] - a[1]), k = Math.min(1, s / 80);
+    const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, ang = Math.atan2(b[1] - a[1], b[0] - a[0]), L = Math.hypot(b[0] - a[0], b[1] - a[1]), k = Math.min(1.5, s / 80);
     ctx.save(); ctx.translate(mx, my); ctx.rotate(ang);
     const line = (x1, x2, c = '#ede6d6', w = 3) => { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x1, 0); ctx.lineTo(x2, 0); ctx.stroke(); };
     const lead = (half) => { line(-L / 2, -half); line(half, L / 2); };
@@ -8536,6 +8947,14 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       case 'ammeter': case 'voltmeter': { lead(13 * k); ctx.fillStyle = '#0b1424'; ctx.beginPath(); ctx.arc(0, 0, 13 * k, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = p.type === 'ammeter' ? '#ffb14a' : '#19f0e0'; ctx.lineWidth = 2.5; ctx.stroke(); ctx.rotate(-ang); ctx.fillStyle = ctx.strokeStyle; ctx.font = `bold ${Math.round(13 * k)}px sans-serif`; ctx.textAlign = 'center'; ctx.fillText(p.label === 'G' ? 'G' : p.type === 'ammeter' ? 'A' : 'V', 0, 4.5 * k); ctx.font = '11px ui-monospace,monospace'; ctx.fillText(p.type === 'ammeter' ? fmtI(p.I || 0) : Math.abs(p.V || 0).toFixed(2) + 'V', 0, -18 * k); ctx.textAlign = 'left'; break; }
       case 'led': { lead(10 * k); const on = I > 0.001 && !p.burnt, dir = p.flip ? -1 : 1; if (on) { ctx.fillStyle = `rgba(255,90,120,${Math.min(0.9, I * 50)})`; ctx.beginPath(); ctx.arc(0, 0, 26 * k, 0, Math.PI * 2); ctx.fill(); } ctx.fillStyle = p.burnt ? '#555' : on ? '#ff5a78' : '#a04050'; ctx.beginPath(); ctx.moveTo(-10 * k * dir, -10 * k); ctx.lineTo(10 * k * dir, 0); ctx.lineTo(-10 * k * dir, 10 * k); ctx.closePath(); ctx.fill(); ctx.fillRect(10 * k * dir - (dir > 0 ? 0 : 3), -10 * k, 3, 20 * k); if (p.burnt) { ctx.strokeStyle = '#ff5d6c'; ctx.beginPath(); ctx.moveTo(-8, -8); ctx.lineTo(8, 8); ctx.moveTo(8, -8); ctx.lineTo(-8, 8); ctx.stroke(); } break; }
       case 'cap': { lead(5 * k); ctx.fillStyle = '#ede6d6'; ctx.fillRect(-6 * k, -14 * k, 3, 28 * k); ctx.fillRect(3 * k, -14 * k, 3, 28 * k); ctx.rotate(-ang); ctx.fillStyle = '#9fe8ff'; ctx.font = '11px sans-serif'; ctx.fillText(fmtVal(p), 12, -14); break; }
+      case 'motor': { lead(15 * k); const r = 15 * k; ctx.fillStyle = '#0b1424'; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = p.stall ? '#ff5d6c' : '#c8ff2e'; ctx.lineWidth = 2.5; ctx.stroke();
+        p.rot = (p.rot || 0) + (p.stall ? 0 : Math.sign(p.I || 0) * Math.min(0.5, Math.abs(p.I || 0) * 0.35)); ctx.save(); ctx.rotate(p.rot - ang); ctx.strokeStyle = '#c8ff2e88'; ctx.lineWidth = 2; for (let i = 0; i < 3; i++) { ctx.rotate((Math.PI * 2) / 3); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(r * 0.75, 0); ctx.stroke(); } ctx.restore();
+        ctx.rotate(-ang); ctx.fillStyle = '#c8ff2e'; ctx.font = `bold ${Math.round(12 * k)}px ui-monospace,monospace`; ctx.textAlign = 'center'; ctx.fillText('M', 0, 4 * k); ctx.textAlign = 'left'; ctx.font = '11px sans-serif'; ctx.fillStyle = '#9fe8ff'; if (p.label) ctx.fillText(p.label, r + 4, -r); if (p.stall) { ctx.fillStyle = '#ff5d6c'; ctx.fillText('堵转', r + 4, r + 8); } break; }
+      case 'diode': { lead(9 * k); const on = Math.abs(p.I || 0) > 0.001; ctx.fillStyle = on ? '#ffd257' : '#b0a070'; ctx.save(); if (p.flip) ctx.scale(-1, 1); ctx.beginPath(); ctx.moveTo(-9 * k, -9 * k); ctx.lineTo(9 * k, 0); ctx.lineTo(-9 * k, 9 * k); ctx.closePath(); ctx.fill(); ctx.fillRect(8 * k, -10 * k, 3, 20 * k); ctx.restore(); break; }
+      case 'fuse': { lead(14 * k); ctx.strokeStyle = p.blown ? '#ff5d6c' : '#ede6d6'; ctx.lineWidth = 2; ctx.strokeRect(-14 * k, -6 * k, 28 * k, 12 * k); ctx.beginPath(); if (p.blown) { ctx.moveTo(-12 * k, 0); ctx.lineTo(-3 * k, 3 * k); ctx.moveTo(3 * k, -3 * k); ctx.lineTo(12 * k, 0); } else { ctx.moveTo(-12 * k, 0); ctx.lineTo(12 * k, 0); } ctx.stroke(); ctx.rotate(-ang); ctx.fillStyle = p.blown ? '#ff5d6c' : '#9fe8ff'; ctx.font = '11px sans-serif'; ctx.fillText(p.blown ? '熔断' : fmtVal(p), 10, -12); break; }
+      case 'solar': { lead(16 * k); const lv = (p.val ?? 100) / 100; ctx.fillStyle = '#1a2a5a'; ctx.fillRect(-16 * k, -11 * k, 32 * k, 22 * k); ctx.strokeStyle = '#4ef0ff'; ctx.lineWidth = 1.5; ctx.strokeRect(-16 * k, -11 * k, 32 * k, 22 * k); for (let i = 1; i < 4; i++) { ctx.beginPath(); ctx.moveTo(-16 * k + i * 8 * k, -11 * k); ctx.lineTo(-16 * k + i * 8 * k, 11 * k); ctx.stroke(); } ctx.beginPath(); ctx.moveTo(-16 * k, 0); ctx.lineTo(16 * k, 0); ctx.stroke(); if (lv > 0) { ctx.fillStyle = `rgba(255,220,90,${0.25 + 0.5 * lv})`; ctx.fillRect(-16 * k, -11 * k, 32 * k, 22 * k); }
+        ctx.rotate(-ang); ctx.fillStyle = '#ffd257'; ctx.font = '11px sans-serif'; ctx.fillText(`☀ ${p.val ?? 100}%`, 14, -14); ctx.fillStyle = '#ede6d6'; ctx.fillText(p.flip ? '−' : '+', -4, p.flip ? 26 : -18); break; }
+      case 'ldr': { lead(16 * k); ctx.strokeStyle = '#ede6d6'; ctx.lineWidth = 2.5; ctx.strokeRect(-16 * k, -7 * k, 32 * k, 14 * k); ctx.strokeStyle = '#ffd257'; ctx.lineWidth = 1.5; for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.moveTo(-6 * k + i * 8 * k, -22 * k); ctx.lineTo(-1 * k + i * 8 * k, -11 * k); ctx.stroke(); } ctx.rotate(-ang); ctx.fillStyle = '#9fe8ff'; ctx.font = '11px sans-serif'; ctx.fillText(`光照 ${p.val ?? 100}%`, 12, 18); break; }
     }
     // 电流流动：沿元件移动的小方块，速度与电流大小相关
     if (I > 0.001 && !p.ghost && p.type !== 'voltmeter') { const sp = Math.min(3, 0.4 + Math.log10(1 + I * 100)), dir = (p.I || 0) >= 0 ? 1 : -1; ctx.fillStyle = '#ffe08a'; for (let i = 0; i < 3; i++) { const u = ((t * sp + i / 3) % 1) * dir; ctx.fillRect(-L / 2 + ((u + 1) % 1) * L - 2, -2, 4, 4); } }

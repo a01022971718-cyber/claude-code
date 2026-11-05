@@ -170,6 +170,7 @@
     $('#bossBar').classList.add('hidden'); $('#comms').classList.add('hidden');
     $('#mmBox').classList.toggle('min', document.body.classList.contains('compact') && window.innerWidth < 700);
     UI.buildSkillBar();
+    if (CF.Moba) { if (CF.Moba.wanted(L)) CF.Moba.enable(g); else CF.Moba.disable(); }
     UI.renderObj(true);
     if (CF.Tutorial) CF.Tutorial.maybeStart(g);
     cancelAnimationFrame(raf); lastT = performance.now();
@@ -177,7 +178,8 @@
       raf = requestAnimationFrame(loop);
       const g2 = CF.Game.current; if (!g2 || UI.cur !== 'battle') return;
       const dt = (now - lastT) / 1000; lastT = now;
-      if (UI.keys.size && !CF.modal.isOpen()) { const sp = (700 * dt) / g2.cam.z; if (UI.keys.has('ArrowLeft')) g2.cam.x -= sp; if (UI.keys.has('ArrowRight')) g2.cam.x += sp; if (UI.keys.has('ArrowUp')) g2.cam.y -= sp; if (UI.keys.has('ArrowDown')) g2.cam.y += sp; g2.clampCam(); }
+      if (CF.Moba && CF.Moba.active) CF.Moba.frame(g2, dt);
+      if (UI.keys.size && !CF.modal.isOpen() && !(CF.Moba && CF.Moba.active)) { const sp = (700 * dt) / g2.cam.z; if (UI.keys.has('ArrowLeft')) g2.cam.x -= sp; if (UI.keys.has('ArrowRight')) g2.cam.x += sp; if (UI.keys.has('ArrowUp')) g2.cam.y -= sp; if (UI.keys.has('ArrowDown')) g2.cam.y += sp; g2.clampCam(); }
       g2.frame(dt);
       if (UI.place) { UI.edgePan(dt); UI.updPlace(); }
       g2.render(UI.gctx, UI.dpr);
@@ -193,6 +195,7 @@
   };
   UI.leaveBattle = function () {
     UI.buildMode(false);
+    if (CF.Moba) CF.Moba.disable();
     cancelAnimationFrame(raf);
     if (CF.Game.current) { CF.Game.current.destroy(); CF.Game.current = null; }
     UI.keys.clear(); UI.closeRadial();
@@ -222,7 +225,7 @@
   UI.hud = function () {
     const g = CF.Game.current; if (!g) return;
     // 英雄残血时说一句濒危台词（每条命一次，回到 60% 以上重置）
-    if (g.hero && !g.hero.dead && CF.Voice) { const p = g.hero.hp / g.hero.maxHp; if (p < 0.25 && !g.hero._lowSaid) { g.hero._lowSaid = true; CF.Voice.say(g.heroDef, g.heroDef.lines.low); } else if (p > 0.6) g.hero._lowSaid = false; }
+    if (g.hero && !g.hero.dead && CF.Voice) { const p = g.hero.hp / g.hero.maxHp; if (p < 0.25 && !g.hero._lowSaid) { g.hero._lowSaid = true; CF.Voice.event(g.heroDef, 'low'); } else if (p > 0.6) g.hero._lowSaid = false; }
     $('#rChip').textContent = CF.fmtNum(g.res.chip); $('#rCorp').textContent = CF.fmtNum(g.res.corp); $('#rComp').textContent = CF.fmtNum(g.res.comp);
     $('#rChipR').textContent = `+${g.rate.chip.toFixed(0)}`; $('#rCorpR').textContent = `+${g.rate.corp.toFixed(0)}`; $('#rCompR').textContent = `+${g.rate.comp.toFixed(1)}`;
     const sup = $('#supTxt');
@@ -483,8 +486,9 @@
         CF.Audio.sfx('hover'); return;
       }
       if (units.length) {
-        if (e && e.team !== 0 && (e.team === 1 || e.team === 2)) { g.orderAttack(units, e); clickFx(e.x, e.y, '#ff5d6c'); CF.Audio.sfx('click'); return; }
-        g.orderMove(units, wx, wy, true); clickFx(wx, wy, '#6fdc8c'); CF.Audio.sfx('hover'); CF.bus.emit('moved'); return;
+        const withHero = CF.Voice && g.hero && units.includes(g.hero);
+        if (e && e.team !== 0 && (e.team === 1 || e.team === 2)) { g.orderAttack(units, e); clickFx(e.x, e.y, '#ff5d6c'); CF.Audio.sfx('click'); if (withHero) CF.Voice.event(g.heroDef, 'attack'); return; }
+        g.orderMove(units, wx, wy, true); clickFx(wx, wy, '#6fdc8c'); CF.Audio.sfx('hover'); CF.bus.emit('moved'); if (withHero) CF.Voice.event(g.heroDef, 'move'); return;
       }
       const b = g.sel.length === 1 ? g.get(g.sel[0]) : null;
       if (b && b.team === 0 && b.def.trains) { b.rally = { x: wx, y: wy }; clickFx(wx, wy, '#6fdc8c'); CF.toast('集结点已设置'); return; }
@@ -529,7 +533,7 @@
       if (pan && pan.id === e.pointerId) {
         const dx = p.x - pan.x, dy = p.y - pan.y;
         if (Math.hypot(dx, dy) > 8) { pan.moved = true; clearTimeout(hold && hold.t); }
-        if (pan.moved) { g.cam.x = pan.cx - dx / g.cam.z; g.cam.y = pan.cy - dy / g.cam.z; g.clampCam(); CF.bus.emit('camera'); }
+        if (pan.moved && !(CF.Moba && CF.Moba.locked())) { g.cam.x = pan.cx - dx / g.cam.z; g.cam.y = pan.cy - dy / g.cam.z; g.clampCam(); CF.bus.emit('camera'); }
         if (UI.aimKey && g.aim) { const w = g.toWorld(p.x, p.y); g.aim.x = w[0]; g.aim.y = w[1]; }
       }
     });
@@ -642,6 +646,7 @@
       <div id="bgmRows"></div>
       <div class="sec-title">画面与玩法</div>
       <div class="set-row"><span class="nm">画质</span><div class="ctl"><select id="setQ"><option value="high">高（推荐）</option><option value="low">低（旧手机更流畅）</option></select></div></div>
+      <div class="set-row"><span class="nm">沉浸模式操控</span><div class="ctl"><select id="setMoba"><option value="moba">摇杆 + 技能轮盘（王者 / 英雄联盟手游）</option><option value="classic">经典点击（RTS）</option></select></div></div>
       <div class="set-row"><span class="nm">英雄配音</span><div class="ctl"><select id="setVoice"><option value="auto">英雄录音（推荐）</option><option value="tts">系统中文语音</option><option value="pixel">像素音</option><option value="off">关闭</option></select><span class="small muted" id="setVoiceEng"></span><button class="btn sm ghost" id="setVoiceTry">试听</button></div></div>
       <div class="set-row"><span class="nm">英雄音效</span><div class="ctl"><label class="check" style="padding:0"><input type="checkbox" id="setHeroSfx"><span>点击、打击音效使用主英雄的乐器（连续点击会弹出主题曲动机）</span></label></div></div>
       <div class="set-row"><span class="nm">减少动效</span><div class="ctl"><label class="check" style="padding:0"><input type="checkbox" id="setRM"><span>关闭转场与大部分闪烁、波纹（对光敏感或晕动时建议开启）</span></label></div></div>
@@ -678,6 +683,7 @@
       row.querySelector('.tr').onclick = () => { A.unlock(); const prev = A.screen; A.screen = null; A.play(key); CF.toast(`试听：${A.SCREENS[key]}（离开设置页恢复）`); UI._restoreMusic = prev; };
       rows.appendChild(row);
     }
+    $('#setMoba').value = s.mobaCtl === 'classic' ? 'classic' : 'moba'; $('#setMoba').onchange = (e) => { s.mobaCtl = e.target.value; CF.Save.save(); CF.toast(e.target.value === 'classic' ? '沉浸模式改为经典点击操控' : '沉浸模式改为摇杆 + 技能轮盘'); };
     $('#setVoice').value = s.voice || 'auto'; $('#setVoiceEng').textContent = '当前：' + CF.Voice.engine(); $('#setVoice').onchange = (e) => { s.voice = e.target.value; CF.Save.save(); $('#setVoiceEng').textContent = '当前：' + CF.Voice.engine(); };
     $('#setVoiceTry').onclick = () => { CF.Audio.unlock(); CF.Voice.line(CF.Heroes.current()); };
     $('#setHeroSfx').checked = s.heroSfx !== false; $('#setHeroSfx').onchange = (e) => { s.heroSfx = e.target.checked; CF.Save.save(); };
