@@ -7,9 +7,12 @@
 // 同一条规则里如果底色被换成了亮色（按钮、徽章），文字自动换成深色，保证对比度。
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const [SRC, DST] = process.argv.slice(2);
-if (!SRC || !DST) { console.error('用法：node tools/farm-skin.mjs <src> <dst>'); process.exit(1); }
+// 被 tools/farm-zy-build.mjs 当模块引用时不执行下面的「执行」部分
+const MAIN = import.meta.url === pathToFileURL(process.argv[1] || '').href;
+if (MAIN && (!SRC || !DST)) { console.error('用法：node tools/farm-skin.mjs <src> <dst>'); process.exit(1); }
 
 // ---------- 颜色工具 ----------
 const hex2rgb = (h) => {
@@ -180,7 +183,10 @@ function skinCss(css) {
   return css.replace(/\u0000(\d+)\u0000/g, (m, i) => keep[+i]);
 }
 
+export { skinCss, collectTokens, TOK, stats };
+
 // ---------- 执行 ----------
+if (MAIN) {
 const files = fs.readdirSync(SRC).filter((f) => f.endsWith('.css'));
 const htmlSrc = fs.readFileSync(path.join(SRC, 'index.html'), 'utf8');
 for (const f of files) collectTokens(fs.readFileSync(path.join(SRC, f), 'utf8'));
@@ -225,3 +231,4 @@ fs.writeFileSync(path.join(DST, 'immersive-v6.js'), imm2);
 // 主创要求（v8）：「只改 UI，其它的不要动」——功能逻辑一律用原版，这里只改颜色和界面；updates-v7.js 等逻辑文件原样复制
 fs.copyFileSync(path.join(SRC, 'updates-v7.js'), path.join(DST, 'updates-v7.js'));
 console.log(`换色完成：${files.length} 个 CSS + index.html，${stats.decl} 条声明，${stats.colors} 处颜色`);
+}

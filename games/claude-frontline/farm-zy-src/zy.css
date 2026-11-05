@@ -1,0 +1,160 @@
+/* 豆豆的田园厨房 · 《造月之路》界面组件（源文件 farm-zy-src/zy.css）
+ * 依据：art/02-game-ui-constitution.md（第 0 章节拍即生命、第 1 章像素脉冲舞台、第 2 章色彩与英雄主题、第 6 章布局、
+ *       第 7 章点击反馈、第 8 章玻璃 UI、第 9 章无障碍、第 12 章像素图标）与 art/01-typography-constitution.md（字体栈、字号阶梯）。
+ * 全部规则挂在 html.zy 下；关掉主题（去掉 zy 类）即恢复原版外观。
+ * --hero / --hero2 / --hero-rgb / --hero-bg0..2 由 CF.Heroes.applyTheme 按主题英雄写入，--beat 由节拍循环写入（0–1）。 */
+
+/* ---------- 不受开关影响的骨架：舞台画布、主题英雄入口 ---------- */
+canvas.zy-stage{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;image-rendering:pixelated}
+html:not(.zy) canvas.zy-stage,html:not(.zy) .zy-sheet-head{display:none!important}
+.zy-herotab{position:relative;flex:0 0 58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:52px;padding:4px 2px;
+  border:0;border-radius:11px;background:transparent;color:inherit;font:600 11px/1.2 "PingFang SC","Microsoft YaHei",system-ui,sans-serif;cursor:pointer}
+.zy-herotab .zy-hcv{position:relative;display:block;width:34px;height:28px;border-radius:7px;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.25)}
+.zy-herotab:active{transform:scale(.94)}
+
+/* ---------- 令牌 ---------- */
+html.zy{
+  --zy-bg:#0b0a12; --zy-bg2:#110f1b; --zy-panel:#161325; --zy-panel2:#1d1930; --zy-line:#2b2641; --zy-line2:#3a3357;
+  --zy-text:#ede6d6; --zy-dim:#9d96ad; --zy-mute:#6c6680;
+  --zy-dawn1:#ff7a45; --zy-dawn2:#ffb14a; --zy-dawn3:#ffe08a; --zy-explore:#4ef0ff; --zy-good:#6fdc8c; --zy-bad:#ff5d6c; --zy-pink:#ff4f9a;
+  --zy-glass:rgba(9,7,20,.62);
+  --zy-sans:"PingFang SC","HarmonyOS Sans SC","MiSans","Microsoft YaHei","Noto Sans SC","Hiragino Sans GB",system-ui,sans-serif;
+  --zy-display:"Avenir Next","Segoe UI Variable Display","Segoe UI","Helvetica Neue",Arial,var(--zy-sans);
+  --zy-mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Mono",Menlo,Consolas,monospace;
+  --f-ui:var(--zy-sans); --f-en:var(--zy-display);
+  --hero:#9b7bff; --hero2:#ff9a5c; --hero-rgb:155,123,255; --hero-bg0:#22144c; --hero-bg1:#33207a; --hero-bg2:#4a2fa0; --beat:0;
+  color-scheme:dark;
+}
+html.zy,html.zy body{background:var(--zy-bg)}
+html.zy body{color:var(--zy-text);font-family:var(--zy-sans);-webkit-font-smoothing:antialiased;
+  background:radial-gradient(130% 60% at 50% -12%,var(--hero-bg1) 0%,var(--hero-bg0) 30%,var(--zy-bg) 62%) fixed,var(--zy-bg)}
+html.zy b,html.zy strong,html.zy h2,html.zy h3{font-weight:800}
+html.zy .en{font-family:var(--zy-display)}
+html.zy .num,html.zy .coins,html.zy #lvText,html.zy #xpText{font-family:var(--zy-mono);font-variant-numeric:tabular-nums}
+html.zy .muted,html.zy .meta,html.zy .sub{color:var(--zy-dim)}
+html.zy ::selection{background:rgba(var(--hero-rgb),.45)}
+html.zy :focus-visible{outline:2px solid var(--zy-explore)!important;outline-offset:2px}
+
+/* ---------- 顶部状态栏：像素脉冲舞台做底的玻璃条（第 1、8 章） ---------- */
+html.zy #hud .hud-in{position:relative;overflow:hidden;background:var(--hero-bg0);border:1px solid rgba(255,255,255,.14);border-radius:14px;
+  box-shadow:0 6px 22px rgba(0,0,0,.55),0 0 calc(var(--beat)*18px) rgba(var(--hero-rgb),.55);transition:box-shadow .08s}
+html.zy #hud .hud-in>*:not(canvas){position:relative;z-index:1}
+html.zy #hud .hud-in{gap:6px!important}
+html.zy .lvbox{min-width:72px}
+html.zy .lvline{font-size:15px!important;gap:4px}
+html.zy #xpText{font-size:10px!important}
+html.zy .coins{font-size:18px!important;height:32px}
+html.zy #ava>*{filter:drop-shadow(0 0 calc(2px + var(--beat)*6px) rgba(var(--hero-rgb),.9))}
+html.zy #lvText{font-weight:800;color:#fff;letter-spacing:.04em}
+html.zy #xpText{color:var(--zy-dim)}
+html.zy .xpbar{background:rgba(9,7,20,.6)!important;border-radius:99px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)!important}
+html.zy .xpbar i{background:linear-gradient(90deg,var(--hero),var(--zy-explore))!important;box-shadow:0 0 8px rgba(var(--hero-rgb),.8)}
+html.zy .coins{flex:none;background:rgba(9,7,20,.55);border:1px solid rgba(255,255,255,.12);border-radius:99px;padding:0 8px;color:var(--zy-dawn3);box-shadow:none!important}
+html.zy .btn.ib{flex:none;width:36px;height:36px;min-width:36px;min-height:36px;padding:0;border-radius:10px;background:rgba(9,7,20,.55)!important;border:1px solid rgba(255,255,255,.16)!important;box-shadow:none!important}
+
+/* ---------- 页眉：厨房 / 小馆 / 学习、学习流程（像素脉冲舞台 + 英雄演奏，第 1 章） ---------- */
+html.zy .vhead,html.zy .fl-head{position:relative;overflow:hidden;border-radius:14px;padding:14px 96px 14px 16px;min-height:68px;
+  background:var(--hero-bg0);border:1px solid rgba(255,255,255,.12);box-shadow:0 0 calc(var(--beat)*16px) rgba(var(--hero-rgb),.45)}
+html.zy .vhead>*:not(canvas),html.zy .fl-head>*:not(canvas){position:relative;z-index:1}
+html.zy .vhead h2{font-size:20px;line-height:1.25;letter-spacing:.04em;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.45)}
+html.zy .vhead h2 span{display:inline-block;margin-left:8px;font:400 11px/1 var(--zy-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--hero2);vertical-align:3px}
+html.zy .vhead p{color:rgba(237,230,214,.82);font-size:12px;line-height:1.6;margin-top:4px;text-shadow:0 1px 0 rgba(0,0,0,.5)}
+html.zy .fl-head .t{color:#fff;font-weight:800}
+html.zy .fl-head .s{color:rgba(237,230,214,.8)}
+
+/* ---------- 卡片（菜谱、客人、词本、任务…）：深色面板 + 英雄色选中（第 2、6 章） ---------- */
+html.zy .panel,html.zy .px.panel,html.zy .rc,html.zy .cc,html.zy .wsum,html.zy .wlist,html.zy .status,html.zy .li{
+  background:linear-gradient(180deg,rgba(29,25,48,.94),rgba(22,19,37,.94))!important;border:1px solid var(--zy-line)!important;border-radius:12px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04)!important;color:var(--zy-text)}
+html.zy .px{box-shadow:none!important}
+html.zy .panel h2,html.zy .rc h3,html.zy .sheet h3{color:#fff;letter-spacing:.02em}
+html.zy .panel h2 small{color:var(--hero2);font-family:var(--zy-mono)}
+html.zy .rc:hover,html.zy .cc:hover,html.zy .li:hover{border-color:rgba(var(--hero-rgb),.7)!important}
+html.zy .rc.locked{opacity:.55;filter:grayscale(.4)}
+html.zy .wrow{border-color:var(--zy-line)!important}
+html.zy .chip,html.zy .tag,html.zy .need,html.zy .price{background:rgba(255,255,255,.05)!important;border:1px solid var(--zy-line2)!important;border-radius:99px!important;color:var(--zy-text);box-shadow:none!important}
+html.zy .chip.ok{border-color:rgba(111,220,140,.8)!important;color:#bff5cd}
+html.zy .badge{background:var(--zy-pink)!important;color:#fff!important;border:0!important;box-shadow:0 0 calc(4px + var(--beat)*8px) rgba(255,79,154,.8)!important}
+html.zy .bar,html.zy .pbar,html.zy .qbar{background:rgba(9,7,20,.6)!important;border-radius:99px;overflow:hidden}
+html.zy .bar i,html.zy .pbar i,html.zy .qbar i{background:linear-gradient(90deg,var(--hero),var(--zy-explore))!important}
+html.zy .stars{color:var(--zy-dawn3)}
+
+/* ---------- 按钮（第 7 章：100ms 内有视觉反馈） ---------- */
+html.zy .btn{background:var(--zy-panel2)!important;color:var(--zy-text)!important;border:1px solid var(--zy-line2)!important;border-radius:9px!important;
+  box-shadow:none!important;font-family:var(--zy-sans);transition:transform .12s cubic-bezier(.2,.8,.2,1),border-color .12s,background .12s}
+html.zy .btn:hover{border-color:rgba(var(--hero-rgb),.85)!important;background:#262043!important}
+html.zy .btn:active{transform:scale(.97)!important}
+html.zy .btn.green{position:relative;overflow:hidden;background:linear-gradient(180deg,var(--zy-dawn2),var(--zy-dawn1))!important;border-color:#ffc27a!important;color:#2a1206!important;font-weight:800;
+  box-shadow:0 0 calc(var(--beat)*16px) rgba(255,154,80,.6)!important}
+html.zy .btn.green::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 6px,rgba(255,255,255,.18) 6px 8px);transform:translateX(-100%);animation:zyShimmer 2.4s steps(12) infinite;pointer-events:none}
+html.zy .btn.ghost{background:transparent!important}
+html.zy .btn:disabled{opacity:.42!important;filter:grayscale(.3)}
+html.zy .link{color:var(--zy-explore)!important}
+@keyframes zyShimmer{to{transform:translateX(100%)}}
+
+/* ---------- 分段选择 ---------- */
+html.zy .seg{background:rgba(9,7,20,.5)!important;border:1px solid var(--zy-line2)!important;border-radius:10px!important;padding:3px;box-shadow:none!important}
+html.zy .seg button{background:transparent!important;color:var(--zy-dim)!important;border:0!important;border-radius:7px!important;box-shadow:none!important}
+html.zy .seg button[aria-pressed=true]{background:rgba(var(--hero-rgb),.3)!important;color:#fff!important;box-shadow:inset 0 0 0 1px rgba(var(--hero-rgb),.9)!important}
+
+/* ---------- 底部导航：造月之路大厅导航同款（玻璃条 + 像素图标 + 英雄色选中） ---------- */
+html.zy #tabs{background:rgba(11,8,32,.82)!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:16px!important;margin:6px 8px calc(6px + env(safe-area-inset-bottom,0px))!important;
+  padding:5px!important;gap:4px!important;display:flex!important;flex-wrap:nowrap!important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 -6px 24px rgba(0,0,0,.45)!important}
+html.zy #tabs button{position:relative;flex:1 1 0;min-width:0!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:52px;padding:6px 2px!important;
+  background:transparent!important;border:0!important;border-radius:11px!important;box-shadow:none!important;color:rgba(255,255,255,.78)!important;font:600 11px/1.2 var(--zy-sans)!important;letter-spacing:.04em}
+html.zy #tabs button>img,html.zy #tabs button>canvas{display:none!important}
+html.zy #tabs button>span:not(.zy-ic){color:inherit!important;-webkit-text-stroke:0!important;text-shadow:none!important}
+html.zy #tabs .zy-ic{display:block;width:22px;height:22px;color:currentColor}
+html.zy .zy-herotab{color:rgba(255,255,255,.78)}
+html.zy .zy-herotab .zy-hcv{box-shadow:0 0 0 1px rgba(var(--hero-rgb),.9),0 0 calc(var(--beat)*10px) rgba(var(--hero-rgb),.8)}
+html.zy #tabs .badge{left:auto!important;right:calc(50% - 24px)!important;top:2px!important;transform:scale(.85)}
+html.zy #tabs .zy-ic svg{width:22px;height:22px;display:block}
+html.zy #tabs button[aria-selected=true]{background:rgba(var(--hero-rgb),.25)!important;color:#fff!important}
+html.zy #tabs button[aria-selected=true]::before{content:"";position:absolute;left:28%;right:28%;top:2px;height:3px;border-radius:2px;background:var(--hero);
+  box-shadow:0 0 calc(4px + var(--beat)*12px) rgba(var(--hero-rgb),.95)}
+html.zy #tabs button[aria-selected=true] .zy-ic{filter:drop-shadow(0 0 calc(var(--beat)*6px) rgba(var(--hero-rgb),.9))}
+html:not(.zy) #tabs .zy-ic{display:none}
+
+/* ---------- 弹窗：玻璃遮罩 + 深色卡片 + 英雄像素页眉（造月之路每个弹窗都带英雄像素页眉） ---------- */
+html.zy .layer{background:rgba(5,4,12,.62)!important;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+html.zy .sheet{position:relative;background:var(--zy-panel)!important;color:var(--zy-text)!important;border:1px solid var(--zy-line2)!important;border-radius:16px!important;
+  box-shadow:0 20px 60px rgba(0,0,0,.8),0 0 calc(var(--beat)*24px) rgba(var(--hero-rgb),.35)!important;overflow:hidden auto}
+html.zy .zy-sheet-head{position:relative;height:46px;margin:-16px -16px 10px;overflow:hidden;background:var(--hero-bg0);border-bottom:1px solid rgba(255,255,255,.1)}
+html.zy .layer.full .sheet{border-radius:0!important}
+html.zy .sheet .lead{color:var(--zy-dim)}
+
+/* ---------- 提示 ---------- */
+html.zy #toasts>*{background:rgba(9,7,20,.9)!important;color:var(--zy-text)!important;border:1px solid rgba(var(--hero-rgb),.75)!important;border-radius:12px!important;
+  box-shadow:0 8px 24px rgba(0,0,0,.6),0 0 calc(var(--beat)*12px) rgba(var(--hero-rgb),.5)!important;font-family:var(--zy-sans)!important}
+
+/* ---------- 农场画面周边 ---------- */
+html.zy .scene{box-shadow:0 0 0 1px rgba(255,255,255,.06),0 10px 30px rgba(0,0,0,.45)}
+html.zy .ovl .btn{background:rgba(9,7,20,.62)!important;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+html.zy .float.say{background:rgba(9,7,20,.88)!important;color:var(--zy-text)!important;border:1px solid rgba(var(--hero-rgb),.7)!important}
+html.zy input,html.zy textarea,html.zy select{background:var(--zy-bg2)!important;color:var(--zy-text)!important;border:1px solid #5b3aa8!important;border-radius:8px}
+
+/* ---------- 主题英雄面板 ---------- */
+.zy-pick{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:16px;background:rgba(5,4,12,.66);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.zy-pick-card{position:relative;width:min(560px,100%);max-height:calc(100% - 32px);overflow:auto;background:#161325;color:#ede6d6;border:1px solid #3a3357;border-radius:16px;
+  box-shadow:0 20px 60px rgba(0,0,0,.8),0 0 calc(var(--beat,0)*24px) rgba(var(--hero-rgb,155,123,255),.4);font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif}
+.zy-pick .zy-sheet-head{position:relative;height:54px;overflow:hidden;background:var(--hero-bg0,#22144c);border-bottom:1px solid rgba(255,255,255,.1);display:block!important}
+.zy-pick canvas.zy-stage{display:block!important}
+.zy-pick-body{padding:12px 16px 16px}
+.zy-pick h3{font-size:20px;font-weight:800;margin:0 0 4px}
+.zy-tag{font:400 11px/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.14em;color:var(--hero2,#ff9a5c);vertical-align:3px;margin-left:6px}
+.zy-dim{color:#9d96ad;font-size:12px;line-height:1.6;margin:0 0 10px}
+.zy-pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.zy-hero{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px 8px;border-radius:12px;border:1px solid #2b2641;background:#1d1930;color:#ede6d6;cursor:pointer;font:inherit}
+.zy-hero .zy-hcv{position:relative;display:block;width:100%;height:76px;border-radius:9px;overflow:hidden}
+.zy-hero b{font-size:14px;margin-top:4px}
+.zy-hero small{font-size:11px;color:#9d96ad}
+.zy-hero:hover{border-color:var(--c)}
+.zy-hero.on{border-color:var(--c);box-shadow:0 0 0 1px var(--c),0 0 14px var(--c)}
+.zy-hero:active{transform:scale(.97)}
+.zy-pick-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;flex-wrap:wrap}
+.zy-switch{display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer}
+.zy-switch input{width:18px;height:18px;accent-color:var(--hero,#9b7bff)}
+.zy-btn{min-height:40px;padding:8px 18px;border-radius:9px;border:1px solid #ffc27a;background:linear-gradient(180deg,#ffb14a,#ff7a45);color:#2a1206;font-weight:800;font-size:14px;cursor:pointer}
+
+/* ---------- 第 9 章：减少动效 ---------- */
+@media (prefers-reduced-motion:reduce){html.zy .btn.green::after{animation:none}}
