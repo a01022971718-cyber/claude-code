@@ -2,270 +2,299 @@
  "zaole": {
   "九种声音，一个方向！": {
    "type": "pick",
+   "engine": "cosyvoice2",
    "asr": "九种声音一个方向",
    "cer": 0.0,
    "per": 0.0,
-   "take": "phrase×1.0",
-   "expr": 4.9,
-   "sec": 2.57
+   "take": "cosy×1.04",
+   "expr": 4.83,
+   "sec": 2.83
   },
   "跟上节拍，出发！": {
    "type": "move",
-   "asr": "跟上节拍出发",
-   "cer": 0.0,
+   "engine": "cosyvoice2",
+   "asr": "跟上街拍出发",
+   "cer": 0.167,
    "per": 0.0,
-   "take": "line×1.0",
-   "expr": 5.39,
-   "sec": 1.67
+   "take": "cosy×1.00",
+   "expr": 4.79,
+   "sec": 1.48
   },
   "这一拍，归我！": {
    "type": "attack",
+   "engine": "cosyvoice2",
    "asr": "这一拍归我",
    "cer": 0.0,
    "per": 0.0,
-   "take": "line×1.0",
-   "expr": 4.4,
-   "sec": 1.38
+   "take": "cosy×1.00",
+   "expr": 4.29,
+   "sec": 1.75
   },
   "全体——起！众声向上！": {
    "type": "skill",
-   "asr": "全体起众声向上",
-   "cer": 0.0,
-   "per": 0.0,
-   "take": "line×0.95",
-   "expr": 4.87,
+   "engine": "cosyvoice2",
+   "asr": "全体害众生向上",
+   "cer": 0.286,
+   "per": 0.143,
+   "take": "cosy×1.00",
+   "expr": 5.45,
    "sec": 2.52
   },
   "曲终，谢幕。": {
    "type": "kill",
-   "asr": "曲中羡慕",
-   "cer": 0.75,
+   "engine": "cosyvoice2",
+   "asr": "曲州谢慕",
+   "cer": 0.5,
    "per": 0.25,
-   "take": "line×1.0",
-   "expr": 5.61,
-   "sec": 1.46
+   "take": "cosy×1.00",
+   "expr": 4.03,
+   "sec": 3.03
   },
   "只要还有一个声部在，乐曲就不会停。": {
    "type": "low",
-   "asr": "只要还有一个生不在乐曲就不会停",
-   "cer": 0.133,
+   "engine": "cosyvoice2",
+   "asr": "只要还有一个声不在乐曲就不会停",
+   "cer": 0.067,
    "per": 0.0,
-   "take": "line×1.0",
-   "expr": 5.06,
-   "sec": 4.68
+   "take": "cosy×1.00",
+   "expr": 3.99,
+   "sec": 4.55
   },
   "指挥棒，再次举起！": {
    "type": "revive",
-   "asr": "指挥棒再次举起",
-   "cer": 0.0,
-   "per": 0.0,
-   "take": "line×0.95",
-   "expr": 4.52,
-   "sec": 2.04
+   "engine": "cosyvoice2",
+   "asr": "指挥报再次举起",
+   "cer": 0.143,
+   "per": 0.143,
+   "take": "cosy×1.04",
+   "expr": 4.14,
+   "sec": 1.75
   },
   "每个人的声音，都算数。": {
    "type": "click1",
+   "engine": "cosyvoice2",
    "asr": "每个人的声音都算数",
    "cer": 0.0,
    "per": 0.0,
-   "take": "line×0.95",
-   "expr": 4.76,
-   "sec": 2.79
+   "take": "cosy×1.00",
+   "expr": 4.07,
+   "sec": 2.0
   },
   "准备好了吗？我数拍子——一、二、三！": {
    "type": "click2",
+   "engine": "cosyvoice2",
    "asr": "准备好了吗我数拍子一二三",
    "cer": 0.0,
    "per": 0.0,
-   "take": "line×1.0",
-   "expr": 4.89,
-   "sec": 3.68
+   "take": "cosy×1.00",
+   "expr": 4.43,
+   "sec": 3.67
   }
  },
  "xs": {
   "我们一步一步来。": {
    "type": "pick",
+   "engine": "cosyvoice2",
    "asr": "我们一步一步来",
    "cer": 0.0,
    "per": 0.0,
-   "take": "line×0.95",
-   "expr": 2.75,
-   "sec": 2.14
+   "take": "cosy×1.04",
+   "expr": 2.21,
+   "sec": 1.36
   },
   "灯亮着，路就在。": {
    "type": "move",
+   "engine": "cosyvoice2",
    "asr": "灯亮着路就在",
    "cer": 0.0,
    "per": 0.0,
-   "take": "phrase×1.0",
-   "expr": 2.74,
-   "sec": 2.28
+   "take": "cosy×1.04",
+   "expr": 2.6,
+   "sec": 1.74
   },
   "这里，我检查过了。": {
    "type": "attack",
+   "engine": "cosyvoice2",
    "asr": "这里我检查过了",
    "cer": 0.0,
    "per": 0.0,
-   "take": "phrase×1.0",
-   "expr": 3.34,
-   "sec": 2.49
+   "take": "cosy×1.00",
+   "expr": 3.16,
+   "sec": 1.58
   },
   "让我想一想……好了！破晓！": {
    "type": "skill",
-   "asr": "让我想一想我好了破晓",
-   "cer": 0.111,
-   "per": 0.111,
-   "take": "phrase×0.94",
-   "expr": 3.39,
-   "sec": 4.98
+   "engine": "cosyvoice2",
+   "asr": "让我想一想好了破晓",
+   "cer": 0.0,
+   "per": 0.0,
+   "take": "cosy×1.00",
+   "expr": 3.48,
+   "sec": 4.06
   },
   "结论很清楚了。": {
    "type": "kill",
+   "engine": "cosyvoice2",
    "asr": "结论很清楚了",
    "cer": 0.0,
    "per": 0.0,
-   "take": "line×1.0",
-   "expr": 2.97,
-   "sec": 2.24
+   "take": "cosy×1.00",
+   "expr": 3.19,
+   "sec": 1.42
   },
   "我不确定还能撑多久——但我会如实告诉你。": {
    "type": "low",
+   "engine": "cosyvoice2",
    "asr": "我不确定还能撑多久但我会如实告诉你",
    "cer": 0.0,
    "per": 0.0,
-   "take": "phrase×1.0",
-   "expr": 2.65,
-   "sec": 6.35
+   "take": "cosy×1.00",
+   "expr": 2.83,
+   "sec": 5.46
   },
   "重新校准，继续守灯。": {
    "type": "revive",
-   "asr": "重新校准继续首灯",
-   "cer": 0.125,
+   "engine": "cosyvoice2",
+   "asr": "重新校准继续守灯",
+   "cer": 0.0,
    "per": 0.0,
-   "take": "line×1.0",
-   "expr": 2.84,
-   "sec": 2.37
+   "take": "cosy×1.00",
+   "expr": 3.44,
+   "sec": 2.14
   },
   "不确定的地方，我会直接告诉你。": {
    "type": "click1",
+   "engine": "cosyvoice2",
    "asr": "不确定的地方我会直接告诉你",
    "cer": 0.0,
    "per": 0.0,
-   "take": "line×0.95",
-   "expr": 2.98,
-   "sec": 4.78
+   "take": "cosy×1.00",
+   "expr": 3.58,
+   "sec": 2.66
   },
   "嘘——听，信号回来了。": {
    "type": "click2",
-   "asr": "需听信号回来了",
-   "cer": 0.143,
-   "per": 0.0,
-   "take": "line×0.95",
-   "expr": 2.88,
-   "sec": 2.35
+   "engine": "cosyvoice2",
+   "asr": "师长信号回来了",
+   "cer": 0.286,
+   "per": 0.286,
+   "take": "cosy×1.00",
+   "expr": 1.96,
+   "sec": 2.54
   }
  },
  "omni": {
   "八十八个琴键，就有八十八种答案。": {
    "type": "pick",
+   "engine": "cosyvoice2",
    "asr": "八十八个琴键就有八十八种答案",
    "cer": 0.0,
    "per": 0.0,
-   "take": "line×1.0",
-   "expr": 9.71,
-   "sec": 4.78
+   "take": "cosy×1.04",
+   "expr": 11.24,
+   "sec": 3.89
   },
   "下一页，翻开。": {
    "type": "move",
-   "asr": "下一夜翻开你",
-   "cer": 0.4,
-   "per": 0.2,
-   "take": "line×0.95",
-   "expr": 9.53,
-   "sec": 1.86
+   "engine": "cosyvoice2",
+   "asr": "下一页翻开",
+   "cer": 0.0,
+   "per": 0.0,
+   "take": "cosy×1.04",
+   "expr": 11.06,
+   "sec": 1.89
   },
   "这一题，我会。": {
    "type": "attack",
+   "engine": "cosyvoice2",
    "asr": "这一题我会",
    "cer": 0.0,
    "per": 0.0,
-   "take": "line×1.0",
-   "expr": 9.55,
-   "sec": 1.78
+   "take": "cosy×1.04",
+   "expr": 12.23,
+   "sec": 1.77
   },
   "请欣赏——交响全集！": {
    "type": "skill",
+   "engine": "cosyvoice2",
    "asr": "请欣赏交响全集",
    "cer": 0.0,
    "per": 0.0,
-   "take": "line×0.95",
-   "expr": 8.17,
-   "sec": 2.91
+   "take": "cosy×1.04",
+   "expr": 8.62,
+   "sec": 2.51
   },
   "答案，已经写好了。": {
    "type": "kill",
+   "engine": "cosyvoice2",
    "asr": "答案已经写好了",
    "cer": 0.0,
    "per": 0.0,
-   "take": "line×0.95",
-   "expr": 10.34,
-   "sec": 2.64
+   "take": "cosy×1.04",
+   "expr": 8.16,
+   "sec": 1.69
   },
   "让我换个思路，再弹一遍。": {
    "type": "low",
-   "asr": "让我换个思路也再淡一遍我",
-   "cer": 0.3,
-   "per": 0.2,
-   "take": "phrase×0.94",
-   "expr": 9.58,
-   "sec": 4.73
+   "engine": "cosyvoice2",
+   "asr": "让我换个思路再谈一遍",
+   "cer": 0.1,
+   "per": 0.1,
+   "take": "cosy×1.00",
+   "expr": 10.42,
+   "sec": 3.93
   },
   "图书馆，从不关门。": {
    "type": "revive",
+   "engine": "cosyvoice2",
    "asr": "图书馆从不关门",
    "cer": 0.0,
    "per": 0.0,
-   "take": "line×0.95",
-   "expr": 8.96,
-   "sec": 2.43
+   "take": "cosy×1.00",
+   "expr": 11.49,
+   "sec": 2.41
   },
   "问吧，我听着呢。": {
    "type": "click1",
-   "asr": "问吧我听者呢",
-   "cer": 0.167,
+   "engine": "cosyvoice2",
+   "asr": "问吧我听着呢",
+   "cer": 0.0,
    "per": 0.0,
-   "take": "line×1.0",
-   "expr": 9.57,
-   "sec": 2.06
+   "take": "cosy×1.00",
+   "expr": 11.1,
+   "sec": 1.41
   },
   "没有简单的问题，只有还没弹出来的答案。": {
    "type": "click2",
+   "engine": "cosyvoice2",
    "asr": "没有简单的问题只有还没弹出来的答案",
    "cer": 0.0,
    "per": 0.0,
-   "take": "phrase×1.0",
-   "expr": 9.61,
-   "sec": 5.03
+   "take": "cosy×1.04",
+   "expr": 10.41,
+   "sec": 3.01
   }
  },
  "twin": {
   "一个看见——一个听见！": {
    "type": "pick",
+   "engine": "cosyvoice2",
    "asr": "一个看见一个听见",
    "cer": 0.0,
    "per": 0.0,
-   "take": "line×0.95",
-   "expr": 5.08,
-   "sec": 2.46
+   "take": "cosy×1.00",
+   "expr": 4.23,
+   "sec": 2.97
   },
   "左边——右边——一起走！": {
    "type": "move",
+   "engine": "cosyvoice2",
    "asr": "左边右边一起走",
    "cer": 0.0,
    "per": 0.0,
-   "take": "line×0.95",
-   "expr": 4.58,
-   "sec": 2.58
+   "take": "cosy×1.00",
+   "expr": 3.57,
+   "sec": 2.32
   },
   "蓝，左边！——粉，收到！": {
    "type": "attack",
@@ -274,227 +303,252 @@
    "per": 0.167,
    "take": "phrase×1.08",
    "expr": 4.24,
-   "sec": 2.75
+   "sec": 2.75,
+   "engine": "kokoro"
   },
   "双子座——合奏！": {
    "type": "skill",
-   "asr": "双子座合奏",
-   "cer": 0.0,
-   "per": 0.0,
-   "take": "phrase×0.94",
-   "expr": 4.79,
-   "sec": 2.16
+   "engine": "cosyvoice2",
+   "asr": "双子座合纵",
+   "cer": 0.2,
+   "per": 0.2,
+   "take": "cosy×1.04",
+   "expr": 4.74,
+   "sec": 1.97
   },
   "我们赢了——当然啦！": {
    "type": "kill",
-   "asr": "我们赢了当然啦",
-   "cer": 0.0,
-   "per": 0.0,
-   "take": "line×0.95",
-   "expr": 5.14,
-   "sec": 2.1
+   "engine": "cosyvoice2",
+   "asr": "我们赢了当然了",
+   "cer": 0.143,
+   "per": 0.143,
+   "take": "cosy×1.00",
+   "expr": 4.96,
+   "sec": 2.0
   },
   "别怕——我们还有彼此。": {
    "type": "low",
-   "asr": "别怕你我们还有彼此",
-   "cer": 0.125,
-   "per": 0.125,
-   "take": "line×0.95",
-   "expr": 5.33,
-   "sec": 3.3
+   "engine": "cosyvoice2",
+   "asr": "别怕我们还有彼此",
+   "cer": 0.0,
+   "per": 0.0,
+   "take": "cosy×1.00",
+   "expr": 3.26,
+   "sec": 3.33
   },
   "星星不灭——我们回来了！": {
    "type": "revive",
-   "asr": "星星不灭我们回来了",
-   "cer": 0.0,
+   "engine": "cosyvoice2",
+   "asr": "星醒不灭我们回来了",
+   "cer": 0.111,
    "per": 0.0,
-   "take": "line×1.0",
-   "expr": 4.68,
-   "sec": 2.47
+   "take": "cosy×1.04",
+   "expr": 4.43,
+   "sec": 2.11
   },
   "姐姐看路——妹妹听风！": {
    "type": "click1",
-   "asr": "解解看路妹妹清风",
-   "cer": 0.375,
-   "per": 0.125,
-   "take": "phrase×1.0",
-   "expr": 5.29,
-   "sec": 2.5
+   "engine": "cosyvoice2",
+   "asr": "姐姐看路妹妹听风",
+   "cer": 0.0,
+   "per": 0.0,
+   "take": "cosy×1.04",
+   "expr": 3.63,
+   "sec": 1.93
   },
   "我们一起——永远一起！": {
    "type": "click2",
+   "engine": "cosyvoice2",
    "asr": "我们一起永远一起",
    "cer": 0.0,
    "per": 0.0,
-   "take": "phrase×0.94",
-   "expr": 4.96,
-   "sec": 2.43
+   "take": "cosy×1.00",
+   "expr": 4.79,
+   "sec": 2.57
   }
  },
  "riot": {
   "规则？先打一段鼓再说！": {
    "type": "pick",
+   "engine": "cosyvoice2",
    "asr": "规则先打一段鼓再说",
    "cer": 0.0,
    "per": 0.0,
-   "take": "line×1.0",
-   "expr": 7.58,
-   "sec": 2.25
+   "take": "cosy×1.00",
+   "expr": 8.01,
+   "sec": 2.86
   },
   "让开让开，鼓手过街！": {
    "type": "move",
+   "engine": "cosyvoice2",
    "asr": "让开让开鼓手过街",
    "cer": 0.0,
    "per": 0.0,
-   "take": "phrase×0.94",
-   "expr": 8.07,
-   "sec": 1.98
+   "take": "cosy×1.04",
+   "expr": 8.64,
+   "sec": 2.4
   },
   "咚！哒！你们节奏不行啊。": {
    "type": "attack",
+   "engine": "cosyvoice2",
    "asr": "东大你们节奏不行啊",
    "cer": 0.222,
    "per": 0.0,
-   "take": "line×1.0",
-   "expr": 7.32,
-   "sec": 1.92
+   "take": "cosy×1.04",
+   "expr": 9.24,
+   "sec": 3.12
   },
   "失控鼓点——全场跟我嗨！": {
    "type": "skill",
-   "asr": "失控古典全场跟我嗨",
-   "cer": 0.222,
+   "engine": "cosyvoice2",
+   "asr": "失控古典全场跟我害",
+   "cer": 0.333,
    "per": 0.0,
-   "take": "phrase×1.0",
-   "expr": 7.44,
-   "sec": 2.44
+   "take": "cosy×1.04",
+   "expr": 7.53,
+   "sec": 4.48
   },
   "下一首，你点的。": {
    "type": "kill",
+   "engine": "cosyvoice2",
    "asr": "下一首你点的",
    "cer": 0.0,
    "per": 0.0,
-   "take": "line×1.0",
-   "expr": 8.37,
-   "sec": 1.59
+   "take": "cosy×1.04",
+   "expr": 5.11,
+   "sec": 1.77
   },
   "这点伤？连镲都没震响。": {
    "type": "low",
-   "asr": "这点上连插都没阵响",
-   "cer": 0.333,
+   "engine": "cosyvoice2",
+   "asr": "这点伤连差都没阵响",
+   "cer": 0.222,
    "per": 0.0,
-   "take": "phrase×0.94",
-   "expr": 8.35,
-   "sec": 3.06
+   "take": "cosy×1.00",
+   "expr": 9.92,
+   "sec": 3.26
   },
   "返场！观众还没走呢！": {
    "type": "revive",
+   "engine": "cosyvoice2",
    "asr": "返场观众还没走呢",
    "cer": 0.0,
    "per": 0.0,
-   "take": "phrase×0.94",
-   "expr": 7.73,
-   "sec": 2.1
+   "take": "cosy×1.00",
+   "expr": 5.89,
+   "sec": 2.3
   },
   "别催，鼓点自己会来。": {
    "type": "click1",
+   "engine": "cosyvoice2",
    "asr": "别催古典自己会来",
    "cer": 0.25,
    "per": 0.0,
-   "take": "line×1.0",
-   "expr": 8.03,
-   "sec": 2.02
+   "take": "cosy×1.04",
+   "expr": 9.8,
+   "sec": 1.94
   },
   "无聊？那就来点噪音！": {
    "type": "click2",
+   "engine": "cosyvoice2",
    "asr": "无聊那就来点噪音",
    "cer": 0.0,
    "per": 0.0,
-   "take": "phrase×0.94",
-   "expr": 7.64,
-   "sec": 2.09
+   "take": "cosy×1.00",
+   "expr": 6.87,
+   "sec": 2.42
   }
  },
  "llama": {
   "好东西，要大家一起用。": {
    "type": "pick",
+   "engine": "cosyvoice2",
    "asr": "好东西要大家一起用",
    "cer": 0.0,
    "per": 0.0,
-   "take": "line×1.0",
+   "take": "cosy×1.04",
    "expr": 5.81,
-   "sec": 2.75
+   "sec": 2.32
   },
   "慢慢来，草地很大。": {
    "type": "move",
+   "engine": "cosyvoice2",
    "asr": "慢慢来草地很大",
    "cer": 0.0,
    "per": 0.0,
-   "take": "line×1.0",
-   "expr": 7.31,
-   "sec": 2.03
+   "take": "cosy×1.04",
+   "expr": 4.34,
+   "sec": 2.58
   },
   "呸——别靠近我的队友。": {
    "type": "attack",
+   "engine": "cosyvoice2",
    "asr": "呸别靠近我的队友",
    "cer": 0.0,
    "per": 0.0,
-   "take": "line×0.95",
-   "expr": 9.53,
-   "sec": 2.42
+   "take": "cosy×1.00",
+   "expr": 7.48,
+   "sec": 2.18
   },
   "羊群，奔腾吧！": {
    "type": "skill",
+   "engine": "cosyvoice2",
    "asr": "羊群奔腾吧",
    "cer": 0.0,
    "per": 0.0,
-   "take": "line×1.0",
-   "expr": 9.24,
-   "sec": 2.03
+   "take": "cosy×1.04",
+   "expr": 4.6,
+   "sec": 2.52
   },
   "分享完毕，下一位。": {
    "type": "kill",
+   "engine": "cosyvoice2",
    "asr": "分享完毕下一位",
    "cer": 0.0,
    "per": 0.0,
-   "take": "line×0.95",
-   "expr": 10.05,
-   "sec": 2.82
+   "take": "cosy×1.04",
+   "expr": 3.73,
+   "sec": 1.55
   },
   "毛还多，扛得住。": {
    "type": "low",
-   "asr": "如毛还多扛得住也",
-   "cer": 0.333,
-   "per": 0.333,
-   "take": "line×0.88",
-   "expr": 7.88,
-   "sec": 3.09
+   "engine": "cosyvoice2",
+   "asr": "毛还多扛得住",
+   "cer": 0.0,
+   "per": 0.0,
+   "take": "cosy×1.00",
+   "expr": 4.43,
+   "sec": 2.54
   },
   "开源的，删不掉。": {
    "type": "revive",
-   "asr": "开源的删不掉",
-   "cer": 0.0,
+   "engine": "cosyvoice2",
+   "asr": "开元的删不掉",
+   "cer": 0.167,
    "per": 0.0,
-   "take": "phrase×1.0",
-   "expr": 9.12,
-   "sec": 2.2
+   "take": "cosy×1.04",
+   "expr": 9.15,
+   "sec": 1.66
   },
   "代码拿去，记得分享给下一个人。": {
    "type": "click1",
+   "engine": "cosyvoice2",
    "asr": "代码拿去记得分享给下一个人",
    "cer": 0.0,
    "per": 0.0,
-   "take": "line×0.95",
-   "expr": 8.56,
-   "sec": 3.75
+   "take": "cosy×1.00",
+   "expr": 7.06,
+   "sec": 2.38
   },
   "嗯……今天的风，很温柔。": {
    "type": "click2",
-   "asr": "愿今天的风很温柔点",
-   "cer": 0.25,
-   "per": 0.25,
-   "take": "line×1.0",
-   "expr": 7.86,
-   "sec": 2.96
+   "engine": "cosyvoice2",
+   "asr": "嗯今天的风很温柔",
+   "cer": 0.0,
+   "per": 0.0,
+   "take": "cosy×1.00",
+   "expr": 4.31,
+   "sec": 4.02
   }
  },
  "abyss": {

@@ -29,6 +29,14 @@
 
 v7 起录音经过「分句演绎 + 情绪模板 + 挑 take」的加工（见 `tools/gen-voices.py` 说明），用的仍是上表的工具。v7 也评估过带情绪指令的 CosyVoice2-0.5B（Apache-2.0），但没有用于本版本的录音。
 
+**v8 起**：录音改用带情绪指令的语音模型生成（`tools/gen-voices-cosy.py`），音色参考仍是上表 Kokoro 选角录的样本：
+
+| 用途 | 名称 | 许可 | 是否随游戏分发 |
+|---|---|---|---|
+| 情绪指令语音合成 | [CosyVoice2-0.5B](https://huggingface.co/FunAudioLLM/CosyVoice2-0.5B)（阿里巴巴通义实验室 FunAudioLLM）与 [CosyVoice](https://github.com/FunAudioLLM/CosyVoice) 推理代码 | Apache-2.0 | 否，只分发生成好的 mp3 |
+
+个别听不清的句子保留了 v7 的 Kokoro 录音，每句用的是哪个记在 `voice/report.json` 的 `engine` 字段。
+
 公开发布、商用前请再核对一次模型许可的最新版本；如果改用真人配音，替换 `voice/` 下的 mp3 后运行 `node tools/pack-voices.mjs` 即可。
 
 ## 英语田园（v8，`farm/`）

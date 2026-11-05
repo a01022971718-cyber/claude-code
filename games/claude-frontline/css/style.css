@@ -782,6 +782,8 @@ input[type=range]{width:100%;accent-color:var(--orange);touch-action:pan-x;heigh
 .bb-card .bb-ic{display:block;width:30px;height:30px;font-style:normal}.bb-card .bb-ic > *{width:30px;height:30px;image-rendering:pixelated;display:block}
 .bb-card .bb-nm{white-space:nowrap;overflow:hidden;max-width:50px;text-overflow:ellipsis}
 .bb-card .bb-cost{font-size:8px;font-family:var(--mono);opacity:.9;white-space:nowrap}
+/* 多种资源的造价：每个数前加同色小菱形并留空，避免「80 晶片 + 20 语料」读成 8020（UI 宪法第 8 章冗余编码：不只靠颜色） */
+.bb-card .bb-cost{display:flex;justify-content:center;gap:3px}.bb-card .bb-cost span::before{content:"\25C6";font-size:6px;margin-right:1px;vertical-align:1px}
 .bb-card .bb-key{position:absolute;left:3px;top:1px;font-size:8px;font-style:normal;opacity:.5;font-family:var(--mono)}
 .bb-card.pick{border-color:#6fdc8c;box-shadow:0 0 0 2px #6fdc8c66,0 0 12px #6fdc8c55;transform:translateX(4px)}
 .bb-card.drag{opacity:.55}
