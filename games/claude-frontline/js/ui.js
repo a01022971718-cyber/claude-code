@@ -643,13 +643,16 @@
   UI.relevel = (L) => (L.skirmish ? CF.Levels.skirmish(L.skirmish) : L.immersive && CF.Immersive ? CF.Immersive.get(L.id) : L);
 
   // ================= 设置 =================
+  // v9.1（UI 宪法第 27 章）：左侧竖条分类（竖屏是一排页签），一次只显示一类设置
+  const SET_SECS = [['sound', '声音'], ['bgm', '背景音乐'], ['play', '画面与玩法'], ['save', '存档']];
+  let setSec = 'sound';
   UI.renderSettings = async function () {
     const body = $('#settingsBody'), s = CF.Save.data.settings, A = CF.Audio;
-    body.innerHTML = `<div class="sec-title">音量</div><div id="vols"></div>
-      <div class="sec-title">背景音乐（每个页面独立）</div>
-      <p class="small muted" style="line-height:1.7;margin-bottom:8px">每个页面默认播放一首程序生成的吉他曲，紫色像素动效会跟着节拍跳动。你可以：① 换一种曲风；② 上传自己的音乐（mp3 / ogg / wav，保存在本浏览器）；③ 打包分享时，把文件放进 <span class="mono">music/</span> 文件夹并在 <span class="mono">js/config.js</span> 里填写路径。</p>
-      <div id="bgmRows"></div>
-      <div class="sec-title">画面与玩法</div>
+    body.innerHTML = `<div class="rail-page"><nav class="rail" role="tablist" aria-label="设置分类">${SET_SECS.map(([k, n]) => `<button role="tab" data-sec="${k}" class="${k === setSec ? 'on' : ''}" aria-selected="${k === setSec}">${n}</button>`).join('')}</nav><div class="rail-main set-main">
+      <section class="set-sec" data-s="sound"><div class="codex-head"><b class="codex-t">声音</b></div><div id="vols"></div></section>
+      <section class="set-sec" data-s="bgm"><div class="codex-head"><b class="codex-t">背景音乐</b><span class="small muted">每个页面独立</span><button class="btn sm ghost" id="bgmInfo">ⓘ 说明</button></div>
+      <div id="bgmRows"></div></section>
+      <section class="set-sec" data-s="play"><div class="codex-head"><b class="codex-t">画面与玩法</b></div>
       <div class="set-row"><span class="nm">画质</span><div class="ctl"><select id="setQ"><option value="high">高（推荐）</option><option value="low">低（旧手机更流畅）</option></select></div></div>
       <div class="set-row"><span class="nm">技能释放条件<br><small class="muted" id="setSkillDesc"></small></span><div class="ctl"><select id="setSkillCost"><option value="energy">① 能量（MOBA 蓝条）</option><option value="cd">② 纯冷却</option><option value="beat">③ 节拍充能</option></select></div></div>
       <div class="set-row"><span class="nm">沉浸模式操控</span><div class="ctl"><select id="setMoba"><option value="moba">摇杆 + 技能轮盘（王者 / 英雄联盟手游）</option><option value="classic">经典点击（RTS）</option></select></div></div>
@@ -657,8 +660,13 @@
       <div class="set-row"><span class="nm">英雄音效</span><div class="ctl"><label class="check" style="padding:0"><input type="checkbox" id="setHeroSfx"><span>点击、打击音效使用主英雄的乐器（连续点击会弹出主题曲动机）</span></label></div></div>
       <div class="set-row"><span class="nm">减少动效</span><div class="ctl"><label class="check" style="padding:0"><input type="checkbox" id="setRM"><span>关闭转场与大部分闪烁、波纹（对光敏感或晕动时建议开启）</span></label></div></div>
       <div class="set-row"><span class="nm">体验模式</span><div class="ctl"><label class="check" style="padding:0"><input type="checkbox" id="setTrial"><span>解锁全部关卡与建筑（适合先看看全貌；学习进度照常记录）</span></label></div></div>
-      <div class="sec-title">存档</div>
-      <div class="row wrap"><button class="btn" id="goProfile">导出 / 导入存档</button><button class="btn ghost" id="resetSave" style="color:var(--bad)">清空全部进度</button></div>`;
+      </section>
+      <section class="set-sec" data-s="save"><div class="codex-head"><b class="codex-t">存档</b></div>
+      <div class="row wrap"><button class="btn" id="goProfile">导出 / 导入存档</button><button class="btn ghost" id="resetSave" style="color:var(--bad)">清空全部进度</button></div></section></div></div>`;
+    const showSec = () => { body.querySelectorAll('.set-sec').forEach((x) => (x.hidden = x.dataset.s !== setSec)); body.querySelectorAll('.rail [data-sec]').forEach((b) => { b.classList.toggle('on', b.dataset.sec === setSec); b.setAttribute('aria-selected', b.dataset.sec === setSec); }); };
+    body.querySelectorAll('.rail [data-sec]').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); setSec = b.dataset.sec; showSec(); }));
+    showSec();
+    $('#bgmInfo').onclick = () => { CF.Audio.sfx('click'); CF.modal.open({ title: 'ⓘ 背景音乐', body: '<p class="t-body" style="line-height:1.9">每个页面默认播放一首程序生成的吉他曲，紫色像素动效会跟着节拍跳动。你可以：① 换一种曲风；② 上传自己的音乐（mp3 / ogg / wav，保存在本浏览器）；③ 打包分享时，把文件放进 <span class="mono">music/</span> 文件夹并在 <span class="mono">js/config.js</span> 里填写路径。</p>', foot: [{ text: '知道了', cls: 'primary' }] }); };
     const vols = $('#vols');
     [['master', '总音量'], ['music', '音乐'], ['sfx', '音效']].forEach(([k, n]) => {
       const row = CF.h(`<div class="set-row"><span class="nm">${n}</span><div class="ctl"><input type="range" min="0" max="1" step="0.05" value="${s[k]}"><span class="mono small" style="width:40px">${Math.round(s[k] * 100)}%</span></div></div>`);

@@ -95,8 +95,24 @@
   const hue = (i) => { const [L, a, b] = LAB[i - 1]; return [Math.atan2(b, a), L]; };
   const heroIdx = HERO.map((_, k) => 25 + k).sort((x, y) => hue(x)[0] - hue(y)[0] || hue(x)[1] - hue(y)[1]);
   GROUPS.zy64 = [['全部', ALL.map((_, k) => k + 1)]].concat(GROUPS.zy24, [['英雄', heroIdx]]);
+  // v9.1 色系分类（主创要求「按专业的标准分类整理」）：像素画调色板的通行做法——先灰阶，再按色环
+  // 红 → 橙 → 肤色·大地 → 黄 → 绿 → 青 → 蓝 → 紫 → 粉；每个色系是一条「色阶」，从暗到亮排（OKLab 明度）。
+  // 只改显示顺序，不改编号。逐色核对过 OKLab 色相角与明度（见 UI 宪法第 26 章 26.3）。
+  const FAMILIES = [
+    ['灰阶', [1, 2, 3, 4, 5, 44, 6, 7]],
+    ['红', [56, 34, 29, 52, 53, 24]],
+    ['橙', [26, 13, 20, 63, 14]],
+    ['肤色·大地', [51, 41, 40, 57, 61, 46, 59, 64]],
+    ['黄·金', [42, 17, 15, 47]],
+    ['绿', [37, 55, 27, 23, 60, 25]],
+    ['青', [62, 35, 18, 22, 16]],
+    ['蓝', [48, 43, 49, 39, 31, 30, 28, 32, 58]],
+    ['紫', [8, 9, 10, 11, 54, 50, 12, 19, 36]],
+    ['粉', [45, 21, 38, 33]],
+  ];
+  const families = (set) => { const n = (SETS[set] || SETS.zy64).n; return FAMILIES.map(([f, l]) => [f, l.filter((i) => i <= n)]).filter((x) => x[1].length); };
   const P = (CF.Palette = {
-    SETS, GROUPS,
+    SETS, GROUPS, FAMILIES, families,
     color: (i) => (i > 0 && ALL[i - 1] ? ALL[i - 1][0] : null),
     name: (i) => (i > 0 && ALL[i - 1] ? ALL[i - 1][1] : '透明'),
     size: (set) => (SETS[set] || SETS.zy64).n,

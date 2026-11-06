@@ -4,6 +4,7 @@
 
 - 主标题与图标：音符 × 月牙 × 代码括号 × 一条 S 形的路——「造月之路」。
 - 设计说明：[DESIGN.md](DESIGN.md)
+- v9.1：像素工坊改成全屏绘图（底栏 画笔 / 橡皮 / 调色盘 / 撤销，调色盘和素材库是抽屉，画布背景是英雄主题），色卡按色系分类；英雄图鉴、商城、设置换成王者式左侧导航，英雄卡片去黑底、金属星级、音符色卡；商城加皮肤页占位 · 界面宪法 v2.0 第 26.8 节、第 27 章
 - v9 新增：像素工坊 2.0（16 / 64 / 256 / 无限画布，造月 24 / 64 色卡，全部素材样板，上传图片自动换成造月色，自定义英雄外观与技能特效）· 界面宪法第 26 章「框不动，排版动」
 - v8 新增：[物品宪法](design/05-item-constitution.md) · [英语田园改造记录](design/06-english-farm.md) · [超级顾问查漏补缺](design/07-advisor-review.md)
 - 宪法：[字体美术宪法](art/01-typography-constitution.md) · [游戏界面视觉宪法](art/02-game-ui-constitution.md) · [角色设计宪法](art/04-hero-design-constitution.md) · [关卡难度宪法](design/01-level-difficulty-constitution.md) · [地图与网格宪法](design/02-map-grid-constitution.md) · [侵权与发布合规检查](design/03-compliance.md) · [造芯田园布局分析（待评估）](design/04-farm-layout-analysis.md) · [第三方许可](THIRD_PARTY.md) · [英雄设定集](art/03-heroes.md)

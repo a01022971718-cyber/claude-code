@@ -103,26 +103,62 @@
   };
 
   // ================= 英雄图鉴 =================
+  // v9.1（主创第二轮要求，UI 宪法第 27 章）：顶部只留「英雄图鉴 + 获取进度 + ⓘ 世界背景」；左侧筛选栏（竖屏是一排页签）；
+  // 卡片去掉黑色信息底板，英雄主题背景铺满整张卡，名字放大加粗、定位跟在后面、金属光泽星级、色卡做成乐谱上的发光音符；
+  // 竖屏一行两张，横屏一屏六张。
+  const WORLD = '十位乐手：主角「造乐」（原创），加上智能大陆东西两岸的九位伙伴（性格灵感取自中美知名 AI 大模型的公开特点，名字与形象均为原创）。开局英雄是狂想；主角造乐只能通过特殊渠道获得；乐器是后期才能拿到的「法宝」。每位英雄 1 星起，用碎片升星，最高 5 星。';
+  const ROLE = (h) => { const r = h.role.split(' · ')[0]; return r === '指挥' || r === '均衡' ? '全能' : r; };
+  const FILTERS = ['全部', '已拥有', '全能', '坦克', '战士', '刺客', '法师', '射手', '辅助', '发电厂'];
+  let heroFilter = '全部', cardStages = [];
+  L.starsHtml = function (id, big) {
+    const n = CF.Roster.star(id) || 0;
+    return `<span class="mstars${big ? ' big' : ''}${n >= 5 ? ' max' : ''}" aria-label="${n} 星">${'<i class="on">★</i>'.repeat(n)}${'<i>★</i>'.repeat(5 - n)}</span>`;
+  };
+  // 色卡 → 乐谱：五线谱上 5 个发光音符（背景亮 / 网格 / 主光 / 点缀 / 音符），像一句上行的乐句
+  L.notesHtml = function (h) {
+    const cols = [h.pal.bg[2], 'rgb(' + h.pal.grid.join(',') + ')', h.pal.glow, h.pal.accent, h.pal.note];
+    return `<span class="staff" aria-hidden="true">${cols.map((c, i) => `<i style="--c:${c};--y:${[3, 2, 1.5, 0.5, 0][i]};--x:${i}"></i>`).join('')}</span>`;
+  };
   L.renderHeroes = function () {
-    const body = $('#heroesBody');
-    body.innerHTML = `<p class="small muted" style="margin-bottom:12px;line-height:1.7">十位乐手：主角「造乐」（原创），加上智能大陆东西两岸的九位伙伴（性格灵感取自中美知名 AI 大模型的公开特点，名字与形象均为原创）。开局英雄是狂想；主角造乐只能通过特殊渠道获得；乐器是后期才能拿到的「法宝」。每位英雄 1 星起，用碎片升星，最高 5 星。</p><div class="hero-grid" id="hGrid"></div>`;
+    const body = $('#heroesBody'), R = CF.Roster, list = CF.Heroes.list, owned = list.filter((h) => R.owns(h.id)).length;
+    cardStages.forEach((s) => s.destroy()); cardStages = [];
+    const count = (f) => f === '全部' ? list.length : f === '已拥有' ? owned : f === '发电厂' ? '' : list.filter((h) => ROLE(h) === f).length;
+    body.innerHTML = `<div class="rail-page">
+      <nav class="rail" role="tablist" aria-label="英雄筛选">${FILTERS.filter((f) => count(f) !== 0).map((f) => `<button role="tab" data-f="${f}" class="${f === heroFilter ? 'on' : ''}" aria-selected="${f === heroFilter}">${f}${count(f) !== '' ? `<small>${count(f)}</small>` : ''}</button>`).join('')}</nav>
+      <div class="rail-main">
+        <div class="codex-head"><b class="codex-t">${heroFilter === '发电厂' ? '发电厂图鉴' : '英雄图鉴'}</b>${heroFilter === '发电厂' ? '' : `<span class="codex-prog">已拥有 <b>${owned}</b><span>/${list.length}</span></span>`}<button class="btn sm ghost codex-world" id="hWorld">ⓘ 世界背景</button></div>
+        <div class="hero-grid2" id="hGrid"></div>
+      </div></div>`;
+    $('#hWorld').onclick = () => { CF.Audio.sfx('click'); CF.modal.open({ title: 'ⓘ 世界背景', body: `<p class="t-body" style="line-height:1.9">${WORLD}</p><p class="t-body" style="line-height:1.9;margin-top:8px">乱码潮淹没了智能大陆，十位乐手用音乐把噪声变回信号——这一路，叫作「造月之路」。</p>`, foot: [{ text: '知道了', cls: 'primary' }] }); };
+    body.querySelectorAll('.rail [data-f]').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); heroFilter = b.dataset.f; L.renderHeroes(); }));
     const grid = $('#hGrid');
-    CF.Heroes.list.forEach((h) => {
-      const cur = h.id === CF.Heroes.current().id, own = CF.Roster.owns(h.id);
-      const c = CF.h(`<div class="hcard ${own ? '' : 'locked'}" style="border-color:${cur ? h.pal.glow : ''}"><canvas></canvas>${cur ? '<span class="cur">主英雄</span>' : ''}${own ? (CF.Treasure.has(h.id) ? '' : '<span class="nofb">法宝未得</span>') : `<span class="how">${CF.Roster.how(h.id)}</span>`}<span class="side">${h.protagonist ? '主角' : h.side}</span><div class="hbody">${own ? `<div class="stars ${CF.Roster.star(h.id) >= 5 ? 'gold' : ''}">${CF.Roster.starText(h.id)}${CF.Roster.canStarUp(h.id) ? '<i class="dot"></i>' : ''}</div>` : ''}<div class="hn" style="color:${h.pal.glow}">${h.name}<small>${h.title}</small></div><div class="hi">${h.instrument} · ${h.role}</div><div class="sw">${[h.pal.bg[0], h.pal.bg[2], h.pal.glow, h.pal.accent, h.pal.note].map((x) => `<i style="background:${x}"></i>`).join('')}</div></div></div>`);
-      new CF.PixelFX.Stage(c.querySelector('canvas'), { mode: 'portrait', fx: 0.42, fy: 0.55, cell: 10, hero: h.id, radius: 26, charPx: 4 });
+    if (heroFilter === '发电厂') { grid.className = ''; if (CF.Collect) CF.Collect.renderPlants(grid); return; }
+    list.filter((h) => heroFilter === '全部' || (heroFilter === '已拥有' ? R.owns(h.id) : ROLE(h) === heroFilter)).forEach((h) => {
+      const cur = h.id === CF.Heroes.current().id, own = R.owns(h.id), bg = h.pal.bg;
+      const c = CF.h(`<div class="hc2 ${own ? '' : 'locked'} ${cur ? 'cur' : ''}" style="--g:${h.pal.glow};--a:${h.pal.accent};--b0:${bg[0]};--b1:${bg[1]}" tabindex="0" role="button" aria-label="${h.name}">
+        <canvas></canvas>
+        <span class="hc2-side">${h.protagonist ? '主角' : h.side}</span>${cur ? '<span class="hc2-cur">主英雄</span>' : ''}
+        ${own ? (CF.Treasure.has(h.id) ? '' : '<span class="hc2-nofb">法宝未得</span>') : '<span class="hc2-lock" title="未获得">🔒</span>'}
+        <div class="hc2-info">${own ? `<div class="hc2-stars">${L.starsHtml(h.id)}${R.canStarUp(h.id) ? '<i class="dot" title="可以升星"></i>' : ''}</div>` : ''}
+          <div class="hc2-name"><b>${h.name}</b><small>${h.title}</small></div>
+          <div class="hc2-role">${h.instrument} · ${h.role}</div>${own ? '' : `<div class="hc2-get">获取：${R.how(h.id)}</div>`}${L.notesHtml(h)}</div></div>`);
+      const stg = new CF.PixelFX.Stage(c.querySelector('canvas'), { mode: 'portrait', fx: 0.5, fy: 0.4, cell: 10, hero: h.id, radius: 26, charPx: 4 });
+      cardStages.push(stg);
       c.onclick = () => { CF.Audio.sfx('click'); CF.UI.show('hero', h.id); };
+      c.onkeydown = (e) => { if (e.key === 'Enter') c.onclick(); };
       c.onmouseenter = () => CF.Audio.lick(h.id, true);
       grid.appendChild(c);
     });
-    if (CF.Collect) CF.Collect.renderPlants(body);
+    // 角色大小跟着卡片大小走（竖屏两列、横屏六列，卡片尺寸不同）
+    const fitChars = () => grid.querySelectorAll('.hc2').forEach((el, i) => { const s = cardStages[i]; if (!s) return; const w = el.clientWidth, hh = el.clientHeight; s.o.charPx = Math.max(2, Math.floor(Math.min(w / 21, (hh * 0.5) / 15))); });
+    if (L._hcRO) L._hcRO.disconnect(); L._hcRO = new ResizeObserver(fitChars); L._hcRO.observe(grid); fitChars();
   };
   let heroStage = null;
   // 星级面板（v6）：当前星级、加成、升星进度与按钮
   L.starBox = function (h) {
     const R = CF.Roster, n = R.star(h.id), cost = R.starCost(h.id), f = R.frags(h.id), pct = cost ? Math.min(100, (f / cost) * 100) : 100;
     const bonus = `生命 / 伤害 +${Math.round((R.starMul(h.id) - 1) * 100)}%${n >= 3 ? ' · 冷却 −8%' : ''}`;
-    return `<div class="star-box ${n >= 5 ? 'max' : ''}"><div class="row between"><span class="stars big ${n >= 5 ? 'gold' : ''}">${R.starText(h.id)}</span><span class="small muted">${bonus}</span></div>${n >= 5 ? '<p class="small" style="margin-top:4px">已满 5 星。之后获得的碎片每片换 40 晶片。</p>' : `<div class="bar" style="margin-top:6px"><i style="width:${pct}%"></i></div><div class="row between" style="margin-top:4px"><span class="small">${n} → ${n + 1} 星 · 碎片 <b class="t-num">${f}/${cost}</b></span><button class="btn sm ${R.canStarUp(h.id) ? 'primary' : 'ghost'}" id="hdStar" ${R.canStarUp(h.id) && !CF.P.trial() ? '' : 'disabled'}>升星</button></div><p class="t-cap" style="margin-top:2px">${R.special(h.id) ? '主角升星碎片：100 / 240 / 500 / 1000' : '升星碎片：50 / 120 / 250 / 500'} · 来源：章节掉落、组队副本第 5 波、商城</p>`}</div>`;
+    return `<div class="star-box ${n >= 5 ? 'max' : ''}"><div class="row between">${L.starsHtml(h.id, true)}<span class="small muted">${bonus}</span></div>${n >= 5 ? '<p class="small" style="margin-top:4px">已满 5 星。之后获得的碎片每片换 40 晶片。</p>' : `<div class="bar" style="margin-top:6px"><i style="width:${pct}%"></i></div><div class="row between" style="margin-top:4px"><span class="small">${n} → ${n + 1} 星 · 碎片 <b class="t-num">${f}/${cost}</b></span><button class="btn sm ${R.canStarUp(h.id) ? 'primary' : 'ghost'}" id="hdStar" ${R.canStarUp(h.id) && !CF.P.trial() ? '' : 'disabled'}>升星</button></div><p class="t-cap" style="margin-top:2px">${R.special(h.id) ? '主角升星碎片：100 / 240 / 500 / 1000' : '升星碎片：50 / 120 / 250 / 500'} · 来源：章节掉落、组队副本第 5 波、商城</p>`}</div>`;
   };
   L.renderHero = function (id) {
     const h = CF.Heroes.get(id || CF.Heroes.current().id), body = $('#heroBody'), st = CF.Skills.STATS[h.id], ic = CF.Skills.ICON[h.id];
