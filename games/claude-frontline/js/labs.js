@@ -9,7 +9,7 @@
     rocket: { name: '火箭方程', d: 'aero', icon: '🚀', desc: '设计两级火箭把 5 吨卫星送入近地轨道，越轻越好。', dims: { zhi: 0.5 } },
     startup: { name: '创业沙盘', d: 'biz', icon: '💼', desc: '经营一家 AI 初创公司 12 个月：定价、营销、招聘、融资。', dims: { qi: 1 } },
     code: { name: '代码挑战', d: 'ai', icon: '⌨️', desc: '在浏览器里写真代码：ReLU、Softmax、PID、火箭方程……完成 3 个即通关。', dims: { zhi: 0.5 } },
-    pixel: { name: '像素工坊', d: null, icon: '🎨', desc: '画一个 16×16 的像素头像，它会出现在战场通讯里。', dims: { mei: 1 } },
+    pixel: { name: '像素工坊', d: null, icon: '🎨', desc: '16 / 64 / 256 / 无限画布，造月 24 / 64 色；画头像、英雄外观、技能特效，也能把照片换成造月色。', dims: { mei: 1 } },
   };
   const ORDER = ['gd', 'perceptron', 'pid', 'robot', 'rocket', 'startup', 'code', 'pixel'];
   const L = (CF.Labs = { META, ORDER });
@@ -519,7 +519,9 @@
   // 旧存档的头像按下标存颜色，所以只在末尾追加（v6：信号兵模板用的蓝钢色）
   const PIX_PAL = ['transparent', '#d97757', '#b85f40', '#1b1226', '#ede6d6', '#8b80d6', '#5b3aa8', '#e9b949', '#3fd0c9', '#ff4f9a', '#6fdc8c', '#7fa8d8', '#4f6f9e'];
   L.PIX_PAL = PIX_PAL;
-  L.pixel = function () {
+  L.pixel = function () { if (CF.PixStudio) return CF.PixStudio.open(); return L.pixelOld(); };
+  // v8 及以前的 16×16 画板（像素工坊 2.0 加载失败时兜底）
+  L.pixelOld = function () {
     const grid = (CF.Save.data.avatar && CF.Save.data.avatar.slice()) || new Array(256).fill(0);
     let col = 1, painting = false;
     const body = CF.h(`<div class="lab"><div class="lab-msg">美也是一种能力。画一个 16×16 的指挥官头像，它会出现在战场通讯框里。用到 4 种以上颜色得 3 星。</div><div class="lab-main" style="align-items:flex-start"><div class="pix-grid" id="pg"></div><div class="lab-side"><div class="swatches" id="sw"></div><div class="row wrap"><button class="btn sm" id="pTpl">载入信号兵模板</button><button class="btn sm ghost" id="pClr">清空</button></div><button class="btn primary" id="pSave">保存为指挥官头像</button><div class="lab-msg small" id="pMsg">按住拖动可以连续涂色；选透明色当橡皮擦。</div></div></div></div>`);
@@ -556,6 +558,9 @@
   };
   // 头像绘制（供通讯框使用）
   L.drawAvatar = function (ctx, x, y, size) {
+    // v9：像素工坊 2.0 存的头像（造月色卡下标），优先用它
+    const a2 = CF.Save.data.avatar2;
+    if (a2 && CF.PixStudio) { if (!L._av || L._av.d !== a2.d) L._av = { d: a2.d, c: CF.PixStudio.Doc.unpack(a2).toCanvas(1, { x0: 0, y0: 0, w: 16, h: 16 }) }; const c = L._av.c, sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false; ctx.drawImage(c, x, y, size, size); ctx.imageSmoothingEnabled = sm; return true; }
     const g = CF.Save.data.avatar; if (!g) return false;
     const p = size / 16;
     for (let i = 0; i < 256; i++) if (g[i]) { ctx.fillStyle = PIX_PAL[g[i]]; ctx.fillRect(x + (i % 16) * p, y + Math.floor(i / 16) * p, Math.ceil(p), Math.ceil(p)); }

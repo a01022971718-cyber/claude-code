@@ -190,6 +190,7 @@
       g.strum = 0.6; h.face = tx >= h.x ? 1 : -1;
       CF.Audio.lick(g.heroId, true);
       if (key === 'R') { g.say('HERO', g.heroDef.lines.skill); CF.Audio.sfx('riff', 0.6); g.rTotal = { v: 0, t: g.time }; if (CF.Voice) CF.Voice.event(g.heroDef, 'skill'); }
+      if (CF.PixStudio) CF.PixStudio.castFx(g, g.heroId, tx, ty);   // v9：像素工坊里画的技能特效
       CF.bus.emit('hero:cast', key);
       return true;
     }
@@ -761,7 +762,7 @@
     }
     updFx(dt) {
       for (const f of this.fx) { f.t += dt; if (f.k === 'ring') f.r = (f.t / 0.55) * f.max; }
-      this.fx = this.fx.filter((f) => f.t < (f.k === 'ring' ? 0.6 : f.k === 'notes' ? 1.2 : f.k === 'flash' ? 0.45 : 0.35));
+      this.fx = this.fx.filter((f) => f.t < (f.k === 'ring' ? 0.6 : f.k === 'notes' ? 1.2 : f.k === 'flash' ? 0.45 : f.k === 'pix' ? 0.7 : 0.35));
       for (const p of this.parts) { p.age += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.94; p.vy *= 0.94; }
       this.parts = this.parts.filter((p) => p.age < p.life);
       if (this.parts.length > 600) this.parts.splice(0, this.parts.length - 600);
@@ -1036,6 +1037,7 @@
         else if (f.k === 'beam') { const a = 1 - f.t / 0.35; ctx.globalAlpha = Math.max(0, a); ctx.strokeStyle = f.c; ctx.lineWidth = f.w * (0.5 + a * 0.5); ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(f.x2, f.y2); ctx.stroke(); ctx.strokeStyle = f.c2 || '#fff'; ctx.lineWidth = f.w * 0.3; ctx.stroke(); ctx.lineCap = 'butt'; ctx.lineWidth = 1; ctx.globalAlpha = 1; }
         else if (f.k === 'cone') { const a = 1 - f.t / 0.35; ctx.globalAlpha = Math.max(0, a) * 0.45; ctx.fillStyle = f.c; ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.arc(f.x, f.y, f.r * (0.4 + f.t * 2), f.a - f.s / 2, f.a + f.s / 2); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1; }
         else if (f.k === 'bolt') { ctx.strokeStyle = '#fff35c'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(f.x, f.y); for (let i = 1; i <= 4; i++) ctx.lineTo(CF.lerp(f.x, f.x2, i / 4) + (i < 4 ? CF.rand(-8, 8) : 0), CF.lerp(f.y, f.y2, i / 4) + (i < 4 ? CF.rand(-8, 8) : 0)); ctx.stroke(); ctx.lineWidth = 1; }
+        else if (f.k === 'pix') CF.PixStudio.drawFx(ctx, f);
         else if (f.k === 'moonbeam') { const a = 1 - f.t / 0.35; ctx.globalAlpha = Math.max(0, a); ctx.fillStyle = '#eef2ff'; ctx.fillRect(f.x - 6, f.y - 400, 12, 400); ctx.globalAlpha = 1; }
         else if (f.k === 'whale') { const p2 = Math.min(1, f.t / 0.35), hd = CF.Heroes.get('abyss'); ctx.save(); ctx.globalAlpha = 1 - p2 * 0.6; hd.draw(ctx, f.x - 60, f.y - 40 - p2 * 40, 8, { noInst: true, strum: 1 }); ctx.restore(); }
       }

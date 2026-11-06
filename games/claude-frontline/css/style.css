@@ -825,3 +825,110 @@ input[type=range]{width:100%;accent-color:var(--orange);touch-action:pan-x;heigh
 .as-flow{margin:6px 0 0 18px;padding:0;line-height:1.8;font-size:13px}.as-flow b{color:var(--hero2);margin-right:8px}
 .cw-explain p{line-height:1.8;margin-bottom:6px}
 .cx-parse textarea{background:#0b1424;color:#ede6d6;border:1px solid #ffffff22;border-radius:8px;padding:8px;font-size:13px;resize:vertical}
+
+/* ================= 像素工坊 2.0（v9，UI 宪法第 26 章「框不动，排版动」） =================
+ * 四个框：顶部说明框（原样保留）、画布框、左框「画笔与色卡」、右框「素材 / 上传 / 保存」。
+ * 框的大小由版面决定后不再变；内容多了只改框里的排版：分类、框内滑动、缩小格子。不遮挡画布，不溢出框外。 */
+.ps{--ps-cv:min(560px,100%);--ps-cell:28px;--ps-gap:6px}
+.ps .ps-main{display:grid;gap:12px;grid-template-columns:minmax(0,1fr);align-items:start}
+.ps-cvbox{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ps-cv{display:block;width:100%;aspect-ratio:1;max-width:var(--ps-cv);border:1px solid var(--line2);border-radius:10px;background:#0b0a12;touch-action:none;cursor:crosshair}
+.ps-under{display:flex;align-items:center;justify-content:space-between;gap:6px;height:30px;max-width:var(--ps-cv)}
+.ps-info{font:11px/1 var(--mono);color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ps-zoom{display:flex;gap:4px;flex:none}
+.ps-pane{display:flex;flex-direction:column;gap:6px;min-width:0;background:#ffffff05;border:1px solid var(--line);border-radius:10px;padding:8px}
+.ps-row{display:flex;align-items:center;gap:4px;min-height:30px;flex-wrap:nowrap;overflow:hidden}
+.ps-b{flex:none;min-width:30px;height:30px;padding:0 6px;border-radius:7px;background:var(--panel2);border:1px solid var(--line2);font:700 13px/1 var(--sans);color:var(--text)}
+.ps-b:active{transform:scale(.94)}
+.ps-b.on{border-color:var(--hero);background:rgba(var(--hero-rgb),.25);box-shadow:0 0 calc(var(--beat)*10px) rgba(var(--hero-rgb),.6)}
+.ps-sep{flex:none;width:1px;height:18px;background:var(--line2);margin:0 2px}
+.ps-a{container-type:inline-size}
+.ps .ps-tools{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) 7px repeat(2,minmax(0,1fr));gap:4px}
+.ps-tools .ps-b{min-width:0;width:100%;padding:0}
+.ps-tools .ps-sep{justify-self:center;margin:0}
+.ps .ps-opts{display:grid;grid-template-columns:auto minmax(0,2fr) auto minmax(0,1fr);gap:4px}
+.ps-opts .ps-seg{display:flex;min-width:0}
+.ps-opts .ps-seg button{flex:1 1 0;min-width:0;padding:0 2px}
+@container (max-width:250px){.ps .ps-opts{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}.ps-opts .ps-l{display:none}}
+/* 顶部说明框里的提示：框高锁成原来的高度（js），字多了截断，不撑大框 */
+.ps .lab-msg.ps-note{overflow:hidden;border-color:rgba(var(--hero-rgb),.6);background:rgba(var(--hero-rgb),.1)}
+.ps .lab-msg.n-gold{color:var(--gold)}
+.ps .lab-msg.n-bad{color:var(--bad);border-color:var(--bad)}
+/* 左框剩余空间：预览（只在横排显示；空间不够 js 加 .off） */
+.ps-pv{display:none;overflow:hidden}
+/* 框里的每一行都是固定高，框变矮时不许被压扁（只有预览和右框内容框会伸缩） */
+.ps-pane>*{flex:none}
+.ps-pane>.ps-pv,.ps-b2>.ps-frame{flex:1 1 auto}
+.ps-pvc{display:block;image-rendering:pixelated;border-radius:4px;background:repeating-conic-gradient(#1a1729 0 25%,#13111f 0 50%) 0 0/8px 8px}
+.ps-pvt{font-size:12px;color:var(--dim);white-space:nowrap}
+.ps-pv.off>*{visibility:hidden}
+.ps-l{flex:none;font-size:11px;color:var(--dim)}
+.ps-seg{display:inline-flex;flex:none;border:1px solid var(--line2);border-radius:8px;overflow:hidden}
+.ps-seg button{min-width:32px;height:28px;padding:0 6px;font:700 12px/1 var(--mono);color:var(--dim);background:transparent}
+.ps-seg button+button{border-left:1px solid var(--line2)}
+.ps-seg button.on{background:rgba(var(--hero-rgb),.3);color:#fff}
+/* 色卡分类行：固定 26px 高；按钮多了横向滑动 */
+.ps-groups{position:relative;display:flex;gap:4px;height:26px;align-items:center;overflow-x:auto;scrollbar-width:none;white-space:nowrap}
+.ps-groups::-webkit-scrollbar{display:none}
+.ps-groups button{flex:none;height:24px;padding:0 8px;border-radius:12px;border:1px solid var(--line2);font-size:12px;color:var(--dim)}
+.ps-groups button small{margin-left:4px;font:10px var(--mono);opacity:.7}
+.ps-groups button[aria-selected=true]{color:#fff;border-color:var(--hero);background:rgba(var(--hero-rgb),.22)}
+.ps-gl{font-size:11px;color:var(--dim)}
+/* 色卡框：固定 3 行高（比 v8 的 2 行多一行）；格子按列排，放不下时在框里横向滑动，边缘淡出提示还有 */
+.ps-sw{display:grid;grid-template-rows:repeat(3,var(--ps-cell));grid-auto-flow:column;grid-auto-columns:var(--ps-cell);gap:var(--ps-gap);
+  height:calc(var(--ps-cell)*3 + var(--ps-gap)*2 + 8px);padding:4px 2px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;scrollbar-width:thin}
+/* 框里还有没露出来的内容时，那一侧淡出（js 按滚动位置加 .ml / .mr） */
+.ps .mr{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent)}
+.ps .ml{-webkit-mask-image:linear-gradient(90deg,transparent,#000 22px);mask-image:linear-gradient(90deg,transparent,#000 22px)}
+.ps .ml.mr{-webkit-mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 22px),transparent)}
+.ps-c{width:var(--ps-cell);height:var(--ps-cell);border-radius:7px;border:2px solid transparent;scroll-snap-align:start;box-shadow:inset 0 0 0 1px #ffffff1f}
+.ps-c.on{border-color:#fff;box-shadow:0 0 0 1px #000,0 0 8px rgba(var(--hero-rgb),.8)}
+.ps-c0{background:repeating-conic-gradient(#555 0 25%,#222 0 50%) 0 0/10px 10px}
+.ps-cur{display:flex;align-items:center;gap:6px;height:18px;font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden}
+.ps-cur i{flex:none;width:14px;height:14px;border-radius:4px;box-shadow:inset 0 0 0 1px #ffffff40}
+.ps-cur code{font:11px var(--mono);color:var(--dim)}
+/* 右框：页签 + 固定高的内容框，内容多了在框里上下滑动 */
+.ps-tabs{align-self:flex-start}
+.ps-frame{height:260px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding-right:2px}
+.ps-chips{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding-bottom:6px;position:sticky;top:0;background:var(--bg2);z-index:1}
+.ps-chips::-webkit-scrollbar{display:none}
+.ps-chips button{flex:none;height:26px;padding:0 9px;border-radius:13px;border:1px solid var(--line2);font-size:12px;color:var(--dim)}
+.ps-chips button small{margin-left:4px;font:10px var(--mono);opacity:.7}
+.ps-chips button.on{color:#fff;border-color:var(--hero);background:rgba(var(--hero-rgb),.22)}
+.ps-lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px}
+.ps-tile{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px;border-radius:8px;border:1px solid var(--line);background:#0b0a12;min-width:0}
+.ps-tile:hover{border-color:var(--hero)}
+.ps-th{display:grid;place-items:center;width:52px;height:52px;background:repeating-conic-gradient(#1a1729 0 25%,#13111f 0 50%) 0 0/8px 8px;border-radius:5px;overflow:hidden}
+.ps-thc{max-width:52px;max-height:52px;image-rendering:pixelated;width:auto;height:auto;min-width:32px}
+.ps-tile b{font-size:10px;font-weight:600;color:var(--dim);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ps-empty,.ps-hint{font-size:12px;line-height:1.6;color:var(--dim)}
+.ps-ok{font-size:12px;color:var(--good)}
+.ps-up,.ps-save{display:flex;flex-direction:column;gap:8px}
+.ps-file{position:relative;overflow:hidden;align-self:flex-start}
+.ps-file input{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:100px}
+.ps-ck{display:flex;align-items:center;gap:6px;font-size:13px}
+.ps-r{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.ps-name{flex:1 1 120px;min-width:0;height:32px;padding:0 8px;border-radius:7px;border:1px solid var(--line2);background:var(--bg)}
+.ps-hero{height:32px;padding:0 8px;border-radius:7px;border:1px solid var(--line2);background:var(--bg);min-width:0;max-width:100%}
+/* 横排：画布 | 画笔与色卡 | 素材 / 上传 / 保存（三个框等高，右框内容框吃掉剩下的高度） */
+@media (min-width:700px){
+  .ps{--ps-cv:min(560px,46vw,calc(100dvh - 190px))}
+  .ps .ps-main{grid-template-columns:var(--ps-cv) minmax(0,1fr) minmax(0,1fr)}
+  .ps-cv{width:var(--ps-cv)}
+  .ps-b2,.ps-a{height:calc(var(--ps-cv) + 34px)}
+  .ps-a{overflow-y:auto;overscroll-behavior:contain}
+  .ps-pv{display:flex;flex:1;min-height:0;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-top:1px dashed var(--line2);padding-top:6px}
+  .ps-b2 .ps-frame{flex:1;height:auto;min-height:0}
+}
+/* 矮屏（手机横屏）：格子缩到 24px、按钮缩到 28px，框的大小不变，放不下的进框里滑动 */
+@media (max-height:520px) and (min-width:700px){
+  .ps{--ps-cell:24px;--ps-gap:5px;--ps-cv:min(46vw,calc(100dvh - 190px))}
+  .ps .ps-main{gap:8px}
+  .ps-pane{padding:6px;gap:5px}
+  .ps-b,.ps-seg button{height:26px;min-width:26px;font-size:12px}
+  .ps-row{min-height:26px}
+  .ps-l{display:none}
+  .ps .ps-opts{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+}
+/* 更矮的横屏（≤400px 高）：当前颜色那一行收起（选中的色块本身有白框标记），保证 3 行色卡完整 */
+@media (max-height:400px) and (min-width:700px){.ps-cur,.ps .ps-pv{display:none}}
