@@ -1073,6 +1073,11 @@ body.reduce-motion .btn.primary::after{animation:none;display:none}
 /* v9.2 学院 / 征程 / 成就换成左侧导航（UI 宪法第 27 章 27.2） */
 .camp-sec[hidden],#academyTabs[hidden]{display:none!important}
 .rail-main .chap:first-child{margin-top:0}
+/* 真彩取色器（v9.3） */
+.ps-tcpick{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ps-tc{width:52px;height:36px;border:1px solid var(--line2);border-radius:8px;background:none;padding:2px;cursor:pointer}
+.ps-tcpick code{font:12px var(--mono);color:var(--text)}
+.ps-tcrow{padding-bottom:6px;border-bottom:1px dashed var(--line2)}
 
 </style>
 </head>
@@ -4962,20 +4967,35 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
   const UNDO_MAX = 60;
   const store = () => { const d = CF.Save.data; if (!d.pix) d.pix = { works: [], skins: {}, fx: {} }; d.pix.works = d.pix.works || []; d.pix.skins = d.pix.skins || {}; d.pix.fx = d.pix.fx || {}; return d.pix; };
 
-  // ================= 文档：分块的调色板下标 =================
+  // ================= 真彩（v9.3，主创要求「需要不受限的」） =================
+  // 真彩画布 pal = 'rgb'：每格存 0xFFRRGGBB（一定大于 255），1677 万色 + 透明，不受造月色卡限制。
+  // 色卡画布每格存 1–255 的编号。两种数值不会重叠，所以下面的取色函数只看数值大小就能分辨。
+  const TC = 'rgb', isTC = (pal) => pal === TC;
+  const tcv = (r, g, b) => (0xff000000 | (r << 16) | (g << 8) | b) >>> 0;
+  const tcRgb = (v) => [(v >>> 16) & 255, (v >>> 8) & 255, v & 255];
+  const hx = (n) => n.toString(16).padStart(2, '0');
+  const rgbOf = (v) => (v > 255 ? tcRgb(v) : PAL.rgb(v));
+  const colorOf = (v) => (v > 255 ? '#' + tcRgb(v).map(hx).join('') : PAL.color(v));
+  const nameOf = (v) => (v > 255 ? '真彩' : PAL.name(v));
+  const hexToTc = (h) => tcv(parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16));
+  const palName = (set) => (isTC(set) ? '真彩（1677 万色，不受色卡限制）' : PAL.SETS[set].name);
+  const palSize = (set) => (isTC(set) ? Infinity : PAL.size(set));
+
+  // ================= 文档：分块的调色板下标 / 真彩 =================
   class Doc {
     constructor(w, h, pal) { this.w = w || 0; this.h = h || 0; this.inf = !w; this.pal = pal || 'zy24'; this.ch = new Map(); this.dirty = new Set(); this.odirty = new Set(); this.ver = 0; }
+    arr() { return isTC(this.pal) ? new Uint32Array(CH * CH) : new Uint8Array(CH * CH); }
     inside(x, y) { return this.inf ? Math.abs(x) < 1e6 && Math.abs(y) < 1e6 : x >= 0 && y >= 0 && x < this.w && y < this.h; }
     get(x, y) { const cx = Math.floor(x / CH), cy = Math.floor(y / CH), c = this.ch.get(cx + ',' + cy); return c ? c[(y - cy * CH) * CH + (x - cx * CH)] : 0; }
     set(x, y, v) {
       if (!this.inside(x, y)) return -1;
       const cx = Math.floor(x / CH), cy = Math.floor(y / CH), k = cx + ',' + cy; let c = this.ch.get(k);
-      if (!c) { if (!v) return 0; c = new Uint8Array(CH * CH); this.ch.set(k, c); }
+      if (!c) { if (!v) return 0; c = this.arr(); this.ch.set(k, c); }
       const i = (y - cy * CH) * CH + (x - cx * CH), o = c[i]; if (o === v) return o;
       c[i] = v; this.dirty.add(k); this.odirty.add(k); this.ver++; return o;
     }
     cells() { return this.inf ? this.ch.size * CH * CH : this.w * this.h; }
-    big() { return this.cells() > BIG; }   // 大图（> 512×512）存 IndexedDB，不进存档
+    big() { return this.cells() > (isTC(this.pal) ? 128 * 128 : BIG); }   // 真彩每格 4 字节，超过 128×128 就进 IndexedDB   // 大图（> 512×512）存 IndexedDB，不进存档
     touchAll() { this.ch.forEach((_, k) => { this.dirty.add(k); this.odirty.add(k); }); this.ver++; }
     chunkBounds() { let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity; this.ch.forEach((_, k) => { const [x, y] = k.split(',').map(Number); if (x < a) a = x; if (y < b) b = y; if (x > c) c = x; if (y > d) d = y; }); return a === Infinity ? null : { x0: a * CH, y0: b * CH, w: (c - a + 1) * CH, h: (d - b + 1) * CH }; }
     bounds() {
@@ -4990,12 +5010,13 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       const out = { w: this.w, h: this.h, pal: this.pal, x: 0, y: 0, bw: 0, bh: 0, d: '' };
       if (!b) return out;
       out.x = b.x0; out.y = b.y0; out.bw = b.w; out.bh = b.h;
-      const bytes = []; let prev = -1, run = 0;
+      const bytes = [], tc = isTC(this.pal); let prev = -1, run = 0;
+      const emit = () => { if (!run) return; if (tc) { const [r, g, bb] = prev ? tcRgb(prev) : [0, 0, 0]; bytes.push(prev ? 1 : 0, r, g, bb, run); } else bytes.push(prev, run); };
       for (let y = b.y0; y < b.y0 + b.h; y++) for (let x = b.x0; x < b.x0 + b.w; x++) {
         const v = this.get(x, y);
-        if (v === prev && run < 255) run++; else { if (run) bytes.push(prev, run); prev = v; run = 1; }
+        if (v === prev && run < 255) run++; else { emit(); prev = v; run = 1; }
       }
-      if (run) bytes.push(prev, run);
+      emit(); if (tc) out.tc = 1;   // 真彩：每段 5 字节（是否不透明, R, G, B, 次数）
       let s = ''; for (let i = 0; i < bytes.length; i += 8192) s += String.fromCharCode.apply(null, bytes.slice(i, i + 8192));
       out.d = btoa(s); if (this.hero) out.hero = this.hero; return out;
     }
@@ -5003,12 +5024,13 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       const doc = new Doc(o.w, o.h, o.pal); doc.hero = o.hero || null;   // hero：画布背景用哪位英雄的主题（v9.1）
       if (!o || !o.d) return doc;
       const s = atob(o.d); let x = o.x, y = o.y;
-      for (let i = 0; i < s.length; i += 2) { const v = s.charCodeAt(i), n = s.charCodeAt(i + 1); for (let k = 0; k < n; k++) { if (v) doc.set(x, y, v); x++; if (x >= o.x + o.bw) { x = o.x; y++; } } }
+      const step = o.tc ? 5 : 2;
+      for (let i = 0; i < s.length; i += step) { const v = o.tc ? (s.charCodeAt(i) ? tcv(s.charCodeAt(i + 1), s.charCodeAt(i + 2), s.charCodeAt(i + 3)) : 0) : s.charCodeAt(i), n = s.charCodeAt(i + step - 1); for (let k = 0; k < n; k++) { if (v) doc.set(x, y, v); x++; if (x >= o.x + o.bw) { x = o.x; y++; } } }
       doc.dirty.clear(); doc.odirty.clear(); return doc;
     }
     // 大图的原样存法：分块数组直接交给 IndexedDB（结构化克隆，不转 base64）
     raw() { return { v: 2, w: this.w, h: this.h, pal: this.pal, hero: this.hero || null, ch: [...this.ch.entries()] }; }
-    static fromRaw(o) { const d = new Doc(o.w, o.h, o.pal); d.hero = o.hero || null; (o.ch || []).forEach(([k, a]) => d.ch.set(k, a instanceof Uint8Array ? a : new Uint8Array(a))); return d; }
+    static fromRaw(o) { const d = new Doc(o.w, o.h, o.pal); d.hero = o.hero || null; (o.ch || []).forEach(([k, a]) => d.ch.set(k, ArrayBuffer.isView(a) ? a : isTC(o.pal) ? new Uint32Array(a) : new Uint8Array(a))); return d; }
     // 画到一块普通画布上（缩放 s 倍）：先按块填 ImageData（4K 也只要几十毫秒），再整数倍放大
     toCanvas(s = 1, box) {
       const b = box || (this.inf ? this.bounds() : { x0: 0, y0: 0, w: this.w, h: this.h });
@@ -5017,7 +5039,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       this.ch.forEach((a, k) => {
         const [cx, cy] = k.split(',').map(Number), X0 = cx * CH - b.x0, Y0 = cy * CH - b.y0;
         if (X0 >= b.w || Y0 >= b.h || X0 + CH <= 0 || Y0 + CH <= 0) return;
-        for (let ly = 0; ly < CH; ly++) { const yy = Y0 + ly; if (yy < 0 || yy >= b.h) continue; for (let lx = 0; lx < CH; lx++) { const v = a[ly * CH + lx]; if (!v) continue; const xx = X0 + lx; if (xx < 0 || xx >= b.w) continue; const c3 = rgb[v] || (rgb[v] = PAL.rgb(v)), o = (yy * b.w + xx) * 4; D[o] = c3[0]; D[o + 1] = c3[1]; D[o + 2] = c3[2]; D[o + 3] = 255; } }
+        for (let ly = 0; ly < CH; ly++) { const yy = Y0 + ly; if (yy < 0 || yy >= b.h) continue; for (let lx = 0; lx < CH; lx++) { const v = a[ly * CH + lx]; if (!v) continue; const xx = X0 + lx; if (xx < 0 || xx >= b.w) continue; const c3 = v > 255 ? tcRgb(v) : rgb[v] || (rgb[v] = PAL.rgb(v)), o = (yy * b.w + xx) * 4; D[o] = c3[0]; D[o + 1] = c3[1]; D[o + 2] = c3[2]; D[o + 3] = 255; } }
       });
       tg.putImageData(im, 0, 0); if (s === 1) return t;
       const c = document.createElement('canvas'); c.width = b.w * s; c.height = b.h * s; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(t, 0, 0, c.width, c.height); return c;
@@ -5027,7 +5049,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
   // 任意图片 → 文档（v9.2：最高 4K）。按 128 行一条分条读取（不一次申请整张图的内存）；查表找最近的造月色；
   // 抖动用 Floyd–Steinberg，只保留两行误差；直接写分块数组。rect = 图片画进 w×h 的哪个位置（默认铺满）。
   async function convertImage(src, w, h, pal, dither, rect, onp) {
-    const doc = new Doc(w, h, pal), near = PAL.lut(pal), n = PAL.size(pal), RGB = [null]; for (let i = 1; i <= n; i++) RGB.push(PAL.rgb(i));
+    const doc = new Doc(w, h, pal), tc = isTC(pal), near = tc ? null : PAL.lut(pal), RGB = [null]; if (tc) dither = false; else for (let i = 1, n = PAL.size(pal); i <= n; i++) RGB.push(PAL.rgb(i));
     const R = rect || { x: 0, y: 0, w, h }, SH = 128, c = document.createElement('canvas'); c.width = w; c.height = Math.min(SH, h);
     const g = c.getContext('2d', { willReadFrequently: true }); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
     let eCur = dither ? new Float32Array((w + 2) * 3) : null, eNext = dither ? new Float32Array((w + 2) * 3) : null;
@@ -5041,8 +5063,8 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
           const i = (ry * w + x) * 4; if (px[i + 3] < 128) continue;
           let r = px[i], gg = px[i + 1], b = px[i + 2];
           if (eCur) { const e = (x + 1) * 3; r = Math.max(0, Math.min(255, r + eCur[e])); gg = Math.max(0, Math.min(255, gg + eCur[e + 1])); b = Math.max(0, Math.min(255, b + eCur[e + 2])); }
-          const v = near(r | 0, gg | 0, b | 0), cx = x >> 5; let a = row[cx];
-          if (!a) { const k = cx + ',' + cy; a = row[cx] = doc.ch.get(k); if (!a) { a = new Uint8Array(CH * CH); doc.ch.set(k, a); } }
+          const v = tc ? tcv(r, gg, b) : near(r | 0, gg | 0, b | 0), cx = x >> 5; let a = row[cx];   // 真彩：原样保留颜色
+          if (!a) { const k = cx + ',' + cy; a = row[cx] = doc.ch.get(k); if (!a) { a = doc.arr(); doc.ch.set(k, a); } }
           a[ly + (x & 31)] = v;
           if (eCur) { const [Rr, Gg, Bb] = RGB[v], er = r - Rr, eg = gg - Gg, eb = b - Bb, e = (x + 1) * 3; eCur[e + 3] += er * 7 / 16; eCur[e + 4] += eg * 7 / 16; eCur[e + 5] += eb * 7 / 16; eNext[e - 3] += er * 3 / 16; eNext[e - 2] += eg * 3 / 16; eNext[e - 1] += eb * 3 / 16; eNext[e] += er * 5 / 16; eNext[e + 1] += eg * 5 / 16; eNext[e + 2] += eb * 5 / 16; eNext[e + 3] += er / 16; eNext[e + 4] += eg / 16; eNext[e + 5] += eb / 16; }
         }
@@ -5174,7 +5196,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
         <div class="ps-pr"><span class="ps-l"></span><button class="btn sm ghost" data-act="clear">清空画布</button></div>
       </div>
       <section class="ps-sheet ps-palsheet" aria-label="调色盘" hidden>
-        <div class="ps-sh-h"><i class="ps-grab" data-close></i><b class="ps-sh-t">造月色卡</b><span class="ps-seg" data-seg="pal"><button data-pal="zy24">24</button><button data-pal="zy64">64</button><button data-pal="zy256" title="256 色：索引色的行业上限（GIF / PNG-8 / Aseprite）">256</button></span><span class="ps-cur"></span><button class="ps-x" data-close aria-label="收起">✕</button></div>
+        <div class="ps-sh-h"><i class="ps-grab" data-close></i><b class="ps-sh-t">造月色卡</b><span class="ps-seg" data-seg="pal"><button data-pal="zy24">24</button><button data-pal="zy64">64</button><button data-pal="zy256" title="256 色：索引色的行业上限（GIF / PNG-8 / Aseprite）">256</button><button data-pal="rgb" title="真彩：1677 万色，不受造月色卡限制">真彩</button></span><span class="ps-cur"></span><button class="ps-x" data-close aria-label="收起">✕</button></div>
         <div class="ps-sh-b ps-fams"></div>
       </section>
       <section class="ps-sheet ps-libsheet" aria-label="素材库" hidden>
@@ -5224,7 +5246,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       if (!c || doc.dirty.has(k)) {
         if (!c) { c = document.createElement('canvas'); c.width = c.height = CH; chunkCv.set(k, c); }
         const g = c.getContext('2d'), im = g.createImageData(CH, CH), a = doc.ch.get(k);
-        if (a) for (let i = 0; i < a.length; i++) if (a[i]) { const [r, gg, b] = PAL.rgb(a[i]); im.data[i * 4] = r; im.data[i * 4 + 1] = gg; im.data[i * 4 + 2] = b; im.data[i * 4 + 3] = 255; }
+        if (a) for (let i = 0; i < a.length; i++) if (a[i]) { const [r, gg, b] = rgbOf(a[i]); im.data[i * 4] = r; im.data[i * 4 + 1] = gg; im.data[i * 4 + 2] = b; im.data[i * 4 + 3] = 255; }
         g.putImageData(im, 0, 0); doc.dirty.delete(k);
       }
       return c;
@@ -5270,7 +5292,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       if (doc.odirty.size) {
         const D = ov.im.data, f2 = ov.f;
         doc.odirty.forEach((k) => { const [cx, cy] = k.split(',').map(Number), a = doc.ch.get(k), X0 = cx * CH - ov.x0, Y0 = cy * CH - ov.y0;
-          for (let ly = 0; ly < CH; ly += f2) { const oy = (Y0 + ly) / f2; if (oy < 0 || oy >= ov.oh) continue; for (let lx = 0; lx < CH; lx += f2) { const ox = (X0 + lx) / f2; if (ox < 0 || ox >= ov.ow) continue; const v = a ? a[ly * CH + lx] : 0, o = (oy * ov.ow + ox) * 4; if (v) { const c3 = ov.rgb[v] || (ov.rgb[v] = PAL.rgb(v)); D[o] = c3[0]; D[o + 1] = c3[1]; D[o + 2] = c3[2]; D[o + 3] = 255; } else D[o + 3] = 0; } } });
+          for (let ly = 0; ly < CH; ly += f2) { const oy = (Y0 + ly) / f2; if (oy < 0 || oy >= ov.oh) continue; for (let lx = 0; lx < CH; lx += f2) { const ox = (X0 + lx) / f2; if (ox < 0 || ox >= ov.ow) continue; const v = a ? a[ly * CH + lx] : 0, o = (oy * ov.ow + ox) * 4; if (v) { const c3 = v > 255 ? tcRgb(v) : ov.rgb[v] || (ov.rgb[v] = PAL.rgb(v)); D[o] = c3[0]; D[o + 1] = c3[1]; D[o + 2] = c3[2]; D[o + 3] = 255; } else D[o + 3] = 0; } } });
         doc.odirty.clear(); ov.g.putImageData(ov.im, 0, 0);
       }
       return ov;
@@ -5303,10 +5325,10 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     function applyPatch(p, which) {
       if (p.snap) { // 整张图的操作（清空、换色卡）记的是前后两份快照
         doc.ch = cloneMap(p.snap[which]); if (p.pal) doc.pal = p.pal[which]; doc.touchAll(); chunkCv.clear(); ov = null;
-        if (col > PAL.size(doc.pal)) col = 14; palSeg(); fams(); draw(); autosave(); undoUi(); return;
+        fixCol(); palSeg(); fams(); draw(); autosave(); undoUi(); return;
       }
       let hi = 0; p.forEach((o2, k) => { const [x, y] = k.split(',').map(Number); doc.set(x, y, o2[which]); if (o2[which] > hi) hi = o2[which]; });
-      if (hi > PAL.size(doc.pal)) { doc.pal = hi > 64 ? 'zy256' : 'zy64'; palSeg(); fams(); }
+      if (!isTC(doc.pal) && hi > PAL.size(doc.pal)) { doc.pal = hi > 255 ? TC : hi > 64 ? 'zy256' : 'zy64'; palSeg(); fams(); }
       draw(); autosave(); undoUi();
     }
     function undoUi() { const r = $('.ps-redo'); if (r) r.hidden = !redo.length; }
@@ -5333,7 +5355,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       }
       if (e.button === 2 || e.button === 1 || tool === 'hand' || space) { pan = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y }; return; }
       const c = cell(e);
-      if (tool === 'pick') { const v = doc.get(c[0], c[1]); if (v) { setCol(v); setTool('pen'); note(`吸到 ${PAL.name(v)} ${PAL.color(v)}`); } return; }
+      if (tool === 'pick') { const v = doc.get(c[0], c[1]); if (v) { setCol(v); setTool('pen'); note(`吸到 ${nameOf(v)} ${colorOf(v)}`); } return; }
       stroke = new Map();
       if (tool === 'fill') { flood(c[0], c[1], col); commit(); draw(); return; }
       put(c[0], c[1], tool === 'erase' ? 0 : col); last2 = c; draw();
@@ -5456,7 +5478,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
         const [cx, cy] = k.split(',').map(Number), X = cx * CH, Y = cy * CH;
         if (n && (X >= n || Y >= n || X + CH <= 0 || Y + CH <= 0)) return;
         if (!n || (X >= 0 && Y >= 0 && X + CH <= n && Y + CH <= n)) { nd.ch.set(k, c); return; }
-        const a = new Uint8Array(CH * CH); for (let i = 0; i < c.length; i++) { const x = X + (i % CH), y = Y + ((i / CH) | 0); if (x >= 0 && y >= 0 && x < n && y < n) a[i] = c[i]; } nd.ch.set(k, a);
+        const a = nd.arr(); for (let i = 0; i < c.length; i++) { const x = X + (i % CH), y = Y + ((i / CH) | 0); if (x >= 0 && y >= 0 && x < n && y < n) a[i] = c[i]; } nd.ch.set(k, a);
       });
       setDoc(nd, n ? `画布 ${n}×${n}` : '无限画布：往哪边画都有地方');
     }));
@@ -5465,21 +5487,25 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     $$('[data-pal]').forEach((b) => (b.onclick = (e) => {
       e.stopPropagation(); CF.Audio.sfx('click'); const to = b.dataset.pal, from = doc.pal; if (from === to || busy) return;
       // 换到更小的色卡：画里超出的颜色换成新色卡里最接近的（整张图前后快照记进撤销，点撤销能换回来）
-      const n = PAL.size(to), used = [...doc.colors()].filter((v) => v > n), map = new Uint8Array(256);
-      doc.pal = to; if (col > n) col = 14;
-      if (used.length) {
-        for (let i = 0; i < 256; i++) map[i] = i; used.forEach((v) => { const [r, g, bb] = PAL.rgb(v); map[v] = PAL.nearest(r, g, bb, 255, to); });
-        const before = cloneMap(doc.ch); let moved = 0; doc.ch.forEach((a) => { for (let i = 0; i < a.length; i++) if (a[i] > n) { a[i] = map[a[i]]; moved++; } });
-        undo.push({ snap: [before, cloneMap(doc.ch)], pal: [from, to] }); if (undo.length > UNDO_MAX) undo.shift(); redo = []; doc.touchAll(); chunkCv.clear(); ov = null; undoUi();
-        note(`${moved} 格换成了${PAL.SETS[to].name}里最接近的颜色（可撤销）`);
-      }
+      // 换色卡：真彩 ↔ 色卡、大色卡 → 小色卡时，画里的颜色换成目标里最接近的（真彩是把编号还原成颜色）；整张图快照进撤销
+      const used = [...doc.colors()], conv = new Map(), toTC = isTC(to), n = palSize(to);
+      used.forEach((v) => { if (toTC) { if (v <= 255) conv.set(v, hexToTc(PAL.color(v))); } else if (v > n) { const [r, g, bb] = rgbOf(v); conv.set(v, PAL.lut(to)(r, g, bb)); } });
+      if (conv.size || isTC(from) !== toTC) {
+        const before = cloneMap(doc.ch); let moved = 0; doc.pal = to; const out = new Map();
+        before.forEach((a, k) => { const b2 = doc.arr(); for (let i = 0; i < a.length; i++) { const v = a[i]; if (!v) continue; const w = conv.has(v) ? conv.get(v) : v; if (w !== v) moved++; b2[i] = w; } out.set(k, b2); });
+        doc.ch = out; undo.push({ snap: [before, cloneMap(out)], pal: [from, to] }); if (undo.length > UNDO_MAX) undo.shift(); redo = []; doc.touchAll(); chunkCv.clear(); ov = null; undoUi();
+        if (moved && !toTC) note(`${moved} 格换成了${palName(to)}里最接近的颜色（可撤销）`); else if (toTC) note('已切到真彩：1677 万色，用调色盘里的取色器选任意颜色');
+      } else doc.pal = to;
+      fixCol();
       palSeg(); fams(); cur(); draw(); autosave();
     }));
-    function swatch(i) { return `<button class="ps-c${i === col ? ' on' : ''}" data-c="${i}" style="--c:${PAL.color(i)}" title="${CF.esc(PAL.name(i))} ${PAL.color(i)}" aria-label="${CF.esc(PAL.name(i))}"></button>`; }
+    function fixCol() { if (isTC(doc.pal)) { if (col <= 255) col = hexToTc(PAL.color(col)); } else if (col > PAL.size(doc.pal)) col = col > 255 ? PAL.lut(doc.pal)(...tcRgb(col)) : 14; }
+    function swatch(i) { const v = isTC(doc.pal) && i <= 255 ? hexToTc(PAL.color(i)) : i; return `<button class="ps-c${v === col ? ' on' : ''}" data-c="${v}" style="--c:${colorOf(v)}" title="${CF.esc(nameOf(i))} ${colorOf(v)}" aria-label="${CF.esc(nameOf(i))}"></button>`; }
     function fams() {
-      const box = $('.ps-fams'), rec = store().recent.filter((i) => i <= PAL.size(doc.pal)).slice(0, 9);
+      const tc = isTC(doc.pal), box = $('.ps-fams'), rec = store().recent.filter((i) => (tc ? i > 255 : i <= PAL.size(doc.pal))).slice(0, 9);
       box.innerHTML = (rec.length ? `<div class="ps-fam ps-recent"><span class="ps-fl">最近</span><div class="ps-ramp">${rec.map(swatch).join('')}</div></div>` : '')
-        + PAL.families(doc.pal).map(([f, l]) => `<div class="ps-fam"><span class="ps-fl">${f}<small>${l.length}</small></span><div class="ps-ramp">${l.map(swatch).join('')}</div></div>`).join('');
+        + (tc ? `<div class="ps-fam ps-tcrow"><span class="ps-fl">任意色<small>1677 万</small></span><div class="ps-tcpick"><input type="color" class="ps-tc" value="${colorOf(col > 255 ? col : hexToTc(PAL.color(col)))}" aria-label="任意颜色"><code>${colorOf(col)}</code><span class="ps-hint">真彩不受色卡限制；下面的造月色可以当快捷色</span></div></div>` : '') + PAL.families(tc ? 'zy256' : doc.pal).map(([f, l]) => `<div class="ps-fam"><span class="ps-fl">${f}<small>${l.length}</small></span><div class="ps-ramp">${l.map(swatch).join('')}</div></div>`).join('');
+      const tcIn = box.querySelector('.ps-tc'); if (tcIn) tcIn.oninput = () => { setCol(hexToTc(tcIn.value)); tcIn.nextElementSibling.textContent = tcIn.value; if (tool === 'erase' || tool === 'pick' || tool === 'hand') setTool('pen'); };
       box.querySelectorAll('[data-c]').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); setCol(+b.dataset.c); if (tool === 'erase' || tool === 'pick' || tool === 'hand') setTool('pen'); if (!body.classList.contains('d')) setPal(false, true); }));
       cur();
     }
@@ -5487,7 +5513,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       col = v; const r = store().recent; const i = r.indexOf(v); if (i >= 0) r.splice(i, 1); r.unshift(v); r.length = Math.min(r.length, 12);
       $$('.ps-fams [data-c]').forEach((b) => b.classList.toggle('on', +b.dataset.c === v)); cur();
     }
-    function cur() { const c = PAL.color(col); $('.ps-cur').innerHTML = `<i style="background:${c}"></i>${CF.esc(PAL.name(col))} <code>${c}</code>`; $('.ps-dot').style.background = c; }
+    function cur() { const c = colorOf(col); $('.ps-cur').innerHTML = `<i style="background:${c}"></i>${CF.esc(nameOf(col))} <code>${c}</code>`; $('.ps-dot').style.background = c; }
     // ---------- 素材库抽屉：素材 / 上传 / 保存 ----------
     function tabs(t) { tab = t; $$('[data-tab]').forEach((b) => { b.classList.toggle('on', b.dataset.tab === t); b.setAttribute('aria-selected', b.dataset.tab === t); }); ({ lib: libPane, up: upPane, save: savePane })[t](); }
     $$('[data-tab]').forEach((b) => (b.onclick = (e) => { e.stopPropagation(); CF.Audio.sfx('click'); openSheet(b.dataset.tab); }));
@@ -5524,9 +5550,9 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       frame.innerHTML = `<div class="ps-up">
         <div class="ps-r"><label class="btn primary ps-file">选择图片<input type="file" accept="image/*" aria-label="选择图片"></label>
           <label class="ps-ck">分辨率 <select class="ps-res" aria-label="分辨率">${RES.map(([v, n]) => `<option value="${v}" ${v === res ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-          <label class="ps-ck">色卡 <select class="ps-upal" aria-label="换成哪套色卡">${PAL.sets().map((k) => `<option value="${k}" ${k === upal ? 'selected' : ''}>${PAL.SETS[k].name}</option>`).join('')}</select></label></div>
+          <label class="ps-ck">色卡 <select class="ps-upal" aria-label="换成哪套色卡">${PAL.sets().concat([TC]).map((k) => `<option value="${k}" ${k === upal ? 'selected' : ''}>${palName(k)}</option>`).join('')}</select></label></div>
         <label class="ps-ck"><input type="checkbox" data-dither ${S.upDither ? 'checked' : ''}> 抖动（照片更细腻；像素画关掉更干净）</label>
-        <p class="ps-hint">「跟随画布」把图片缩进当前画布（无限画布按最长边 128 格）；选了分辨率就按图片比例新建画布，最高 <b>4K（最长边 4096 像素，3840×2160 的 4K 照片按原尺寸换色）</b>，比原图大时不放大。每个像素换成所选色卡里最接近的颜色，<b>造月 256 色</b>是索引色的行业上限（GIF / PNG-8 / 专业像素软件的索引模式都是 256）。分辨率越高越慢，4K 约需几秒；超过 512×512 的大图保存在本机的浏览器数据库里。</p>
+        <p class="ps-hint">「跟随画布」把图片缩进当前画布（无限画布按最长边 128 格）；选了分辨率就按图片比例新建画布，最高 <b>4K（最长边 4096 像素，3840×2160 的 4K 照片按原尺寸换色）</b>，比原图大时不放大。每个像素换成所选色卡里最接近的颜色，<b>造月 256 色</b>是索引色的行业上限（GIF / PNG-8 / 专业像素软件的索引模式都是 256）；选<b>真彩</b>则原样保留图片的颜色（1677 万色，不受色卡限制，不抖动）。分辨率越高越慢，4K 约需几秒；超过 512×512 的大图保存在本机的浏览器数据库里。</p>
         <div class="ps-prev"></div></div>`;
       const inp = frame.querySelector('input[type=file]'), sel = frame.querySelector('.ps-res'), psel = frame.querySelector('.ps-upal'), dck = frame.querySelector('[data-dither]');
       sel.onchange = () => { S.upRes = sel.value; CF.Save.save(); }; psel.onchange = () => { S.upPal = psel.value; CF.Save.save(); }; dck.onchange = () => { S.upDither = dck.checked; CF.Save.save(); };
@@ -5545,7 +5571,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
             d.hero = heroSel;
             if (intoInf) { const nd = new Doc(0, 0, pal); nd.hero = heroSel; d.ch.forEach((c, k) => { const [cx, cy] = k.split(',').map(Number); for (let i = 0; i < c.length; i++) if (c[i]) nd.set(cx * CH + (i % CH) - (W >> 1), cy * CH + ((i / CH) | 0) - (Hh >> 1), c[i]); }); nd.dirty.clear(); setDoc(nd); } else setDoc(d);
             const used = doc.colors().size, sec = ((performance.now() - t0) / 1000).toFixed(1);
-            frame.querySelector('.ps-prev').innerHTML = `<p class="ps-ok">已换成${PAL.SETS[pal].name}：${W}×${Hh}，用了 ${used} 种颜色，耗时 ${sec} 秒。可以接着改，或者去「保存」。</p>`;
+            frame.querySelector('.ps-prev').innerHTML = `<p class="ps-ok">已换成${palName(pal)}：${W}×${Hh}，用了 ${used} 种颜色，耗时 ${sec} 秒。可以接着改，或者去「保存」。</p>`;
             note(`已换成造月色：${W}×${Hh}，${used} 种颜色`, 'gold'); CF.Audio.sfx('correct');
           } catch (e) { note('换色失败：图片可能太大，换一张或选低一点的分辨率', 'bad'); }
           busy = false; inp.disabled = false; URL.revokeObjectURL(url);

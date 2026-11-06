@@ -1064,3 +1064,8 @@ body.reduce-motion .btn.primary::after{animation:none;display:none}
 /* v9.2 学院 / 征程 / 成就换成左侧导航（UI 宪法第 27 章 27.2） */
 .camp-sec[hidden],#academyTabs[hidden]{display:none!important}
 .rail-main .chap:first-child{margin-top:0}
+/* 真彩取色器（v9.3） */
+.ps-tcpick{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ps-tc{width:52px;height:36px;border:1px solid var(--line2);border-radius:8px;background:none;padding:2px;cursor:pointer}
+.ps-tcpick code{font:12px var(--mono);color:var(--text)}
+.ps-tcrow{padding-bottom:6px;border-bottom:1px dashed var(--line2)}
