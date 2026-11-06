@@ -1581,7 +1581,8 @@ window.CF_CONFIG = {
       if (big) { this.anim.lean = 1; if (Math.random() < 0.5) this.anim.blink = 0.5; }
       const h = this.hero(), fx = h.fx, [sx, sy] = fx.src;
       const n = lowQ() || rm ? 1 : big ? 3 : s > 0.6 ? 2 : 1;
-      for (let i = 0; i < n; i++) { const k = Math.floor(Math.random() * fx.pats.length); this.parts.push({ k: 'note', pat: fx.pats[k], col: fx.cols[k % fx.cols.length], x: sx + Math.random() * 4 - 1, y: sy - 4 - Math.random() * 2, vx: (Math.random() - 0.3) * 4, vy: (fx.rise ? -4 : -6) - Math.random() * 4, life: 1.3, age: 0 }); }
+      const cimg = CF.PixStudio && CF.PixStudio.fxCanvas(h.id);   // v9：像素工坊里画的技能特效
+      for (let i = 0; i < n; i++) { const k = Math.floor(Math.random() * fx.pats.length); if (cimg) { this.parts.push({ k: 'img', img: cimg, x: sx + Math.random() * 4 - 1, y: sy - 4 - Math.random() * 2, vx: (Math.random() - 0.5) * 10, vy: -8 - Math.random() * 8, life: 1.4, age: 0 }); continue; } this.parts.push({ k: 'note', pat: fx.pats[k], col: fx.cols[k % fx.cols.length], x: sx + Math.random() * 4 - 1, y: sy - 4 - Math.random() * 2, vx: (Math.random() - 0.3) * 4, vy: (fx.rise ? -4 : -6) - Math.random() * 4, life: 1.3, age: 0 }); }
       if (strum && !rm) for (let i = 0; i < (lowQ() ? 2 : 4); i++) { const a = -0.9 + Math.random() * 1.6; this.parts.push({ k: 'spark', col: h.pal.note, x: sx - 1, y: sy + 2, vx: Math.cos(a) * 16, vy: Math.sin(a) * 14, life: 0.35, age: 0 }); }
       if (big && Math.random() < 0.35) this.parts.push({ k: 'gray', x: sx + 6, y: sy - 1, vx: 1, vy: -2, life: 1.4, age: 0 });
       if (this.parts.length > 60) this.parts.splice(0, this.parts.length - 60);
@@ -1639,6 +1640,7 @@ window.CF_CONFIG = {
           ctx.globalAlpha = Math.min(1, (1 - p.age / p.life) * 1.5);
           const X = ox + p.x * px, Y = oy + p.y * px;
           if (p.k === 'note') drawPattern(ctx, p.pat, X, Y, Math.max(2, px * (this.o.mode === 'full' ? 0.5 : 0.75)), p.col);
+          else if (p.k === 'img') { const sz = Math.max(8, px * (this.o.mode === 'full' ? 4 : 5)); ctx.imageSmoothingEnabled = false; ctx.drawImage(p.img, X, Y, sz, sz * p.img.height / p.img.width); }
           else if (p.k === 'gray') drawPattern(ctx, NOTE2, X, Y, Math.max(1.5, px * 0.6), PAL.gray);
           else { ctx.fillStyle = p.col; ctx.fillRect(X, Y, px * 0.9, px * 0.6); }
         });

@@ -1,6 +1,6 @@
 /* 英语田园入口（v8，主创要求：把「生而向星」英语农场按造月之路的美术 / UI 宪法改造，保留全部功能）
  * - 田园本体在 farm/：主创的「豆豆的田园厨房」（第 27 版）按造月之路的做法改造（tools/farm-zy-build.mjs --embed，源文件 farm-zy-src/）。
- *   主题英雄跟随游戏里的主英雄（网址 ?hero=英雄id），场景里的主角就是这位英雄。
+ *   主题英雄跟随游戏里的主英雄（网址 ?hero=英雄id），场景里的主角就是这位英雄；v9.2 起连皮肤一起带过去（?skin=…，见 js/skins.js 的 export）。
  * - 进入方式是整页跳转（不是 iframe）：安卓 WebView 里 file:// 页面嵌 https iframe 的存储可能被分区，田园存档不保证留得住。
  * - 田园里的学习时间按造月之路的规则计时（连续 25 分钟 / 零散 40 分钟换无限体力），回来时用 #farmlearn=秒 带回并结算。
  * - 单文件网页版（dist）不带田园素材（十几 MB），点入口会说明原因。 */
@@ -31,7 +31,8 @@
   };
   function go() {
     const st = CF.Stamina.learnInfo();
-    const p = new URLSearchParams({ zy: '1', hero: String(CF.Save.data.hero || ''), sess: String(Math.floor(st.sess)), pool: String(Math.floor(st.pool)), bank: st.bank > 0 ? '1' : '0', ret: location.href.split('#')[0] });
+    const hid = CF.Save.data.hero || CF.Heroes.current().id, sk = CF.Skins ? CF.Skins.export(hid) : null;   // v9.2：田园里也穿当前皮肤
+    const p = new URLSearchParams({ zy: '1', hero: String(hid), skin: sk ? JSON.stringify(sk) : '', sess: String(Math.floor(st.sess)), pool: String(Math.floor(st.pool)), bank: st.bank > 0 ? '1' : '0', ret: location.href.split('#')[0] });
     const url = F.url() + '?' + p.toString();
     CF.Save.save();
     CF.Audio.sfx('unlock');

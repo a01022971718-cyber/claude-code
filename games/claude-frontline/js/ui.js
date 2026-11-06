@@ -52,12 +52,14 @@
   const tierPill = (P) => { const [n, c] = CF.Chapters.Diff.tier(P); return `<span class="dpill" style="--dc:${c}">D${Math.round(P)} · ${n}</span>`; };
   UI.renderCampaign = function () {
     const body = $('#campaignBody'), d = CF.Save.data, C = CF.Chapters;
-    body.innerHTML = `<div id="chapList"></div><div class="sec-title">沉浸模式 · 烧脑策略</div><div class="grid g2" id="imGrid"></div><div class="sec-title">遭遇战</div><div class="grid g3" id="skGrid"></div><p class="small muted" style="margin-top:14px;line-height:1.7">次级关（剧情关、第三章起为首领关）通关后不能重复挑战，剧情关还需要完成对应的学习才能解锁；小关可以反复挑战，积攒长期补给。每章固定掉落一种碎片或道具，已拥有的英雄碎片会自动转化为晶片。想先体验全部内容，可在「设置」里打开体验模式。</p>`;
+    // v9.2（UI 宪法第 27 章）：左侧竖条 = 各章 + 沉浸模式 + 遭遇战，一次看一类；说明收进 ⓘ
+    body.innerHTML = `<div class="rail-page"><nav class="rail" id="campRail" role="tablist" aria-label="征程分类"></nav><div class="rail-main"><div class="codex-head"><b class="codex-t" id="campT">征程</b><span class="codex-prog" id="campProg"></span><button class="btn sm ghost" id="campInfo">ⓘ 规则</button></div><div id="chapList"></div><div class="camp-sec" data-c="im"><div class="grid g2" id="imGrid"></div></div><div class="camp-sec" data-c="sk"><div class="grid g3" id="skGrid"></div></div></div></div>`;
+    $('#campInfo').onclick = () => { CF.Audio.sfx('click'); CF.modal.open({ title: 'ⓘ 征程 · 规则', body: '<p class="t-body" style="line-height:1.9">次级关（剧情关、第三章起为首领关）通关后不能重复挑战，剧情关还需要完成对应的学习才能解锁；小关可以反复挑战，积攒长期补给。每章固定掉落一种碎片或道具，已拥有的英雄碎片会自动转化为晶片。想先体验全部内容，可在「设置」里打开体验模式。</p>', foot: [{ text: '知道了', cls: 'primary' }] }); };
     const host = $('#chapList');
     const afterName = (id) => { const L = CF.Levels.get(id); if (L) return L.name; const f = C.find(id); return f ? f.st.name : id; };
     C.CHAPTERS.forEach((ch) => {
       const list = C.stages(ch), won = list.filter((s) => C.cleared(s.id)).length, open = C.unlocked(ch, list[0]);
-      const sec = CF.h(`<section class="chap ${open ? '' : 'shut'}"><div class="chap-hd"><canvas></canvas><div class="chap-t"><span class="t-tag">CHAPTER 0${ch.no} · ${ch.en}</span><b>第${'一二三四五六七'[ch.no - 1]}章「${ch.name}」</b><span class="small">${ch.sub}</span></div><div class="chap-drop"><span class="small">本章掉落</span><b>${C.fragName(ch)}</b><span class="small t-num">${C.fragProgress(ch)}</span></div><div class="chap-p"><b class="t-num">${won}/${list.length}</b><span class="small">普通关</span></div></div><div class="stage-path"></div></section>`);
+      const sec = CF.h(`<section class="chap camp-sec ${open ? '' : 'shut'}" data-c="ch${ch.no}"><div class="chap-hd"><canvas></canvas><div class="chap-t"><span class="t-tag">CHAPTER 0${ch.no} · ${ch.en}</span><b>第${'一二三四五六七'[ch.no - 1]}章「${ch.name}」</b><span class="small">${ch.sub}</span></div><div class="chap-drop"><span class="small">本章掉落</span><b>${C.fragName(ch)}</b><span class="small t-num">${C.fragProgress(ch)}</span></div><div class="chap-p"><b class="t-num">${won}/${list.length}</b><span class="small">普通关</span></div></div><div class="stage-path"></div></section>`);
       new CF.PixelFX.Stage(sec.querySelector('canvas'), { mode: 'bar', fx: 0.9, fy: 0.55, cell: 12 });
       const path = sec.querySelector('.stage-path');
       if (!open) { path.appendChild(CF.h(`<p class="small muted" style="grid-column:1/-1">通关第${'一二三四五六七'[ch.no - 2]}章全部普通关后开放（共 ${list.length} 关：${list.filter((x) => x.kind !== 'minor').length} 个次级关 + ${list.filter((x) => x.kind === 'minor').length} 个小关 + 1 个组队副本）。</p>`)); host.appendChild(sec); return; }
@@ -95,6 +97,15 @@
       el.onclick = () => { CF.Audio.sfx('click'); UI.briefing(CF.Levels.skirmish(k)); };
       sk.appendChild(el);
     });
+    // 左侧竖条：默认停在「打到哪一章」
+    const CN = '一二三四五六七', items = C.CHAPTERS.map((ch) => { const list = C.stages(ch), won = list.filter((x) => C.cleared(x.id)).length, open = C.unlocked(ch, list[0]); return { k: 'ch' + ch.no, n: `第${CN[ch.no - 1]}章`, t: `第${CN[ch.no - 1]}章「${ch.name}」`, sub: open ? `${won}/${list.length}` : '🔒', open, done: won >= list.length }; })
+      .concat([{ k: 'im', n: '沉浸模式', t: '沉浸模式 · 烧脑策略', sub: '', open: true }, { k: 'sk', n: '遭遇战', t: '遭遇战', sub: '', open: true }]);
+    if (!items.some((x) => x.k === UI._camp)) UI._camp = (items.find((x) => x.k.startsWith('ch') && x.open && !x.done) || items.filter((x) => x.k.startsWith('ch') && x.open).pop() || items[0]).k;
+    const rail = $('#campRail');
+    const show = () => { const it = items.find((x) => x.k === UI._camp); body.querySelectorAll('.camp-sec').forEach((x) => (x.hidden = x.dataset.c !== UI._camp)); rail.querySelectorAll('[data-k]').forEach((b) => { b.classList.toggle('on', b.dataset.k === UI._camp); b.setAttribute('aria-selected', b.dataset.k === UI._camp); }); $('#campT').textContent = '征程'; $('#campProg').textContent = it.k.startsWith('ch') ? `${it.n}${it.open ? ' · 通关 ' + it.sub : ' · 未开放'}` : it.t; };
+    rail.innerHTML = items.map((x) => `<button role="tab" data-k="${x.k}">${x.n}${x.sub ? `<small>${x.sub}</small>` : ''}</button>`).join('');
+    rail.querySelectorAll('[data-k]').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); UI._camp = b.dataset.k; show(); }));
+    show();
   };
   // 出征前选英雄：只能选已拥有的英雄（同时成为大厅的当前英雄与界面主题）
   UI.heroPicker = function (onPick) {

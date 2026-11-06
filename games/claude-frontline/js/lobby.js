@@ -184,6 +184,19 @@
       special: () => { const u = UT[uKey], b = BT[bKey]; return `<div class="skill"><div class="k">兵</div><div><h4>专属小兵 · ${u.name}</h4><p>${u.desc}</p><div class="meta">耐久 ${u.hp} · 伤害 ${u.atk.dmg} · 射程 ${u.atk.range} · ${CF.Game.costHtml(u.cost)}（在 Agent 工坊训练）</div></div></div><div class="skill"><div class="k">建</div><div><h4>专属建筑 · ${b.name}</h4><p>${b.desc}</p><div class="meta">耐久 ${b.hp} · ${CF.Game.costHtml(b.cost)}（建造菜单第 8 位）</div></div></div><p class="small muted">只有选择 ${h.name} 出战时才能训练与建造。</p>`; },
       art: () => `<div class="card"><div class="t-tag">乐器（法宝${CF.Treasure.has(h.id) ? ' · 已获得' : ' · 未获得'}）</div><p class="t-body" style="color:var(--text)">${h.instrument} —— 主题曲《${ms.name.split('·')[1] || ms.name}》 · ${h.music.bpm} BPM · ${h.music.key} · ${h.music.scale}</p><p class="t-cap">记忆点：${h.music.motif}</p><div class="t-tag" style="margin-top:10px">配色（宪法第 2 章：背景三段 · 网格 · 主光 · 点缀 · 音符）</div><div class="swatches-big" style="margin-top:6px">${[['背景暗', h.pal.bg[0]], ['背景中', h.pal.bg[1]], ['背景亮', h.pal.bg[2]], ['网格', 'rgb(' + h.pal.grid.join(',') + ')'], ['主光', h.pal.glow], ['点缀', h.pal.accent], ['音符', h.pal.note]].map(([n, c]) => `<div><i style="background:${c}"></i>${n}<br>${c.startsWith('rgb') ? '' : c}</div>`).join('')}</div><div class="t-tag" style="margin-top:10px">特效语言</div><p class="t-cap">节拍时从角色处扩散像素方格波纹；乐器发声点飘出专属粒子（${h.fx.pats.length} 种像素形状），重拍时整片网格亮起、角色做强拍动作。</p></div>`,
     };
+    // v9.2 皮肤：在英雄档案里直接换（买炫彩去商城或这里都行；物品宪法第 7 章）
+    tabs.skin = () => { const SK = CF.Skins, eq = SK.equipped(h.id), own = CF.Roster.owns(h.id); return `<div class="skin-list hd-skins">${SK.list(h.id).map((x) => `<button class="skin-card ${x.id === eq ? 'on' : ''} ${x.owned ? '' : 'lock'}" data-sk="${x.id}"><canvas width="96" height="96"></canvas><span>${x.name}</span><em>${x.id === eq ? '穿着' : !own ? '先获得英雄' : x.owned ? '点一下穿上' : x.price ? '◆ ' + x.price + ' 购买' : x.star + ' 星解锁'}</em></button>`).join('')}<button class="skin-card add" data-sk="+draw"><span class="skin-plus">＋</span><span>自己画一套</span><em>像素工坊</em></button></div><p class="t-cap" style="margin-top:6px">炫彩只换颜色（都在造月 256 色里），不加属性；买一次永久拥有，只用晶片。</p>`; };
+    const bindSkins = () => {
+      body.querySelectorAll('#hdTab [data-sk]').forEach((b) => {
+        const k = b.dataset.sk, c = b.querySelector('canvas'); if (c) { const x = c.getContext('2d'); x.fillStyle = h.pal.bg[1]; x.fillRect(0, 0, 96, 96); x.imageSmoothingEnabled = false; h.draw(x, 14, 30, 3, { t: 0, skin: k }); }
+        b.onclick = () => {
+          CF.Audio.sfx('click'); const SK = CF.Skins; if (k === '+draw') return CF.Labs.open('pixel');
+          if (!CF.Roster.owns(h.id)) return CF.toast(`先获得${h.name}`, 'bad');
+          const x = SK.get(h.id, k); if (!x.owned) { if (!x.price) return CF.toast(`${h.name}升到 ${x.star} 星自动解锁`); if (!SK.buy(h.id, k)) return; }
+          SK.equip(h.id, k); CF.toast(`${h.name}换上了「${x.name}」`, 'gold'); heroStage.pulse(1, true); draw();
+        };
+      });
+    };
     // 主角的合奏主题曲：分轨试听（每件乐器可以单独开关，四个段落可以直接跳转）
     tabs.ens = () => `<div class="card"><div class="t-tag">九乐器合奏 · 《${(ms.name.match(/「(.+)」/) || [, ms.name])[1]}》</div><p class="t-cap" style="margin-top:4px">一首 32 小节的曲子分四段。点段落跳过去听；点乐器把它关掉，听听少了谁会怎样。贝斯与和声垫是「地基」，始终保留；每段开始前的四下「嗒嗒嗒嗒」是造乐的指挥棒起拍。</p>
       <div class="ens-secs">${CF.Audio.SECTIONS.map(([n, b, d], i) => `<button class="ens-sec" data-bar="${b}"><b>${i + 1} · ${n}</b><span>${d}</span></button>`).join('')}</div>
@@ -202,7 +215,7 @@
       clearInterval(L._ensT); L._ensT = setInterval(() => { const el = document.getElementById('ensNow'); if (!el) return clearInterval(L._ensT); const [n, b] = CF.Audio.section(); el.textContent = `${n}（第 ${b + 1} 小节起）`; box.querySelectorAll('.ens-sec').forEach((x) => x.classList.toggle('on', +x.dataset.bar === b)); }, 300);
     };
     const tb = body.querySelector('#hdTabs'); let cur = 'lore';
-    const draw = () => { tb.innerHTML = ''; [['lore', '档案'], ['skills', '技能'], ['special', '专属'], ['art', '乐器与配色']].concat(h.music.ensemble ? [['ens', '合奏分轨']] : []).forEach(([k, n]) => { const b = CF.h(`<button class="tab ${cur === k ? 'on' : ''}">${n}</button>`); b.onclick = () => { cur = k; draw(); CF.Audio.sfx('click'); }; tb.appendChild(b); }); body.querySelector('#hdTab').innerHTML = tabs[cur](); if (cur === 'ens') bindEns(); body.querySelectorAll('#hdTab .vline').forEach((b) => (b.onclick = () => { CF.Audio.unlock(); CF.Voice.say(h, b.dataset.l); heroStage.pulse(0.8, true); })); };
+    const draw = () => { tb.innerHTML = ''; [['lore', '档案'], ['skills', '技能'], ['skin', '皮肤'], ['special', '专属'], ['art', '乐器与配色']].concat(h.music.ensemble ? [['ens', '合奏分轨']] : []).forEach(([k, n]) => { const b = CF.h(`<button class="tab ${cur === k ? 'on' : ''}">${n}</button>`); b.onclick = () => { cur = k; draw(); CF.Audio.sfx('click'); }; tb.appendChild(b); }); body.querySelector('#hdTab').innerHTML = tabs[cur](); if (cur === 'ens') bindEns(); if (cur === 'skin') bindSkins(); body.querySelectorAll('#hdTab .vline').forEach((b) => (b.onclick = () => { CF.Audio.unlock(); CF.Voice.say(h, b.dataset.l); heroStage.pulse(0.8, true); })); };
     draw();
     { const sb = body.querySelector('#hdStar'); if (sb) sb.onclick = () => { if (CF.Roster.starUp(h.id)) L.renderHero(h.id); }; }
     body.querySelector('#hdPick').onclick = () => { if (!CF.Roster.owns(h.id)) return; L.setHero(h.id); L.renderHero(h.id); CF.toast(`主英雄：${h.name}`, 'gold'); };

@@ -151,13 +151,32 @@
   // ---------- 主角：豆豆换成主题英雄（主创要求：删掉豆豆，选哪位英雄，场景里就是哪位） ----------
   // 原版用 ddHD（农场高清画面）和 ddSpr（厨房、小馆、头像）画豆豆；这里换成英雄的像素形象（英雄自带乐器，走路时一步一弹）。
   // 画布带上落脚点 zyLx / zyLy，构建脚本把原版画豆豆的几行改成读这个落脚点（tools/farm-zy-build.mjs）。
+  // ---------- 皮肤（v9.2，主创要求：英语田园里也穿游戏里的皮肤） ----------
+  // 造月之路进田园时把主英雄当前穿的皮肤放进网址 skin=JSON（安卓里两边不同源，不能共用存储）：
+  //   kind=img：像素工坊画的「我的外观」，64×64 PNG（英雄按 2 倍精度、原点 12,24，和游戏里的落点算法一样）；
+  //   kind=map：官方炫彩的换色表（这位英雄用到的颜色 → 造月 256 色里的颜色），画英雄时换色，动作照常。
+  // 同一次打开里刷新页面也保留（sessionStorage）；单独打开田园时没有皮肤，就是经典形象。
+  let SKIN = null, skinImg = null;
+  try {
+    const q = new URLSearchParams(location.search), raw = q.has('zy') ? q.get('skin') || '' : sessionStorage.getItem('zy-skin') || '';
+    if (q.has('zy')) { if (raw) sessionStorage.setItem('zy-skin', raw); else sessionStorage.removeItem('zy-skin'); }
+    if (raw) SKIN = JSON.parse(raw);
+    if (SKIN && SKIN.kind === 'img' && SKIN.png) { skinImg = new Image(); skinImg.onload = () => heroChanged(); skinImg.src = SKIN.png; }
+  } catch (e) { SKIN = null; }
+  const skinFor = (id) => (SKIN && SKIN.hero === id ? SKIN : null);
+  function tintCtx(g, map) {
+    return new Proxy(g, { get(t, k) { const v = t[k]; return typeof v === 'function' ? v.bind(t) : v; }, set(t, k, v) { if ((k === 'fillStyle' || k === 'strokeStyle') && typeof v === 'string' && map[v]) v = map[v]; t[k] = v; return true; } });
+  }
   const HSPR = new Map();
   function heroSprite(w, h, p, cx, feet, f, hd) {
-    const key = [cfg.hero, w, h, p, f, hd ? 1 : 0].join(':');
+    const sk = skinFor(cfg.hero), ready = !sk || sk.kind !== 'img' || (skinImg && skinImg.complete && skinImg.naturalWidth);
+    const key = [cfg.hero, w, h, p, f, hd ? 1 : 0, sk ? sk.id : 'classic', ready ? 1 : 0].join(':');
     if (HSPR.has(key)) return HSPR.get(key);
     const c = document.createElement('canvas'); c.width = w; c.height = h;
     const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
-    H.get(cfg.hero).draw(g, cx - 10 * p, feet - 11 * p, p, { bob: f ? 1 : 0, strum: f ? 1 : 0, t: f * 0.3 });
+    const ox = cx - 10 * p, oy = feet - 11 * p, a = { bob: f ? 1 : 0, strum: f ? 1 : 0, t: f * 0.3 };
+    if (sk && sk.kind === 'img' && ready) { const s = p / 2, bob = a.bob ? Math.round(p * 0.5) : 0; g.drawImage(skinImg, Math.round(ox - 12 * s), Math.round(oy - 24 * s - bob), Math.round(64 * s), Math.round(64 * s)); }
+    else H.get(cfg.hero).draw(sk && sk.kind === 'map' ? tintCtx(g, sk.map || {}) : g, ox, oy, p, a);
     let out = c;
     if (hd && typeof hdOutline === 'function') { try { out = hdOutline(c) || c; } catch (e) { out = c; } }
     out.zyLx = cx / (hd ? 2 : 1); out.zyLy = feet / (hd ? 2 : 1); out.zyKey = cfg.hero;

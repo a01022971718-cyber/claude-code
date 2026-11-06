@@ -98,12 +98,13 @@
 
   // ---------- 学院主页面 ----------
   const TABS = [['daily', '今日修炼'], ['quiz', '知识测验'], ['quests', '线下任务'], ['founder', '企业家修炼'], ['road', '学习路线']];
+  // v9.2（UI 宪法第 27 章）：原来页眉下面的一排页签换成左侧竖条（竖屏是一排可滑动的页签）
   A.render = function () {
-    const tabs = CF.$('#academyTabs');
-    tabs.innerHTML = '';
-    TABS.forEach(([id, n]) => { const b = CF.h(`<button class="tab ${A.tab === id ? 'on' : ''}">${n}</button>`); b.onclick = () => { CF.Audio.sfx('click'); A.tab = id; A.render(); }; tabs.appendChild(b); });
-    const body = CF.$('#academyBody');
-    body.innerHTML = '';
+    const tabs = CF.$('#academyTabs'); tabs.innerHTML = ''; tabs.hidden = true;
+    const root = CF.$('#academyBody'), name = TABS.find((t) => t[0] === A.tab)[1];
+    root.innerHTML = `<div class="rail-page"><nav class="rail" role="tablist" aria-label="学院分类">${TABS.map(([id, n]) => `<button role="tab" data-t="${id}" class="${A.tab === id ? 'on' : ''}" aria-selected="${A.tab === id}">${n}</button>`).join('')}</nav><div class="rail-main"><div class="codex-head"><b class="codex-t">${name}</b></div><div id="acMain"></div></div></div>`;
+    root.querySelectorAll('.rail [data-t]').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); A.tab = b.dataset.t; A.render(); }));
+    const body = CF.$('#acMain');
     body.appendChild(CF.h(`<div class="card" style="margin-bottom:14px">${A.ratioHtml()}</div>`));
     ({ daily: renderDaily, quiz: renderQuiz, quests: renderQuests, founder: renderFounder, road: renderRoad })[A.tab](body);
   };
@@ -268,12 +269,18 @@
   };
 
   // ---------- 成就 ----------
+  // v9.2（UI 宪法第 27 章）：左侧竖条分类，顶部只留「成就 · 已解锁 n/总数」
+  const ACH_CAT = { 战斗: ['first_win', 'all_campaign', 'three_star', 'all_three', 'air', 'riff20', 'kills500', 'hard'], 学习: ['quiz50', 'lab3', 'lab_all', 'code5', 'quest10', 'ratio', 'streak7', 'founder5'], 成长: ['whole', 'pixel', 'rank6'] };
   A.renderAch = function () {
-    const body = CF.$('#achBody'), got = S().achievements;
-    const n = CF.P.ACH.filter((a) => got[a.id]).length;
-    body.innerHTML = `<p class="small muted" style="margin-bottom:12px">已解锁 ${n} / ${CF.P.ACH.length}</p>`;
+    const root = CF.$('#achBody'), got = S().achievements, all = CF.P.ACH;
+    const n = all.filter((a) => got[a.id]).length, cats = ['全部', '已解锁', '战斗', '学习', '成长'];
+    if (!cats.includes(A.achCat)) A.achCat = '全部';
+    const pick = (c) => all.filter((a) => c === '全部' || (c === '已解锁' ? got[a.id] : (ACH_CAT[c] || []).includes(a.id) || (c === '成长' && !Object.values(ACH_CAT).flat().includes(a.id))));
+    root.innerHTML = `<div class="rail-page"><nav class="rail" role="tablist" aria-label="成就分类">${cats.map((c) => `<button role="tab" data-c="${c}" class="${A.achCat === c ? 'on' : ''}" aria-selected="${A.achCat === c}">${c}<small>${pick(c).length}</small></button>`).join('')}</nav><div class="rail-main"><div class="codex-head"><b class="codex-t">成就</b><span class="codex-prog">已解锁 <b>${n}</b><span>/${all.length}</span></span></div><div id="achMain"></div></div></div>`;
+    root.querySelectorAll('.rail [data-c]').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); A.achCat = b.dataset.c; A.renderAch(); }));
+    const body = CF.$('#achMain');
     const g = CF.h('<div class="grid g3"></div>');
-    CF.P.ACH.forEach((a) => g.appendChild(CF.h(`<div class="card ach ${got[a.id] ? 'got' : ''}"><div class="ic">${a.icon}</div><div><h4>${a.name}</h4><p>${a.desc}${got[a.id] ? ` · <span class="c-chip">${got[a.id]}</span>` : ''}</p></div></div>`)));
+    pick(A.achCat).forEach((a) => g.appendChild(CF.h(`<div class="card ach ${got[a.id] ? 'got' : ''}"><div class="ic">${a.icon}</div><div><h4>${a.name}</h4><p>${a.desc}${got[a.id] ? ` · <span class="c-chip">${got[a.id]}</span>` : ''}</p></div></div>`)));
     body.appendChild(g);
   };
 })();

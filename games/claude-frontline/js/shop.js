@@ -30,13 +30,13 @@
     hero: () => `每天轮换 3 位英雄，每位每天限购 ${LIMIT.frag} 片。没拥有的英雄集齐 ${CF.Roster.FRAG_NEED} 片解锁；已拥有的英雄用碎片升星（4→5 星需要 500 片）。主角「造乐」只能通过特殊渠道获得，不在商城出售。`,
     fb: () => '法宝锦囊每天限购 1 个，打开有 35% 概率得到赐福法宝碎片（概率公示，见物品宪法）；集齐 10 片可以为一位英雄赐福法宝。',
     sup: () => '体力药剂每天限购 2 瓶。更推荐的办法：去学院学习——连续学 25 分钟得 5 分钟无限体力，累计学 40 分钟得 10 分钟。',
-    skin: () => '皮肤系统还在制作中，这里先占位：大图展示英雄，右侧是皮肤列表。「我的外观」是你在实验室 · 像素工坊里画的，已经可以用；其余皮肤敬请期待。商城永远只用游戏里赚到的资源，不需要充值。',
+    skin: () => '每位英雄有：经典（免费）、四套炫彩——墨韵 600 晶片、星夜 1200 晶片、霓虹 2000 晶片、鎏金（英雄升到 3 星自动解锁）——以及最多 6 套你在像素工坊里画的「我的外观」。炫彩只换颜色，颜色都落在造月 256 色里；动作、乐器、技能和经典完全一样，不加属性。皮肤买一次永久拥有，只用游戏里赚到的晶片，不需要充值。穿上后大厅、战场、图鉴、英语田园都会换。',
   };
   // v9.1（UI 宪法第 27 章）：左侧竖条导航（竖屏是一排页签），大段说明收进 ⓘ，右上角是晶片余额
   Shop.render = function () {
     const body = $('#shopBody'), name = TABS.find((t) => t[0] === tab)[1];
     (Shop._stg || []).forEach((x) => x.destroy()); Shop._stg = [];
-    body.innerHTML = `<div class="rail-page"><nav class="rail" role="tablist" aria-label="商城分类">${TABS.map(([k, n]) => `<button role="tab" data-t="${k}" class="${k === tab ? 'on' : ''}" aria-selected="${k === tab}">${n}${k === 'skin' ? '<small>占位</small>' : ''}</button>`).join('')}</nav>
+    body.innerHTML = `<div class="rail-page"><nav class="rail" role="tablist" aria-label="商城分类">${TABS.map(([k, n]) => `<button role="tab" data-t="${k}" class="${k === tab ? 'on' : ''}" aria-selected="${k === tab}">${n}</button>`).join('')}</nav>
       <div class="rail-main"><div class="codex-head"><b class="codex-t">${name}</b><button class="btn sm ghost" id="shopInfo">ⓘ 规则</button><span class="shop-wallet"><span class="c-chip">◆ <b class="t-num">${chips().toLocaleString()}</b></span><small>晶片 · 不需要充值</small></span></div><div id="shopTab"></div></div></div>`;
     body.querySelectorAll('.rail [data-t]').forEach((b) => (b.onclick = () => { tab = b.dataset.t; CF.Audio.sfx('click'); Shop.render(); }));
     $('#shopInfo').onclick = () => { CF.Audio.sfx('click'); CF.modal.open({ title: `ⓘ ${name} · 规则`, body: `<p class="t-body" style="line-height:1.9">${INFO[tab]()}</p>`, foot: [{ text: '知道了', cls: 'primary' }] }); };
@@ -73,32 +73,35 @@
       host.querySelector('button').onclick = () => { if (left('stamina', LIMIT.stamina) <= 0 || !pay(PRICE.stamina)) return; take('stamina'); CF.Stamina.add(40); CF.toast('体力 +40', 'gold'); Shop.render(); };
     }
   };
-  // 皮肤展示（占位，参考王者荣耀的皮肤页：画面占七成，信息和按钮退到右侧和底部）
+  // 皮肤（v9.2 转正，参考王者荣耀的皮肤页：画面占七成，信息和按钮退到右侧和底部；物品宪法第 7 章）
+  let skinSel = null;
+  const RARN = { common: ['经典', '#c9d4ff'], rare: ['稀有', '#4ef0ff'], epic: ['史诗', '#b48cff'], legend: ['传说', '#ffd257'] };
   Shop.renderSkins = function (host) {
-    const R = CF.Roster, own = R.ownedList(), h = CF.Heroes.get(skinHero && own.some((x) => x.id === skinHero) ? skinHero : CF.Heroes.current().id);
-    const mine = CF.PixStudio && CF.PixStudio.skinCanvas(h.id);
-    const skins = [['经典', 'classic', true], ['我的外观', 'mine', !!mine], ['敬请期待', 'soon', false], ['敬请期待', 'soon', false]];
-    const box = CF.h(`<div class="skin-show"><div class="skin-stage"><canvas></canvas><div class="skin-name"><span class="t-tag">${h.en}</span><b>${h.name}</b><small>${h.title}</small></div></div>
-      <div class="skin-side"><div class="skin-list">${skins.map(([n, k, ok], i) => `<button class="skin-card ${k} ${i === 0 ? 'on' : ''}" ${ok ? '' : 'disabled'} data-k="${k}"><canvas width="96" height="96"></canvas><span>${n}</span>${k === 'mine' && !ok ? '<em>去像素工坊画一套</em>' : ''}</button>`).join('')}</div>
-        <button class="btn primary skin-buy" disabled>皮肤敬请期待</button><button class="btn sm ghost" id="skinDraw">🎨 去像素工坊画「我的外观」</button></div>
-      <div class="skin-heroes">${own.map((x) => `<button class="skin-av ${x.id === h.id ? 'on' : ''}" data-h="${x.id}" title="${x.name}" style="--b1:${x.pal.bg[1]};--g:${x.pal.glow}"><canvas width="48" height="48"></canvas></button>`).join('')}</div></div>`);
+    const R = CF.Roster, SK = CF.Skins, list = CF.Heroes.list, h = CF.Heroes.get(skinHero || CF.Heroes.current().id);
+    const skins = SK.list(h.id), eq = SK.equipped(h.id); if (!skinSel || !skins.some((x) => x.id === skinSel)) skinSel = eq;
+    const cur = skins.find((x) => x.id === skinSel), own = R.owns(h.id);
+    const btn = !own ? `<button class="btn primary skin-buy" disabled>先获得${h.name}</button>` : cur.owned ? (cur.id === eq ? '<button class="btn skin-buy" disabled>✓ 正在穿</button>' : '<button class="btn primary skin-buy" data-act="eq">穿上</button>')
+      : cur.price ? `<button class="btn primary skin-buy" data-act="buy"><span class="c-chip">◆ ${cur.price}</span> 购买并穿上</button>` : `<button class="btn skin-buy" disabled>${h.name}升到 ${cur.star} 星解锁</button>`;
+    const box = CF.h(`<div class="skin-show"><div class="skin-stage"><canvas></canvas><div class="skin-name"><span class="t-tag" style="color:${RARN[cur.rar][1]}">${RARN[cur.rar][0]} · ${h.en}</span><b>${h.name}<em>·${cur.name}</em></b><small>${cur.desc}</small></div></div>
+      <div class="skin-side"><div class="skin-list">${skins.map((x) => `<button class="skin-card ${x.id === skinSel ? 'on' : ''} ${x.owned ? '' : 'lock'}" data-k="${x.id}" style="--r:${RARN[x.rar][1]}"><canvas width="96" height="96"></canvas><span>${x.name}</span><em>${x.id === eq ? '穿着' : x.owned ? '已拥有' : x.price ? '◆ ' + x.price : x.star + ' 星解锁'}</em></button>`).join('')}<button class="skin-card add" data-k="+draw"><span class="skin-plus">＋</span><span>自己画一套</span><em>像素工坊</em></button></div>
+        ${btn}${cur.kind === 'img' ? '<button class="btn sm ghost" data-act="del">从衣柜里删掉这套</button>' : ''}</div>
+      <div class="skin-heroes">${list.map((x) => `<button class="skin-av ${x.id === h.id ? 'on' : ''} ${R.owns(x.id) ? '' : 'lock'}" data-h="${x.id}" title="${x.name}" style="--b1:${x.pal.bg[1]};--g:${x.pal.glow}"><canvas width="48" height="48"></canvas></button>`).join('')}</div></div>`);
     host.appendChild(box);
     const stg = new CF.PixelFX.Stage(box.querySelector('.skin-stage canvas'), { mode: 'full', fx: 0.5, fy: 0.5, cell: 16, hero: h.id, radius: 30 }); Shop._stg.push(stg);
-    box.querySelectorAll('.skin-card').forEach((b, i) => {
-      const g = b.querySelector('canvas').getContext('2d'), k = skins[i][1]; g.imageSmoothingEnabled = false;
-      const grd = g.createLinearGradient(0, 0, 0, 96); grd.addColorStop(0, h.pal.bg[1]); grd.addColorStop(1, h.pal.bg[0]); g.fillStyle = grd; g.fillRect(0, 0, 96, 96);
-      if (k === 'classic') h.draw(g, 14, 30, 3, { noCustom: true, t: 0 });
-      else if (k === 'mine' && mine) g.drawImage(mine, 14 - 12 * 1.5, 30 - 24 * 1.5, 96, 96);
-      else { // 剪影占位：英雄轮廓填成半透明白
-        const c = document.createElement('canvas'); c.width = c.height = 96; const x = c.getContext('2d'); h.draw(x, 14, 30, 3, { noCustom: true, t: 0 }); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#ffffff30'; x.fillRect(0, 0, 96, 96); g.drawImage(c, 0, 0);
-        g.fillStyle = '#fff9'; g.font = 'bold 22px sans-serif'; g.textAlign = 'center'; g.fillText('?', 48, 58);
-      }
-      b.onclick = () => { CF.Audio.sfx('click'); box.querySelectorAll('.skin-card').forEach((x) => x.classList.toggle('on', x === b)); stg.o.drawChar = k === 'classic' ? null : (ctx, fx, fy, px) => { const ox = fx - 21 * px * 0.45, oy = fy - 15 * px * 0.38; h.draw(ctx, ox, oy, px, { t: stg.t }); return true; }; };
+    stg.o.drawChar = (ctx, fx, fy, px, a) => { const ox = fx - 21 * px * 0.45, oy = fy - 15 * px * 0.38; ctx.fillStyle = 'rgba(10,6,30,0.35)'; ctx.fillRect(ox + px, oy + 10.5 * px, 14 * px, px); h.draw(ctx, ox, oy, px, { bob: a.bob, strum: a.strum > 0.4 ? 1 : 0, blink: a.blink > 0, t: a.t, skin: skinSel }); return true; };
+    box.querySelectorAll('.skin-card').forEach((b) => {
+      const k = b.dataset.k, g = b.querySelector('canvas'); if (g) { const x = g.getContext('2d'), grd = x.createLinearGradient(0, 0, 0, 96); grd.addColorStop(0, h.pal.bg[1]); grd.addColorStop(1, h.pal.bg[0]); x.fillStyle = grd; x.fillRect(0, 0, 96, 96); x.imageSmoothingEnabled = false; h.draw(x, 14, 30, 3, { t: 0, skin: k }); }
+      b.onclick = () => { CF.Audio.sfx('click'); if (k === '+draw') { Shop._stg.forEach((x) => x.destroy()); CF.Labs.open('pixel'); return; } skinSel = k; Shop.render(); };
     });
-    box.querySelectorAll('.skin-av').forEach((b) => { const x = b.querySelector('canvas').getContext('2d'), hh = CF.Heroes.get(b.dataset.h); x.fillStyle = hh.pal.bg[1]; x.fillRect(0, 0, 48, 48); hh.draw(x, 5, 16, 1.6, { t: 0 }); b.onclick = () => { CF.Audio.sfx('click'); skinHero = b.dataset.h; stg.destroy(); Shop.render(); }; });
-    box.querySelector('#skinDraw').onclick = () => { CF.Audio.sfx('click'); stg.destroy(); CF.Labs.open('pixel'); };
-    // 经典外观固定画官方形象（不受「我的外观」影响）
-    stg.o.drawChar = (ctx, fx, fy, px) => { const ox = fx - 21 * px * 0.45, oy = fy - 15 * px * 0.38; h.draw(ctx, ox, oy, px, { noCustom: true, t: stg.t, bob: stg.anim.bob }); return true; };
-    box.querySelector('.skin-card.classic').onclick = () => { CF.Audio.sfx('click'); box.querySelectorAll('.skin-card').forEach((x) => x.classList.toggle('on', x.dataset.k === 'classic')); stg.o.drawChar = (ctx, fx, fy, px) => { const ox = fx - 21 * px * 0.45, oy = fy - 15 * px * 0.38; h.draw(ctx, ox, oy, px, { noCustom: true, t: stg.t, bob: stg.anim.bob }); return true; }; };
+    box.querySelectorAll('.skin-av').forEach((b) => { const x = b.querySelector('canvas').getContext('2d'), hh = CF.Heroes.get(b.dataset.h); x.fillStyle = hh.pal.bg[1]; x.fillRect(0, 0, 48, 48); hh.draw(x, 5, 16, 1.6, { t: 0 }); b.onclick = () => { CF.Audio.sfx('click'); skinHero = b.dataset.h; skinSel = null; Shop.render(); }; });
+    const act = box.querySelector('[data-act]');
+    box.querySelectorAll('[data-act]').forEach((b) => (b.onclick = () => {
+      const a = b.dataset.act;
+      if (a === 'buy' && SK.buy(h.id, skinSel)) { SK.equip(h.id, skinSel); CF.toast(`${h.name}·${cur.name} 到手，已经穿上`, 'gold'); }
+      else if (a === 'eq' && SK.equip(h.id, skinSel)) { CF.Audio.sfx('correct'); CF.toast(`${h.name}换上了「${cur.name}」`, 'gold'); }
+      else if (a === 'del') { SK.removeMine(h.id, skinSel); skinSel = null; CF.toast('已从衣柜里删掉'); }
+      Shop.render();
+    }));
+    void act;
   };
 })();

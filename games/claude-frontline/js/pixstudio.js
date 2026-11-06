@@ -17,7 +17,7 @@
 
   // ================= 文档：分块的调色板下标 =================
   class Doc {
-    constructor(w, h, pal) { this.w = w || 0; this.h = h || 0; this.inf = !w; this.pal = pal || 'zy24'; this.ch = new Map(); this.dirty = new Set(); this.ver = 0; }
+    constructor(w, h, pal) { this.w = w || 0; this.h = h || 0; this.inf = !w; this.pal = pal || 'zy24'; this.ch = new Map(); this.dirty = new Set(); this.odirty = new Set(); this.ver = 0; }
     inside(x, y) { return this.inf ? Math.abs(x) < 1e6 && Math.abs(y) < 1e6 : x >= 0 && y >= 0 && x < this.w && y < this.h; }
     get(x, y) { const cx = Math.floor(x / CH), cy = Math.floor(y / CH), c = this.ch.get(cx + ',' + cy); return c ? c[(y - cy * CH) * CH + (x - cx * CH)] : 0; }
     set(x, y, v) {
@@ -25,16 +25,19 @@
       const cx = Math.floor(x / CH), cy = Math.floor(y / CH), k = cx + ',' + cy; let c = this.ch.get(k);
       if (!c) { if (!v) return 0; c = new Uint8Array(CH * CH); this.ch.set(k, c); }
       const i = (y - cy * CH) * CH + (x - cx * CH), o = c[i]; if (o === v) return o;
-      c[i] = v; this.dirty.add(k); this.ver++; return o;
+      c[i] = v; this.dirty.add(k); this.odirty.add(k); this.ver++; return o;
     }
-    clear() { this.ch.forEach((_, k) => this.dirty.add(k)); this.ch.clear(); this.ver++; }
+    cells() { return this.inf ? this.ch.size * CH * CH : this.w * this.h; }
+    big() { return this.cells() > BIG; }   // 大图（> 512×512）存 IndexedDB，不进存档
+    touchAll() { this.ch.forEach((_, k) => { this.dirty.add(k); this.odirty.add(k); }); this.ver++; }
+    chunkBounds() { let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity; this.ch.forEach((_, k) => { const [x, y] = k.split(',').map(Number); if (x < a) a = x; if (y < b) b = y; if (x > c) c = x; if (y > d) d = y; }); return a === Infinity ? null : { x0: a * CH, y0: b * CH, w: (c - a + 1) * CH, h: (d - b + 1) * CH }; }
     bounds() {
       let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
       this.ch.forEach((c, k) => { const [cx, cy] = k.split(',').map(Number); for (let i = 0; i < c.length; i++) if (c[i]) { const x = cx * CH + (i % CH), y = cy * CH + ((i / CH) | 0); if (x < x0) x0 = x; if (y < y0) y0 = y; if (x > x1) x1 = x; if (y > y1) y1 = y; } });
       return x0 === Infinity ? null : { x0, y0, x1, y1, w: x1 - x0 + 1, h: y1 - y0 + 1 };
     }
-    colors() { const s = new Set(); this.ch.forEach((c) => { for (let i = 0; i < c.length; i++) if (c[i]) s.add(c[i]); }); return s; }
-    // 存档：取有内容的范围，按行展开后游程编码（值, 次数≤255），再转 base64
+    colors() { const s = new Set(); this.ch.forEach((c) => { for (let i = 0; i < c.length; i++) if (c[i]) s.add(c[i]); }); s.delete(0); return s; }
+    // 存档：取有内容的范围，按行展开后游程编码（值, 次数≤255），再转 base64（小图用；大图走 raw() + IndexedDB）
     pack() {
       const b = this.inf ? this.bounds() : { x0: 0, y0: 0, w: this.w, h: this.h };
       const out = { w: this.w, h: this.h, pal: this.pal, x: 0, y: 0, bw: 0, bh: 0, d: '' };
@@ -54,38 +57,72 @@
       if (!o || !o.d) return doc;
       const s = atob(o.d); let x = o.x, y = o.y;
       for (let i = 0; i < s.length; i += 2) { const v = s.charCodeAt(i), n = s.charCodeAt(i + 1); for (let k = 0; k < n; k++) { if (v) doc.set(x, y, v); x++; if (x >= o.x + o.bw) { x = o.x; y++; } } }
-      doc.dirty.clear(); return doc;
+      doc.dirty.clear(); doc.odirty.clear(); return doc;
     }
-    // 画到一块普通画布上（缩放 s 倍），给缩略图、游戏里的外观和特效用
+    // 大图的原样存法：分块数组直接交给 IndexedDB（结构化克隆，不转 base64）
+    raw() { return { v: 2, w: this.w, h: this.h, pal: this.pal, hero: this.hero || null, ch: [...this.ch.entries()] }; }
+    static fromRaw(o) { const d = new Doc(o.w, o.h, o.pal); d.hero = o.hero || null; (o.ch || []).forEach(([k, a]) => d.ch.set(k, a instanceof Uint8Array ? a : new Uint8Array(a))); return d; }
+    // 画到一块普通画布上（缩放 s 倍）：先按块填 ImageData（4K 也只要几十毫秒），再整数倍放大
     toCanvas(s = 1, box) {
       const b = box || (this.inf ? this.bounds() : { x0: 0, y0: 0, w: this.w, h: this.h });
-      const c = document.createElement('canvas'); if (!b) { c.width = c.height = 1; return c; }
-      c.width = b.w * s; c.height = b.h * s; const g = c.getContext('2d');
-      for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) { const v = this.get(b.x0 + x, b.y0 + y); if (v) { g.fillStyle = PAL.color(v); g.fillRect(x * s, y * s, s, s); } }
-      return c;
+      const t = document.createElement('canvas'); if (!b) { t.width = t.height = 1; return t; }
+      t.width = b.w; t.height = b.h; const tg = t.getContext('2d'), im = tg.createImageData(b.w, b.h), D = im.data, rgb = [];
+      this.ch.forEach((a, k) => {
+        const [cx, cy] = k.split(',').map(Number), X0 = cx * CH - b.x0, Y0 = cy * CH - b.y0;
+        if (X0 >= b.w || Y0 >= b.h || X0 + CH <= 0 || Y0 + CH <= 0) return;
+        for (let ly = 0; ly < CH; ly++) { const yy = Y0 + ly; if (yy < 0 || yy >= b.h) continue; for (let lx = 0; lx < CH; lx++) { const v = a[ly * CH + lx]; if (!v) continue; const xx = X0 + lx; if (xx < 0 || xx >= b.w) continue; const c3 = rgb[v] || (rgb[v] = PAL.rgb(v)), o = (yy * b.w + xx) * 4; D[o] = c3[0]; D[o + 1] = c3[1]; D[o + 2] = c3[2]; D[o + 3] = 255; } }
+      });
+      tg.putImageData(im, 0, 0); if (s === 1) return t;
+      const c = document.createElement('canvas'); c.width = b.w * s; c.height = b.h * s; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(t, 0, 0, c.width, c.height); return c;
     }
   }
-  // 任意画布 → 文档（按色卡取最接近的颜色；dither = Floyd–Steinberg 抖动）
+  const BIG = 512 * 512;
+  // 任意图片 → 文档（v9.2：最高 4K）。按 128 行一条分条读取（不一次申请整张图的内存）；查表找最近的造月色；
+  // 抖动用 Floyd–Steinberg，只保留两行误差；直接写分块数组。rect = 图片画进 w×h 的哪个位置（默认铺满）。
+  async function convertImage(src, w, h, pal, dither, rect, onp) {
+    const doc = new Doc(w, h, pal), near = PAL.lut(pal), n = PAL.size(pal), RGB = [null]; for (let i = 1; i <= n; i++) RGB.push(PAL.rgb(i));
+    const R = rect || { x: 0, y: 0, w, h }, SH = 128, c = document.createElement('canvas'); c.width = w; c.height = Math.min(SH, h);
+    const g = c.getContext('2d', { willReadFrequently: true }); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    let eCur = dither ? new Float32Array((w + 2) * 3) : null, eNext = dither ? new Float32Array((w + 2) * 3) : null;
+    const nCx = Math.ceil(w / CH);
+    for (let y0 = 0; y0 < h; y0 += SH) {
+      const rows = Math.min(SH, h - y0); g.clearRect(0, 0, w, c.height); g.drawImage(src, R.x, R.y - y0, R.w, R.h);
+      const px = g.getImageData(0, 0, w, rows).data;
+      for (let ry = 0; ry < rows; ry++) {
+        const y = y0 + ry, cy = y >> 5, ly = (y & 31) * CH, row = new Array(nCx);
+        for (let x = 0; x < w; x++) {
+          const i = (ry * w + x) * 4; if (px[i + 3] < 128) continue;
+          let r = px[i], gg = px[i + 1], b = px[i + 2];
+          if (eCur) { const e = (x + 1) * 3; r = Math.max(0, Math.min(255, r + eCur[e])); gg = Math.max(0, Math.min(255, gg + eCur[e + 1])); b = Math.max(0, Math.min(255, b + eCur[e + 2])); }
+          const v = near(r | 0, gg | 0, b | 0), cx = x >> 5; let a = row[cx];
+          if (!a) { const k = cx + ',' + cy; a = row[cx] = doc.ch.get(k); if (!a) { a = new Uint8Array(CH * CH); doc.ch.set(k, a); } }
+          a[ly + (x & 31)] = v;
+          if (eCur) { const [Rr, Gg, Bb] = RGB[v], er = r - Rr, eg = gg - Gg, eb = b - Bb, e = (x + 1) * 3; eCur[e + 3] += er * 7 / 16; eCur[e + 4] += eg * 7 / 16; eCur[e + 5] += eb * 7 / 16; eNext[e - 3] += er * 3 / 16; eNext[e - 2] += eg * 3 / 16; eNext[e - 1] += eb * 3 / 16; eNext[e] += er * 5 / 16; eNext[e + 1] += eg * 5 / 16; eNext[e + 2] += eb * 5 / 16; eNext[e + 3] += er / 16; eNext[e + 4] += eg / 16; eNext[e + 5] += eb / 16; }
+        }
+        if (eCur) { const t = eCur; eCur = eNext; eNext = t; eNext.fill(0); }
+      }
+      if (onp) onp(Math.min(1, (y0 + rows) / h));
+      await new Promise((ok) => setTimeout(ok, 0));   // 让出主线程：进度能刷新，界面不卡死
+    }
+    return doc;
+  }
+  // 小图（素材样板）用的同步版本
   function fromImage(src, w, h, pal, dither, fit) {
     const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
     g.imageSmoothingEnabled = !!fit && fit.smooth;
     if (fit) { const s = Math.min(w / fit.w, h / fit.h), dw = Math.max(1, Math.round(fit.w * s)), dh = Math.max(1, Math.round(fit.h * s)); g.drawImage(src, Math.floor((w - dw) / 2), Math.floor((h - dh) / 2), dw, dh); }
     else g.drawImage(src, Math.floor((w - src.width) / 2), Math.floor((h - src.height) / 2));
-    const px = g.getImageData(0, 0, w, h).data, doc = new Doc(w, h, pal);
-    const err = dither ? new Float32Array(w * h * 3) : null;
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      const i = y * w + x, a = px[i * 4 + 3]; if (a < 128) continue;
-      let r = px[i * 4], gg = px[i * 4 + 1], b = px[i * 4 + 2];
-      if (err) { r = Math.max(0, Math.min(255, r + err[i * 3])); gg = Math.max(0, Math.min(255, gg + err[i * 3 + 1])); b = Math.max(0, Math.min(255, b + err[i * 3 + 2])); }
-      const v = PAL.nearest(r, gg, b, 255, pal); doc.set(x, y, v);
-      if (err) {
-        const [R, G, B] = PAL.rgb(v), e = [r - R, gg - G, b - B];
-        const sp = (dx, dy, f) => { const xx = x + dx, yy = y + dy; if (xx < 0 || xx >= w || yy >= h) return; const j = (yy * w + xx) * 3; err[j] += e[0] * f; err[j + 1] += e[1] * f; err[j + 2] += e[2] * f; };
-        sp(1, 0, 7 / 16); sp(-1, 1, 3 / 16); sp(0, 1, 5 / 16); sp(1, 1, 1 / 16);
-      }
-    }
-    doc.dirty.clear(); return doc;
+    const px = g.getImageData(0, 0, w, h).data, doc = new Doc(w, h, pal), near = PAL.lut(pal);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; if (px[i + 3] >= 128) doc.set(x, y, near(px[i], px[i + 1], px[i + 2])); }
+    doc.dirty.clear(); doc.odirty.clear(); return doc;
   }
+  // 大图仓库：IndexedDB「zy-pix」（存档只放一个指针，避免存档超出浏览器 5MB 上限而整体存不进去）
+  const PixDB = (() => {
+    let dbp = null; const ok = !!window.indexedDB;
+    const db = () => dbp || (dbp = new Promise((res, rej) => { const r = indexedDB.open('zy-pix', 1); r.onupgradeneeded = () => r.result.createObjectStore('docs'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }));
+    const tx = (mode, fn) => db().then((d) => new Promise((res, rej) => { const t = d.transaction('docs', mode), st = t.objectStore('docs'), q = fn(st); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); }));
+    return { ok, put: (k, v) => tx('readwrite', (s) => s.put(v, k)), get: (k) => tx('readonly', (s) => s.get(k)), del: (k) => tx('readwrite', (s) => s.delete(k)) };
+  })();
 
   // ================= 素材样板 =================
   // 英雄外观：64×64，英雄按 2 倍精度画（1 个英雄格 = 2 个像素），原点在 (12, 24)；游戏里按这个落点画回去，位置完全一致
@@ -117,7 +154,7 @@
     H.list.forEach((h) => { const fx = h.fx; if (fx && fx.pats) L.特效.push({ id: 'fx:' + h.id, name: h.name + '·音符', fx: h.id, make: () => patCanvas(fx.pats, fx.cols, [[0, 2, 2, 2], [1, 9, 4, 2], [2, 5, 10, 2]]) }); });
     L.特效.push({ id: 'fx:notes', name: '通用音符', make: () => patCanvas(CF.PixelFX.NOTES, ['#ffe08a', '#4ef0ff', '#ff9a5c', '#9b7bff'], [[0, 1, 1, 2], [1, 10, 2, 2], [2, 3, 9, 2], [3, 10, 10, 2]]) });
     GEN_FX.forEach(([n, f], i) => L.特效.push({ id: 'fxg:' + i, name: n, make: f }));
-    store().works.forEach((w, i) => L.我的.push({ id: 'my:' + i, name: w.name || '作品 ' + (i + 1), work: i, make: () => Doc.unpack(w.doc).toCanvas(1) }));
+    store().works.forEach((w, i) => L.我的.push({ id: 'my:' + i, name: w.name || '作品 ' + (i + 1), work: i, make: () => Doc.unpack(w.big ? w.thumb : w.doc).toCanvas(1) }));
     return L;
   }
 
@@ -129,19 +166,8 @@
     if (!cache.has(key)) cache.set(key, Doc.unpack(s).toCanvas(1, kind === 'skins' ? { x0: 0, y0: 0, w: SKIN.w, h: SKIN.h } : null));
     return cache.get(key);
   }
-  const PS = (CF.PixStudio = { Doc, SKIN, fromImage, skinCanvas: (id) => canvasOf('skins', id), fxCanvas: (id) => canvasOf('fx', id) });
-  // 所有画英雄的地方（大厅、战场、像素脉冲舞台、图鉴）都走 h.draw：有自定义外观时画你的图（走路时整体上下颠一下）
-  H.list.forEach((h) => {
-    const d0 = h.draw;
-    h.draw = function (ctx, ox, oy, px, a = {}) {
-      const sk = !a.noCustom && PS.skinCanvas(h.id);
-      if (!sk) return d0.call(this, ctx, ox, oy, px, a);
-      const s = px / SKIN.k, bob = a.bob ? Math.round(px * 0.5 * a.bob) : 0, sm = ctx.imageSmoothingEnabled;
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(sk, Math.round(ox - SKIN.ox * s), Math.round(oy - SKIN.oy * s - bob), Math.round(SKIN.w * s), Math.round(SKIN.h * s));
-      ctx.imageSmoothingEnabled = sm;
-    };
-  });
+  const PS = (CF.PixStudio = { Doc, SKIN, fromImage, convertImage, PixDB, BIG, skinCanvas: (id) => { const S = CF.Skins; if (!S) return null; const e = S.equipped(id); return e.startsWith('my-') ? S.img(id, e) : null; }, fxCanvas: (id) => canvasOf('fx', id) });
+  // 英雄外观（皮肤）的绘制在 js/skins.js：经典 / 炫彩 / 我的外观（衣柜），这里只管技能特效
   // 战场：放技能时在落点炸开 6 个你画的特效图案（game.js 调用）
   PS.castFx = function (g, heroId, x, y) { const img = PS.fxCanvas(heroId); if (img) g.fx.push({ k: 'pix', x, y, t: 0, img, n: 6, a0: Math.random() * Math.PI }); };
   PS.drawFx = function (ctx, f) {
@@ -175,8 +201,10 @@
 
   PS.open = function () {
     const st = store(); st.recent = st.recent || [];
-    const last = st.last ? Doc.unpack(st.last) : null;
-    let doc = last || (CF.Save.data.avatar2 ? Doc.unpack(CF.Save.data.avatar2) : legacyAvatar() || new Doc(16, 16, 'zy24'));
+    // 大图草稿（> 512×512）存在 IndexedDB：先放一张同尺寸的空画布，读出来后再换上；读完之前不自动保存，免得覆盖
+    const lastMeta = st.last && st.last.big ? st.last : null, last = st.last && !st.last.big ? Doc.unpack(st.last) : null;
+    let doc = lastMeta ? Object.assign(new Doc(lastMeta.w, lastMeta.h, lastMeta.pal), { hero: lastMeta.hero || null }) : last || (CF.Save.data.avatar2 ? Doc.unpack(CF.Save.data.avatar2) : legacyAvatar() || new Doc(16, 16, 'zy24'));
+    let loading = !!lastMeta, busy = false, ov = null;
     let tool = 'pen', brush = 'pen', col = 14, undo = [], redo = [], stroke = null, cam = { x: 0, y: 0, z: 16 }, hover = null, libCat = '英雄', tab = 'lib';
     let bgMode = st.bg === 'clear' ? 'clear' : 'hero', heroSel = doc.hero || H.current().id, palOpen = false, sheet = null, wasDesk = false;
     const body = CF.h(`<div class="ps2 p">
@@ -199,7 +227,7 @@
         <div class="ps-pr"><span class="ps-l"></span><button class="btn sm ghost" data-act="clear">清空画布</button></div>
       </div>
       <section class="ps-sheet ps-palsheet" aria-label="调色盘" hidden>
-        <div class="ps-sh-h"><i class="ps-grab" data-close></i><b class="ps-sh-t">造月色卡</b><span class="ps-seg" data-seg="pal"><button data-pal="zy24">24 色</button><button data-pal="zy64">64 色</button></span><span class="ps-cur"></span><button class="ps-x" data-close aria-label="收起">✕</button></div>
+        <div class="ps-sh-h"><i class="ps-grab" data-close></i><b class="ps-sh-t">造月色卡</b><span class="ps-seg" data-seg="pal"><button data-pal="zy24">24</button><button data-pal="zy64">64</button><button data-pal="zy256" title="256 色：索引色的行业上限（GIF / PNG-8 / Aseprite）">256</button></span><span class="ps-cur"></span><button class="ps-x" data-close aria-label="收起">✕</button></div>
         <div class="ps-sh-b ps-fams"></div>
       </section>
       <section class="ps-sheet ps-libsheet" aria-label="素材库" hidden>
@@ -240,7 +268,7 @@
     function fit() {
       const dpr = size(), W = cvs.width / dpr, Hh = cvs.height / dpr;
       const b = doc.inf ? (doc.bounds() || { x0: -16, y0: -16, w: 32, h: 32 }) : { x0: 0, y0: 0, w: doc.w, h: doc.h };
-      cam.z = Math.max(0.5, Math.min(48, Math.min(W / b.w, Hh / b.h) * (doc.inf ? 0.8 : 0.94)));
+      cam.z = Math.max(0.02, Math.min(48, Math.min(W / b.w, Hh / b.h) * (doc.inf ? 0.8 : 0.94)));
       if (cam.z >= 2) cam.z = Math.floor(cam.z);
       cam.x = b.x0 + b.w / 2 - W / 2 / cam.z; cam.y = b.y0 + b.h / 2 - Hh / 2 / cam.z; draw();
     }
@@ -272,7 +300,9 @@
       }
       ctx.imageSmoothingEnabled = false;
       const c0 = Math.floor(cam.x / CH), r0 = Math.floor(cam.y / CH), c1 = Math.floor((cam.x + W / z) / CH), r1 = Math.floor((cam.y + Hh / z) / CH);
-      for (let cy = r0; cy <= r1; cy++) for (let cx = c0; cx <= c1; cx++) { const k = cx + ',' + cy; if (!doc.ch.has(k) && !chunkCv.has(k)) continue; ctx.drawImage(chunkCanvas(k), sx(cx * CH), sy(cy * CH), CH * z, CH * z); }
+      // 缩得很小、一屏要画几百块时（4K 大图），改画一张缩略层（最长边 ≤ 1024），放大回来再逐块画
+      if ((c1 - c0 + 1) * (r1 - r0 + 1) > 300 && doc.ch.size > 300) { const o = overview(); if (o) { ctx.imageSmoothingEnabled = z * o.f < 1; ctx.drawImage(o.c, sx(o.x0), sy(o.y0), o.ow * o.f * z, o.oh * o.f * z); ctx.imageSmoothingEnabled = false; } }
+      else for (let cy = r0; cy <= r1; cy++) for (let cx = c0; cx <= c1; cx++) { const k = cx + ',' + cy; if (!doc.ch.has(k) && !chunkCv.has(k)) continue; ctx.drawImage(chunkCanvas(k), sx(cx * CH), sy(cy * CH), CH * z, CH * z); }
       if (z >= 8 * dpr) { // 格线
         ctx.strokeStyle = 'rgba(255,255,255,.08)'; ctx.lineWidth = 1; ctx.beginPath();
         for (let x = Math.ceil(cam.x); x <= cam.x + W / z; x++) { if (!doc.inf && (x < 0 || x > doc.w)) continue; const X = Math.round(sx(x)) + 0.5; ctx.moveTo(X, ay); ctx.lineTo(X, by); }
@@ -283,29 +313,66 @@
       if (hover && tool !== 'hand') { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.strokeRect(sx(hover[0]) + 0.75, sy(hover[1]) + 0.75, z - 1.5, z - 1.5); }
       info.textContent = `${doc.inf ? '无限' : doc.w + '×' + doc.h} · ${Math.round(cam.z * 100) / 100}×${hover ? ' · ' + hover[0] + ',' + hover[1] : ''}`;
     }
+    function overview() {
+      const rect = doc.inf ? doc.chunkBounds() : { x0: 0, y0: 0, w: doc.w, h: doc.h }; if (!rect) return null;
+      let f = 1; while (Math.max(rect.w, rect.h) / f > 1024 && f < 32) f *= 2;
+      if (!ov || ov.f !== f || ov.x0 !== rect.x0 || ov.y0 !== rect.y0 || ov.w !== rect.w || ov.h !== rect.h) {
+        const ow = Math.ceil(rect.w / f), oh = Math.ceil(rect.h / f), c = document.createElement('canvas'); c.width = ow; c.height = oh; const g = c.getContext('2d');
+        ov = Object.assign({}, rect, { f, c, g, ow, oh, im: g.createImageData(ow, oh), rgb: [] }); doc.odirty = new Set(doc.ch.keys());
+      }
+      if (doc.odirty.size) {
+        const D = ov.im.data, f2 = ov.f;
+        doc.odirty.forEach((k) => { const [cx, cy] = k.split(',').map(Number), a = doc.ch.get(k), X0 = cx * CH - ov.x0, Y0 = cy * CH - ov.y0;
+          for (let ly = 0; ly < CH; ly += f2) { const oy = (Y0 + ly) / f2; if (oy < 0 || oy >= ov.oh) continue; for (let lx = 0; lx < CH; lx += f2) { const ox = (X0 + lx) / f2; if (ox < 0 || ox >= ov.ow) continue; const v = a ? a[ly * CH + lx] : 0, o = (oy * ov.ow + ox) * 4; if (v) { const c3 = ov.rgb[v] || (ov.rgb[v] = PAL.rgb(v)); D[o] = c3[0]; D[o + 1] = c3[1]; D[o + 2] = c3[2]; D[o + 3] = 255; } else D[o + 3] = 0; } } });
+        doc.odirty.clear(); ov.g.putImageData(ov.im, 0, 0);
+      }
+      return ov;
+    }
+    const cloneMap = (m) => new Map([...m].map(([k, a]) => [k, a.slice()]));
     const cell = (e) => { const r = cvs.getBoundingClientRect(); return [Math.floor(cam.x + (e.clientX - r.left) / cam.z), Math.floor(cam.y + (e.clientY - r.top) / cam.z)]; };
     function zoomAt(f, cxs, cys) {
       const r = cvs.getBoundingClientRect(), mx = cxs - r.left, my = cys - r.top, wx = cam.x + mx / cam.z, wy = cam.y + my / cam.z;
-      cam.z = Math.max(0.25, Math.min(64, cam.z * f)); cam.x = wx - mx / cam.z; cam.y = wy - my / cam.z; draw();
+      cam.z = Math.max(0.02, Math.min(64, cam.z * f)); cam.x = wx - mx / cam.z; cam.y = wy - my / cam.z; draw();
     }
     // ---------- 画 ----------
     function put(x, y, v) { const o = doc.set(x, y, v); if (o < 0 || o === v) return; const k = x + ',' + y; if (!stroke.has(k)) stroke.set(k, [o, v]); else stroke.get(k)[1] = v; }
     function line(a, b, v) { let [x0, y0] = a; const [x1, y1] = b, dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx2 = x0 < x1 ? 1 : -1, sy2 = y0 < y1 ? 1 : -1; let e = dx + dy; for (;;) { put(x0, y0, v); if (x0 === x1 && y0 === y1) break; const e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += sx2; } if (e2 <= dx) { e += dx; y0 += sy2; } } }
     function flood(x, y, v) {
       const from = doc.get(x, y); if (from === v || !doc.inside(x, y)) return;
-      const b = doc.inf ? (() => { const bb = doc.bounds() || { x0: x, y0: y, x1: x, y1: y }; return { x0: Math.min(bb.x0, x) - 32, y0: Math.min(bb.y0, y) - 32, x1: Math.max(bb.x1, x) + 32, y1: Math.max(bb.y1, y) + 32 }; })() : { x0: 0, y0: 0, x1: doc.w - 1, y1: doc.h - 1 };
-      const q = [[x, y]], seen = new Set(); let n = 0;
+      let n = 0;
+      if (!doc.inf) { // 固定画布：用一张标记表，4K 也能填（一次最多 30 万格，超过的再点一下接着填）
+        const W = doc.w, Hh = doc.h, CAP = 300000, seen = new Uint8Array(W * Hh), q = [y * W + x]; seen[y * W + x] = 1;
+        while (q.length && n < CAP) { const i = q.pop(), px = i % W, py = (i - px) / W; if (doc.get(px, py) !== from) continue; put(px, py, v); n++;
+          if (px > 0 && !seen[i - 1]) { seen[i - 1] = 1; q.push(i - 1); } if (px < W - 1 && !seen[i + 1]) { seen[i + 1] = 1; q.push(i + 1); }
+          if (py > 0 && !seen[i - W]) { seen[i - W] = 1; q.push(i - W); } if (py < Hh - 1 && !seen[i + W]) { seen[i + W] = 1; q.push(i + W); } }
+        if (n >= CAP) note('区域太大：这次填了 30 万格，再点一下接着填');
+        return;
+      }
+      const b = (() => { const bb = doc.bounds() || { x0: x, y0: y, x1: x, y1: y }; return { x0: Math.min(bb.x0, x) - 32, y0: Math.min(bb.y0, y) - 32, x1: Math.max(bb.x1, x) + 32, y1: Math.max(bb.y1, y) + 32 }; })();
+      const q = [[x, y]], seen = new Set();
       while (q.length && n < 80000) { const [px, py] = q.pop(), k = px + ',' + py; if (seen.has(k) || px < b.x0 || py < b.y0 || px > b.x1 || py > b.y1 || doc.get(px, py) !== from) continue; seen.add(k); put(px, py, v); n++; q.push([px + 1, py], [px - 1, py], [px, py + 1], [px, py - 1]); }
     }
     function commit() { if (stroke && stroke.size) { undo.push(stroke); if (undo.length > UNDO_MAX) undo.shift(); redo = []; autosave(); } stroke = null; undoUi(); }
     function applyPatch(p, which) {
-      let hi = 0; p.forEach((ov, k) => { const [x, y] = k.split(',').map(Number); doc.set(x, y, ov[which]); if (ov[which] > hi) hi = ov[which]; });
-      if (hi > PAL.size(doc.pal)) { doc.pal = 'zy64'; palSeg(); fams(); }   // 撤销「64 → 24 换色」时色卡也回到 64 色
+      if (p.snap) { // 整张图的操作（清空、换色卡）记的是前后两份快照
+        doc.ch = cloneMap(p.snap[which]); if (p.pal) doc.pal = p.pal[which]; doc.touchAll(); chunkCv.clear(); ov = null;
+        if (col > PAL.size(doc.pal)) col = 14; palSeg(); fams(); draw(); autosave(); undoUi(); return;
+      }
+      let hi = 0; p.forEach((o2, k) => { const [x, y] = k.split(',').map(Number); doc.set(x, y, o2[which]); if (o2[which] > hi) hi = o2[which]; });
+      if (hi > PAL.size(doc.pal)) { doc.pal = hi > 64 ? 'zy256' : 'zy64'; palSeg(); fams(); }
       draw(); autosave(); undoUi();
     }
     function undoUi() { const r = $('.ps-redo'); if (r) r.hidden = !redo.length; }
     let saveT = 0;
-    function autosave() { clearTimeout(saveT); saveT = setTimeout(() => { doc.hero = heroSel; store().last = doc.pack(); CF.Save.save(); }, 600); }
+    function autosave() {
+      if (loading) return; clearTimeout(saveT); const big = doc.big();
+      saveT = setTimeout(() => {
+        doc.hero = heroSel;
+        if (!big) { store().last = doc.pack(); CF.Save.save(); return; }
+        if (!PixDB.ok) return note('这台设备不能保存大图（浏览器数据库不可用）', 'bad');
+        const d = doc; PixDB.put('last', d.raw()).then(() => { store().last = { big: 'last', w: d.w, h: d.h, pal: d.pal, hero: d.hero }; CF.Save.save(); }).catch(() => note('大图没存进去：设备空间可能不够', 'bad'));
+      }, big ? 2500 : 600);
+    }
     // 指针：一指画 / 两指缩放移动 / 两指轻点撤销、三指轻点重做 / 右键、空格、「移动」拖动画布
     const ptrs = new Map(); let pan = null, gest = null, last2 = null, space = false, multi = null;
     cvs.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -371,7 +438,7 @@
       else if (a === 'in') { const r = cvs.getBoundingClientRect(); zoomAt(1.5, r.left + r.width / 2, r.top + r.height / 2); }
       else if (a === 'out') { const r = cvs.getBoundingClientRect(); zoomAt(1 / 1.5, r.left + r.width / 2, r.top + r.height / 2); }
       else if (a === 'fit') fit();
-      else if (a === 'clear') { if (!doc.ch.size) return note('画布本来就是空的'); stroke = new Map(); doc.ch.forEach((c, k) => { const [cx, cy] = k.split(',').map(Number); for (let i = 0; i < c.length; i++) if (c[i]) put(cx * CH + (i % CH), cy * CH + ((i / CH) | 0), 0); }); commit(); draw(); note('已清空（↶ 可撤销）'); }
+      else if (a === 'clear') { if (!doc.ch.size) return note('画布本来就是空的'); undo.push({ snap: [doc.ch, new Map()] }); if (undo.length > UNDO_MAX) undo.shift(); redo = []; doc.ch = new Map(); chunkCv.clear(); ov = null; doc.touchAll(); draw(); autosave(); undoUi(); note('已清空（↶ 可撤销）'); }
     }
     // 弹层（画笔组、画布）和抽屉（调色盘、素材库）
     function pop(name, anchor) {
@@ -429,25 +496,36 @@
     }
     function setHero(id) { heroSel = id; bgStage.o.hero = id; doc.hero = id; draw(); }
     function setDoc(d, msg) {
-      doc = d; chunkCv.clear(); undo = []; redo = []; undoUi(); if (d.hero) setHero(d.hero);
-      $$('[data-size]').forEach((b) => b.classList.toggle('on', +b.dataset.size === doc.w && (doc.inf ? b.dataset.size === '0' : true)));
+      doc = d; chunkCv.clear(); ov = null; undo = []; redo = []; undoUi(); if (d.hero) setHero(d.hero);
+      $$('[data-size]').forEach((b) => b.classList.toggle('on', doc.inf ? b.dataset.size === '0' : +b.dataset.size === doc.w && doc.w === doc.h));
       palSeg(); fams(); fit(); autosave(); if (msg) note(msg);
     }
     $$('[data-size]').forEach((b) => (b.onclick = (e) => {
       e.stopPropagation(); CF.Audio.sfx('click'); const n = +b.dataset.size; if (n === doc.w && (n ? !doc.inf : doc.inf)) return;
       // 换尺寸：把现在的画按左上角原样搬进新画布（超出的部分裁掉；换成无限画布时什么都不丢）
-      const nd = new Doc(n, n, doc.pal); nd.hero = doc.hero; doc.ch.forEach((c, k) => { const [cx, cy] = k.split(',').map(Number); for (let i = 0; i < c.length; i++) if (c[i]) nd.set(cx * CH + (i % CH), cy * CH + ((i / CH) | 0), c[i]); }); nd.dirty.clear();
+      if (busy) return;
+      const nd = new Doc(n, n, doc.pal); nd.hero = doc.hero;
+      doc.ch.forEach((c, k) => { // 按块搬：整块在里面直接搬，压在边上的块逐格裁（4K 也是一眨眼）
+        const [cx, cy] = k.split(',').map(Number), X = cx * CH, Y = cy * CH;
+        if (n && (X >= n || Y >= n || X + CH <= 0 || Y + CH <= 0)) return;
+        if (!n || (X >= 0 && Y >= 0 && X + CH <= n && Y + CH <= n)) { nd.ch.set(k, c); return; }
+        const a = new Uint8Array(CH * CH); for (let i = 0; i < c.length; i++) { const x = X + (i % CH), y = Y + ((i / CH) | 0); if (x >= 0 && y >= 0 && x < n && y < n) a[i] = c[i]; } nd.ch.set(k, a);
+      });
       setDoc(nd, n ? `画布 ${n}×${n}` : '无限画布：往哪边画都有地方');
     }));
     // ---------- 调色盘（色系分类：灰阶 → 色环，每行一条从暗到亮的色阶） ----------
     function palSeg() { $$('[data-pal]').forEach((x) => x.classList.toggle('on', x.dataset.pal === doc.pal)); }
     $$('[data-pal]').forEach((b) => (b.onclick = (e) => {
-      e.stopPropagation(); CF.Audio.sfx('click'); if (doc.pal === b.dataset.pal) return;
-      doc.pal = b.dataset.pal; if (col > PAL.size(doc.pal)) col = 14;
-      // 64 → 24：画里用到的英雄色换成 24 色里最接近的（记进撤销，点撤销能换回来）
-      const n = PAL.size(doc.pal); stroke = new Map(); let moved = 0;
-      doc.ch.forEach((c, k) => { const [cx, cy] = k.split(',').map(Number); for (let i = 0; i < c.length; i++) if (c[i] > n) { const [r, g, bb] = PAL.rgb(c[i]); put(cx * CH + (i % CH), cy * CH + ((i / CH) | 0), PAL.nearest(r, g, bb, 255, doc.pal)); moved++; } });
-      commit(); if (moved) note(`${moved} 格换成了最接近的 24 色（可撤销）`);
+      e.stopPropagation(); CF.Audio.sfx('click'); const to = b.dataset.pal, from = doc.pal; if (from === to || busy) return;
+      // 换到更小的色卡：画里超出的颜色换成新色卡里最接近的（整张图前后快照记进撤销，点撤销能换回来）
+      const n = PAL.size(to), used = [...doc.colors()].filter((v) => v > n), map = new Uint8Array(256);
+      doc.pal = to; if (col > n) col = 14;
+      if (used.length) {
+        for (let i = 0; i < 256; i++) map[i] = i; used.forEach((v) => { const [r, g, bb] = PAL.rgb(v); map[v] = PAL.nearest(r, g, bb, 255, to); });
+        const before = cloneMap(doc.ch); let moved = 0; doc.ch.forEach((a) => { for (let i = 0; i < a.length; i++) if (a[i] > n) { a[i] = map[a[i]]; moved++; } });
+        undo.push({ snap: [before, cloneMap(doc.ch)], pal: [from, to] }); if (undo.length > UNDO_MAX) undo.shift(); redo = []; doc.touchAll(); chunkCv.clear(); ov = null; undoUi();
+        note(`${moved} 格换成了${PAL.SETS[to].name}里最接近的颜色（可撤销）`);
+      }
       palSeg(); fams(); cur(); draw(); autosave();
     }));
     function swatch(i) { return `<button class="ps-c${i === col ? ' on' : ''}" data-c="${i}" style="--c:${PAL.color(i)}" title="${CF.esc(PAL.name(i))} ${PAL.color(i)}" aria-label="${CF.esc(PAL.name(i))}"></button>`; }
@@ -483,29 +561,47 @@
       frame.querySelectorAll('[data-cat]').forEach((b) => (b.onclick = (e) => { e.stopPropagation(); CF.Audio.sfx('click'); libCat = b.dataset.cat; libPane(); }));
     }
     function openAsset(it, img) {
-      if (it.work !== undefined) { const w = store().works[it.work]; setDoc(Doc.unpack(w.doc), `打开了「${it.name}」`); openSheet(null); return; }
+      if (it.work !== undefined) {
+        const w = store().works[it.work]; openSheet(null);
+        if (!w.big) { setDoc(Doc.unpack(w.doc), `打开了「${it.name}」`); return; }
+        note('正在载入大图…', '', 30000); PixDB.get(w.big).then((raw) => { if (raw) setDoc(Doc.fromRaw(raw), `打开了「${it.name}」（${raw.w}×${raw.h}）`); else note('这幅大图找不到了', 'bad'); }).catch(() => note('大图读取失败', 'bad'));
+        return;
+      }
       const n = Math.max(img.width, img.height), s = n <= 16 ? 16 : n <= 64 ? 64 : 256;
       const d = fromImage(img, s, s, 'zy64', false, null); d.src = it; d.hero = it.hero || it.fx || heroSel;
       setDoc(d, `已打开「${it.name}」（${s}×${s}，造月 64 色）`); openSheet(null);
     }
+    const RES = [['canvas', '跟随画布'], ['256', '256'], ['512', '512'], ['1024', '1024'], ['2048', '2K（2048）'], ['4096', '4K（最长边 4096）']];
     function upPane() {
+      const S = store(), res = S.upRes || 'canvas', upal = S.upPal || doc.pal;
       frame.innerHTML = `<div class="ps-up">
-        <label class="btn primary ps-file">选择图片<input type="file" accept="image/*" aria-label="选择图片"></label>
-        <label class="ps-ck"><input type="checkbox" data-dither> 抖动（照片更细腻；像素画关掉更干净）</label>
-        <p class="ps-hint">图片会缩放进当前画布（无限画布按最长边 128 格），每个像素换成<b>${PAL.SETS[doc.pal].name}</b>里最接近的颜色；半透明的地方变透明。想要更多颜色，先在调色盘里切到 64 色。</p>
+        <div class="ps-r"><label class="btn primary ps-file">选择图片<input type="file" accept="image/*" aria-label="选择图片"></label>
+          <label class="ps-ck">分辨率 <select class="ps-res" aria-label="分辨率">${RES.map(([v, n]) => `<option value="${v}" ${v === res ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+          <label class="ps-ck">色卡 <select class="ps-upal" aria-label="换成哪套色卡">${PAL.sets().map((k) => `<option value="${k}" ${k === upal ? 'selected' : ''}>${PAL.SETS[k].name}</option>`).join('')}</select></label></div>
+        <label class="ps-ck"><input type="checkbox" data-dither ${S.upDither ? 'checked' : ''}> 抖动（照片更细腻；像素画关掉更干净）</label>
+        <p class="ps-hint">「跟随画布」把图片缩进当前画布（无限画布按最长边 128 格）；选了分辨率就按图片比例新建画布，最高 <b>4K（最长边 4096 像素，3840×2160 的 4K 照片按原尺寸换色）</b>，比原图大时不放大。每个像素换成所选色卡里最接近的颜色，<b>造月 256 色</b>是索引色的行业上限（GIF / PNG-8 / 专业像素软件的索引模式都是 256）。分辨率越高越慢，4K 约需几秒；超过 512×512 的大图保存在本机的浏览器数据库里。</p>
         <div class="ps-prev"></div></div>`;
-      const inp = frame.querySelector('input[type=file]');
+      const inp = frame.querySelector('input[type=file]'), sel = frame.querySelector('.ps-res'), psel = frame.querySelector('.ps-upal'), dck = frame.querySelector('[data-dither]');
+      sel.onchange = () => { S.upRes = sel.value; CF.Save.save(); }; psel.onchange = () => { S.upPal = psel.value; CF.Save.save(); }; dck.onchange = () => { S.upDither = dck.checked; CF.Save.save(); };
       inp.onchange = () => {
-        const f = inp.files && inp.files[0]; if (!f) return;
+        const f = inp.files && inp.files[0]; if (!f || busy) return;
+        if (f.size > 60 * 1024 * 1024) return note('图片太大（上限 60MB）', 'bad');
         const url = URL.createObjectURL(f), im = new Image();
-        im.onload = () => {
-          const n = doc.inf ? 128 : doc.w, r = im.width / im.height, w = doc.inf ? (r >= 1 ? n : Math.max(1, Math.round(n * r))) : n, hh = doc.inf ? (r >= 1 ? Math.max(1, Math.round(n / r)) : n) : n;
-          const d = fromImage(im, w, hh, doc.pal, frame.querySelector('[data-dither]').checked, { w: im.width, h: im.height, smooth: true }); d.hero = heroSel;
-          if (doc.inf) { const nd = new Doc(0, 0, doc.pal); nd.hero = heroSel; d.ch.forEach((c, k) => { const [cx, cy] = k.split(',').map(Number); for (let i = 0; i < c.length; i++) if (c[i]) nd.set(cx * CH + (i % CH) - (w >> 1), cy * CH + ((i / CH) | 0) - (hh >> 1), c[i]); }); nd.dirty.clear(); setDoc(nd); } else setDoc(d);
-          URL.revokeObjectURL(url);
-          const used = doc.colors().size;
-          frame.querySelector('.ps-prev').innerHTML = `<p class="ps-ok">已换成${PAL.SETS[doc.pal].name}：用了 ${used} 种颜色。可以接着改，或者去「保存」。</p>`;
-          note(`已换成造月色：${used} 种颜色`, 'gold'); CF.Audio.sfx('correct');
+        im.onload = async () => {
+          const r = sel.value, pal = psel.value, iw = im.naturalWidth, ih = im.naturalHeight; let W, Hh, rect, intoInf = false;
+          if (r === 'canvas' && doc.inf) { const n = 128, k = n / Math.max(iw, ih); W = Math.max(1, Math.round(iw * k)); Hh = Math.max(1, Math.round(ih * k)); intoInf = true; }
+          else if (r === 'canvas') { W = doc.w; Hh = doc.h; const k = Math.min(W / iw, Hh / ih), dw = Math.max(1, Math.round(iw * k)), dh = Math.max(1, Math.round(ih * k)); rect = { x: Math.floor((W - dw) / 2), y: Math.floor((Hh - dh) / 2), w: dw, h: dh }; }
+          else { const L = Math.min(+r, Math.max(iw, ih)), k = L / Math.max(iw, ih); W = Math.max(1, Math.round(iw * k)); Hh = Math.max(1, Math.round(ih * k)); }
+          busy = true; inp.disabled = true; const t0 = performance.now();
+          try {
+            const d = await convertImage(im, W, Hh, pal, dck.checked, rect, (p) => note(`换成造月色中 ${Math.round(p * 100)}%（${W}×${Hh}）`, '', 600000));
+            d.hero = heroSel;
+            if (intoInf) { const nd = new Doc(0, 0, pal); nd.hero = heroSel; d.ch.forEach((c, k) => { const [cx, cy] = k.split(',').map(Number); for (let i = 0; i < c.length; i++) if (c[i]) nd.set(cx * CH + (i % CH) - (W >> 1), cy * CH + ((i / CH) | 0) - (Hh >> 1), c[i]); }); nd.dirty.clear(); setDoc(nd); } else setDoc(d);
+            const used = doc.colors().size, sec = ((performance.now() - t0) / 1000).toFixed(1);
+            frame.querySelector('.ps-prev').innerHTML = `<p class="ps-ok">已换成${PAL.SETS[pal].name}：${W}×${Hh}，用了 ${used} 种颜色，耗时 ${sec} 秒。可以接着改，或者去「保存」。</p>`;
+            note(`已换成造月色：${W}×${Hh}，${used} 种颜色`, 'gold'); CF.Audio.sfx('correct');
+          } catch (e) { note('换色失败：图片可能太大，换一张或选低一点的分辨率', 'bad'); }
+          busy = false; inp.disabled = false; URL.revokeObjectURL(url);
         };
         im.onerror = () => { URL.revokeObjectURL(url); note('这张图片读不出来，换一张试试', 'bad'); };
         im.src = url;
@@ -518,9 +614,9 @@
         <div class="ps-r"><input class="ps-name" maxlength="16" placeholder="作品名字" value="${CF.esc((doc.src && doc.src.name) || '')}" aria-label="作品名字"><button class="btn sm" data-s="work">存为作品</button></div>
         <div class="ps-r"><button class="btn sm" data-s="avatar">设为指挥官头像</button><span class="ps-hint">战场通讯框里显示，缩成 16×16</span></div>
         <div class="ps-r"><button class="btn sm" data-s="png">导出 PNG</button><span class="ps-hint">放大成清晰的像素图，存到手机或电脑</span></div>
-        <div class="ps-r"><select class="ps-hero" aria-label="选择英雄">${H.list.map((h) => `<option value="${h.id}" ${h.id === heroSel ? 'selected' : ''}>${h.name}${store().skins[h.id] ? ' ·外观' : ''}${store().fx[h.id] ? ' ·特效' : ''}</option>`).join('')}</select><span class="ps-hint">画布背景也换成这位英雄的主题</span></div>
-        <div class="ps-r"><button class="btn sm" data-s="skin">设为英雄外观</button><button class="btn sm" data-s="fx">设为技能特效</button><button class="btn sm ghost" data-s="reset">恢复这位英雄默认</button></div>
-        <p class="ps-hint">英雄外观：64×64，先在「素材 · 英雄」里打开这位英雄的样板再改，位置最准。技能特效：放技能时在落点炸开、舞台上飘出来的图案，16×16 最合适。</p>
+        <div class="ps-r"><select class="ps-hero" aria-label="选择英雄">${H.list.map((h) => `<option value="${h.id}" ${h.id === heroSel ? 'selected' : ''}>${h.name}${CF.Skins && CF.Skins.equipped(h.id) !== 'classic' ? ' ·皮肤' : ''}${store().fx[h.id] ? ' ·特效' : ''}</option>`).join('')}</select><span class="ps-hint">画布背景也换成这位英雄的主题</span></div>
+        <div class="ps-r"><button class="btn sm" data-s="skin">存进衣柜并穿上</button><button class="btn sm" data-s="fx">设为技能特效</button><button class="btn sm ghost" data-s="reset">恢复这位英雄默认</button></div>
+        <p class="ps-hint">英雄外观：64×64，先在「素材 · 英雄」里打开这位英雄的样板再改，位置最准；每位英雄的衣柜最多放 ${CF.Skins ? CF.Skins.MAX_MINE : 6} 套，在商城「皮肤」或英雄档案里换着穿。技能特效：放技能时在落点炸开、舞台上飘出来的图案，16×16 最合适。</p>
       </div>`;
       frame.querySelector('.ps-hero').onchange = (e) => { setHero(e.target.value); autosave(); };
       frame.querySelectorAll('[data-s]').forEach((b) => (b.onclick = (e) => { e.stopPropagation(); CF.Audio.sfx('click'); save(b.dataset.s); }));
@@ -535,6 +631,7 @@
     function exportPng() {
       const b = doc.inf ? doc.bounds() : { x0: 0, y0: 0, w: doc.w, h: doc.h };
       if (!b || !doc.colors().size) { CF.Audio.sfx('error'); return note('画布是空的，先画点什么吧', 'bad'); }
+      if (doc.big()) note('正在导出大图…', '', 20000);
       const k = Math.max(1, Math.floor(512 / Math.max(b.w, b.h))), c = doc.toCanvas(k, b);
       // 文件名只用英文和数字：有些系统会把中文文件名换成「download」
       const t = new Date(), pad = (v) => String(v).padStart(2, '0'), file = `zaoyue-pixel-${b.w}x${b.h}-${t.getFullYear()}${pad(t.getMonth() + 1)}${pad(t.getDate())}-${pad(t.getHours())}${pad(t.getMinutes())}${pad(t.getSeconds())}.png`;
@@ -546,17 +643,28 @@
       if (kind === 'png') return exportPng();
       const S = store(), n = doc.colors().size, h = H.get(heroSel);
       if (kind !== 'reset' && n < 2) { CF.Audio.sfx('error'); return note('至少用 2 种颜色画点什么吧', 'bad'); }
-      if (kind === 'work') { const name = (frame.querySelector('.ps-name').value || '').trim() || '作品 ' + (S.works.length + 1); S.works.unshift({ name, t: Date.now(), doc: doc.pack() }); if (S.works.length > 24) S.works.length = 24; note(`已存为作品「${name}」`, 'gold'); }
+      if (kind === 'work') {
+        const name = (frame.querySelector('.ps-name').value || '').trim() || '作品 ' + (S.works.length + 1), t = Date.now(), entry = { name, t };
+        const trim = () => S.works.splice(24).forEach((w) => w.big && PixDB.del(w.big).catch(() => {}));
+        if (doc.big()) { // 大图：本体进 IndexedDB，存档里只放名字和一张 64×64 缩略图
+          if (!PixDB.ok) return note('这台设备不能保存大图', 'bad');
+          Object.assign(entry, { big: 'work:' + t, w: doc.w, h: doc.h, thumb: scaled(64, 64).pack() });
+          PixDB.put(entry.big, doc.raw()).then(() => { S.works.unshift(entry); trim(); CF.Save.save(); note(`已存为作品「${name}」（${doc.w}×${doc.h}）`, 'gold'); CF.Audio.sfx('correct'); }).catch(() => note('大图没存进去：设备空间可能不够', 'bad'));
+          return;
+        }
+        entry.doc = doc.pack(); S.works.unshift(entry); trim(); note(`已存为作品「${name}」`, 'gold');
+      }
       else if (kind === 'avatar') { CF.Save.data.avatar2 = (doc.w === 16 && !doc.inf ? doc : scaled(16, 16)).pack(); note('已设为指挥官头像', 'gold'); }
-      else if (kind === 'skin') { const d = doc.w === SKIN.w && !doc.inf ? doc : scaled(SKIN.w, SKIN.h); S.skins[h.id] = d.pack(); cache.clear(); note(`${h.name}换上了你画的外观`, 'gold'); }
+      else if (kind === 'skin') { const d = doc.w === SKIN.w && doc.h === SKIN.h && !doc.inf ? doc : scaled(SKIN.w, SKIN.h), nm = (frame.querySelector('.ps-name').value || '').trim(); CF.Skins.addMine(h.id, d.pack(), nm || undefined); note(`${h.name}换上了你画的外观（已存进衣柜）`, 'gold'); }
       else if (kind === 'fx') { const d = doc.inf || doc.w > 64 ? scaled(32, 32) : doc; S.fx[h.id] = d.pack(); cache.clear(); note(`${h.name}的技能特效换成你画的了`, 'gold'); }
-      else if (kind === 'reset') { delete S.skins[h.id]; delete S.fx[h.id]; cache.clear(); note(`${h.name}恢复了默认外观和特效`); savePane(); CF.Save.save(); return; }
+      else if (kind === 'reset') { CF.Skins.equip(h.id, 'classic'); delete S.fx[h.id]; cache.clear(); note(`${h.name}换回经典外观和默认特效（衣柜里的保留）`); savePane(); CF.Save.save(); return; }
       CF.Save.save(); CF.Audio.sfx('correct');
       if (kind !== 'work') CF.P.finishLab('pixel', stars());
       if (tab === 'save') savePane();
     }
 
     setTool('pen'); setBg(bgMode); setDoc(doc); setCol(col);
+    if (lastMeta) { note('正在载入上次的大图…', '', 30000); PixDB.get('last').then((raw) => { loading = false; if (raw) setDoc(Doc.fromRaw(raw), `已载入上次的大图（${raw.w}×${raw.h}）`); else note('上次的大图找不到了'); }).catch(() => { loading = false; note('大图读取失败', 'bad'); }); }
     requestAnimationFrame(() => { layout(); fit(); });
   };
 })();

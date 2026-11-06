@@ -909,14 +909,14 @@ input[type=range]{width:100%;accent-color:var(--orange);touch-action:pan-x;heigh
 .ps2.l{grid-template-columns:72px minmax(0,1fr);grid-template-rows:36px minmax(0,1fr);grid-template-areas:"dock top" "dock cv"}
 .ps2.l .ps-dock{grid-template-columns:1fr;align-content:center;gap:10px;padding:0;background:linear-gradient(90deg,#0b0a12cc,#0b0a1200);border-radius:12px}
 .ps2.l .ps-dk{height:62px}
-.ps2.l .ps-sheet{left:auto;top:0;width:min(380px,50%);height:auto;border-radius:18px 0 0 18px;border-top:0;border-left:1px solid var(--line2);animation-name:psIn}
+.ps2.l .ps-sheet{left:auto;top:46px;width:min(380px,50%);height:auto;border-radius:18px 0 0 18px;border-top:1px solid var(--line2);border-left:1px solid var(--line2);animation-name:psIn}
 .ps2.l .ps-libsheet{width:min(500px,60%)}
 .ps2.l .ps-grab{display:none}
 /* 大屏横屏：色板常驻右侧一栏 */
 .ps2.d{grid-template-columns:84px minmax(0,1fr) 340px;grid-template-areas:"dock top pal" "dock cv pal"}
 .ps2.d .ps-palsheet{position:relative;grid-area:pal;width:auto;border-radius:14px;border:1px solid var(--line2);animation:none;box-shadow:none}
 .ps2.d .ps-palsheet .ps-x{display:none}
-.ps2.d .ps-libsheet{z-index:7}
+.ps2.d .ps-libsheet{z-index:7;right:354px}
 /* 说明（?） */
 .ps-help{position:absolute;inset:0;z-index:8;background:#05040a99;display:grid;place-items:center;padding:16px}
 .ps-help-c{max-width:440px;max-height:100%;overflow:auto;background:var(--bg2);border:1px solid var(--line2);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:1.6}
@@ -1055,6 +1055,24 @@ body.reduce-motion .btn.primary::after{animation:none;display:none}
 .set-sec[hidden]{display:none}
 .set-sec .set-row{border-bottom:1px solid #ffffff10}
 .btn.primary .c-chip{color:#5a2d00;text-shadow:none}
+.ps-up select{height:32px;padding:0 8px;border-radius:7px;border:1px solid var(--line2);background:var(--bg);color:var(--text);font-size:13px}
+.ps-up .ps-r{gap:10px}
+/* 皮肤（v9.2） */
+.skin-name b em{font-style:normal;font-size:.62em;margin-left:6px;color:#ffe08a}
+.skin-card em{font-style:normal;font-size:10px;color:var(--dim);text-align:center}
+.skin-card{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--r,#c9d4ff) 25%,transparent)}
+.skin-card.on{border-color:#ffd257;box-shadow:0 0 0 1px #ffd257,0 0 16px #ffb14a66}
+.skin-card.lock canvas{filter:saturate(.75) brightness(.8)}
+.skin-card.lock em{color:#ffd9b0}
+.skin-card.add{justify-content:center;border-style:dashed}
+.skin-plus{display:grid;place-items:center;width:100%;aspect-ratio:1;font-size:32px;color:var(--dim);border-radius:8px;background:#ffffff06}
+.skin-av.lock canvas{filter:grayscale(.9) brightness(.6)}
+.skin-list{grid-template-columns:repeat(auto-fill,minmax(84px,1fr))}
+.hd-skins{display:grid;gap:8px}
+@media (orientation:landscape) and (min-width:700px){.skin-show .skin-list{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* v9.2 学院 / 征程 / 成就换成左侧导航（UI 宪法第 27 章 27.2） */
+.camp-sec[hidden],#academyTabs[hidden]{display:none!important}
+.rail-main .chap:first-child{margin-top:0}
 
 </style>
 </head>
@@ -3882,7 +3900,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     ['streak7', '📅', '七日不辍', '连续 7 天有学习记录', () => S().streak.count >= 7],
     ['whole', '🌱', '德智体美', '德、智、体、美四维都达到 30', () => ['de', 'zhi', 'ti', 'mei'].every((k) => S().dims[k] >= 30)],
     ['founder5', '💡', '第一性原理', '完成 5 个企业家情景决策', () => P.scenarioCount() >= 5],
-    ['pixel', '🎨', '像素艺术家', '保存自己的像素头像', () => !!S().avatar],
+    ['pixel', '🎨', '像素艺术家', '保存自己的像素头像', () => !!(S().avatar || S().avatar2)],
     ['rank6', '🔬', '首席科学家', '军衔达到「首席科学家」', () => P.rank().idx >= 6],
   ].map((a) => ({ id: a[0], icon: a[1], name: a[2], desc: a[3], test: a[4] }));
   P.ACH = ACH;
@@ -4665,7 +4683,202 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     ['#ff9a5c', '灯语·点缀'],
     ['#ffe0cc', '造乐·肤色'],
   ];
-  const ALL = BASE.concat(HERO);   // 1…64
+  // v9.2「造月 256 色」：0 号透明 + 255 色 = 256 个索引（GIF / PNG-8 / Aseprite 索引模式的行业上限）。
+  // 65–255 号全部由 64 色派生（tools/gen-palette256.mjs：暗部偏冷、亮部偏暖、降饱和，彼此 OKLab 距离 ≥ 0.03），写死在这里，编号永不改动。
+  const EXTRA = [
+    ['#070412', '面板·暗'],
+    ['#53536a', '灰紫·暗'],
+    ['#868094', '浅灰紫·暗'],
+    ['#100335', '紫夜·暗'],
+    ['#220b5e', '紫夜·中·暗'],
+    ['#3e2b8d', '深紫·暗'],
+    ['#716cb9', '吉他紫·暗'],
+    ['#e1634e', '破晓·红橙·暗'],
+    ['#e9954a', '破晓·橙·暗'],
+    ['#edc37b', '破晓·金·暗'],
+    ['#4ad3ef', '探索青·暗'],
+    ['#d79c41', '晶片金·暗'],
+    ['#2db5bc', '语料青·暗'],
+    ['#786be1', '算力紫·暗'],
+    ['#d0735c', '我方橙·暗'],
+    ['#d64299', '乱码粉·暗'],
+    ['#1dc4d2', '乱码青·暗'],
+    ['#44c48b', '好·绿·暗'],
+    ['#db4b70', '坏·红·暗'],
+    ['#93eb53', '造乐·点缀·暗'],
+    ['#9d493e', '灯语·身影·暗'],
+    ['#088877', '万象·主光·暗'],
+    ['#8e0536', '狂想·深红·暗'],
+    ['#4e6edd', '羊驼·主光·暗'],
+    ['#574ed7', '鲸歌·主光·暗'],
+    ['#b9bae2', '月弦·主光·暗'],
+    ['#dd8bae', '珠问·腮红·暗'],
+    ['#43060e', '团团·背景·暗'],
+    ['#033749', '造乐·背景亮·暗'],
+    ['#9796cf', '灯语·琴光·暗'],
+    ['#001712', '万象·背景·暗'],
+    ['#d56ccf', '双子·点缀·暗'],
+    ['#723624', '鲸歌·木·暗'],
+    ['#b77e17', '团团·金影·暗'],
+    ['#2f3682', '造乐·发光·暗'],
+    ['#a2aca8', '万象·灰·暗'],
+    ['#a2429e', '双子·深粉·暗'],
+    ['#dda084', '灯语·肚·暗'],
+    ['#f5d34a', '狂想·点缀·暗'],
+    ['#13225f', '羊驼·背景·暗'],
+    ['#3728a5', '鲸歌·深蓝·暗'],
+    ['#5d36d9', '珠问·袍·暗'],
+    ['#261810', '团团·眼·暗'],
+    ['#dc2445', '团团·红·暗'],
+    ['#bf5d75', '造乐·嘴·暗'],
+    ['#4a4092', '灯语·琴影·暗'],
+    ['#04342b', '万象·背景亮·暗'],
+    ['#160106', '狂想·背景亮·暗'],
+    ['#754b28', '羊驼·竹影·暗'],
+    ['#c7cfe4', '鲸歌·肚·暗'],
+    ['#c4b599', '月弦·弓·暗'],
+    ['#67c6b8', '万象·浅翠·暗'],
+    ['#c5918c', '羊驼·鼻·暗'],
+    ['#031629', '造乐·背景·暗'],
+    ['#e6c7b9', '造乐·肤色·暗'],
+    ['#1c1b22', '深空黑·亮'],
+    ['#423950', '分隔线·亮'],
+    ['#b4aec2', '浅灰紫·亮'],
+    ['#3a2858', '紫夜·亮'],
+    ['#4f3783', '紫夜·中·亮'],
+    ['#6a48a6', '紫夜·亮·亮'],
+    ['#7a52ad', '深紫·亮'],
+    ['#ad96df', '吉他紫·亮'],
+    ['#fdd590', '破晓·橙·亮'],
+    ['#bafffd', '探索青·亮'],
+    ['#f1d87b', '晶片金·亮'],
+    ['#bf95fd', '算力紫·亮'],
+    ['#f8ab77', '我方橙·亮'],
+    ['#fc8ca2', '乱码粉·亮'],
+    ['#7af7e7', '乱码青·亮'],
+    ['#aaee9d', '好·绿·亮'],
+    ['#fc9284', '坏·红·亮'],
+    ['#c67e56', '灯语·身影·亮'],
+    ['#62b78b', '万象·主光·亮'],
+    ['#91c0fd', '双子·主光·亮'],
+    ['#c24837', '狂想·深红·亮'],
+    ['#55abfa', '羊驼·主光·亮'],
+    ['#fdc8cc', '珠问·腮红·亮'],
+    ['#30626a', '造乐·背景亮·亮'],
+    ['#d3c2f7', '灯语·琴光·亮'],
+    ['#263c30', '万象·背景·亮'],
+    ['#ffadd4', '双子·点缀·亮'],
+    ['#1581d0', '羊驼·背景亮·亮'],
+    ['#986741', '鲸歌·木·亮'],
+    ['#6b513f', '月弦·木·亮'],
+    ['#d1b95a', '团团·金影·亮'],
+    ['#366bab', '造乐·发光·亮'],
+    ['#d2dcd8', '万象·灰·亮'],
+    ['#e16faa', '双子·深粉·亮'],
+    ['#185486', '羊驼·背景·亮'],
+    ['#9569fe', '珠问·袍·亮'],
+    ['#375d46', '万象·背景亮·亮'],
+    ['#3d201e', '狂想·背景亮·亮'],
+    ['#987c50', '羊驼·竹影·亮'],
+    ['#aef5d2', '万象·浅翠·亮'],
+    ['#203e4c', '造乐·背景·亮'],
+    ['#211d37', '紫夜·灰'],
+    ['#484276', '紫夜·亮·灰'],
+    ['#564c80', '深紫·灰'],
+    ['#8c88b3', '吉他紫·灰'],
+    ['#d6947c', '破晓·红橙·灰'],
+    ['#e2bc8f', '破晓·橙·灰'],
+    ['#f1e2b9', '破晓·金·灰'],
+    ['#a3e4eb', '探索青·灰'],
+    ['#8bc5c0', '语料青·灰'],
+    ['#d37e9b', '乱码粉·灰'],
+    ['#91d4d3', '乱码青·灰'],
+    ['#9ecfa8', '好·绿·灰'],
+    ['#d38385', '坏·红·灰'],
+    ['#d7f5a2', '造乐·点缀·灰'],
+    ['#9c6f60', '灯语·身影·灰'],
+    ['#649885', '万象·主光·灰'],
+    ['#90a5d3', '双子·主光·灰'],
+    ['#8f494a', '狂想·深红·灰'],
+    ['#6b90c8', '羊驼·主光·灰'],
+    ['#647abf', '鲸歌·主光·灰'],
+    ['#e1b1bc', '珠问·腮红·灰'],
+    ['#4a2a25', '团团·背景·灰'],
+    ['#314951', '造乐·背景亮·灰'],
+    ['#dc9ac6', '双子·点缀·灰'],
+    ['#466899', '羊驼·背景亮·灰'],
+    ['#b69f70', '团团·金影·灰'],
+    ['#42547b', '造乐·发光·灰'],
+    ['#aa6f97', '双子·深粉·灰'],
+    ['#f6f1b0', '狂想·点缀·灰'],
+    ['#293d5c', '羊驼·背景·灰'],
+    ['#415592', '鲸歌·深蓝·灰'],
+    ['#bf8689', '造乐·嘴·灰'],
+    ['#605e8b', '灯语·琴影·灰'],
+    ['#2d453b', '万象·背景亮·灰'],
+    ['#7b6752', '羊驼·竹影·灰'],
+    ['#a9d6c7', '万象·浅翠·灰'],
+    ['#cdb0a9', '羊驼·鼻·灰'],
+    ['#cecece', '纯白·深'],
+    ['#2c196c', '深紫·深'],
+    ['#d6aa72', '破晓·金·深'],
+    ['#4fb6d7', '探索青·深'],
+    ['#bf8441', '晶片金·深'],
+    ['#2e99a8', '语料青·深'],
+    ['#b15f58', '我方橙·深'],
+    ['#ae3a8e', '乱码粉·深'],
+    ['#2ba7be', '乱码青·深'],
+    ['#b53f6b', '坏·红·深'],
+    ['#6cd365', '造乐·点缀·深'],
+    ['#7f3838', '灯语·身影·深'],
+    ['#0a6e68', '万象·主光·深'],
+    ['#6a0432', '狂想·深红·深'],
+    ['#a3a3c4', '月弦·主光·深'],
+    ['#ba799e', '珠问·腮红·深'],
+    ['#270008', '团团·背景·深'],
+    ['#022233', '造乐·背景亮·深'],
+    ['#000605', '万象·背景·深'],
+    ['#ae60bb', '双子·点缀·深'],
+    ['#9f661e', '团团·金影·深'],
+    ['#8c9592', '万象·灰·深'],
+    ['#7e378a', '双子·深粉·深'],
+    ['#100d42', '羊驼·背景·深'],
+    ['#130803', '团团·眼·深'],
+    ['#b51b4a', '团团·红·深'],
+    ['#9d4d6b', '造乐·嘴·深'],
+    ['#372e73', '灯语·琴影·深'],
+    ['#011f1c', '万象·背景亮·深'],
+    ['#ad9d87', '月弦·弓·深'],
+    ['#59aba7', '万象·浅翠·深'],
+    ['#a87c7d', '羊驼·鼻·深'],
+    ['#2e2d34', '深空黑·浅'],
+    ['#674f8e', '紫夜·中·浅'],
+    ['#8262af', '紫夜·亮·浅'],
+    ['#936cb6', '深紫·浅'],
+    ['#c8afec', '吉他紫·浅'],
+    ['#fecaa7', '破晓·红橙·浅'],
+    ['#fff3db', '破晓·橙·浅'],
+    ['#d8b3fe', '算力紫·浅'],
+    ['#fcb5bb', '乱码粉·浅'],
+    ['#defff7', '乱码青·浅'],
+    ['#daffc7', '好·绿·浅'],
+    ['#ffebeb', '珠问·腮红·浅'],
+    ['#4e777a', '造乐·背景亮·浅'],
+    ['#3e4f43', '万象·背景·浅'],
+    ['#ffd5e4', '双子·点缀·浅'],
+    ['#449bd8', '羊驼·背景亮·浅'],
+    ['#a8815f', '鲸歌·木·浅'],
+    ['#5084b7', '造乐·发光·浅'],
+    ['#f38fb8', '双子·深粉·浅'],
+    ['#b089fb', '珠问·袍·浅'],
+    ['#fdb1a2', '造乐·嘴·浅'],
+    ['#9982c4', '灯语·琴影·浅'],
+    ['#54705a', '万象·背景亮·浅'],
+    ['#4e3531', '狂想·背景亮·浅'],
+    ['#a9956f', '羊驼·竹影·浅'],
+    ['#38525c', '造乐·背景·浅'],
+  ];
+  const ALL = BASE.concat(HERO, EXTRA);   // 1…255
   const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
   const lin = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
   // OKLab：比 RGB 距离更接近人眼，「最接近的颜色」更可信
@@ -4678,6 +4891,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
   const SETS = {
     zy24: { id: 'zy24', name: '造月 24 色', n: 24 },
     zy64: { id: 'zy64', name: '造月 64 色', n: 64 },
+    zy256: { id: 'zy256', name: '造月 256 色', n: 255 },
   };
   // 色卡分组（面板里的分类按钮用；只是显示顺序，不改下标）
   const GROUPS = {
@@ -4702,14 +4916,23 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     ['紫', [8, 9, 10, 11, 54, 50, 12, 19, 36]],
     ['粉', [45, 21, 38, 33]],
   ];
-  const families = (set) => { const n = (SETS[set] || SETS.zy64).n; return FAMILIES.map(([f, l]) => [f, l.filter((i) => i <= n)]).filter((x) => x[1].length); };
+  // 256 色的色系：每个色系按 OKLab 明度从暗到亮（生成器给出，写死）
+  const FAM256 = [["灰阶", [216, 65, 222, 1, 2, 107, 120, 3, 230, 121, 243, 66, 4, 67, 219, 5, 100, 122, 44, 198, 152, 6, 241, 7]], ["红", [112, 214, 56, 92, 157, 34, 182, 211, 253, 87, 29, 178, 223, 224, 207, 140, 108, 109, 83, 52, 192, 53, 173, 24, 136, 250]], ["橙", [209, 85, 204, 175, 26, 72, 79, 137, 165, 13, 20, 73, 63, 132, 14, 166, 235, 128, 236]], ["肤色·大地", [51, 41, 97, 113, 149, 40, 195, 57, 148, 158, 229, 246, 254, 227, 117, 102, 115, 61, 197, 46, 119, 59, 64]], ["黄·金", [218, 98, 202, 42, 186, 76, 200, 150, 17, 74, 103, 130, 15, 167, 189, 47]], ["绿", [95, 226, 37, 111, 145, 55, 194, 156, 210, 252, 86, 176, 27, 228, 138, 82, 116, 208, 172, 23, 60, 196, 84, 135, 159, 25, 174, 240]], ["青", [118, 215, 62, 93, 160, 183, 35, 255, 143, 242, 203, 206, 77, 201, 81, 18, 169, 75, 22, 171, 168, 16, 134, 129, 239]], ["蓝", [221, 104, 190, 48, 99, 105, 154, 187, 43, 191, 49, 39, 185, 89, 151, 88, 147, 31, 180, 247, 30, 179, 245, 141, 177, 28, 212, 139, 90, 114, 32, 58]], ["紫", [68, 8, 161, 69, 199, 123, 9, 225, 70, 124, 162, 10, 110, 11, 163, 231, 125, 106, 193, 54, 126, 232, 50, 71, 78, 233, 155, 164, 12, 251, 19, 94, 249, 127, 131, 36, 234, 237, 144]], ["粉", [220, 101, 205, 217, 80, 188, 45, 213, 96, 153, 170, 21, 91, 38, 184, 133, 248, 33, 181, 146, 238, 142, 244]]];
+  const families = (set) => { if (set === 'zy256') return FAM256; const n = (SETS[set] || SETS.zy64).n; return FAMILIES.map(([f, l]) => [f, l.filter((i) => i <= n)]).filter((x) => x[1].length); };
+  const LUTS = {};
   const P = (CF.Palette = {
     SETS, GROUPS, FAMILIES, families,
     color: (i) => (i > 0 && ALL[i - 1] ? ALL[i - 1][0] : null),
     name: (i) => (i > 0 && ALL[i - 1] ? ALL[i - 1][1] : '透明'),
     size: (set) => (SETS[set] || SETS.zy64).n,
+    sets: () => Object.keys(SETS),
     rgb: (i) => rgb(ALL[i - 1][0]),
     // 最接近的色卡颜色（OKLab 距离）；alpha < 128 视为透明
+    // 查表版最近色（每通道 6 位、262144 格，用到才算）：4K 图片换色用，比逐色比较快几百倍
+    lut(set) {
+      const n = P.size(set); LUTS[set] = LUTS[set] || new Int16Array(262144).fill(-1); const T = LUTS[set];
+      return (r, g, b) => { const k = ((r >> 2) << 12) | ((g >> 2) << 6) | (b >> 2); let v = T[k]; if (v < 0) { v = T[k] = P.nearest(((r >> 2) << 2) + 2, ((g >> 2) << 2) + 2, ((b >> 2) << 2) + 2, 255, set); } return v; };
+    },
     nearest(r, g, b, a, set) {
       if (a !== undefined && a < 128) return 0;
       const n = P.size(set), q = oklab(r, g, b); let bi = 1, bd = 1e9;
@@ -4741,7 +4964,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
 
   // ================= 文档：分块的调色板下标 =================
   class Doc {
-    constructor(w, h, pal) { this.w = w || 0; this.h = h || 0; this.inf = !w; this.pal = pal || 'zy24'; this.ch = new Map(); this.dirty = new Set(); this.ver = 0; }
+    constructor(w, h, pal) { this.w = w || 0; this.h = h || 0; this.inf = !w; this.pal = pal || 'zy24'; this.ch = new Map(); this.dirty = new Set(); this.odirty = new Set(); this.ver = 0; }
     inside(x, y) { return this.inf ? Math.abs(x) < 1e6 && Math.abs(y) < 1e6 : x >= 0 && y >= 0 && x < this.w && y < this.h; }
     get(x, y) { const cx = Math.floor(x / CH), cy = Math.floor(y / CH), c = this.ch.get(cx + ',' + cy); return c ? c[(y - cy * CH) * CH + (x - cx * CH)] : 0; }
     set(x, y, v) {
@@ -4749,16 +4972,19 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       const cx = Math.floor(x / CH), cy = Math.floor(y / CH), k = cx + ',' + cy; let c = this.ch.get(k);
       if (!c) { if (!v) return 0; c = new Uint8Array(CH * CH); this.ch.set(k, c); }
       const i = (y - cy * CH) * CH + (x - cx * CH), o = c[i]; if (o === v) return o;
-      c[i] = v; this.dirty.add(k); this.ver++; return o;
+      c[i] = v; this.dirty.add(k); this.odirty.add(k); this.ver++; return o;
     }
-    clear() { this.ch.forEach((_, k) => this.dirty.add(k)); this.ch.clear(); this.ver++; }
+    cells() { return this.inf ? this.ch.size * CH * CH : this.w * this.h; }
+    big() { return this.cells() > BIG; }   // 大图（> 512×512）存 IndexedDB，不进存档
+    touchAll() { this.ch.forEach((_, k) => { this.dirty.add(k); this.odirty.add(k); }); this.ver++; }
+    chunkBounds() { let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity; this.ch.forEach((_, k) => { const [x, y] = k.split(',').map(Number); if (x < a) a = x; if (y < b) b = y; if (x > c) c = x; if (y > d) d = y; }); return a === Infinity ? null : { x0: a * CH, y0: b * CH, w: (c - a + 1) * CH, h: (d - b + 1) * CH }; }
     bounds() {
       let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
       this.ch.forEach((c, k) => { const [cx, cy] = k.split(',').map(Number); for (let i = 0; i < c.length; i++) if (c[i]) { const x = cx * CH + (i % CH), y = cy * CH + ((i / CH) | 0); if (x < x0) x0 = x; if (y < y0) y0 = y; if (x > x1) x1 = x; if (y > y1) y1 = y; } });
       return x0 === Infinity ? null : { x0, y0, x1, y1, w: x1 - x0 + 1, h: y1 - y0 + 1 };
     }
-    colors() { const s = new Set(); this.ch.forEach((c) => { for (let i = 0; i < c.length; i++) if (c[i]) s.add(c[i]); }); return s; }
-    // 存档：取有内容的范围，按行展开后游程编码（值, 次数≤255），再转 base64
+    colors() { const s = new Set(); this.ch.forEach((c) => { for (let i = 0; i < c.length; i++) if (c[i]) s.add(c[i]); }); s.delete(0); return s; }
+    // 存档：取有内容的范围，按行展开后游程编码（值, 次数≤255），再转 base64（小图用；大图走 raw() + IndexedDB）
     pack() {
       const b = this.inf ? this.bounds() : { x0: 0, y0: 0, w: this.w, h: this.h };
       const out = { w: this.w, h: this.h, pal: this.pal, x: 0, y: 0, bw: 0, bh: 0, d: '' };
@@ -4778,38 +5004,72 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       if (!o || !o.d) return doc;
       const s = atob(o.d); let x = o.x, y = o.y;
       for (let i = 0; i < s.length; i += 2) { const v = s.charCodeAt(i), n = s.charCodeAt(i + 1); for (let k = 0; k < n; k++) { if (v) doc.set(x, y, v); x++; if (x >= o.x + o.bw) { x = o.x; y++; } } }
-      doc.dirty.clear(); return doc;
+      doc.dirty.clear(); doc.odirty.clear(); return doc;
     }
-    // 画到一块普通画布上（缩放 s 倍），给缩略图、游戏里的外观和特效用
+    // 大图的原样存法：分块数组直接交给 IndexedDB（结构化克隆，不转 base64）
+    raw() { return { v: 2, w: this.w, h: this.h, pal: this.pal, hero: this.hero || null, ch: [...this.ch.entries()] }; }
+    static fromRaw(o) { const d = new Doc(o.w, o.h, o.pal); d.hero = o.hero || null; (o.ch || []).forEach(([k, a]) => d.ch.set(k, a instanceof Uint8Array ? a : new Uint8Array(a))); return d; }
+    // 画到一块普通画布上（缩放 s 倍）：先按块填 ImageData（4K 也只要几十毫秒），再整数倍放大
     toCanvas(s = 1, box) {
       const b = box || (this.inf ? this.bounds() : { x0: 0, y0: 0, w: this.w, h: this.h });
-      const c = document.createElement('canvas'); if (!b) { c.width = c.height = 1; return c; }
-      c.width = b.w * s; c.height = b.h * s; const g = c.getContext('2d');
-      for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) { const v = this.get(b.x0 + x, b.y0 + y); if (v) { g.fillStyle = PAL.color(v); g.fillRect(x * s, y * s, s, s); } }
-      return c;
+      const t = document.createElement('canvas'); if (!b) { t.width = t.height = 1; return t; }
+      t.width = b.w; t.height = b.h; const tg = t.getContext('2d'), im = tg.createImageData(b.w, b.h), D = im.data, rgb = [];
+      this.ch.forEach((a, k) => {
+        const [cx, cy] = k.split(',').map(Number), X0 = cx * CH - b.x0, Y0 = cy * CH - b.y0;
+        if (X0 >= b.w || Y0 >= b.h || X0 + CH <= 0 || Y0 + CH <= 0) return;
+        for (let ly = 0; ly < CH; ly++) { const yy = Y0 + ly; if (yy < 0 || yy >= b.h) continue; for (let lx = 0; lx < CH; lx++) { const v = a[ly * CH + lx]; if (!v) continue; const xx = X0 + lx; if (xx < 0 || xx >= b.w) continue; const c3 = rgb[v] || (rgb[v] = PAL.rgb(v)), o = (yy * b.w + xx) * 4; D[o] = c3[0]; D[o + 1] = c3[1]; D[o + 2] = c3[2]; D[o + 3] = 255; } }
+      });
+      tg.putImageData(im, 0, 0); if (s === 1) return t;
+      const c = document.createElement('canvas'); c.width = b.w * s; c.height = b.h * s; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(t, 0, 0, c.width, c.height); return c;
     }
   }
-  // 任意画布 → 文档（按色卡取最接近的颜色；dither = Floyd–Steinberg 抖动）
+  const BIG = 512 * 512;
+  // 任意图片 → 文档（v9.2：最高 4K）。按 128 行一条分条读取（不一次申请整张图的内存）；查表找最近的造月色；
+  // 抖动用 Floyd–Steinberg，只保留两行误差；直接写分块数组。rect = 图片画进 w×h 的哪个位置（默认铺满）。
+  async function convertImage(src, w, h, pal, dither, rect, onp) {
+    const doc = new Doc(w, h, pal), near = PAL.lut(pal), n = PAL.size(pal), RGB = [null]; for (let i = 1; i <= n; i++) RGB.push(PAL.rgb(i));
+    const R = rect || { x: 0, y: 0, w, h }, SH = 128, c = document.createElement('canvas'); c.width = w; c.height = Math.min(SH, h);
+    const g = c.getContext('2d', { willReadFrequently: true }); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    let eCur = dither ? new Float32Array((w + 2) * 3) : null, eNext = dither ? new Float32Array((w + 2) * 3) : null;
+    const nCx = Math.ceil(w / CH);
+    for (let y0 = 0; y0 < h; y0 += SH) {
+      const rows = Math.min(SH, h - y0); g.clearRect(0, 0, w, c.height); g.drawImage(src, R.x, R.y - y0, R.w, R.h);
+      const px = g.getImageData(0, 0, w, rows).data;
+      for (let ry = 0; ry < rows; ry++) {
+        const y = y0 + ry, cy = y >> 5, ly = (y & 31) * CH, row = new Array(nCx);
+        for (let x = 0; x < w; x++) {
+          const i = (ry * w + x) * 4; if (px[i + 3] < 128) continue;
+          let r = px[i], gg = px[i + 1], b = px[i + 2];
+          if (eCur) { const e = (x + 1) * 3; r = Math.max(0, Math.min(255, r + eCur[e])); gg = Math.max(0, Math.min(255, gg + eCur[e + 1])); b = Math.max(0, Math.min(255, b + eCur[e + 2])); }
+          const v = near(r | 0, gg | 0, b | 0), cx = x >> 5; let a = row[cx];
+          if (!a) { const k = cx + ',' + cy; a = row[cx] = doc.ch.get(k); if (!a) { a = new Uint8Array(CH * CH); doc.ch.set(k, a); } }
+          a[ly + (x & 31)] = v;
+          if (eCur) { const [Rr, Gg, Bb] = RGB[v], er = r - Rr, eg = gg - Gg, eb = b - Bb, e = (x + 1) * 3; eCur[e + 3] += er * 7 / 16; eCur[e + 4] += eg * 7 / 16; eCur[e + 5] += eb * 7 / 16; eNext[e - 3] += er * 3 / 16; eNext[e - 2] += eg * 3 / 16; eNext[e - 1] += eb * 3 / 16; eNext[e] += er * 5 / 16; eNext[e + 1] += eg * 5 / 16; eNext[e + 2] += eb * 5 / 16; eNext[e + 3] += er / 16; eNext[e + 4] += eg / 16; eNext[e + 5] += eb / 16; }
+        }
+        if (eCur) { const t = eCur; eCur = eNext; eNext = t; eNext.fill(0); }
+      }
+      if (onp) onp(Math.min(1, (y0 + rows) / h));
+      await new Promise((ok) => setTimeout(ok, 0));   // 让出主线程：进度能刷新，界面不卡死
+    }
+    return doc;
+  }
+  // 小图（素材样板）用的同步版本
   function fromImage(src, w, h, pal, dither, fit) {
     const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
     g.imageSmoothingEnabled = !!fit && fit.smooth;
     if (fit) { const s = Math.min(w / fit.w, h / fit.h), dw = Math.max(1, Math.round(fit.w * s)), dh = Math.max(1, Math.round(fit.h * s)); g.drawImage(src, Math.floor((w - dw) / 2), Math.floor((h - dh) / 2), dw, dh); }
     else g.drawImage(src, Math.floor((w - src.width) / 2), Math.floor((h - src.height) / 2));
-    const px = g.getImageData(0, 0, w, h).data, doc = new Doc(w, h, pal);
-    const err = dither ? new Float32Array(w * h * 3) : null;
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      const i = y * w + x, a = px[i * 4 + 3]; if (a < 128) continue;
-      let r = px[i * 4], gg = px[i * 4 + 1], b = px[i * 4 + 2];
-      if (err) { r = Math.max(0, Math.min(255, r + err[i * 3])); gg = Math.max(0, Math.min(255, gg + err[i * 3 + 1])); b = Math.max(0, Math.min(255, b + err[i * 3 + 2])); }
-      const v = PAL.nearest(r, gg, b, 255, pal); doc.set(x, y, v);
-      if (err) {
-        const [R, G, B] = PAL.rgb(v), e = [r - R, gg - G, b - B];
-        const sp = (dx, dy, f) => { const xx = x + dx, yy = y + dy; if (xx < 0 || xx >= w || yy >= h) return; const j = (yy * w + xx) * 3; err[j] += e[0] * f; err[j + 1] += e[1] * f; err[j + 2] += e[2] * f; };
-        sp(1, 0, 7 / 16); sp(-1, 1, 3 / 16); sp(0, 1, 5 / 16); sp(1, 1, 1 / 16);
-      }
-    }
-    doc.dirty.clear(); return doc;
+    const px = g.getImageData(0, 0, w, h).data, doc = new Doc(w, h, pal), near = PAL.lut(pal);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; if (px[i + 3] >= 128) doc.set(x, y, near(px[i], px[i + 1], px[i + 2])); }
+    doc.dirty.clear(); doc.odirty.clear(); return doc;
   }
+  // 大图仓库：IndexedDB「zy-pix」（存档只放一个指针，避免存档超出浏览器 5MB 上限而整体存不进去）
+  const PixDB = (() => {
+    let dbp = null; const ok = !!window.indexedDB;
+    const db = () => dbp || (dbp = new Promise((res, rej) => { const r = indexedDB.open('zy-pix', 1); r.onupgradeneeded = () => r.result.createObjectStore('docs'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }));
+    const tx = (mode, fn) => db().then((d) => new Promise((res, rej) => { const t = d.transaction('docs', mode), st = t.objectStore('docs'), q = fn(st); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); }));
+    return { ok, put: (k, v) => tx('readwrite', (s) => s.put(v, k)), get: (k) => tx('readonly', (s) => s.get(k)), del: (k) => tx('readwrite', (s) => s.delete(k)) };
+  })();
 
   // ================= 素材样板 =================
   // 英雄外观：64×64，英雄按 2 倍精度画（1 个英雄格 = 2 个像素），原点在 (12, 24)；游戏里按这个落点画回去，位置完全一致
@@ -4841,7 +5101,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     H.list.forEach((h) => { const fx = h.fx; if (fx && fx.pats) L.特效.push({ id: 'fx:' + h.id, name: h.name + '·音符', fx: h.id, make: () => patCanvas(fx.pats, fx.cols, [[0, 2, 2, 2], [1, 9, 4, 2], [2, 5, 10, 2]]) }); });
     L.特效.push({ id: 'fx:notes', name: '通用音符', make: () => patCanvas(CF.PixelFX.NOTES, ['#ffe08a', '#4ef0ff', '#ff9a5c', '#9b7bff'], [[0, 1, 1, 2], [1, 10, 2, 2], [2, 3, 9, 2], [3, 10, 10, 2]]) });
     GEN_FX.forEach(([n, f], i) => L.特效.push({ id: 'fxg:' + i, name: n, make: f }));
-    store().works.forEach((w, i) => L.我的.push({ id: 'my:' + i, name: w.name || '作品 ' + (i + 1), work: i, make: () => Doc.unpack(w.doc).toCanvas(1) }));
+    store().works.forEach((w, i) => L.我的.push({ id: 'my:' + i, name: w.name || '作品 ' + (i + 1), work: i, make: () => Doc.unpack(w.big ? w.thumb : w.doc).toCanvas(1) }));
     return L;
   }
 
@@ -4853,19 +5113,8 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     if (!cache.has(key)) cache.set(key, Doc.unpack(s).toCanvas(1, kind === 'skins' ? { x0: 0, y0: 0, w: SKIN.w, h: SKIN.h } : null));
     return cache.get(key);
   }
-  const PS = (CF.PixStudio = { Doc, SKIN, fromImage, skinCanvas: (id) => canvasOf('skins', id), fxCanvas: (id) => canvasOf('fx', id) });
-  // 所有画英雄的地方（大厅、战场、像素脉冲舞台、图鉴）都走 h.draw：有自定义外观时画你的图（走路时整体上下颠一下）
-  H.list.forEach((h) => {
-    const d0 = h.draw;
-    h.draw = function (ctx, ox, oy, px, a = {}) {
-      const sk = !a.noCustom && PS.skinCanvas(h.id);
-      if (!sk) return d0.call(this, ctx, ox, oy, px, a);
-      const s = px / SKIN.k, bob = a.bob ? Math.round(px * 0.5 * a.bob) : 0, sm = ctx.imageSmoothingEnabled;
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(sk, Math.round(ox - SKIN.ox * s), Math.round(oy - SKIN.oy * s - bob), Math.round(SKIN.w * s), Math.round(SKIN.h * s));
-      ctx.imageSmoothingEnabled = sm;
-    };
-  });
+  const PS = (CF.PixStudio = { Doc, SKIN, fromImage, convertImage, PixDB, BIG, skinCanvas: (id) => { const S = CF.Skins; if (!S) return null; const e = S.equipped(id); return e.startsWith('my-') ? S.img(id, e) : null; }, fxCanvas: (id) => canvasOf('fx', id) });
+  // 英雄外观（皮肤）的绘制在 js/skins.js：经典 / 炫彩 / 我的外观（衣柜），这里只管技能特效
   // 战场：放技能时在落点炸开 6 个你画的特效图案（game.js 调用）
   PS.castFx = function (g, heroId, x, y) { const img = PS.fxCanvas(heroId); if (img) g.fx.push({ k: 'pix', x, y, t: 0, img, n: 6, a0: Math.random() * Math.PI }); };
   PS.drawFx = function (ctx, f) {
@@ -4899,8 +5148,10 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
 
   PS.open = function () {
     const st = store(); st.recent = st.recent || [];
-    const last = st.last ? Doc.unpack(st.last) : null;
-    let doc = last || (CF.Save.data.avatar2 ? Doc.unpack(CF.Save.data.avatar2) : legacyAvatar() || new Doc(16, 16, 'zy24'));
+    // 大图草稿（> 512×512）存在 IndexedDB：先放一张同尺寸的空画布，读出来后再换上；读完之前不自动保存，免得覆盖
+    const lastMeta = st.last && st.last.big ? st.last : null, last = st.last && !st.last.big ? Doc.unpack(st.last) : null;
+    let doc = lastMeta ? Object.assign(new Doc(lastMeta.w, lastMeta.h, lastMeta.pal), { hero: lastMeta.hero || null }) : last || (CF.Save.data.avatar2 ? Doc.unpack(CF.Save.data.avatar2) : legacyAvatar() || new Doc(16, 16, 'zy24'));
+    let loading = !!lastMeta, busy = false, ov = null;
     let tool = 'pen', brush = 'pen', col = 14, undo = [], redo = [], stroke = null, cam = { x: 0, y: 0, z: 16 }, hover = null, libCat = '英雄', tab = 'lib';
     let bgMode = st.bg === 'clear' ? 'clear' : 'hero', heroSel = doc.hero || H.current().id, palOpen = false, sheet = null, wasDesk = false;
     const body = CF.h(`<div class="ps2 p">
@@ -4923,7 +5174,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
         <div class="ps-pr"><span class="ps-l"></span><button class="btn sm ghost" data-act="clear">清空画布</button></div>
       </div>
       <section class="ps-sheet ps-palsheet" aria-label="调色盘" hidden>
-        <div class="ps-sh-h"><i class="ps-grab" data-close></i><b class="ps-sh-t">造月色卡</b><span class="ps-seg" data-seg="pal"><button data-pal="zy24">24 色</button><button data-pal="zy64">64 色</button></span><span class="ps-cur"></span><button class="ps-x" data-close aria-label="收起">✕</button></div>
+        <div class="ps-sh-h"><i class="ps-grab" data-close></i><b class="ps-sh-t">造月色卡</b><span class="ps-seg" data-seg="pal"><button data-pal="zy24">24</button><button data-pal="zy64">64</button><button data-pal="zy256" title="256 色：索引色的行业上限（GIF / PNG-8 / Aseprite）">256</button></span><span class="ps-cur"></span><button class="ps-x" data-close aria-label="收起">✕</button></div>
         <div class="ps-sh-b ps-fams"></div>
       </section>
       <section class="ps-sheet ps-libsheet" aria-label="素材库" hidden>
@@ -4964,7 +5215,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     function fit() {
       const dpr = size(), W = cvs.width / dpr, Hh = cvs.height / dpr;
       const b = doc.inf ? (doc.bounds() || { x0: -16, y0: -16, w: 32, h: 32 }) : { x0: 0, y0: 0, w: doc.w, h: doc.h };
-      cam.z = Math.max(0.5, Math.min(48, Math.min(W / b.w, Hh / b.h) * (doc.inf ? 0.8 : 0.94)));
+      cam.z = Math.max(0.02, Math.min(48, Math.min(W / b.w, Hh / b.h) * (doc.inf ? 0.8 : 0.94)));
       if (cam.z >= 2) cam.z = Math.floor(cam.z);
       cam.x = b.x0 + b.w / 2 - W / 2 / cam.z; cam.y = b.y0 + b.h / 2 - Hh / 2 / cam.z; draw();
     }
@@ -4996,7 +5247,9 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       }
       ctx.imageSmoothingEnabled = false;
       const c0 = Math.floor(cam.x / CH), r0 = Math.floor(cam.y / CH), c1 = Math.floor((cam.x + W / z) / CH), r1 = Math.floor((cam.y + Hh / z) / CH);
-      for (let cy = r0; cy <= r1; cy++) for (let cx = c0; cx <= c1; cx++) { const k = cx + ',' + cy; if (!doc.ch.has(k) && !chunkCv.has(k)) continue; ctx.drawImage(chunkCanvas(k), sx(cx * CH), sy(cy * CH), CH * z, CH * z); }
+      // 缩得很小、一屏要画几百块时（4K 大图），改画一张缩略层（最长边 ≤ 1024），放大回来再逐块画
+      if ((c1 - c0 + 1) * (r1 - r0 + 1) > 300 && doc.ch.size > 300) { const o = overview(); if (o) { ctx.imageSmoothingEnabled = z * o.f < 1; ctx.drawImage(o.c, sx(o.x0), sy(o.y0), o.ow * o.f * z, o.oh * o.f * z); ctx.imageSmoothingEnabled = false; } }
+      else for (let cy = r0; cy <= r1; cy++) for (let cx = c0; cx <= c1; cx++) { const k = cx + ',' + cy; if (!doc.ch.has(k) && !chunkCv.has(k)) continue; ctx.drawImage(chunkCanvas(k), sx(cx * CH), sy(cy * CH), CH * z, CH * z); }
       if (z >= 8 * dpr) { // 格线
         ctx.strokeStyle = 'rgba(255,255,255,.08)'; ctx.lineWidth = 1; ctx.beginPath();
         for (let x = Math.ceil(cam.x); x <= cam.x + W / z; x++) { if (!doc.inf && (x < 0 || x > doc.w)) continue; const X = Math.round(sx(x)) + 0.5; ctx.moveTo(X, ay); ctx.lineTo(X, by); }
@@ -5007,29 +5260,66 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       if (hover && tool !== 'hand') { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.strokeRect(sx(hover[0]) + 0.75, sy(hover[1]) + 0.75, z - 1.5, z - 1.5); }
       info.textContent = `${doc.inf ? '无限' : doc.w + '×' + doc.h} · ${Math.round(cam.z * 100) / 100}×${hover ? ' · ' + hover[0] + ',' + hover[1] : ''}`;
     }
+    function overview() {
+      const rect = doc.inf ? doc.chunkBounds() : { x0: 0, y0: 0, w: doc.w, h: doc.h }; if (!rect) return null;
+      let f = 1; while (Math.max(rect.w, rect.h) / f > 1024 && f < 32) f *= 2;
+      if (!ov || ov.f !== f || ov.x0 !== rect.x0 || ov.y0 !== rect.y0 || ov.w !== rect.w || ov.h !== rect.h) {
+        const ow = Math.ceil(rect.w / f), oh = Math.ceil(rect.h / f), c = document.createElement('canvas'); c.width = ow; c.height = oh; const g = c.getContext('2d');
+        ov = Object.assign({}, rect, { f, c, g, ow, oh, im: g.createImageData(ow, oh), rgb: [] }); doc.odirty = new Set(doc.ch.keys());
+      }
+      if (doc.odirty.size) {
+        const D = ov.im.data, f2 = ov.f;
+        doc.odirty.forEach((k) => { const [cx, cy] = k.split(',').map(Number), a = doc.ch.get(k), X0 = cx * CH - ov.x0, Y0 = cy * CH - ov.y0;
+          for (let ly = 0; ly < CH; ly += f2) { const oy = (Y0 + ly) / f2; if (oy < 0 || oy >= ov.oh) continue; for (let lx = 0; lx < CH; lx += f2) { const ox = (X0 + lx) / f2; if (ox < 0 || ox >= ov.ow) continue; const v = a ? a[ly * CH + lx] : 0, o = (oy * ov.ow + ox) * 4; if (v) { const c3 = ov.rgb[v] || (ov.rgb[v] = PAL.rgb(v)); D[o] = c3[0]; D[o + 1] = c3[1]; D[o + 2] = c3[2]; D[o + 3] = 255; } else D[o + 3] = 0; } } });
+        doc.odirty.clear(); ov.g.putImageData(ov.im, 0, 0);
+      }
+      return ov;
+    }
+    const cloneMap = (m) => new Map([...m].map(([k, a]) => [k, a.slice()]));
     const cell = (e) => { const r = cvs.getBoundingClientRect(); return [Math.floor(cam.x + (e.clientX - r.left) / cam.z), Math.floor(cam.y + (e.clientY - r.top) / cam.z)]; };
     function zoomAt(f, cxs, cys) {
       const r = cvs.getBoundingClientRect(), mx = cxs - r.left, my = cys - r.top, wx = cam.x + mx / cam.z, wy = cam.y + my / cam.z;
-      cam.z = Math.max(0.25, Math.min(64, cam.z * f)); cam.x = wx - mx / cam.z; cam.y = wy - my / cam.z; draw();
+      cam.z = Math.max(0.02, Math.min(64, cam.z * f)); cam.x = wx - mx / cam.z; cam.y = wy - my / cam.z; draw();
     }
     // ---------- 画 ----------
     function put(x, y, v) { const o = doc.set(x, y, v); if (o < 0 || o === v) return; const k = x + ',' + y; if (!stroke.has(k)) stroke.set(k, [o, v]); else stroke.get(k)[1] = v; }
     function line(a, b, v) { let [x0, y0] = a; const [x1, y1] = b, dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx2 = x0 < x1 ? 1 : -1, sy2 = y0 < y1 ? 1 : -1; let e = dx + dy; for (;;) { put(x0, y0, v); if (x0 === x1 && y0 === y1) break; const e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += sx2; } if (e2 <= dx) { e += dx; y0 += sy2; } } }
     function flood(x, y, v) {
       const from = doc.get(x, y); if (from === v || !doc.inside(x, y)) return;
-      const b = doc.inf ? (() => { const bb = doc.bounds() || { x0: x, y0: y, x1: x, y1: y }; return { x0: Math.min(bb.x0, x) - 32, y0: Math.min(bb.y0, y) - 32, x1: Math.max(bb.x1, x) + 32, y1: Math.max(bb.y1, y) + 32 }; })() : { x0: 0, y0: 0, x1: doc.w - 1, y1: doc.h - 1 };
-      const q = [[x, y]], seen = new Set(); let n = 0;
+      let n = 0;
+      if (!doc.inf) { // 固定画布：用一张标记表，4K 也能填（一次最多 30 万格，超过的再点一下接着填）
+        const W = doc.w, Hh = doc.h, CAP = 300000, seen = new Uint8Array(W * Hh), q = [y * W + x]; seen[y * W + x] = 1;
+        while (q.length && n < CAP) { const i = q.pop(), px = i % W, py = (i - px) / W; if (doc.get(px, py) !== from) continue; put(px, py, v); n++;
+          if (px > 0 && !seen[i - 1]) { seen[i - 1] = 1; q.push(i - 1); } if (px < W - 1 && !seen[i + 1]) { seen[i + 1] = 1; q.push(i + 1); }
+          if (py > 0 && !seen[i - W]) { seen[i - W] = 1; q.push(i - W); } if (py < Hh - 1 && !seen[i + W]) { seen[i + W] = 1; q.push(i + W); } }
+        if (n >= CAP) note('区域太大：这次填了 30 万格，再点一下接着填');
+        return;
+      }
+      const b = (() => { const bb = doc.bounds() || { x0: x, y0: y, x1: x, y1: y }; return { x0: Math.min(bb.x0, x) - 32, y0: Math.min(bb.y0, y) - 32, x1: Math.max(bb.x1, x) + 32, y1: Math.max(bb.y1, y) + 32 }; })();
+      const q = [[x, y]], seen = new Set();
       while (q.length && n < 80000) { const [px, py] = q.pop(), k = px + ',' + py; if (seen.has(k) || px < b.x0 || py < b.y0 || px > b.x1 || py > b.y1 || doc.get(px, py) !== from) continue; seen.add(k); put(px, py, v); n++; q.push([px + 1, py], [px - 1, py], [px, py + 1], [px, py - 1]); }
     }
     function commit() { if (stroke && stroke.size) { undo.push(stroke); if (undo.length > UNDO_MAX) undo.shift(); redo = []; autosave(); } stroke = null; undoUi(); }
     function applyPatch(p, which) {
-      let hi = 0; p.forEach((ov, k) => { const [x, y] = k.split(',').map(Number); doc.set(x, y, ov[which]); if (ov[which] > hi) hi = ov[which]; });
-      if (hi > PAL.size(doc.pal)) { doc.pal = 'zy64'; palSeg(); fams(); }   // 撤销「64 → 24 换色」时色卡也回到 64 色
+      if (p.snap) { // 整张图的操作（清空、换色卡）记的是前后两份快照
+        doc.ch = cloneMap(p.snap[which]); if (p.pal) doc.pal = p.pal[which]; doc.touchAll(); chunkCv.clear(); ov = null;
+        if (col > PAL.size(doc.pal)) col = 14; palSeg(); fams(); draw(); autosave(); undoUi(); return;
+      }
+      let hi = 0; p.forEach((o2, k) => { const [x, y] = k.split(',').map(Number); doc.set(x, y, o2[which]); if (o2[which] > hi) hi = o2[which]; });
+      if (hi > PAL.size(doc.pal)) { doc.pal = hi > 64 ? 'zy256' : 'zy64'; palSeg(); fams(); }
       draw(); autosave(); undoUi();
     }
     function undoUi() { const r = $('.ps-redo'); if (r) r.hidden = !redo.length; }
     let saveT = 0;
-    function autosave() { clearTimeout(saveT); saveT = setTimeout(() => { doc.hero = heroSel; store().last = doc.pack(); CF.Save.save(); }, 600); }
+    function autosave() {
+      if (loading) return; clearTimeout(saveT); const big = doc.big();
+      saveT = setTimeout(() => {
+        doc.hero = heroSel;
+        if (!big) { store().last = doc.pack(); CF.Save.save(); return; }
+        if (!PixDB.ok) return note('这台设备不能保存大图（浏览器数据库不可用）', 'bad');
+        const d = doc; PixDB.put('last', d.raw()).then(() => { store().last = { big: 'last', w: d.w, h: d.h, pal: d.pal, hero: d.hero }; CF.Save.save(); }).catch(() => note('大图没存进去：设备空间可能不够', 'bad'));
+      }, big ? 2500 : 600);
+    }
     // 指针：一指画 / 两指缩放移动 / 两指轻点撤销、三指轻点重做 / 右键、空格、「移动」拖动画布
     const ptrs = new Map(); let pan = null, gest = null, last2 = null, space = false, multi = null;
     cvs.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -5095,7 +5385,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       else if (a === 'in') { const r = cvs.getBoundingClientRect(); zoomAt(1.5, r.left + r.width / 2, r.top + r.height / 2); }
       else if (a === 'out') { const r = cvs.getBoundingClientRect(); zoomAt(1 / 1.5, r.left + r.width / 2, r.top + r.height / 2); }
       else if (a === 'fit') fit();
-      else if (a === 'clear') { if (!doc.ch.size) return note('画布本来就是空的'); stroke = new Map(); doc.ch.forEach((c, k) => { const [cx, cy] = k.split(',').map(Number); for (let i = 0; i < c.length; i++) if (c[i]) put(cx * CH + (i % CH), cy * CH + ((i / CH) | 0), 0); }); commit(); draw(); note('已清空（↶ 可撤销）'); }
+      else if (a === 'clear') { if (!doc.ch.size) return note('画布本来就是空的'); undo.push({ snap: [doc.ch, new Map()] }); if (undo.length > UNDO_MAX) undo.shift(); redo = []; doc.ch = new Map(); chunkCv.clear(); ov = null; doc.touchAll(); draw(); autosave(); undoUi(); note('已清空（↶ 可撤销）'); }
     }
     // 弹层（画笔组、画布）和抽屉（调色盘、素材库）
     function pop(name, anchor) {
@@ -5153,25 +5443,36 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     }
     function setHero(id) { heroSel = id; bgStage.o.hero = id; doc.hero = id; draw(); }
     function setDoc(d, msg) {
-      doc = d; chunkCv.clear(); undo = []; redo = []; undoUi(); if (d.hero) setHero(d.hero);
-      $$('[data-size]').forEach((b) => b.classList.toggle('on', +b.dataset.size === doc.w && (doc.inf ? b.dataset.size === '0' : true)));
+      doc = d; chunkCv.clear(); ov = null; undo = []; redo = []; undoUi(); if (d.hero) setHero(d.hero);
+      $$('[data-size]').forEach((b) => b.classList.toggle('on', doc.inf ? b.dataset.size === '0' : +b.dataset.size === doc.w && doc.w === doc.h));
       palSeg(); fams(); fit(); autosave(); if (msg) note(msg);
     }
     $$('[data-size]').forEach((b) => (b.onclick = (e) => {
       e.stopPropagation(); CF.Audio.sfx('click'); const n = +b.dataset.size; if (n === doc.w && (n ? !doc.inf : doc.inf)) return;
       // 换尺寸：把现在的画按左上角原样搬进新画布（超出的部分裁掉；换成无限画布时什么都不丢）
-      const nd = new Doc(n, n, doc.pal); nd.hero = doc.hero; doc.ch.forEach((c, k) => { const [cx, cy] = k.split(',').map(Number); for (let i = 0; i < c.length; i++) if (c[i]) nd.set(cx * CH + (i % CH), cy * CH + ((i / CH) | 0), c[i]); }); nd.dirty.clear();
+      if (busy) return;
+      const nd = new Doc(n, n, doc.pal); nd.hero = doc.hero;
+      doc.ch.forEach((c, k) => { // 按块搬：整块在里面直接搬，压在边上的块逐格裁（4K 也是一眨眼）
+        const [cx, cy] = k.split(',').map(Number), X = cx * CH, Y = cy * CH;
+        if (n && (X >= n || Y >= n || X + CH <= 0 || Y + CH <= 0)) return;
+        if (!n || (X >= 0 && Y >= 0 && X + CH <= n && Y + CH <= n)) { nd.ch.set(k, c); return; }
+        const a = new Uint8Array(CH * CH); for (let i = 0; i < c.length; i++) { const x = X + (i % CH), y = Y + ((i / CH) | 0); if (x >= 0 && y >= 0 && x < n && y < n) a[i] = c[i]; } nd.ch.set(k, a);
+      });
       setDoc(nd, n ? `画布 ${n}×${n}` : '无限画布：往哪边画都有地方');
     }));
     // ---------- 调色盘（色系分类：灰阶 → 色环，每行一条从暗到亮的色阶） ----------
     function palSeg() { $$('[data-pal]').forEach((x) => x.classList.toggle('on', x.dataset.pal === doc.pal)); }
     $$('[data-pal]').forEach((b) => (b.onclick = (e) => {
-      e.stopPropagation(); CF.Audio.sfx('click'); if (doc.pal === b.dataset.pal) return;
-      doc.pal = b.dataset.pal; if (col > PAL.size(doc.pal)) col = 14;
-      // 64 → 24：画里用到的英雄色换成 24 色里最接近的（记进撤销，点撤销能换回来）
-      const n = PAL.size(doc.pal); stroke = new Map(); let moved = 0;
-      doc.ch.forEach((c, k) => { const [cx, cy] = k.split(',').map(Number); for (let i = 0; i < c.length; i++) if (c[i] > n) { const [r, g, bb] = PAL.rgb(c[i]); put(cx * CH + (i % CH), cy * CH + ((i / CH) | 0), PAL.nearest(r, g, bb, 255, doc.pal)); moved++; } });
-      commit(); if (moved) note(`${moved} 格换成了最接近的 24 色（可撤销）`);
+      e.stopPropagation(); CF.Audio.sfx('click'); const to = b.dataset.pal, from = doc.pal; if (from === to || busy) return;
+      // 换到更小的色卡：画里超出的颜色换成新色卡里最接近的（整张图前后快照记进撤销，点撤销能换回来）
+      const n = PAL.size(to), used = [...doc.colors()].filter((v) => v > n), map = new Uint8Array(256);
+      doc.pal = to; if (col > n) col = 14;
+      if (used.length) {
+        for (let i = 0; i < 256; i++) map[i] = i; used.forEach((v) => { const [r, g, bb] = PAL.rgb(v); map[v] = PAL.nearest(r, g, bb, 255, to); });
+        const before = cloneMap(doc.ch); let moved = 0; doc.ch.forEach((a) => { for (let i = 0; i < a.length; i++) if (a[i] > n) { a[i] = map[a[i]]; moved++; } });
+        undo.push({ snap: [before, cloneMap(doc.ch)], pal: [from, to] }); if (undo.length > UNDO_MAX) undo.shift(); redo = []; doc.touchAll(); chunkCv.clear(); ov = null; undoUi();
+        note(`${moved} 格换成了${PAL.SETS[to].name}里最接近的颜色（可撤销）`);
+      }
       palSeg(); fams(); cur(); draw(); autosave();
     }));
     function swatch(i) { return `<button class="ps-c${i === col ? ' on' : ''}" data-c="${i}" style="--c:${PAL.color(i)}" title="${CF.esc(PAL.name(i))} ${PAL.color(i)}" aria-label="${CF.esc(PAL.name(i))}"></button>`; }
@@ -5207,29 +5508,47 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       frame.querySelectorAll('[data-cat]').forEach((b) => (b.onclick = (e) => { e.stopPropagation(); CF.Audio.sfx('click'); libCat = b.dataset.cat; libPane(); }));
     }
     function openAsset(it, img) {
-      if (it.work !== undefined) { const w = store().works[it.work]; setDoc(Doc.unpack(w.doc), `打开了「${it.name}」`); openSheet(null); return; }
+      if (it.work !== undefined) {
+        const w = store().works[it.work]; openSheet(null);
+        if (!w.big) { setDoc(Doc.unpack(w.doc), `打开了「${it.name}」`); return; }
+        note('正在载入大图…', '', 30000); PixDB.get(w.big).then((raw) => { if (raw) setDoc(Doc.fromRaw(raw), `打开了「${it.name}」（${raw.w}×${raw.h}）`); else note('这幅大图找不到了', 'bad'); }).catch(() => note('大图读取失败', 'bad'));
+        return;
+      }
       const n = Math.max(img.width, img.height), s = n <= 16 ? 16 : n <= 64 ? 64 : 256;
       const d = fromImage(img, s, s, 'zy64', false, null); d.src = it; d.hero = it.hero || it.fx || heroSel;
       setDoc(d, `已打开「${it.name}」（${s}×${s}，造月 64 色）`); openSheet(null);
     }
+    const RES = [['canvas', '跟随画布'], ['256', '256'], ['512', '512'], ['1024', '1024'], ['2048', '2K（2048）'], ['4096', '4K（最长边 4096）']];
     function upPane() {
+      const S = store(), res = S.upRes || 'canvas', upal = S.upPal || doc.pal;
       frame.innerHTML = `<div class="ps-up">
-        <label class="btn primary ps-file">选择图片<input type="file" accept="image/*" aria-label="选择图片"></label>
-        <label class="ps-ck"><input type="checkbox" data-dither> 抖动（照片更细腻；像素画关掉更干净）</label>
-        <p class="ps-hint">图片会缩放进当前画布（无限画布按最长边 128 格），每个像素换成<b>${PAL.SETS[doc.pal].name}</b>里最接近的颜色；半透明的地方变透明。想要更多颜色，先在调色盘里切到 64 色。</p>
+        <div class="ps-r"><label class="btn primary ps-file">选择图片<input type="file" accept="image/*" aria-label="选择图片"></label>
+          <label class="ps-ck">分辨率 <select class="ps-res" aria-label="分辨率">${RES.map(([v, n]) => `<option value="${v}" ${v === res ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+          <label class="ps-ck">色卡 <select class="ps-upal" aria-label="换成哪套色卡">${PAL.sets().map((k) => `<option value="${k}" ${k === upal ? 'selected' : ''}>${PAL.SETS[k].name}</option>`).join('')}</select></label></div>
+        <label class="ps-ck"><input type="checkbox" data-dither ${S.upDither ? 'checked' : ''}> 抖动（照片更细腻；像素画关掉更干净）</label>
+        <p class="ps-hint">「跟随画布」把图片缩进当前画布（无限画布按最长边 128 格）；选了分辨率就按图片比例新建画布，最高 <b>4K（最长边 4096 像素，3840×2160 的 4K 照片按原尺寸换色）</b>，比原图大时不放大。每个像素换成所选色卡里最接近的颜色，<b>造月 256 色</b>是索引色的行业上限（GIF / PNG-8 / 专业像素软件的索引模式都是 256）。分辨率越高越慢，4K 约需几秒；超过 512×512 的大图保存在本机的浏览器数据库里。</p>
         <div class="ps-prev"></div></div>`;
-      const inp = frame.querySelector('input[type=file]');
+      const inp = frame.querySelector('input[type=file]'), sel = frame.querySelector('.ps-res'), psel = frame.querySelector('.ps-upal'), dck = frame.querySelector('[data-dither]');
+      sel.onchange = () => { S.upRes = sel.value; CF.Save.save(); }; psel.onchange = () => { S.upPal = psel.value; CF.Save.save(); }; dck.onchange = () => { S.upDither = dck.checked; CF.Save.save(); };
       inp.onchange = () => {
-        const f = inp.files && inp.files[0]; if (!f) return;
+        const f = inp.files && inp.files[0]; if (!f || busy) return;
+        if (f.size > 60 * 1024 * 1024) return note('图片太大（上限 60MB）', 'bad');
         const url = URL.createObjectURL(f), im = new Image();
-        im.onload = () => {
-          const n = doc.inf ? 128 : doc.w, r = im.width / im.height, w = doc.inf ? (r >= 1 ? n : Math.max(1, Math.round(n * r))) : n, hh = doc.inf ? (r >= 1 ? Math.max(1, Math.round(n / r)) : n) : n;
-          const d = fromImage(im, w, hh, doc.pal, frame.querySelector('[data-dither]').checked, { w: im.width, h: im.height, smooth: true }); d.hero = heroSel;
-          if (doc.inf) { const nd = new Doc(0, 0, doc.pal); nd.hero = heroSel; d.ch.forEach((c, k) => { const [cx, cy] = k.split(',').map(Number); for (let i = 0; i < c.length; i++) if (c[i]) nd.set(cx * CH + (i % CH) - (w >> 1), cy * CH + ((i / CH) | 0) - (hh >> 1), c[i]); }); nd.dirty.clear(); setDoc(nd); } else setDoc(d);
-          URL.revokeObjectURL(url);
-          const used = doc.colors().size;
-          frame.querySelector('.ps-prev').innerHTML = `<p class="ps-ok">已换成${PAL.SETS[doc.pal].name}：用了 ${used} 种颜色。可以接着改，或者去「保存」。</p>`;
-          note(`已换成造月色：${used} 种颜色`, 'gold'); CF.Audio.sfx('correct');
+        im.onload = async () => {
+          const r = sel.value, pal = psel.value, iw = im.naturalWidth, ih = im.naturalHeight; let W, Hh, rect, intoInf = false;
+          if (r === 'canvas' && doc.inf) { const n = 128, k = n / Math.max(iw, ih); W = Math.max(1, Math.round(iw * k)); Hh = Math.max(1, Math.round(ih * k)); intoInf = true; }
+          else if (r === 'canvas') { W = doc.w; Hh = doc.h; const k = Math.min(W / iw, Hh / ih), dw = Math.max(1, Math.round(iw * k)), dh = Math.max(1, Math.round(ih * k)); rect = { x: Math.floor((W - dw) / 2), y: Math.floor((Hh - dh) / 2), w: dw, h: dh }; }
+          else { const L = Math.min(+r, Math.max(iw, ih)), k = L / Math.max(iw, ih); W = Math.max(1, Math.round(iw * k)); Hh = Math.max(1, Math.round(ih * k)); }
+          busy = true; inp.disabled = true; const t0 = performance.now();
+          try {
+            const d = await convertImage(im, W, Hh, pal, dck.checked, rect, (p) => note(`换成造月色中 ${Math.round(p * 100)}%（${W}×${Hh}）`, '', 600000));
+            d.hero = heroSel;
+            if (intoInf) { const nd = new Doc(0, 0, pal); nd.hero = heroSel; d.ch.forEach((c, k) => { const [cx, cy] = k.split(',').map(Number); for (let i = 0; i < c.length; i++) if (c[i]) nd.set(cx * CH + (i % CH) - (W >> 1), cy * CH + ((i / CH) | 0) - (Hh >> 1), c[i]); }); nd.dirty.clear(); setDoc(nd); } else setDoc(d);
+            const used = doc.colors().size, sec = ((performance.now() - t0) / 1000).toFixed(1);
+            frame.querySelector('.ps-prev').innerHTML = `<p class="ps-ok">已换成${PAL.SETS[pal].name}：${W}×${Hh}，用了 ${used} 种颜色，耗时 ${sec} 秒。可以接着改，或者去「保存」。</p>`;
+            note(`已换成造月色：${W}×${Hh}，${used} 种颜色`, 'gold'); CF.Audio.sfx('correct');
+          } catch (e) { note('换色失败：图片可能太大，换一张或选低一点的分辨率', 'bad'); }
+          busy = false; inp.disabled = false; URL.revokeObjectURL(url);
         };
         im.onerror = () => { URL.revokeObjectURL(url); note('这张图片读不出来，换一张试试', 'bad'); };
         im.src = url;
@@ -5242,9 +5561,9 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
         <div class="ps-r"><input class="ps-name" maxlength="16" placeholder="作品名字" value="${CF.esc((doc.src && doc.src.name) || '')}" aria-label="作品名字"><button class="btn sm" data-s="work">存为作品</button></div>
         <div class="ps-r"><button class="btn sm" data-s="avatar">设为指挥官头像</button><span class="ps-hint">战场通讯框里显示，缩成 16×16</span></div>
         <div class="ps-r"><button class="btn sm" data-s="png">导出 PNG</button><span class="ps-hint">放大成清晰的像素图，存到手机或电脑</span></div>
-        <div class="ps-r"><select class="ps-hero" aria-label="选择英雄">${H.list.map((h) => `<option value="${h.id}" ${h.id === heroSel ? 'selected' : ''}>${h.name}${store().skins[h.id] ? ' ·外观' : ''}${store().fx[h.id] ? ' ·特效' : ''}</option>`).join('')}</select><span class="ps-hint">画布背景也换成这位英雄的主题</span></div>
-        <div class="ps-r"><button class="btn sm" data-s="skin">设为英雄外观</button><button class="btn sm" data-s="fx">设为技能特效</button><button class="btn sm ghost" data-s="reset">恢复这位英雄默认</button></div>
-        <p class="ps-hint">英雄外观：64×64，先在「素材 · 英雄」里打开这位英雄的样板再改，位置最准。技能特效：放技能时在落点炸开、舞台上飘出来的图案，16×16 最合适。</p>
+        <div class="ps-r"><select class="ps-hero" aria-label="选择英雄">${H.list.map((h) => `<option value="${h.id}" ${h.id === heroSel ? 'selected' : ''}>${h.name}${CF.Skins && CF.Skins.equipped(h.id) !== 'classic' ? ' ·皮肤' : ''}${store().fx[h.id] ? ' ·特效' : ''}</option>`).join('')}</select><span class="ps-hint">画布背景也换成这位英雄的主题</span></div>
+        <div class="ps-r"><button class="btn sm" data-s="skin">存进衣柜并穿上</button><button class="btn sm" data-s="fx">设为技能特效</button><button class="btn sm ghost" data-s="reset">恢复这位英雄默认</button></div>
+        <p class="ps-hint">英雄外观：64×64，先在「素材 · 英雄」里打开这位英雄的样板再改，位置最准；每位英雄的衣柜最多放 ${CF.Skins ? CF.Skins.MAX_MINE : 6} 套，在商城「皮肤」或英雄档案里换着穿。技能特效：放技能时在落点炸开、舞台上飘出来的图案，16×16 最合适。</p>
       </div>`;
       frame.querySelector('.ps-hero').onchange = (e) => { setHero(e.target.value); autosave(); };
       frame.querySelectorAll('[data-s]').forEach((b) => (b.onclick = (e) => { e.stopPropagation(); CF.Audio.sfx('click'); save(b.dataset.s); }));
@@ -5259,6 +5578,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     function exportPng() {
       const b = doc.inf ? doc.bounds() : { x0: 0, y0: 0, w: doc.w, h: doc.h };
       if (!b || !doc.colors().size) { CF.Audio.sfx('error'); return note('画布是空的，先画点什么吧', 'bad'); }
+      if (doc.big()) note('正在导出大图…', '', 20000);
       const k = Math.max(1, Math.floor(512 / Math.max(b.w, b.h))), c = doc.toCanvas(k, b);
       // 文件名只用英文和数字：有些系统会把中文文件名换成「download」
       const t = new Date(), pad = (v) => String(v).padStart(2, '0'), file = `zaoyue-pixel-${b.w}x${b.h}-${t.getFullYear()}${pad(t.getMonth() + 1)}${pad(t.getDate())}-${pad(t.getHours())}${pad(t.getMinutes())}${pad(t.getSeconds())}.png`;
@@ -5270,19 +5590,150 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       if (kind === 'png') return exportPng();
       const S = store(), n = doc.colors().size, h = H.get(heroSel);
       if (kind !== 'reset' && n < 2) { CF.Audio.sfx('error'); return note('至少用 2 种颜色画点什么吧', 'bad'); }
-      if (kind === 'work') { const name = (frame.querySelector('.ps-name').value || '').trim() || '作品 ' + (S.works.length + 1); S.works.unshift({ name, t: Date.now(), doc: doc.pack() }); if (S.works.length > 24) S.works.length = 24; note(`已存为作品「${name}」`, 'gold'); }
+      if (kind === 'work') {
+        const name = (frame.querySelector('.ps-name').value || '').trim() || '作品 ' + (S.works.length + 1), t = Date.now(), entry = { name, t };
+        const trim = () => S.works.splice(24).forEach((w) => w.big && PixDB.del(w.big).catch(() => {}));
+        if (doc.big()) { // 大图：本体进 IndexedDB，存档里只放名字和一张 64×64 缩略图
+          if (!PixDB.ok) return note('这台设备不能保存大图', 'bad');
+          Object.assign(entry, { big: 'work:' + t, w: doc.w, h: doc.h, thumb: scaled(64, 64).pack() });
+          PixDB.put(entry.big, doc.raw()).then(() => { S.works.unshift(entry); trim(); CF.Save.save(); note(`已存为作品「${name}」（${doc.w}×${doc.h}）`, 'gold'); CF.Audio.sfx('correct'); }).catch(() => note('大图没存进去：设备空间可能不够', 'bad'));
+          return;
+        }
+        entry.doc = doc.pack(); S.works.unshift(entry); trim(); note(`已存为作品「${name}」`, 'gold');
+      }
       else if (kind === 'avatar') { CF.Save.data.avatar2 = (doc.w === 16 && !doc.inf ? doc : scaled(16, 16)).pack(); note('已设为指挥官头像', 'gold'); }
-      else if (kind === 'skin') { const d = doc.w === SKIN.w && !doc.inf ? doc : scaled(SKIN.w, SKIN.h); S.skins[h.id] = d.pack(); cache.clear(); note(`${h.name}换上了你画的外观`, 'gold'); }
+      else if (kind === 'skin') { const d = doc.w === SKIN.w && doc.h === SKIN.h && !doc.inf ? doc : scaled(SKIN.w, SKIN.h), nm = (frame.querySelector('.ps-name').value || '').trim(); CF.Skins.addMine(h.id, d.pack(), nm || undefined); note(`${h.name}换上了你画的外观（已存进衣柜）`, 'gold'); }
       else if (kind === 'fx') { const d = doc.inf || doc.w > 64 ? scaled(32, 32) : doc; S.fx[h.id] = d.pack(); cache.clear(); note(`${h.name}的技能特效换成你画的了`, 'gold'); }
-      else if (kind === 'reset') { delete S.skins[h.id]; delete S.fx[h.id]; cache.clear(); note(`${h.name}恢复了默认外观和特效`); savePane(); CF.Save.save(); return; }
+      else if (kind === 'reset') { CF.Skins.equip(h.id, 'classic'); delete S.fx[h.id]; cache.clear(); note(`${h.name}换回经典外观和默认特效（衣柜里的保留）`); savePane(); CF.Save.save(); return; }
       CF.Save.save(); CF.Audio.sfx('correct');
       if (kind !== 'work') CF.P.finishLab('pixel', stars());
       if (tab === 'save') savePane();
     }
 
     setTool('pen'); setBg(bgMode); setDoc(doc); setCol(col);
+    if (lastMeta) { note('正在载入上次的大图…', '', 30000); PixDB.get('last').then((raw) => { loading = false; if (raw) setDoc(Doc.fromRaw(raw), `已载入上次的大图（${raw.w}×${raw.h}）`); else note('上次的大图找不到了'); }).catch(() => { loading = false; note('大图读取失败', 'bad'); }); }
     requestAnimationFrame(() => { layout(); fit(); });
   };
+})();
+
+</script>
+<script>
+/* js/skins.js */
+/* 皮肤系统（v9.2，主创要求「真正的皮肤系统」；规则见物品宪法第 7 章、UI 宪法第 27 章 27.7）
+ * 每位英雄三类皮肤：
+ * - 经典：官方形象，免费。
+ * - 炫彩：官方换色皮肤。形象里的每个颜色按规则变换（OKLab 色相 / 饱和 / 明度），再落到「造月 256 色」里最接近的颜色，
+ *   所以仍然符合美术用色宪法；动作、乐器、表情和经典完全一样。晶片购买，或英雄星级解锁；不卖真实货币。
+ * - 我的外观：像素工坊里自己画的 64×64，每位英雄最多 6 套。
+ * 装备后，游戏里所有画这位英雄的地方都换（大厅、战场、像素脉冲舞台、图鉴、商城、英雄档案、英语田园）。 */
+(function () {
+  const CF = window.CF, H = CF.Heroes, PAL = CF.Palette;
+  const TINTS = [
+    { id: 'mono', name: '墨韵', price: 600, rar: 'rare', desc: '水墨一样的黑白灰，只留下一点原来的颜色。', f: { c: 0.12 } },
+    { id: 'nova', name: '星夜', price: 1200, rar: 'epic', desc: '整套颜色沉进深夜的蓝紫里。', f: { h: 275, k: 0.7, c: 1.05, l: 0.92 } },
+    { id: 'neon', name: '霓虹', price: 2000, rar: 'epic', desc: '色相转过半圈、饱和拉满，像夜市的灯牌。', f: { rot: 150, c: 1.3 } },
+    { id: 'gold', name: '鎏金', star: 3, rar: 'legend', desc: '英雄升到 3 星自动解锁：整套颜色镀上一层金。', f: { h: 85, k: 0.75, c: 1.1, l: 1.03 } },
+  ];
+  const MAX_MINE = 6;
+  const data = () => { const d = CF.Save.data; d.skins = d.skins || { own: {}, eq: {} }; d.skins.own = d.skins.own || {}; d.skins.eq = d.skins.eq || {}; return d.skins; };
+  const pix = () => { const d = CF.Save.data; d.pix = d.pix || { works: [], skins: {}, fx: {} }; d.pix.wardrobe = d.pix.wardrobe || {}; return d.pix; };
+  // 迁移：v9 的单件「英雄外观」（pix.skins[英雄]）变成衣柜里的一套「我的外观」，并且照样穿着
+  function migrate() {
+    const P = pix(); if (!P.skins || !Object.keys(P.skins).length) return;
+    Object.keys(P.skins).forEach((h) => { const w = (P.wardrobe[h] = P.wardrobe[h] || []); if (!w.some((x) => x.id === 'my-legacy')) w.unshift({ id: 'my-legacy', name: '我的外观', t: Date.now(), doc: P.skins[h] }); if (!data().eq[h]) data().eq[h] = 'my-legacy'; });
+    P.skins = {};
+  }
+
+  // ---------- 颜色变换（OKLab） ----------
+  const lin = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+  const delin = (c) => (c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055);
+  const toLab = (r, g, b) => { r = lin(r); g = lin(g); b = lin(b); const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b), m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b), s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b); return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s]; };
+  const toRgb = (L, a, b) => { const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3, m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3, s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3; return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s].map((v) => Math.round(Math.max(0, Math.min(1, delin(Math.max(0, v)))) * 255)); };
+  function parse(c) {
+    if (c[0] === '#') { const h = c.length === 4 ? c.slice(1).split('').map((x) => x + x).join('') : c.slice(1, 7); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16), null]; }
+    const m = c.match(/^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,/]+([\d.]+%?))?\s*\)$/); if (!m) return null;
+    return [+m[1], +m[2], +m[3], m[4] === undefined ? null : m[4]];
+  }
+  function tintOne(c, f) {
+    const p = parse(c); if (!p) return c;
+    let [L, a, b] = toLab(p[0], p[1], p[2]), C = Math.hypot(a, b), h = Math.atan2(b, a);
+    const neutral = C < 0.03;
+    if (f.rot && !neutral) h += (f.rot * Math.PI) / 180;
+    if (f.h !== undefined && !neutral) { const t = (f.h * Math.PI) / 180; let d = t - h; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; h += d * f.k; }
+    if (f.c) C *= f.c; if (f.l) L = Math.max(0, Math.min(1, L * f.l));
+    const [r, g, bb] = toRgb(L, C * Math.cos(h), C * Math.sin(h)), v = PAL.nearest(r, g, bb, 255, 'zy256'), out = PAL.color(v);
+    if (p[3] === null) return out; const q = PAL.rgb(v); return `rgba(${q[0]},${q[1]},${q[2]},${p[3]})`;
+  }
+  const MAPS = {};
+  const mapper = (sid) => { if (MAPS[sid]) return MAPS[sid]; const t = TINTS.find((x) => x.id === sid), cache = new Map(); return (MAPS[sid] = (c) => { let v = cache.get(c); if (v === undefined) { v = tintOne(c, t.f); cache.set(c, v); } return v; }); };
+  // 画布代理：英雄的画法都是「设 fillStyle → fillRect」，代理在设颜色时换色，动作照常
+  const PROX = new WeakMap();
+  function tinted(ctx, sid) {
+    let m = PROX.get(ctx); if (!m) { m = {}; PROX.set(ctx, m); } if (m[sid]) return m[sid];
+    const fn = new Map(), map = mapper(sid);
+    return (m[sid] = new Proxy(ctx, {
+      get(t, p) { const v = t[p]; if (typeof v !== 'function') return v; let f = fn.get(p); if (!f) { f = v.bind(t); fn.set(p, f); } return f; },
+      set(t, p, v) { if ((p === 'fillStyle' || p === 'strokeStyle' || p === 'shadowColor') && typeof v === 'string') v = map(v); t[p] = v; return true; },
+    }));
+  }
+
+  // ---------- 皮肤清单、拥有、装备 ----------
+  const S = (CF.Skins = { TINTS, MAX_MINE });
+  const mine = (hid) => { migrate(); return pix().wardrobe[hid] || []; };
+  S.list = function (hid) {
+    const R = CF.Roster, own = data().own;
+    return [{ id: 'classic', name: '经典', kind: 'classic', owned: true, rar: 'common', desc: '官方形象。' }]
+      .concat(TINTS.map((t) => ({ id: t.id, name: t.name, kind: 'tint', price: t.price, star: t.star, rar: t.rar, desc: t.desc, owned: !!own[hid + ':' + t.id] || (t.star && R.star(hid) >= t.star) || CF.P.trial() })))
+      .concat(mine(hid).map((w) => ({ id: w.id, name: w.name, kind: 'img', owned: true, rar: 'rare', desc: '你在像素工坊里画的外观。' })));
+  };
+  S.get = (hid, id) => S.list(hid).find((x) => x.id === id) || null;
+  S.equipped = function (hid) { migrate(); const id = data().eq[hid] || 'classic', s = S.get(hid, id); return s && s.owned ? id : 'classic'; };
+  S.equip = function (hid, id) { const s = S.get(hid, id); if (!s || !s.owned) return false; data().eq[hid] = id; CF.Save.save(); CF.bus && CF.bus.emit('skin:changed', hid); return true; };
+  S.buy = function (hid, id) {
+    const s = S.get(hid, id); if (!s || s.owned || !s.price) return false;
+    const st = CF.City.storage(); if (st.chip < s.price) { CF.Audio.sfx('error'); CF.toast(`晶片不足（需要 ${s.price}）`, 'bad'); return false; }
+    st.chip -= s.price; data().own[hid + ':' + id] = true; CF.Save.save(); CF.Audio.sfx('unlock'); return true;
+  };
+  S.addMine = function (hid, packed, name) {
+    const w = (pix().wardrobe[hid] = mine(hid).slice()), eq = S.equipped(hid);
+    const id = 'my-' + Date.now(); w.push({ id, name: name || '我的外观 ' + (w.length + 1), t: Date.now(), doc: packed });
+    while (w.length > MAX_MINE) { const k = w.findIndex((x) => x.id !== eq); w.splice(k < 0 ? 0 : k, 1); }
+    IMG.clear(); data().eq[hid] = id; CF.Save.save(); CF.bus && CF.bus.emit('skin:changed', hid); return id;
+  };
+  S.removeMine = function (hid, id) { pix().wardrobe[hid] = mine(hid).filter((x) => x.id !== id); if (data().eq[hid] === id) data().eq[hid] = 'classic'; IMG.clear(); CF.Save.save(); };
+  // 自绘外观的位图（64×64，英雄按 2 倍精度、原点 12,24，和像素工坊的英雄样板一致）
+  const IMG = new Map();
+  S.img = function (hid, id) {
+    const w = mine(hid).find((x) => x.id === id); if (!w || !CF.PixStudio) return null;
+    const key = hid + ':' + id; if (!IMG.has(key)) IMG.set(key, CF.PixStudio.Doc.unpack(w.doc).toCanvas(1, { x0: 0, y0: 0, w: 64, h: 64 }));
+    return IMG.get(key);
+  };
+  // 给英语田园（另一个页面、可能不同源）：把当前皮肤打包进网址。自绘外观 = 64×64 PNG；炫彩 = 这位英雄用到的颜色的换色表
+  S.export = function (hid) {
+    const id = S.equipped(hid), s = S.get(hid, id); if (!s || s.kind === 'classic') return null;
+    if (s.kind === 'img') { const c = S.img(hid, id); return c ? { hero: hid, id, kind: 'img', png: c.toDataURL('image/png') } : null; }
+    const used = new Set(), cv = document.createElement('canvas'); cv.width = cv.height = 96; const g = cv.getContext('2d');
+    const rec = new Proxy(g, { get(t, p) { const v = t[p]; return typeof v === 'function' ? v.bind(t) : v; }, set(t, p, v) { if (typeof v === 'string' && (p === 'fillStyle' || p === 'strokeStyle')) used.add(v); t[p] = v; return true; } });
+    const h = H.get(hid); [{}, { bob: 1, strum: 1, t: 0.3 }, { blink: true, t: 0.9 }, { lean: 1, strum: 0, t: 1.5 }].forEach((a) => h.draw(rec, 20, 30, 2, Object.assign({ noCustom: true, showInst: true }, a)));
+    const map = {}, f = mapper(id); used.forEach((c) => { const v = f(c); if (v !== c) map[c] = v; });
+    return { hero: hid, id, kind: 'map', map };
+  };
+
+  // ---------- 所有画英雄的地方都走 h.draw：按装备的皮肤画（a.noCustom = 强制官方形象；a.skin = 预览某一套） ----------
+  H.list.forEach((h) => {
+    const d0 = h.draw;
+    h.draw = function (ctx, ox, oy, px, a = {}) {
+      if (a.noCustom) return d0.call(this, ctx, ox, oy, px, a);
+      const id = a.skin || S.equipped(h.id); if (id === 'classic') return d0.call(this, ctx, ox, oy, px, a);
+      if (id.startsWith('my-')) {
+        const sk = S.img(h.id, id); if (!sk) return d0.call(this, ctx, ox, oy, px, a);
+        const s = px / 2, bob = a.bob ? Math.round(px * 0.5 * a.bob) : 0, sm = ctx.imageSmoothingEnabled;
+        ctx.imageSmoothingEnabled = false; ctx.drawImage(sk, Math.round(ox - 12 * s), Math.round(oy - 24 * s - bob), Math.round(64 * s), Math.round(64 * s)); ctx.imageSmoothingEnabled = sm; return;
+      }
+      if (TINTS.some((t) => t.id === id)) return d0.call(this, tinted(ctx, id), ox, oy, px, a);
+      return d0.call(this, ctx, ox, oy, px, a);
+    };
+  });
 })();
 
 </script>
@@ -5388,12 +5839,13 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
 
   // ---------- 学院主页面 ----------
   const TABS = [['daily', '今日修炼'], ['quiz', '知识测验'], ['quests', '线下任务'], ['founder', '企业家修炼'], ['road', '学习路线']];
+  // v9.2（UI 宪法第 27 章）：原来页眉下面的一排页签换成左侧竖条（竖屏是一排可滑动的页签）
   A.render = function () {
-    const tabs = CF.$('#academyTabs');
-    tabs.innerHTML = '';
-    TABS.forEach(([id, n]) => { const b = CF.h(`<button class="tab ${A.tab === id ? 'on' : ''}">${n}</button>`); b.onclick = () => { CF.Audio.sfx('click'); A.tab = id; A.render(); }; tabs.appendChild(b); });
-    const body = CF.$('#academyBody');
-    body.innerHTML = '';
+    const tabs = CF.$('#academyTabs'); tabs.innerHTML = ''; tabs.hidden = true;
+    const root = CF.$('#academyBody'), name = TABS.find((t) => t[0] === A.tab)[1];
+    root.innerHTML = `<div class="rail-page"><nav class="rail" role="tablist" aria-label="学院分类">${TABS.map(([id, n]) => `<button role="tab" data-t="${id}" class="${A.tab === id ? 'on' : ''}" aria-selected="${A.tab === id}">${n}</button>`).join('')}</nav><div class="rail-main"><div class="codex-head"><b class="codex-t">${name}</b></div><div id="acMain"></div></div></div>`;
+    root.querySelectorAll('.rail [data-t]').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); A.tab = b.dataset.t; A.render(); }));
+    const body = CF.$('#acMain');
     body.appendChild(CF.h(`<div class="card" style="margin-bottom:14px">${A.ratioHtml()}</div>`));
     ({ daily: renderDaily, quiz: renderQuiz, quests: renderQuests, founder: renderFounder, road: renderRoad })[A.tab](body);
   };
@@ -5558,12 +6010,18 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
   };
 
   // ---------- 成就 ----------
+  // v9.2（UI 宪法第 27 章）：左侧竖条分类，顶部只留「成就 · 已解锁 n/总数」
+  const ACH_CAT = { 战斗: ['first_win', 'all_campaign', 'three_star', 'all_three', 'air', 'riff20', 'kills500', 'hard'], 学习: ['quiz50', 'lab3', 'lab_all', 'code5', 'quest10', 'ratio', 'streak7', 'founder5'], 成长: ['whole', 'pixel', 'rank6'] };
   A.renderAch = function () {
-    const body = CF.$('#achBody'), got = S().achievements;
-    const n = CF.P.ACH.filter((a) => got[a.id]).length;
-    body.innerHTML = `<p class="small muted" style="margin-bottom:12px">已解锁 ${n} / ${CF.P.ACH.length}</p>`;
+    const root = CF.$('#achBody'), got = S().achievements, all = CF.P.ACH;
+    const n = all.filter((a) => got[a.id]).length, cats = ['全部', '已解锁', '战斗', '学习', '成长'];
+    if (!cats.includes(A.achCat)) A.achCat = '全部';
+    const pick = (c) => all.filter((a) => c === '全部' || (c === '已解锁' ? got[a.id] : (ACH_CAT[c] || []).includes(a.id) || (c === '成长' && !Object.values(ACH_CAT).flat().includes(a.id))));
+    root.innerHTML = `<div class="rail-page"><nav class="rail" role="tablist" aria-label="成就分类">${cats.map((c) => `<button role="tab" data-c="${c}" class="${A.achCat === c ? 'on' : ''}" aria-selected="${A.achCat === c}">${c}<small>${pick(c).length}</small></button>`).join('')}</nav><div class="rail-main"><div class="codex-head"><b class="codex-t">成就</b><span class="codex-prog">已解锁 <b>${n}</b><span>/${all.length}</span></span></div><div id="achMain"></div></div></div>`;
+    root.querySelectorAll('.rail [data-c]').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); A.achCat = b.dataset.c; A.renderAch(); }));
+    const body = CF.$('#achMain');
     const g = CF.h('<div class="grid g3"></div>');
-    CF.P.ACH.forEach((a) => g.appendChild(CF.h(`<div class="card ach ${got[a.id] ? 'got' : ''}"><div class="ic">${a.icon}</div><div><h4>${a.name}</h4><p>${a.desc}${got[a.id] ? ` · <span class="c-chip">${got[a.id]}</span>` : ''}</p></div></div>`)));
+    pick(A.achCat).forEach((a) => g.appendChild(CF.h(`<div class="card ach ${got[a.id] ? 'got' : ''}"><div class="ic">${a.icon}</div><div><h4>${a.name}</h4><p>${a.desc}${got[a.id] ? ` · <span class="c-chip">${got[a.id]}</span>` : ''}</p></div></div>`)));
     body.appendChild(g);
   };
 })();
@@ -7951,12 +8409,14 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
   const tierPill = (P) => { const [n, c] = CF.Chapters.Diff.tier(P); return `<span class="dpill" style="--dc:${c}">D${Math.round(P)} · ${n}</span>`; };
   UI.renderCampaign = function () {
     const body = $('#campaignBody'), d = CF.Save.data, C = CF.Chapters;
-    body.innerHTML = `<div id="chapList"></div><div class="sec-title">沉浸模式 · 烧脑策略</div><div class="grid g2" id="imGrid"></div><div class="sec-title">遭遇战</div><div class="grid g3" id="skGrid"></div><p class="small muted" style="margin-top:14px;line-height:1.7">次级关（剧情关、第三章起为首领关）通关后不能重复挑战，剧情关还需要完成对应的学习才能解锁；小关可以反复挑战，积攒长期补给。每章固定掉落一种碎片或道具，已拥有的英雄碎片会自动转化为晶片。想先体验全部内容，可在「设置」里打开体验模式。</p>`;
+    // v9.2（UI 宪法第 27 章）：左侧竖条 = 各章 + 沉浸模式 + 遭遇战，一次看一类；说明收进 ⓘ
+    body.innerHTML = `<div class="rail-page"><nav class="rail" id="campRail" role="tablist" aria-label="征程分类"></nav><div class="rail-main"><div class="codex-head"><b class="codex-t" id="campT">征程</b><span class="codex-prog" id="campProg"></span><button class="btn sm ghost" id="campInfo">ⓘ 规则</button></div><div id="chapList"></div><div class="camp-sec" data-c="im"><div class="grid g2" id="imGrid"></div></div><div class="camp-sec" data-c="sk"><div class="grid g3" id="skGrid"></div></div></div></div>`;
+    $('#campInfo').onclick = () => { CF.Audio.sfx('click'); CF.modal.open({ title: 'ⓘ 征程 · 规则', body: '<p class="t-body" style="line-height:1.9">次级关（剧情关、第三章起为首领关）通关后不能重复挑战，剧情关还需要完成对应的学习才能解锁；小关可以反复挑战，积攒长期补给。每章固定掉落一种碎片或道具，已拥有的英雄碎片会自动转化为晶片。想先体验全部内容，可在「设置」里打开体验模式。</p>', foot: [{ text: '知道了', cls: 'primary' }] }); };
     const host = $('#chapList');
     const afterName = (id) => { const L = CF.Levels.get(id); if (L) return L.name; const f = C.find(id); return f ? f.st.name : id; };
     C.CHAPTERS.forEach((ch) => {
       const list = C.stages(ch), won = list.filter((s) => C.cleared(s.id)).length, open = C.unlocked(ch, list[0]);
-      const sec = CF.h(`<section class="chap ${open ? '' : 'shut'}"><div class="chap-hd"><canvas></canvas><div class="chap-t"><span class="t-tag">CHAPTER 0${ch.no} · ${ch.en}</span><b>第${'一二三四五六七'[ch.no - 1]}章「${ch.name}」</b><span class="small">${ch.sub}</span></div><div class="chap-drop"><span class="small">本章掉落</span><b>${C.fragName(ch)}</b><span class="small t-num">${C.fragProgress(ch)}</span></div><div class="chap-p"><b class="t-num">${won}/${list.length}</b><span class="small">普通关</span></div></div><div class="stage-path"></div></section>`);
+      const sec = CF.h(`<section class="chap camp-sec ${open ? '' : 'shut'}" data-c="ch${ch.no}"><div class="chap-hd"><canvas></canvas><div class="chap-t"><span class="t-tag">CHAPTER 0${ch.no} · ${ch.en}</span><b>第${'一二三四五六七'[ch.no - 1]}章「${ch.name}」</b><span class="small">${ch.sub}</span></div><div class="chap-drop"><span class="small">本章掉落</span><b>${C.fragName(ch)}</b><span class="small t-num">${C.fragProgress(ch)}</span></div><div class="chap-p"><b class="t-num">${won}/${list.length}</b><span class="small">普通关</span></div></div><div class="stage-path"></div></section>`);
       new CF.PixelFX.Stage(sec.querySelector('canvas'), { mode: 'bar', fx: 0.9, fy: 0.55, cell: 12 });
       const path = sec.querySelector('.stage-path');
       if (!open) { path.appendChild(CF.h(`<p class="small muted" style="grid-column:1/-1">通关第${'一二三四五六七'[ch.no - 2]}章全部普通关后开放（共 ${list.length} 关：${list.filter((x) => x.kind !== 'minor').length} 个次级关 + ${list.filter((x) => x.kind === 'minor').length} 个小关 + 1 个组队副本）。</p>`)); host.appendChild(sec); return; }
@@ -7994,6 +8454,15 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       el.onclick = () => { CF.Audio.sfx('click'); UI.briefing(CF.Levels.skirmish(k)); };
       sk.appendChild(el);
     });
+    // 左侧竖条：默认停在「打到哪一章」
+    const CN = '一二三四五六七', items = C.CHAPTERS.map((ch) => { const list = C.stages(ch), won = list.filter((x) => C.cleared(x.id)).length, open = C.unlocked(ch, list[0]); return { k: 'ch' + ch.no, n: `第${CN[ch.no - 1]}章`, t: `第${CN[ch.no - 1]}章「${ch.name}」`, sub: open ? `${won}/${list.length}` : '🔒', open, done: won >= list.length }; })
+      .concat([{ k: 'im', n: '沉浸模式', t: '沉浸模式 · 烧脑策略', sub: '', open: true }, { k: 'sk', n: '遭遇战', t: '遭遇战', sub: '', open: true }]);
+    if (!items.some((x) => x.k === UI._camp)) UI._camp = (items.find((x) => x.k.startsWith('ch') && x.open && !x.done) || items.filter((x) => x.k.startsWith('ch') && x.open).pop() || items[0]).k;
+    const rail = $('#campRail');
+    const show = () => { const it = items.find((x) => x.k === UI._camp); body.querySelectorAll('.camp-sec').forEach((x) => (x.hidden = x.dataset.c !== UI._camp)); rail.querySelectorAll('[data-k]').forEach((b) => { b.classList.toggle('on', b.dataset.k === UI._camp); b.setAttribute('aria-selected', b.dataset.k === UI._camp); }); $('#campT').textContent = '征程'; $('#campProg').textContent = it.k.startsWith('ch') ? `${it.n}${it.open ? ' · 通关 ' + it.sub : ' · 未开放'}` : it.t; };
+    rail.innerHTML = items.map((x) => `<button role="tab" data-k="${x.k}">${x.n}${x.sub ? `<small>${x.sub}</small>` : ''}</button>`).join('');
+    rail.querySelectorAll('[data-k]').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); UI._camp = b.dataset.k; show(); }));
+    show();
   };
   // 出征前选英雄：只能选已拥有的英雄（同时成为大厅的当前英雄与界面主题）
   UI.heroPicker = function (onPick) {
@@ -8902,6 +9371,19 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       special: () => { const u = UT[uKey], b = BT[bKey]; return `<div class="skill"><div class="k">兵</div><div><h4>专属小兵 · ${u.name}</h4><p>${u.desc}</p><div class="meta">耐久 ${u.hp} · 伤害 ${u.atk.dmg} · 射程 ${u.atk.range} · ${CF.Game.costHtml(u.cost)}（在 Agent 工坊训练）</div></div></div><div class="skill"><div class="k">建</div><div><h4>专属建筑 · ${b.name}</h4><p>${b.desc}</p><div class="meta">耐久 ${b.hp} · ${CF.Game.costHtml(b.cost)}（建造菜单第 8 位）</div></div></div><p class="small muted">只有选择 ${h.name} 出战时才能训练与建造。</p>`; },
       art: () => `<div class="card"><div class="t-tag">乐器（法宝${CF.Treasure.has(h.id) ? ' · 已获得' : ' · 未获得'}）</div><p class="t-body" style="color:var(--text)">${h.instrument} —— 主题曲《${ms.name.split('·')[1] || ms.name}》 · ${h.music.bpm} BPM · ${h.music.key} · ${h.music.scale}</p><p class="t-cap">记忆点：${h.music.motif}</p><div class="t-tag" style="margin-top:10px">配色（宪法第 2 章：背景三段 · 网格 · 主光 · 点缀 · 音符）</div><div class="swatches-big" style="margin-top:6px">${[['背景暗', h.pal.bg[0]], ['背景中', h.pal.bg[1]], ['背景亮', h.pal.bg[2]], ['网格', 'rgb(' + h.pal.grid.join(',') + ')'], ['主光', h.pal.glow], ['点缀', h.pal.accent], ['音符', h.pal.note]].map(([n, c]) => `<div><i style="background:${c}"></i>${n}<br>${c.startsWith('rgb') ? '' : c}</div>`).join('')}</div><div class="t-tag" style="margin-top:10px">特效语言</div><p class="t-cap">节拍时从角色处扩散像素方格波纹；乐器发声点飘出专属粒子（${h.fx.pats.length} 种像素形状），重拍时整片网格亮起、角色做强拍动作。</p></div>`,
     };
+    // v9.2 皮肤：在英雄档案里直接换（买炫彩去商城或这里都行；物品宪法第 7 章）
+    tabs.skin = () => { const SK = CF.Skins, eq = SK.equipped(h.id), own = CF.Roster.owns(h.id); return `<div class="skin-list hd-skins">${SK.list(h.id).map((x) => `<button class="skin-card ${x.id === eq ? 'on' : ''} ${x.owned ? '' : 'lock'}" data-sk="${x.id}"><canvas width="96" height="96"></canvas><span>${x.name}</span><em>${x.id === eq ? '穿着' : !own ? '先获得英雄' : x.owned ? '点一下穿上' : x.price ? '◆ ' + x.price + ' 购买' : x.star + ' 星解锁'}</em></button>`).join('')}<button class="skin-card add" data-sk="+draw"><span class="skin-plus">＋</span><span>自己画一套</span><em>像素工坊</em></button></div><p class="t-cap" style="margin-top:6px">炫彩只换颜色（都在造月 256 色里），不加属性；买一次永久拥有，只用晶片。</p>`; };
+    const bindSkins = () => {
+      body.querySelectorAll('#hdTab [data-sk]').forEach((b) => {
+        const k = b.dataset.sk, c = b.querySelector('canvas'); if (c) { const x = c.getContext('2d'); x.fillStyle = h.pal.bg[1]; x.fillRect(0, 0, 96, 96); x.imageSmoothingEnabled = false; h.draw(x, 14, 30, 3, { t: 0, skin: k }); }
+        b.onclick = () => {
+          CF.Audio.sfx('click'); const SK = CF.Skins; if (k === '+draw') return CF.Labs.open('pixel');
+          if (!CF.Roster.owns(h.id)) return CF.toast(`先获得${h.name}`, 'bad');
+          const x = SK.get(h.id, k); if (!x.owned) { if (!x.price) return CF.toast(`${h.name}升到 ${x.star} 星自动解锁`); if (!SK.buy(h.id, k)) return; }
+          SK.equip(h.id, k); CF.toast(`${h.name}换上了「${x.name}」`, 'gold'); heroStage.pulse(1, true); draw();
+        };
+      });
+    };
     // 主角的合奏主题曲：分轨试听（每件乐器可以单独开关，四个段落可以直接跳转）
     tabs.ens = () => `<div class="card"><div class="t-tag">九乐器合奏 · 《${(ms.name.match(/「(.+)」/) || [, ms.name])[1]}》</div><p class="t-cap" style="margin-top:4px">一首 32 小节的曲子分四段。点段落跳过去听；点乐器把它关掉，听听少了谁会怎样。贝斯与和声垫是「地基」，始终保留；每段开始前的四下「嗒嗒嗒嗒」是造乐的指挥棒起拍。</p>
       <div class="ens-secs">${CF.Audio.SECTIONS.map(([n, b, d], i) => `<button class="ens-sec" data-bar="${b}"><b>${i + 1} · ${n}</b><span>${d}</span></button>`).join('')}</div>
@@ -8920,7 +9402,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       clearInterval(L._ensT); L._ensT = setInterval(() => { const el = document.getElementById('ensNow'); if (!el) return clearInterval(L._ensT); const [n, b] = CF.Audio.section(); el.textContent = `${n}（第 ${b + 1} 小节起）`; box.querySelectorAll('.ens-sec').forEach((x) => x.classList.toggle('on', +x.dataset.bar === b)); }, 300);
     };
     const tb = body.querySelector('#hdTabs'); let cur = 'lore';
-    const draw = () => { tb.innerHTML = ''; [['lore', '档案'], ['skills', '技能'], ['special', '专属'], ['art', '乐器与配色']].concat(h.music.ensemble ? [['ens', '合奏分轨']] : []).forEach(([k, n]) => { const b = CF.h(`<button class="tab ${cur === k ? 'on' : ''}">${n}</button>`); b.onclick = () => { cur = k; draw(); CF.Audio.sfx('click'); }; tb.appendChild(b); }); body.querySelector('#hdTab').innerHTML = tabs[cur](); if (cur === 'ens') bindEns(); body.querySelectorAll('#hdTab .vline').forEach((b) => (b.onclick = () => { CF.Audio.unlock(); CF.Voice.say(h, b.dataset.l); heroStage.pulse(0.8, true); })); };
+    const draw = () => { tb.innerHTML = ''; [['lore', '档案'], ['skills', '技能'], ['skin', '皮肤'], ['special', '专属'], ['art', '乐器与配色']].concat(h.music.ensemble ? [['ens', '合奏分轨']] : []).forEach(([k, n]) => { const b = CF.h(`<button class="tab ${cur === k ? 'on' : ''}">${n}</button>`); b.onclick = () => { cur = k; draw(); CF.Audio.sfx('click'); }; tb.appendChild(b); }); body.querySelector('#hdTab').innerHTML = tabs[cur](); if (cur === 'ens') bindEns(); if (cur === 'skin') bindSkins(); body.querySelectorAll('#hdTab .vline').forEach((b) => (b.onclick = () => { CF.Audio.unlock(); CF.Voice.say(h, b.dataset.l); heroStage.pulse(0.8, true); })); };
     draw();
     { const sb = body.querySelector('#hdStar'); if (sb) sb.onclick = () => { if (CF.Roster.starUp(h.id)) L.renderHero(h.id); }; }
     body.querySelector('#hdPick').onclick = () => { if (!CF.Roster.owns(h.id)) return; L.setHero(h.id); L.renderHero(h.id); CF.toast(`主英雄：${h.name}`, 'gold'); };
@@ -9356,6 +9838,12 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       get: ['完成具身智能、航空航天模块的电路实验'], use: ['收进「装配图」，了解它从元器件到调试的完整工艺；以后用于组装游戏'], rule: '每个实验对应一个部件，永久拥有。' },
     { id: 'component', name: '元器件', icon: 'bulb', cat: '耗材', rar: 'common', world: '电路工坊的材料柜：导线、电池、电阻、电机……每个实验发给你刚好够用的一份。',
       get: ['每个实验按题目发放（元件盒里的数字）', '自由搭建无限量'], use: ['在电路板上搭电路'], rule: '只在当前实验里有效，重置或换实验时收回。' },
+    // ---------- 装扮（v9.2，物品宪法第 7 章） ----------
+    { id: 'skin-tint', name: '炫彩皮肤', icon: 'palette', cat: '装扮', rar: 'epic', world: '乐坊的调色师把英雄的颜色重新调过一遍，但每一种颜色都还在造月色卡里——换了衣服，还是那个人。',
+      get: ['商城「皮肤」：墨韵 600、星夜 1200、霓虹 2000 晶片（每位英雄单独购买）', '鎏金：英雄升到 3 星自动解锁'], use: ['换英雄外观：大厅、战场、像素脉冲舞台、图鉴、英雄档案、英语田园都会换'],
+      rule: '只换颜色，不加任何属性；买一次永久拥有；只用游戏里赚到的晶片，不卖真实货币；没有随机抽取。' },
+    { id: 'skin-mine', name: '我的外观', icon: 'palette', cat: '装扮', rar: 'rare', world: '你在像素工坊里亲手画的样子。美也是一种能力。',
+      get: ['实验室 · 像素工坊 →「保存」→「存进衣柜并穿上」'], use: ['和炫彩皮肤一样，穿上后全游戏都换'], rule: '每位英雄的衣柜最多 6 套（满了挤掉最早、没穿着的一套）；颜色来自造月色卡；只存在本机。' },
     // ---------- 沉浸模式道具（野怪掉落 / 战场商店） ----------
     { id: 'potion', name: '治疗药水', icon: 'flask', cat: '沉浸道具', rar: 'common', world: '用整理好的语料熬成的药，喝下去脑子清醒、身体回血。', get: ['沉浸模式商店（60 晶片）', '简单野怪营地掉落'], use: ['立即回复 450 耐久（用掉就没了）'], rule: '物品栏最多 4 格；不带出战斗。' },
     { id: 'scroll', name: '回城卷轴', icon: 'redbook', cat: '沉浸道具', rar: 'common', world: '写着主脑坐标的卷轴，读一遍就会被拉回家。', get: ['沉浸模式商店（80 晶片）'], use: ['1.5 秒后传送回主脑（用掉就没了）'], rule: '同上。' },
@@ -10550,13 +11038,13 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     hero: () => `每天轮换 3 位英雄，每位每天限购 ${LIMIT.frag} 片。没拥有的英雄集齐 ${CF.Roster.FRAG_NEED} 片解锁；已拥有的英雄用碎片升星（4→5 星需要 500 片）。主角「造乐」只能通过特殊渠道获得，不在商城出售。`,
     fb: () => '法宝锦囊每天限购 1 个，打开有 35% 概率得到赐福法宝碎片（概率公示，见物品宪法）；集齐 10 片可以为一位英雄赐福法宝。',
     sup: () => '体力药剂每天限购 2 瓶。更推荐的办法：去学院学习——连续学 25 分钟得 5 分钟无限体力，累计学 40 分钟得 10 分钟。',
-    skin: () => '皮肤系统还在制作中，这里先占位：大图展示英雄，右侧是皮肤列表。「我的外观」是你在实验室 · 像素工坊里画的，已经可以用；其余皮肤敬请期待。商城永远只用游戏里赚到的资源，不需要充值。',
+    skin: () => '每位英雄有：经典（免费）、四套炫彩——墨韵 600 晶片、星夜 1200 晶片、霓虹 2000 晶片、鎏金（英雄升到 3 星自动解锁）——以及最多 6 套你在像素工坊里画的「我的外观」。炫彩只换颜色，颜色都落在造月 256 色里；动作、乐器、技能和经典完全一样，不加属性。皮肤买一次永久拥有，只用游戏里赚到的晶片，不需要充值。穿上后大厅、战场、图鉴、英语田园都会换。',
   };
   // v9.1（UI 宪法第 27 章）：左侧竖条导航（竖屏是一排页签），大段说明收进 ⓘ，右上角是晶片余额
   Shop.render = function () {
     const body = $('#shopBody'), name = TABS.find((t) => t[0] === tab)[1];
     (Shop._stg || []).forEach((x) => x.destroy()); Shop._stg = [];
-    body.innerHTML = `<div class="rail-page"><nav class="rail" role="tablist" aria-label="商城分类">${TABS.map(([k, n]) => `<button role="tab" data-t="${k}" class="${k === tab ? 'on' : ''}" aria-selected="${k === tab}">${n}${k === 'skin' ? '<small>占位</small>' : ''}</button>`).join('')}</nav>
+    body.innerHTML = `<div class="rail-page"><nav class="rail" role="tablist" aria-label="商城分类">${TABS.map(([k, n]) => `<button role="tab" data-t="${k}" class="${k === tab ? 'on' : ''}" aria-selected="${k === tab}">${n}</button>`).join('')}</nav>
       <div class="rail-main"><div class="codex-head"><b class="codex-t">${name}</b><button class="btn sm ghost" id="shopInfo">ⓘ 规则</button><span class="shop-wallet"><span class="c-chip">◆ <b class="t-num">${chips().toLocaleString()}</b></span><small>晶片 · 不需要充值</small></span></div><div id="shopTab"></div></div></div>`;
     body.querySelectorAll('.rail [data-t]').forEach((b) => (b.onclick = () => { tab = b.dataset.t; CF.Audio.sfx('click'); Shop.render(); }));
     $('#shopInfo').onclick = () => { CF.Audio.sfx('click'); CF.modal.open({ title: `ⓘ ${name} · 规则`, body: `<p class="t-body" style="line-height:1.9">${INFO[tab]()}</p>`, foot: [{ text: '知道了', cls: 'primary' }] }); };
@@ -10593,33 +11081,36 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       host.querySelector('button').onclick = () => { if (left('stamina', LIMIT.stamina) <= 0 || !pay(PRICE.stamina)) return; take('stamina'); CF.Stamina.add(40); CF.toast('体力 +40', 'gold'); Shop.render(); };
     }
   };
-  // 皮肤展示（占位，参考王者荣耀的皮肤页：画面占七成，信息和按钮退到右侧和底部）
+  // 皮肤（v9.2 转正，参考王者荣耀的皮肤页：画面占七成，信息和按钮退到右侧和底部；物品宪法第 7 章）
+  let skinSel = null;
+  const RARN = { common: ['经典', '#c9d4ff'], rare: ['稀有', '#4ef0ff'], epic: ['史诗', '#b48cff'], legend: ['传说', '#ffd257'] };
   Shop.renderSkins = function (host) {
-    const R = CF.Roster, own = R.ownedList(), h = CF.Heroes.get(skinHero && own.some((x) => x.id === skinHero) ? skinHero : CF.Heroes.current().id);
-    const mine = CF.PixStudio && CF.PixStudio.skinCanvas(h.id);
-    const skins = [['经典', 'classic', true], ['我的外观', 'mine', !!mine], ['敬请期待', 'soon', false], ['敬请期待', 'soon', false]];
-    const box = CF.h(`<div class="skin-show"><div class="skin-stage"><canvas></canvas><div class="skin-name"><span class="t-tag">${h.en}</span><b>${h.name}</b><small>${h.title}</small></div></div>
-      <div class="skin-side"><div class="skin-list">${skins.map(([n, k, ok], i) => `<button class="skin-card ${k} ${i === 0 ? 'on' : ''}" ${ok ? '' : 'disabled'} data-k="${k}"><canvas width="96" height="96"></canvas><span>${n}</span>${k === 'mine' && !ok ? '<em>去像素工坊画一套</em>' : ''}</button>`).join('')}</div>
-        <button class="btn primary skin-buy" disabled>皮肤敬请期待</button><button class="btn sm ghost" id="skinDraw">🎨 去像素工坊画「我的外观」</button></div>
-      <div class="skin-heroes">${own.map((x) => `<button class="skin-av ${x.id === h.id ? 'on' : ''}" data-h="${x.id}" title="${x.name}" style="--b1:${x.pal.bg[1]};--g:${x.pal.glow}"><canvas width="48" height="48"></canvas></button>`).join('')}</div></div>`);
+    const R = CF.Roster, SK = CF.Skins, list = CF.Heroes.list, h = CF.Heroes.get(skinHero || CF.Heroes.current().id);
+    const skins = SK.list(h.id), eq = SK.equipped(h.id); if (!skinSel || !skins.some((x) => x.id === skinSel)) skinSel = eq;
+    const cur = skins.find((x) => x.id === skinSel), own = R.owns(h.id);
+    const btn = !own ? `<button class="btn primary skin-buy" disabled>先获得${h.name}</button>` : cur.owned ? (cur.id === eq ? '<button class="btn skin-buy" disabled>✓ 正在穿</button>' : '<button class="btn primary skin-buy" data-act="eq">穿上</button>')
+      : cur.price ? `<button class="btn primary skin-buy" data-act="buy"><span class="c-chip">◆ ${cur.price}</span> 购买并穿上</button>` : `<button class="btn skin-buy" disabled>${h.name}升到 ${cur.star} 星解锁</button>`;
+    const box = CF.h(`<div class="skin-show"><div class="skin-stage"><canvas></canvas><div class="skin-name"><span class="t-tag" style="color:${RARN[cur.rar][1]}">${RARN[cur.rar][0]} · ${h.en}</span><b>${h.name}<em>·${cur.name}</em></b><small>${cur.desc}</small></div></div>
+      <div class="skin-side"><div class="skin-list">${skins.map((x) => `<button class="skin-card ${x.id === skinSel ? 'on' : ''} ${x.owned ? '' : 'lock'}" data-k="${x.id}" style="--r:${RARN[x.rar][1]}"><canvas width="96" height="96"></canvas><span>${x.name}</span><em>${x.id === eq ? '穿着' : x.owned ? '已拥有' : x.price ? '◆ ' + x.price : x.star + ' 星解锁'}</em></button>`).join('')}<button class="skin-card add" data-k="+draw"><span class="skin-plus">＋</span><span>自己画一套</span><em>像素工坊</em></button></div>
+        ${btn}${cur.kind === 'img' ? '<button class="btn sm ghost" data-act="del">从衣柜里删掉这套</button>' : ''}</div>
+      <div class="skin-heroes">${list.map((x) => `<button class="skin-av ${x.id === h.id ? 'on' : ''} ${R.owns(x.id) ? '' : 'lock'}" data-h="${x.id}" title="${x.name}" style="--b1:${x.pal.bg[1]};--g:${x.pal.glow}"><canvas width="48" height="48"></canvas></button>`).join('')}</div></div>`);
     host.appendChild(box);
     const stg = new CF.PixelFX.Stage(box.querySelector('.skin-stage canvas'), { mode: 'full', fx: 0.5, fy: 0.5, cell: 16, hero: h.id, radius: 30 }); Shop._stg.push(stg);
-    box.querySelectorAll('.skin-card').forEach((b, i) => {
-      const g = b.querySelector('canvas').getContext('2d'), k = skins[i][1]; g.imageSmoothingEnabled = false;
-      const grd = g.createLinearGradient(0, 0, 0, 96); grd.addColorStop(0, h.pal.bg[1]); grd.addColorStop(1, h.pal.bg[0]); g.fillStyle = grd; g.fillRect(0, 0, 96, 96);
-      if (k === 'classic') h.draw(g, 14, 30, 3, { noCustom: true, t: 0 });
-      else if (k === 'mine' && mine) g.drawImage(mine, 14 - 12 * 1.5, 30 - 24 * 1.5, 96, 96);
-      else { // 剪影占位：英雄轮廓填成半透明白
-        const c = document.createElement('canvas'); c.width = c.height = 96; const x = c.getContext('2d'); h.draw(x, 14, 30, 3, { noCustom: true, t: 0 }); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#ffffff30'; x.fillRect(0, 0, 96, 96); g.drawImage(c, 0, 0);
-        g.fillStyle = '#fff9'; g.font = 'bold 22px sans-serif'; g.textAlign = 'center'; g.fillText('?', 48, 58);
-      }
-      b.onclick = () => { CF.Audio.sfx('click'); box.querySelectorAll('.skin-card').forEach((x) => x.classList.toggle('on', x === b)); stg.o.drawChar = k === 'classic' ? null : (ctx, fx, fy, px) => { const ox = fx - 21 * px * 0.45, oy = fy - 15 * px * 0.38; h.draw(ctx, ox, oy, px, { t: stg.t }); return true; }; };
+    stg.o.drawChar = (ctx, fx, fy, px, a) => { const ox = fx - 21 * px * 0.45, oy = fy - 15 * px * 0.38; ctx.fillStyle = 'rgba(10,6,30,0.35)'; ctx.fillRect(ox + px, oy + 10.5 * px, 14 * px, px); h.draw(ctx, ox, oy, px, { bob: a.bob, strum: a.strum > 0.4 ? 1 : 0, blink: a.blink > 0, t: a.t, skin: skinSel }); return true; };
+    box.querySelectorAll('.skin-card').forEach((b) => {
+      const k = b.dataset.k, g = b.querySelector('canvas'); if (g) { const x = g.getContext('2d'), grd = x.createLinearGradient(0, 0, 0, 96); grd.addColorStop(0, h.pal.bg[1]); grd.addColorStop(1, h.pal.bg[0]); x.fillStyle = grd; x.fillRect(0, 0, 96, 96); x.imageSmoothingEnabled = false; h.draw(x, 14, 30, 3, { t: 0, skin: k }); }
+      b.onclick = () => { CF.Audio.sfx('click'); if (k === '+draw') { Shop._stg.forEach((x) => x.destroy()); CF.Labs.open('pixel'); return; } skinSel = k; Shop.render(); };
     });
-    box.querySelectorAll('.skin-av').forEach((b) => { const x = b.querySelector('canvas').getContext('2d'), hh = CF.Heroes.get(b.dataset.h); x.fillStyle = hh.pal.bg[1]; x.fillRect(0, 0, 48, 48); hh.draw(x, 5, 16, 1.6, { t: 0 }); b.onclick = () => { CF.Audio.sfx('click'); skinHero = b.dataset.h; stg.destroy(); Shop.render(); }; });
-    box.querySelector('#skinDraw').onclick = () => { CF.Audio.sfx('click'); stg.destroy(); CF.Labs.open('pixel'); };
-    // 经典外观固定画官方形象（不受「我的外观」影响）
-    stg.o.drawChar = (ctx, fx, fy, px) => { const ox = fx - 21 * px * 0.45, oy = fy - 15 * px * 0.38; h.draw(ctx, ox, oy, px, { noCustom: true, t: stg.t, bob: stg.anim.bob }); return true; };
-    box.querySelector('.skin-card.classic').onclick = () => { CF.Audio.sfx('click'); box.querySelectorAll('.skin-card').forEach((x) => x.classList.toggle('on', x.dataset.k === 'classic')); stg.o.drawChar = (ctx, fx, fy, px) => { const ox = fx - 21 * px * 0.45, oy = fy - 15 * px * 0.38; h.draw(ctx, ox, oy, px, { noCustom: true, t: stg.t, bob: stg.anim.bob }); return true; }; };
+    box.querySelectorAll('.skin-av').forEach((b) => { const x = b.querySelector('canvas').getContext('2d'), hh = CF.Heroes.get(b.dataset.h); x.fillStyle = hh.pal.bg[1]; x.fillRect(0, 0, 48, 48); hh.draw(x, 5, 16, 1.6, { t: 0 }); b.onclick = () => { CF.Audio.sfx('click'); skinHero = b.dataset.h; skinSel = null; Shop.render(); }; });
+    const act = box.querySelector('[data-act]');
+    box.querySelectorAll('[data-act]').forEach((b) => (b.onclick = () => {
+      const a = b.dataset.act;
+      if (a === 'buy' && SK.buy(h.id, skinSel)) { SK.equip(h.id, skinSel); CF.toast(`${h.name}·${cur.name} 到手，已经穿上`, 'gold'); }
+      else if (a === 'eq' && SK.equip(h.id, skinSel)) { CF.Audio.sfx('correct'); CF.toast(`${h.name}换上了「${cur.name}」`, 'gold'); }
+      else if (a === 'del') { SK.removeMine(h.id, skinSel); skinSel = null; CF.toast('已从衣柜里删掉'); }
+      Shop.render();
+    }));
+    void act;
   };
 })();
 
@@ -10628,7 +11119,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
 /* js/farm.js */
 /* 英语田园入口（v8，主创要求：把「生而向星」英语农场按造月之路的美术 / UI 宪法改造，保留全部功能）
  * - 田园本体在 farm/：主创的「豆豆的田园厨房」（第 27 版）按造月之路的做法改造（tools/farm-zy-build.mjs --embed，源文件 farm-zy-src/）。
- *   主题英雄跟随游戏里的主英雄（网址 ?hero=英雄id），场景里的主角就是这位英雄。
+ *   主题英雄跟随游戏里的主英雄（网址 ?hero=英雄id），场景里的主角就是这位英雄；v9.2 起连皮肤一起带过去（?skin=…，见 js/skins.js 的 export）。
  * - 进入方式是整页跳转（不是 iframe）：安卓 WebView 里 file:// 页面嵌 https iframe 的存储可能被分区，田园存档不保证留得住。
  * - 田园里的学习时间按造月之路的规则计时（连续 25 分钟 / 零散 40 分钟换无限体力），回来时用 #farmlearn=秒 带回并结算。
  * - 单文件网页版（dist）不带田园素材（十几 MB），点入口会说明原因。 */
@@ -10659,7 +11150,8 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
   };
   function go() {
     const st = CF.Stamina.learnInfo();
-    const p = new URLSearchParams({ zy: '1', hero: String(CF.Save.data.hero || ''), sess: String(Math.floor(st.sess)), pool: String(Math.floor(st.pool)), bank: st.bank > 0 ? '1' : '0', ret: location.href.split('#')[0] });
+    const hid = CF.Save.data.hero || CF.Heroes.current().id, sk = CF.Skins ? CF.Skins.export(hid) : null;   // v9.2：田园里也穿当前皮肤
+    const p = new URLSearchParams({ zy: '1', hero: String(hid), skin: sk ? JSON.stringify(sk) : '', sess: String(Math.floor(st.sess)), pool: String(Math.floor(st.pool)), bank: st.bank > 0 ? '1' : '0', ret: location.href.split('#')[0] });
     const url = F.url() + '?' + p.toString();
     CF.Save.save();
     CF.Audio.sfx('unlock');
