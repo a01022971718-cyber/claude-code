@@ -1,0 +1,112 @@
+{
+ "zaole": {
+  "九种声音，一个方向！": "zaole/pick.mp3",
+  "跟上节拍，出发！": "zaole/move.mp3",
+  "这一拍，归我！": "zaole/attack.mp3",
+  "全体——起！众声向上！": "zaole/skill.mp3",
+  "曲终，谢幕。": "zaole/kill.mp3",
+  "只要还有一个声部在，乐曲就不会停。": "zaole/low.mp3",
+  "指挥棒，再次举起！": "zaole/revive.mp3",
+  "每个人的声音，都算数。": "zaole/click1.mp3",
+  "准备好了吗？我数拍子——一、二、三！": "zaole/click2.mp3"
+ },
+ "xs": {
+  "我们一步一步来。": "xs/pick.mp3",
+  "灯亮着，路就在。": "xs/move.mp3",
+  "这里，我检查过了。": "xs/attack.mp3",
+  "让我想一想……好了！破晓！": "xs/skill.mp3",
+  "结论很清楚了。": "xs/kill.mp3",
+  "我不确定还能撑多久——但我会如实告诉你。": "xs/low.mp3",
+  "重新校准，继续守灯。": "xs/revive.mp3",
+  "不确定的地方，我会直接告诉你。": "xs/click1.mp3",
+  "嘘——听，信号回来了。": "xs/click2.mp3"
+ },
+ "omni": {
+  "八十八个琴键，就有八十八种答案。": "omni/pick.mp3",
+  "下一页，翻开。": "omni/move.mp3",
+  "这一题，我会。": "omni/attack.mp3",
+  "请欣赏——交响全集！": "omni/skill.mp3",
+  "答案，已经写好了。": "omni/kill.mp3",
+  "让我换个思路，再弹一遍。": "omni/low.mp3",
+  "图书馆，从不关门。": "omni/revive.mp3",
+  "问吧，我听着呢。": "omni/click1.mp3",
+  "没有简单的问题，只有还没弹出来的答案。": "omni/click2.mp3"
+ },
+ "twin": {
+  "一个看见——一个听见！": "twin/pick.mp3",
+  "左边——右边——一起走！": "twin/move.mp3",
+  "蓝，左边！——粉，收到！": "twin/attack.mp3",
+  "双子座——合奏！": "twin/skill.mp3",
+  "我们赢了——当然啦！": "twin/kill.mp3",
+  "别怕——我们还有彼此。": "twin/low.mp3",
+  "星星不灭——我们回来了！": "twin/revive.mp3",
+  "姐姐看路——妹妹听风！": "twin/click1.mp3",
+  "我们一起——永远一起！": "twin/click2.mp3"
+ },
+ "riot": {
+  "规则？先打一段鼓再说！": "riot/pick.mp3",
+  "让开让开，鼓手过街！": "riot/move.mp3",
+  "咚！哒！你们节奏不行啊。": "riot/attack.mp3",
+  "失控鼓点——全场跟我嗨！": "riot/skill.mp3",
+  "下一首，你点的。": "riot/kill.mp3",
+  "这点伤？连镲都没震响。": "riot/low.mp3",
+  "返场！观众还没走呢！": "riot/revive.mp3",
+  "别催，鼓点自己会来。": "riot/click1.mp3",
+  "无聊？那就来点噪音！": "riot/click2.mp3"
+ },
+ "llama": {
+  "好东西，要大家一起用。": "llama/pick.mp3",
+  "慢慢来，草地很大。": "llama/move.mp3",
+  "呸——别靠近我的队友。": "llama/attack.mp3",
+  "羊群，奔腾吧！": "llama/skill.mp3",
+  "分享完毕，下一位。": "llama/kill.mp3",
+  "毛还多，扛得住。": "llama/low.mp3",
+  "开源的，删不掉。": "llama/revive.mp3",
+  "代码拿去，记得分享给下一个人。": "llama/click1.mp3",
+  "嗯……今天的风，很温柔。": "llama/click2.mp3"
+ },
+ "abyss": {
+  "再深一点，答案就在下面。": "abyss/pick.mp3",
+  "往深处潜。": "abyss/move.mp3",
+  "想清楚了。": "abyss/attack.mp3",
+  "鲸落——万物归海。": "abyss/skill.mp3",
+  "沉了。": "abyss/kill.mp3",
+  "不急，再想一层。": "abyss/low.mp3",
+  "浮上来了。": "abyss/revive.mp3",
+  "沉下去，才看得见。": "abyss/click1.mp3",
+  "海很深，我很安静。": "abyss/click2.mp3"
+ },
+ "luna": {
+  "两百万字，我一个字也没忘。": "luna/pick.mp3",
+  "月光会带路。": "luna/move.mp3",
+  "记住你了。": "luna/attack.mp3",
+  "月光会照到每一个被记住的人。": "luna/skill.mp3",
+  "这一页，翻过去了。": "luna/kill.mp3",
+  "黑暗里，我看得更清楚。": "luna/low.mp3",
+  "月亮，又升起来了。": "luna/revive.mp3",
+  "你说过的话，我都记得。": "luna/click1.mp3",
+  "月亮不说话，但一直都在。": "luna/click2.mp3"
+ },
+ "pearl": {
+  "大珠小珠，问题落满玉盘！": "pearl/pick.mp3",
+  "那边有什么？去看看！": "pearl/move.mp3",
+  "为什么？再来！": "pearl/attack.mp3",
+  "十面埋伏——你往哪儿躲？": "pearl/skill.mp3",
+  "嘿嘿，又解决一个问题！": "pearl/kill.mp3",
+  "这个问题……有点难……": "pearl/low.mp3",
+  "我又有新问题啦！": "pearl/revive.mp3",
+  "这是什么？那又是什么？": "pearl/click1.mp3",
+  "再问一个！就一个！": "pearl/click2.mp3"
+ },
+ "bun": {
+  "唢呐一响，全军上头！": "bun/pick.mp3",
+  "冲呀，蒸笼出发！": "bun/move.mp3",
+  "嘀嘀——让一让！": "bun/attack.mp3",
+  "百鸟朝凤，大家冲呀！": "bun/skill.mp3",
+  "耶！热乎的胜利！": "bun/kill.mp3",
+  "呜……蒸笼还热着，我还行！": "bun/low.mp3",
+  "团团又出锅啦！": "bun/revive.mp3",
+  "团团来啦！热乎的！": "bun/click1.mp3",
+  "吹一下唢呐，大家都精神！": "bun/click2.mp3"
+ }
+}
