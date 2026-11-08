@@ -1078,6 +1078,145 @@ body.reduce-motion .btn.primary::after{animation:none;display:none}
 .ps-tc{width:52px;height:36px;border:1px solid var(--line2);border-radius:8px;background:none;padding:2px;cursor:pointer}
 .ps-tcpick code{font:12px var(--mono);color:var(--text)}
 .ps-tcrow{padding-bottom:6px;border-bottom:1px dashed var(--line2)}
+/* ================= 实验室 · 具身智能：造一台机器人（v9.4，UI 宪法第 27 章 27.12） =================
+ * 页眉不变；横屏左侧竖条 = 总览 + 六个阶段（竖屏是页签行）；进入一关后隐藏导航，整块区域给这一关；
+ * 一关 = 顶栏（返回 · 点线面体 · 关名 · 学/练/考 · 失误）+ 内容 + 提示条（固定高度，不遮挡）+ 底部按钮。 */
+.modal.ps-on .modal-card.emb-full{width:100%;max-width:none;height:100%;border-radius:0;border:0}
+@media (min-width:1100px) and (min-height:700px){.modal.ps-on .modal-card.emb-full{max-width:1500px;border-radius:14px;border:1px solid var(--line2)}}
+.modal-card.emb-full .modal-body{padding:10px 12px;position:relative}
+.emb.playing{grid-template-columns:minmax(0,1fr)!important}
+.emb.playing>.rail{display:none}
+.emb-lvl{display:inline-grid;place-items:center;flex:none;width:24px;height:24px;border-radius:7px;font:900 13px/1 var(--sans);color:#160d22}
+.lv-点{background:#4ef0ff}.lv-线{background:#6fdc8c}.lv-面{background:#ffb14a}.lv-体{background:#ff7ad9}
+/* 总览 */
+.emb-ov{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.emb-robot{display:flex;align-items:center;gap:12px}
+.emb-robot canvas{width:160px;height:160px;border-radius:14px;image-rendering:pixelated;border:1px solid #4ef0ff33;flex:none}
+.emb-robot-cap{display:flex;flex-direction:column;gap:4px;font-size:14px}
+.emb-robot-cap small{font-size:11px;color:var(--dim)}
+.emb-loop{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;align-content:start}
+.emb-st-chip{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:2px 8px;padding:8px 10px;border-radius:12px;border:1px solid var(--line2);background:linear-gradient(180deg,#ffffff0c,#ffffff02);text-align:left}
+.emb-st-chip i{grid-row:1/3;font:900 18px/1 var(--display,var(--sans));font-style:normal;color:var(--hero2)}
+.emb-st-chip b{font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.emb-st-chip small{font:11px var(--mono);color:var(--dim)}
+.emb-bar{grid-column:2/4;height:4px;border-radius:2px;background:#ffffff14;overflow:hidden}.emb-bar em{display:block;height:100%;background:linear-gradient(90deg,var(--dawn2),var(--dawn1))}
+.emb-loopcap{grid-column:1/-1;font-size:12px;color:var(--dim)}
+.emb-next{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0}
+.emb-grad{color:#ffe08a;text-shadow:0 0 10px #ffb14a}
+.emb-plf{display:grid;grid-template-columns:24px minmax(0,1fr);gap:6px 8px;align-items:center;margin:4px 0 14px;max-width:520px}
+.emb-map{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.emb-map section{padding:12px;border-radius:14px;background:#ffffff06;border:1px solid var(--line)}
+.emb-map h4{margin-bottom:8px}
+.emb-mrow{display:grid;grid-template-columns:84px minmax(0,1fr);gap:2px 10px;padding:7px 0;border-top:1px solid #ffffff0c}
+.emb-mrow b{font-size:13px;color:var(--hero2)}.emb-mrow p{font-size:12px;line-height:1.6;color:var(--text)}
+.emb-mrow span{grid-column:2;display:flex;gap:4px;flex-wrap:wrap}
+.emb-mlv{font:11px var(--mono);padding:2px 7px;border-radius:9px;border:1px solid var(--line2);color:var(--dim)}
+.emb-mlv.done{color:#160d22;background:#6fdc8c;border-color:#6fdc8c}
+@media (orientation:landscape) and (min-width:700px){.emb-ov{grid-template-columns:auto minmax(0,1fr)}.emb-robot{flex-direction:column;align-items:flex-start}.emb-robot canvas{width:200px;height:200px}.emb-map{grid-template-columns:1fr 1fr}}
+/* 阶段页 */
+.emb-path{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.emb-lv{position:relative;display:grid;grid-template-columns:24px minmax(0,1fr);gap:4px 10px;align-items:center;padding:12px;border-radius:14px;border:1px solid var(--line2);background:linear-gradient(180deg,#ffffff0e,#ffffff03);text-align:left;min-height:84px}
+.emb-lv b{font-size:14px;line-height:1.35}
+.emb-lv small,.emb-lv .emb-stars{grid-column:2;font-size:11px;color:var(--dim)}
+.emb-lv .emb-stars{color:#ffd257;letter-spacing:1px}
+.emb-lv.done{border-color:#6fdc8c55}
+.emb-lv.lock{opacity:.5}.emb-lv.lock .emb-stars{color:var(--dim);letter-spacing:0}
+/* ⓘ 面板 */
+.emb-info{position:absolute;inset:0;z-index:9;background:#05040ab3;display:grid;place-items:center;padding:16px}
+.emb-info-c{max-width:520px;max-height:100%;overflow:auto;background:var(--bg2);border:1px solid var(--line2);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;line-height:1.8}
+.emb-info-c .btn{align-self:flex-end}
+/* 一关 */
+.emb-play{display:flex;flex-direction:column;gap:8px;min-height:100%}
+.emb-pbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.emb-pt{font-size:15px;flex:1;min-width:120px}
+.emb-steps{display:flex;gap:4px}.emb-steps i{font-style:normal;font-size:12px;width:26px;height:26px;display:grid;place-items:center;border-radius:13px;border:1px solid var(--line2);color:var(--dim)}
+.emb-steps i.on{color:#fff;border-color:var(--hero);background:rgba(var(--hero-rgb),.35);box-shadow:0 0 10px rgba(var(--hero-rgb),.5)}.emb-steps i.past{color:#6fdc8c;border-color:#6fdc8c66}
+.emb-mis{font-size:12px;color:var(--dim)}.emb-mis b{color:#ff9a9a}
+.emb-pbody{flex:1;min-height:0}
+.emb-msg{min-height:44px;padding:8px 12px;border-radius:10px;background:#ffffff08;border:1px solid var(--line);font-size:13px;line-height:1.6}
+.emb-msg.good{border-color:#6fdc8c88;background:#6fdc8c12}.emb-msg.bad{border-color:#ff5d6c88;background:#ff5d6c12}
+.emb-pact{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding-bottom:env(safe-area-inset-bottom)}
+.emb-pact .btn{min-height:42px}
+/* 学 */
+.emb-learn{max-width:640px;margin:8px auto;padding:20px;border-radius:16px;background:linear-gradient(160deg,rgba(var(--hero-rgb),.18),#ffffff05);border:1px solid rgba(var(--hero-rgb),.4);display:flex;flex-direction:column;gap:10px}
+.emb-learn h3{font-size:20px;line-height:1.4}.emb-learn p{font-size:15px;line-height:1.85}
+.emb-ln{font:11px var(--mono);color:var(--dim)}
+.emb-ana{padding:10px 12px;border-radius:10px;background:#0006;font-size:14px;line-height:1.7;color:#ffe9c4}.emb-ana b{display:block;font-size:11px;color:var(--dim);margin-bottom:2px}
+/* 选择 */
+.emb-q{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.emb-qq{font-size:16px;line-height:1.7;font-weight:600}
+.emb-opts{display:flex;flex-direction:column;gap:8px}
+.emb-opt{text-align:left;padding:12px 14px;border-radius:12px;border:1px solid var(--line2);background:#ffffff06;font-size:14px;line-height:1.5}
+.emb-opt.good{border-color:#6fdc8c;background:#6fdc8c22}.emb-opt.bad{border-color:#ff5d6c;background:#ff5d6c18;opacity:.75}
+.emb-t{border-collapse:collapse;font-size:13px;width:100%}.emb-t th,.emb-t td{border:1px solid var(--line2);padding:6px 8px;text-align:center}.emb-t th{color:var(--dim);font-weight:600}
+.emb-plot{width:100%;max-width:360px;height:auto;background:#0b0a12;border-radius:8px;border:1px solid var(--line)}
+/* 分类 / 工序 */
+.emb-bins{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:12px}
+.emb-bin{display:flex;flex-direction:column;gap:6px;align-items:flex-start;min-height:84px;padding:10px;border-radius:12px;border:1px dashed var(--line2);background:#ffffff05;text-align:left}
+.emb-bin b{font-size:14px;color:var(--hero2)}.emb-bin span{display:flex;flex-wrap:wrap;gap:4px}.emb-bin i{font-style:normal;font-size:11px;padding:2px 7px;border-radius:8px;background:#6fdc8c22;color:#bff0cc}
+.emb-tray{display:flex;flex-wrap:wrap;gap:8px}
+.emb-card{padding:10px 12px;border-radius:12px;border:1px solid var(--line2);background:linear-gradient(180deg,#ffffff12,#ffffff04);font-size:13px;line-height:1.4;text-align:left;max-width:100%}
+.emb-card.sel{border-color:var(--hero);box-shadow:0 0 12px rgba(var(--hero-rgb),.5);background:rgba(var(--hero-rgb),.25)}
+.emb-card.glow{border-color:#ffe08a;box-shadow:0 0 14px #ffb14a}
+.emb-order{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.emb-stack{list-style:none;display:flex;flex-direction:column;gap:4px;padding:0}
+.emb-slot{display:grid;grid-template-columns:26px minmax(0,1fr);gap:0 8px;align-items:center;padding:7px 10px;border-radius:10px;border:1px dashed var(--line2);color:var(--dim);font-size:13px}
+.emb-slot i{grid-row:1/3;font:700 12px var(--mono);font-style:normal;width:22px;height:22px;display:grid;place-items:center;border-radius:11px;background:#ffffff10}
+.emb-slot.ok{border-style:solid;border-color:#6fdc8c66;background:#6fdc8c10;color:var(--text)}.emb-slot.ok i{background:#6fdc8c;color:#160d22}.emb-slot.ok small{font-size:11px;color:var(--dim)}
+.emb-slot.next{border-color:var(--hero);color:#fff}
+@media (orientation:landscape) and (min-width:700px){.emb-order{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:start}.emb-order .emb-tray{position:sticky;top:0}}
+/* 接线 */
+.emb-legend{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}
+.emb-ty{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 9px;border-radius:13px;border:1px solid var(--line2);font-size:12px}.emb-ty i{width:10px;height:10px;border-radius:50%;background:var(--c);box-shadow:0 0 6px var(--c)}
+.emb-bwrap{overflow-x:auto;overflow-y:hidden;border-radius:12px;background:#0b0a12;border:1px solid var(--line);background-image:linear-gradient(#ffffff06 1px,transparent 1px),linear-gradient(90deg,#ffffff06 1px,transparent 1px);background-size:20px 20px}
+.emb-board{position:relative;margin:0 auto}
+.emb-svg{position:absolute;inset:0;overflow:visible}
+.emb-svg .w{fill:none;stroke-width:3;filter:drop-shadow(0 0 3px currentColor);opacity:.95}
+.emb-svg .w.bad{stroke:#ff5d6c!important;stroke-dasharray:6 5}
+.emb-svg .hit{fill:none;stroke:transparent;stroke-width:16;pointer-events:stroke;cursor:pointer}
+.emb-node{position:absolute;display:flex;align-items:center;justify-content:center;padding:4px 14px;border-radius:10px;border:1px solid var(--line2);background:linear-gradient(180deg,#221d38,#161325);box-shadow:0 4px 12px #0008;text-align:center}
+.emb-node b{font-size:12px;line-height:1.3;font-weight:700;cursor:help;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+.emb-port{position:absolute;z-index:2;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:var(--c);border:3px solid #0b0a12;box-shadow:0 0 0 1px var(--c);padding:0;touch-action:none}
+.emb-port::after{content:'';position:absolute;inset:-10px;border-radius:50%}
+.emb-port span{position:absolute;top:50%;transform:translateY(-50%);font-size:10px;line-height:1;color:var(--dim);white-space:nowrap;pointer-events:none}
+.emb-port.s-l span{left:16px}.emb-port.s-r span{right:16px}
+.emb-node b{max-width:100%}
+.emb-port.s-t span,.emb-port.s-b span{display:none}
+.emb-port.used{box-shadow:0 0 0 1px var(--c),0 0 8px var(--c)}
+.emb-port.sel{transform:scale(1.35);box-shadow:0 0 0 2px #fff,0 0 12px var(--c)}
+.emb-port.glow{animation:embGlow .8s ease-in-out infinite alternate}
+@keyframes embGlow{to{box-shadow:0 0 0 3px #ffe08a,0 0 18px #ffb14a}}
+.emb-board.tr .emb-node{padding:6px 4px}
+.emb-board.tr .emb-port{width:14px;height:14px;margin:-7px 0 0 -7px;border-width:2px}
+.emb-foot{position:sticky;bottom:-10px;z-index:3;display:flex;flex-direction:column;gap:8px;padding:8px 0 10px;background:linear-gradient(180deg,#0f0d1ae6,var(--bg2) 30%)}
+.emb-recap{margin-top:12px;padding:12px;border-radius:12px;background:#6fdc8c0c;border:1px solid #6fdc8c44;display:flex;flex-direction:column;gap:6px;font-size:13px;line-height:1.6}
+.emb-recap i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+/* 计算与调参 */
+.emb-intro{font-size:14px;line-height:1.8;padding:10px 12px;border-radius:10px;background:#ffffff06;margin-bottom:10px}
+.emb-tgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.emb-ctrls{display:flex;flex-direction:column;gap:12px}
+.emb-ctl{display:flex;flex-direction:column;gap:6px;font-size:13px}.emb-ctl b{color:#ffe08a;font-family:var(--mono)}
+.emb-ctl input[type=range]{width:100%;accent-color:var(--hero)}
+.emb-seg{display:flex;flex-wrap:wrap;gap:6px}.emb-seg button{padding:8px 10px;border-radius:10px;border:1px solid var(--line2);font-size:12px;text-align:left;line-height:1.4}
+.emb-seg button.on{border-color:var(--hero);background:rgba(var(--hero-rgb),.3);color:#fff}
+.emb-cv{width:100%;max-width:440px;height:auto;border-radius:10px;border:1px solid var(--line)}
+.emb-metrics{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.emb-met{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 8px;padding:7px 10px;border-radius:9px;background:#ffffff06;border:1px solid var(--line);font-size:13px}
+.emb-met b{font-family:var(--mono)}.emb-met small{grid-column:1/-1;font-size:11px;color:var(--dim)}
+.emb-met.ok{border-color:#6fdc8c66}.emb-met.ok small{color:#6fdc8c}.emb-met.no{border-color:#ff5d6c66}.emb-met.no small{color:#ff8a8a}
+@media (orientation:landscape) and (min-width:700px){.emb-tgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+/* 遥操作 */
+.emb-teleop{display:flex;flex-direction:column;gap:8px;align-items:center}
+.emb-tcv{width:100%;max-width:760px;height:auto;border-radius:12px;border:1px solid var(--line2);touch-action:none;cursor:crosshair}
+.emb-demos{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px}.emb-demos span{padding:2px 8px;border-radius:9px;background:#ffffff0c}.emb-demos .ok{background:#6fdc8c22;color:#bff0cc}.emb-demos .no{background:#ff5d6c18;color:#ffb0b0}.emb-demos small{color:var(--dim)}
+/* 结算 */
+.emb-result{max-width:640px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.emb-rstars{font-size:44px;letter-spacing:6px}.emb-rstars i{font-style:normal;color:#ffffff22}
+.emb-rstars i.on{background:linear-gradient(115deg,#fff7d1,#ffd257 32%,#b8741a 52%,#ffe9a3 64%,#ffd257);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 6px #ffb14a)}
+.emb-result .emb-recap{text-align:left;width:100%}
+.emb-rrobot{width:120px;height:120px;border-radius:12px;image-rendering:pixelated}
+.emb-gain{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}.emb-gain span{font-size:12px;padding:4px 10px;border-radius:12px;background:#ffd2571a;border:1px solid #ffd25755;color:#ffe9a3}
+.emb-msg:empty{display:none}
 
 </style>
 </head>
@@ -4042,6 +4181,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
 (function () {
   const CF = window.CF;
   const META = {
+    emb: { name: '具身智能 · 造一台机器人', d: 'emb', icon: '🦾', desc: '从零造出会听话、会拿杯子的「拾光号」：需求设计 → 制造组装 → 系统仿真 → 数据训练 → 部署 → 迭代，6 个阶段、37 关，每关先学再练再考。', dims: { zhi: 0.5, ti: 0.2 } },
     gd: { name: '梯度下降', d: 'ai', icon: '📉', desc: '亲手训练一条直线：感受学习率太小、刚好、太大的区别。', dims: { zhi: 0.5 } },
     perceptron: { name: '感知机', d: 'ai', icon: '🧠', desc: '调权重把「乱码」和「信号」分开，理解一个神经元在做什么。', dims: { zhi: 0.5 } },
     pid: { name: 'PID 无人机', d: 'emb', icon: '🚁', desc: '调 Kp/Ki/Kd 让载重无人机稳稳悬停在 10 米，还要扛住一阵下压风。', dims: { zhi: 0.4 } },
@@ -4051,7 +4191,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     code: { name: '代码挑战', d: 'ai', icon: '⌨️', desc: '在浏览器里写真代码：ReLU、Softmax、PID、火箭方程……完成 3 个即通关。', dims: { zhi: 0.5 } },
     pixel: { name: '像素工坊', d: null, icon: '🎨', desc: '16 / 64 / 256 / 无限画布，造月 24 / 64 色；画头像、英雄外观、技能特效，也能把照片换成造月色。', dims: { mei: 1 } },
   };
-  const ORDER = ['gd', 'perceptron', 'pid', 'robot', 'rocket', 'startup', 'code', 'pixel'];
+  const ORDER = ['emb', 'gd', 'perceptron', 'pid', 'robot', 'rocket', 'startup', 'code', 'pixel'];
   const L = (CF.Labs = { META, ORDER });
 
   // ---------- 通用外壳 ----------
@@ -4559,6 +4699,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
   // 旧存档的头像按下标存颜色，所以只在末尾追加（v6：信号兵模板用的蓝钢色）
   const PIX_PAL = ['transparent', '#d97757', '#b85f40', '#1b1226', '#ede6d6', '#8b80d6', '#5b3aa8', '#e9b949', '#3fd0c9', '#ff4f9a', '#6fdc8c', '#7fa8d8', '#4f6f9e'];
   L.PIX_PAL = PIX_PAL;
+  L.emb = function () { if (CF.Emb) return CF.Emb.open(); };   // v9.4 具身智能全流程（js/embodied.js）
   L.pixel = function () { if (CF.PixStudio) return CF.PixStudio.open(); return L.pixelOld(); };
   // v8 及以前的 16×16 画板（像素工坊 2.0 加载失败时兜底）
   L.pixelOld = function () {
@@ -5764,6 +5905,984 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
 
 </script>
 <script>
+/* js/embodied-data.js */
+/* 实验室 · 具身智能：造一台机器人（v9.4，主创要求）——课程数据
+ * 主线：从零造出「拾光号」——轮式底盘 + 6 自由度机械臂 + 头部深度相机 + 麦克风阵列的移动操作机器人。
+ * 任务：听到「把桌上的杯子拿给我」，就走到桌边、找到杯子、抓起来、递到人手里。
+ * 六个阶段 = 主创给的制作流程：需求与本体设计 → 硬件制造与组装 → 系统与仿真 → 数据与训练 → 仿真到现实部署 → 测试与迭代。
+ * 每关三步：学（知识卡）→ 练（玩法）→ 考（小测，可选）。每关标注 点 / 线 / 面 / 体：
+ *   点 = 认识一个零件 / 一个概念；线 = 把几个连成一条链；面 = 搭出一个完整子系统；体 = 整台机器人、整个闭环。
+ * 玩法（kind）：choice 选择 / 诊断 · sort 分类 · order 组装与工序（有先后）· wire 接线（像电路图，端口有类型）·
+ *   tune 计算与调参 · teleop 遥操作示教。规则见 UI 宪法第 27 章 27.12、关卡难度宪法相关章节。
+ * 学习卡写法：[标题, 讲清楚的一段话, 打个比方]；面向高中学历、零基础，先给直觉再给术语。 */
+(function () {
+  const CF = window.CF;
+  // 接线的端口类型：颜色 + 名字 + 一句话（点图例能看）
+  const TYPES = {
+    m: ['对应关系', '#ede6d6', '连上表示「它们是一对」。'],
+    link: ['父 → 子', '#ede6d6', '在 URDF 里，一根连线就是一个关节：左边是父零件，右边是子零件。'],
+    '24V': ['24V 电源', '#ff7a45', '大电流，给电机、底盘这些「力气活」供电。'],
+    '12V': ['12V 电源', '#ffb14a', '给 Jetson 这类电脑供电。'],
+    '5V': ['5V 电源', '#ffe08a', '给单片机、小传感器供电。电压接高了会直接烧坏。'],
+    CAN: ['CAN 总线', '#9b7bff', '汽车和机器人关节最常用：抗干扰强，一根线可以从第一个关节串到最后一个。'],
+    USB: ['USB', '#4ef0ff', '带宽大、即插即用，常接相机、麦克风。'],
+    ETH: ['网口（以太网）', '#3fd0c9', '带宽大、线可以很长，常接激光雷达。'],
+    UART: ['串口 UART', '#6fdc8c', '两根线一收一发，简单可靠：Jetson 和单片机之间常用它。'],
+    I2C: ['I²C', '#c8ff2e', '两根线可以挂很多个小传感器，速度不快，适合 IMU、温度计。'],
+    WIFI: ['Wi-Fi', '#7aa2ff', '无线：机器人和服务器之间传模型、传日志。'],
+    img: ['图像', '#4ef0ff', '相机拍到的画面（ROS 2 消息 sensor_msgs/Image）。'],
+    scan: ['激光扫描', '#3fd0c9', '激光雷达一圈测到的距离（sensor_msgs/LaserScan）。'],
+    imu: ['IMU 数据', '#c8ff2e', '加速度和转动速度（sensor_msgs/Imu）。'],
+    odom: ['里程计', '#6fdc8c', '「我从出发点走了多远、转了多少」（nav_msgs/Odometry）。'],
+    pose: ['位姿', '#ffb14a', '在哪里、朝哪边（geometry_msgs/Pose）。'],
+    map: ['地图', '#9d96ad', '房间的栅格地图：哪里能走、哪里是墙。'],
+    goal: ['目标点', '#ffe08a', '要去的地方。'],
+    vel: ['速度指令', '#ff4f9a', '让底盘「往前 0.3 米每秒、左转 0.5」（geometry_msgs/Twist）。'],
+    traj: ['关节轨迹', '#ff7a45', '每个关节一串随时间变化的目标角度。'],
+    joint: ['关节状态', '#ff9a5c', '每个关节现在转到了几度（sensor_msgs/JointState）。'],
+    audio: ['音频', '#ffe08a', '一段声音波形。'],
+    text: ['文字', '#ede6d6', '一句话。'],
+    task: ['任务', '#9b7bff', '结构化的任务：「去桌子 → 找杯子 → 抓 → 递给人」。'],
+    angle: ['方向角', '#7aa2ff', '声音从哪个方向来。'],
+    tok: ['特征 / Token', '#b3abea', '模型内部用的一串数字，代表「看到了什么」「听懂了什么」。'],
+    act: ['动作块', '#ff7a45', '模型一次输出接下来一小段（比如 0.5 秒）的动作。'],
+    cmd: ['关节指令（约 1 kHz）', '#ff5d6c', '单片机每毫秒给每个关节发一次目标。'],
+    cur: ['电流（约 20 kHz）', '#ffb14a', '驱动板直接控制电机线圈的电流。'],
+    model: ['模型文件', '#9b7bff', '训练好的「大脑」，比如 .onnx / .engine 文件。'],
+    log: ['日志 / 失败数据', '#6c6680', '机器人把自己失败的片段传回来。'],
+  };
+  const N = (id, n, col, row, ports, d) => ({ id, n, col, row, p: ports, d: d || '' });
+
+  const STAGES = [
+    // ================= 序章 =================
+    { id: 's0', no: 0, name: '序章 · 全流程', short: '序章', sum: '造机器人不是把「大脑」装进「身体」就完事，而是设计 → 制造 → 仿真 → 训练 → 部署 → 反馈，一圈一圈地转。', levels: [
+      { id: '0-1', name: '机器人是怎么造出来的', lv: '体', kind: 'order',
+        learn: [
+          ['机器人 = 身体 + 感觉 + 大脑 + 能源', '身体是机械结构和电机，感觉是相机、麦克风这些传感器，大脑是电脑和 AI 模型，能源是电池。四样缺一样都动不起来。', '像人：骨骼肌肉、眼耳、大脑、吃饭。'],
+          ['这门课怎么学：点 → 线 → 面 → 体', '先认识一个零件（点），再把几个零件连成一条链（线），再搭出一个完整的系统（面），最后合成整台机器人、跑通整个流程（体）。', '学开车：先认识油门刹车，再学起步，再学上路，最后自己开到目的地。'],
+          ['我们要造的机器人：拾光号', '轮子底盘 + 一条 6 个关节的机械臂 + 头上一个深度相机 + 一圈麦克风。任务：听到「把桌上的杯子拿给我」，就走过去、找到杯子、抓起来、递给你。', '新手先不做人形：两条腿站稳本身就是世界级难题。'],
+        ],
+        prompt: '把造一台机器人的六个阶段按顺序排好（有一张是陷阱）。',
+        steps: [
+          ['需求定义与本体设计', '先想清楚要它干什么，再决定长什么样、用什么零件。'],
+          ['硬件制造与组装', '把图纸变成实物：零件 → 模组 → 整机。'],
+          ['系统与仿真环境搭建', '装上软件「底座」，再在电脑里造一个虚拟的它来练习。'],
+          ['数据采集与模型训练', '人演示给它看，它从数据里学会把「看到的」变成「要做的动作」。'],
+          ['仿真到现实的部署', '把练好的「大脑」装进真机器人，调到又稳又快。'],
+          ['测试与迭代', '真机暴露新问题 → 补数据 → 重新训练 → 再部署，一圈一圈变强。'],
+        ],
+        extra: [['直接把 AI 装上真机试', '太危险也太贵：真机摔一次可能就是几千块。要先在仿真里验证。']],
+        quiz: [{ q: '为什么第六步「测试与迭代」之后，箭头又回到前面？', o: ['因为第一次总会做错，要全部推倒重来', '真机运行会暴露新问题，变成新的数据和需求，推动下一轮改进', '为了凑满六步'], a: 1, why: '这就是「数据飞轮」：每一圈都让机器人更强，而不是推倒重来。' }] },
+    ] },
+    // ================= 阶段一 =================
+    { id: 's1', no: 1, name: '需求定义与本体设计', short: '需求与设计', sum: '动手之前先想清楚：机器人要解决什么任务，据此选形态（轮式底盘 + 机械臂、四足还是人形），再完成机械设计、导出 URDF，选好执行器、传感器和计算平台。', levels: [
+      { id: '1-1', name: '它要干什么：需求与形态', lv: '点', kind: 'choice',
+        learn: [
+          ['先有需求，再有形态', '同样是「机器人」，送外卖、扫地、搬箱子、陪老人，长得完全不一样。工程师第一步是把任务写成能检查的指标：拿多重的东西、伸多远、走多快、工作多久。', '买鞋先想好去跑步还是去爬山。'],
+          ['四种常见形态', '固定机械臂（工厂里最多，不会走）；轮式底盘 + 机械臂（家里、仓库，平地上又快又稳）；四足（能爬楼梯、走野外）；人形（最像人，也最难：双脚平衡、全身协调）。', '自行车、汽车、骡子、人：各有擅长的路。'],
+          ['自由度（DoF）', '一个能独立转动或移动的关节就是 1 个自由度。人的一条胳膊（肩 3 + 肘 1 + 腕 3）大约 7 个；想让手在空间里任意摆姿势，至少要 6 个。', '自由度越多越灵活，也越贵、越难控制。'],
+        ],
+        qs: [
+          { q: '任务：在家里平地上，从桌上拿起杯子递给人。新手团队、预算有限，选哪种形态？', o: [
+            ['人形机器人', false, '最酷，但双足平衡和全身协调是世界级难题，新手团队很难起步。'],
+            ['四足机器狗 + 背上一只小臂', false, '能爬楼梯，但家里是平地，用不上；四条腿的控制也更难。'],
+            ['轮式底盘 + 6 自由度机械臂', true, '对：平地上轮子又快又稳，机械臂负责拿东西，结构简单、成本低，最适合起步。'],
+            ['固定在桌边的机械臂', false, '不会走，只能拿身边的东西，送不到人手里。'],
+          ] },
+          { q: '下面哪组指标写得最合理（能检查、够用、不浪费）？', o: [
+            ['负载 20 kg，臂展 2 米，速度 5 m/s', false, '远超任务需要：电机、电池都会变得又大又贵，在家里还危险。'],
+            ['负载 0.5 kg，臂展约 0.6 米，底盘 0.5 m/s，续航 2 小时', true, '对：一杯水约 0.3–0.5 kg，0.6 米够到桌子中间，0.5 m/s 是人慢走的速度。'],
+            ['越快越好、越灵活越好', false, '不能检查的指标等于没写：做完了也不知道算不算合格。'],
+          ] },
+        ],
+        quiz: [{ q: '一条想让手在空间里摆出任意位置和朝向的机械臂，至少需要几个自由度？', o: ['3 个', '6 个', '12 个'], a: 1, why: '位置 3 个（前后、左右、上下）+ 朝向 3 个（俯仰、偏航、翻滚）= 6 个。' }] },
+      { id: '1-2', name: '认识零件：动、感、想、电', lv: '点', kind: 'sort',
+        learn: [
+          ['执行器：让机器人「动」', '电机是最常见的执行器。机器人的关节里装的是「关节模组」：电机 + 减速器 + 编码器 + 驱动板，是整机最贵的部分。', '肌肉。'],
+          ['传感器：让机器人「感觉」', '深度相机看清东西在哪、离多远；激光雷达扫出房间的轮廓；IMU 知道自己有没有歪、在加速；力矩传感器知道用了多大劲；麦克风听见声音。', '眼睛、耳朵、皮肤、内耳的平衡感。'],
+          ['计算平台：让机器人「想」', '训练模型用机房里的 GPU 服务器（很大很费电）；装在机器人身上的是 Jetson 这类边缘电脑（小、省电、能跑 AI）；最底层还有单片机（MCU），专门准时地控制电机。', '大学里学（服务器）→ 脑子里想（Jetson）→ 脊髓反射（单片机）。'],
+        ],
+        prompt: '把每个零件放进它属于的那一类。',
+        bins: [['act', '动 · 执行器'], ['sen', '感 · 传感器'], ['cpu', '想 · 计算'], ['pow', '电 · 能源']],
+        cards: [
+          ['关节模组', 'act', '电机 + 减速器 + 编码器 + 驱动板，机械臂每个关节一个。'], ['底盘轮毂电机', 'act', '电机直接装在轮子里，推着机器人走。'], ['夹爪', 'act', '机械臂末端的「手」，靠一个小电机开合。'],
+          ['深度相机', 'sen', '同时拍画面和每个点的距离。'], ['激光雷达', 'sen', '转一圈测出四周的距离，用来建地图。'], ['IMU 惯性测量单元', 'sen', '测加速度和转动速度。'], ['麦克风阵列', 'sen', '一圈好几个麦克风，能听出声音从哪来。'],
+          ['Jetson 边缘电脑', 'cpu', '装在机器人身上跑 AI 模型。'], ['单片机 MCU', 'cpu', '每毫秒准时控制电机，管「反射」。'], ['GPU 训练服务器', 'cpu', '在机房里训练模型，不装在机器人上。'],
+          ['锂电池组', 'pow', '机器人的「饭」。'], ['DC-DC 降压模块', 'pow', '把 24V 变成 12V、5V，分给不同的设备。'],
+        ],
+        quiz: [{ q: '为什么有了 Jetson 还要一块单片机？', o: ['单片机更便宜，能替代 Jetson', 'Jetson 会思考但不保证「准时」，电机控制需要每毫秒准时响应，交给单片机', '为了多一个备用'], a: 1, why: '「会想」和「准时」是两种能力：大脑负责想，脊髓负责反射。' }] },
+      { id: '1-3', name: '电机选型：算一算力矩', lv: '线', kind: 'tune',
+        learn: [
+          ['力矩 = 力 × 力臂', '高中物理的杠杆。手臂水平伸直举着东西，肩关节要出的力矩 = 重量 × 离肩膀的水平距离。离得越远越吃力。', '拿着一瓶水伸直手臂，比贴着身子累得多。'],
+          ['减速器：用速度换力气', '电机转得飞快但力气小。减速器把转速降下来，把力矩放大同样的倍数（再乘一个效率）。1:100 的减速器：转速变成 1/100，力矩约变成 70–90 倍。', '自行车上坡换小齿轮：蹬得快、走得慢、但省劲。'],
+          ['安全系数与背隙', '算出来的力矩要再乘 2 当安全余量（加速、冲击、老化）。行星减速器便宜但齿轮间有缝隙（背隙），末端会晃；谐波减速器几乎没有背隙，精密机械臂常用，但更贵。', '背隙像松了的螺丝刀，拧之前先空转一下。'],
+        ],
+        prompt: '给拾光号的肩关节选「电机 + 减速器」：要举得起、转得够快、够精准、不超重，还要尽量省钱。',
+        intro: '肩关节需要的力矩：杯子 0.5 kg × 0.6 m + 前臂和手 1.5 kg × 0.35 m = 0.825 kg·m，乘重力加速度 9.8 ≈ <b>8.1 N·m</b>，安全系数 2 → 至少 <b>16.2 N·m</b>。要求转速 ≥ 20 转/分（1 秒转 120°），背隙 ≈ 0（倒水不能晃），模组重量 ≤ 0.8 kg。',
+        ctrl: [
+          { id: 'm', n: '电机', seg: [['A', 'A：0.3 N·m · 3000 转/分 · ¥200 · 150 g'], ['B', 'B：0.6 N·m · 2500 转/分 · ¥350 · 300 g'], ['C', 'C：1.2 N·m · 1500 转/分 · ¥800 · 600 g']], v: 'A' },
+          { id: 'r', n: '减速器', seg: [['p10', '行星 1:10 · 效率 90% · ¥150 · 200 g · 背隙 0.3°'], ['p36', '行星 1:36 · 效率 80% · ¥260 · 320 g · 背隙 0.3°'], ['h50', '谐波 1:50 · 效率 75% · ¥600 · 350 g · 背隙 ≈ 0'], ['h100', '谐波 1:100 · 效率 70% · ¥700 · 350 g · 背隙 ≈ 0']], v: 'p10' },
+        ],
+        model: (v) => {
+          const M = { A: [0.3, 3000, 200, 150], B: [0.6, 2500, 350, 300], C: [1.2, 1500, 800, 600] }[v.m], R = { p10: [10, 0.9, 150, 200, 0.3], p36: [36, 0.8, 260, 320, 0.3], h50: [50, 0.75, 600, 350, 0], h100: [100, 0.7, 700, 350, 0] }[v.r];
+          const t = M[0] * R[0] * R[1], rpm = M[1] / R[0], g = M[3] + R[3], c = M[2] + R[2];
+          return [['输出力矩', t.toFixed(1) + ' N·m', t >= 16.2, '≥ 16.2'], ['输出转速', rpm.toFixed(0) + ' 转/分', rpm >= 20, '≥ 20'], ['背隙', R[4] ? R[4] + '°' : '≈ 0', !R[4], '≈ 0'], ['重量', g + ' g', g <= 800, '≤ 800'], ['价格', '¥' + c, true, '越少越好']];
+        },
+        after: '合格的组合有三种：A + 谐波 1:100（¥900，最省钱）、B + 谐波 1:50（¥950）、B + 谐波 1:100（¥1050）。注意小电机配大减速比反而更便宜——这就是工程师天天在做的取舍。' },
+      { id: '1-4', name: '能源：算电池', lv: '线', kind: 'tune',
+        learn: [
+          ['功率 × 时间 = 能量', '功率单位瓦（W），能量单位瓦时（Wh）。一个 100 W 的东西开 2 小时，用掉 200 Wh。', '车的油耗 × 开多久 = 要加多少油。'],
+          ['电池的「容量」怎么换算', '锂电池写着电压（V）和容量（Ah），能量 = 电压 × 安时。24V 系统常用 7 节电芯串联，标称 25.2V。电池不能用到一点不剩，只按 80% 算，留着保护电池。', '手机电量到 20% 就该充了。'],
+          ['电池是很重的', '大约每 100 Wh 重 1 kg（含外壳和电池管理板 BMS）。电池越大越重，电机就得越大……一环扣一环。', '背的水越多，走得越累。'],
+        ],
+        prompt: '选一块电池，让拾光号干活时连续工作 ≥ 2 小时，电池重量 ≤ 4 kg。',
+        intro: '干活时的平均功率：底盘 60 W + 机械臂 40 W + Jetson 25 W + 传感器 10 W + 单片机等 5 W = <b>140 W</b>。可用能量 = 电压 25.2V × 容量 × 80%。',
+        ctrl: [{ id: 'ah', n: '电池容量（24V 系统）', seg: [['5', '5 Ah'], ['10', '10 Ah'], ['15', '15 Ah'], ['20', '20 Ah']], v: '5' }],
+        model: (v) => { const wh = 25.2 * +v.ah, h = (wh * 0.8) / 140, kg = wh / 100; return [['电池能量', wh.toFixed(0) + ' Wh', true, ''], ['续航', h.toFixed(2) + ' 小时', h >= 2, '≥ 2'], ['重量', kg.toFixed(2) + ' kg', kg <= 4, '≤ 4']]; },
+        after: '15 Ah：378 Wh × 80% ÷ 140 W ≈ 2.2 小时，重 3.8 kg。真实产品还要考虑充电时间、BMS（电池管理板：防过充、过放、过热）和能不能快速换电。',
+        quiz: [{ q: '把功率降到 100 W（比如换更省电的电脑），同一块 15 Ah 电池能用多久？', o: ['约 2.2 小时', '约 3.0 小时', '约 4.5 小时'], a: 1, why: '378 × 0.8 ÷ 100 ≈ 3.0 小时：省电和加电池一样能延长续航，还不增加重量。' }] },
+      { id: '1-5', name: '传感器选型：给每件事配一双「眼睛」', lv: '线', kind: 'wire',
+        learn: [
+          ['一个传感器只擅长一件事', '没有万能的传感器。工程师先列出机器人要「知道」的事情，再给每件事配一个最合适的传感器。', '看用眼睛，听用耳朵，冷热用皮肤。'],
+          ['常见搭配', '找杯子在哪 → 深度相机；知道自己在房间哪里 → 激光雷达；知道有没有倾斜 → IMU；知道关节转了多少 → 编码器；抓得多紧 → 力 / 力矩传感器；听见人说话 → 麦克风阵列；近处防撞 → 超声波或碰撞开关。', '每个传感器都会出错，所以重要的事常常用两种传感器互相印证。'],
+        ],
+        prompt: '把左边每件「要知道的事」连到右边合适的传感器。',
+        types: ['m'],
+        nodes: [
+          N('t1', '杯子在哪、离多远', 0, 0, [['o', 'r', 'm', '']]), N('t2', '我在房间的哪里', 0, 1, [['o', 'r', 'm', '']]), N('t3', '我有没有歪、在不在加速', 0, 2, [['o', 'r', 'm', '']]),
+          N('t4', '每个关节转到了几度', 0, 3, [['o', 'r', 'm', '']]), N('t5', '夹爪捏得多紧', 0, 4, [['o', 'r', 'm', '']]), N('t6', '主人在说什么、在哪边', 0, 5, [['o', 'r', 'm', '']]), N('t7', '近处有没有要撞上', 0, 6, [['o', 'r', 'm', '']]),
+          N('s1', 'IMU 惯性测量单元', 1, 0, [['i', 'l', 'm', '']], '加速度计 + 陀螺仪，手机里也有，转屏就靠它。'), N('s2', '超声波 / 碰撞开关', 1, 1, [['i', 'l', 'm', '']], '便宜可靠的最后一道防线。'), N('s3', '深度相机', 1, 2, [['i', 'l', 'm', '']], '同时得到彩色画面和每个像素的距离。'),
+          N('s4', '麦克风阵列', 1, 3, [['i', 'l', 'm', '']], '一圈 4–6 个麦克风，比较声音到达的先后就知道方向。'), N('s5', '力 / 力矩传感器', 1, 4, [['i', 'l', 'm', '']], '装在手腕或夹爪上，测用了多大的力。'), N('s6', '编码器', 1, 5, [['i', 'l', 'm', '']], '装在电机上数转了多少圈、多少度。'), N('s7', '激光雷达', 1, 6, [['i', 'l', 'm', '']], '转一圈测出四周的距离，用来建地图和定位。'),
+        ],
+        edges: [['t1.o', 's3.i', '深度相机：画面里找到杯子，再读那个位置的距离。'], ['t2.o', 's7.i', '激光雷达扫出墙和家具，和地图一比就知道自己在哪（定位）。'], ['t3.o', 's1.i', 'IMU：加速度计 + 陀螺仪。'], ['t4.o', 's6.i', '编码器：每个关节的「里程表」。'], ['t5.o', 's5.i', '力传感器：太松会掉，太紧会捏碎纸杯。'], ['t6.o', 's4.i', '麦克风阵列：听清内容，也听出方向。'], ['t7.o', 's2.i', '超声波 / 碰撞开关：便宜、可靠，相机看不见玻璃时它还能管用。']] },
+      { id: '1-6', name: '本体设计：画出 URDF 骨架', lv: '面', kind: 'wire',
+        learn: [
+          ['从 3D 图纸到 URDF', '工程师先用 SolidWorks 这类软件画出每个零件的 3D 模型，再导出 URDF 文件。URDF 是一份「机器人说明书」，写着每节「骨头」多长多重，以及它们用什么关节连起来。仿真软件和 ROS 2 都读它。', '像一张写清楚每块骨头、每个关节的 X 光片。'],
+          ['link 和 joint', 'link（连杆）= 一节骨头；joint（关节）= 两节骨头之间怎么动。关节有四种：fixed 焊死、revolute 有角度限制的转动（肘）、continuous 能一直转（轮子）、prismatic 直线滑动（夹爪手指）。', '门轴是 revolute，车轮是 continuous，抽屉是 prismatic。'],
+          ['它是一棵树', '每节骨头只有一个「父亲」，所有东西最后都连到底盘 base_link 这个「树根」。电脑据此算出每个零件此刻在空间里的位置。', '家谱：每个人只有一个父亲，最上面是老祖宗。'],
+        ],
+        prompt: '从 base_link 出发，把拾光号的骨架连成一棵树：左边是父零件，右边是子零件（每根线就是一个关节）。',
+        types: ['link'],
+        nodes: [
+          N('base', 'base_link 底盘', 0, 2, [['c1', 'r', 'link', '子'], ['c2', 'r', 'link', '子'], ['c3', 'r', 'link', '子'], ['c4', 'r', 'link', '子']], '树根：所有零件最终都连到它。'),
+          N('wl', '左轮', 1, 0, [['p', 'l', 'link', '父']], '和底盘之间是 continuous 关节：能一直转。'), N('wr', '右轮', 1, 1, [['p', 'l', 'link', '父']], 'continuous 关节。'),
+          N('cam', '头部深度相机', 1, 4, [['p', 'l', 'link', '父']], 'fixed 关节：焊死在支架上，不会动。'),
+          N('sh', '肩', 1, 2, [['p', 'l', 'link', '父'], ['c', 'r', 'link', '子']], '和底盘之间是 revolute：左右转。'), N('ua', '上臂', 2, 2, [['p', 'l', 'link', '父'], ['c', 'r', 'link', '子']], 'revolute：抬起放下。'),
+          N('fa', '前臂', 3, 2, [['p', 'l', 'link', '父'], ['c', 'r', 'link', '子']], 'revolute：肘关节。'), N('wr2', '手腕', 3, 3, [['p', 'l', 'link', '父'], ['c', 'r', 'link', '子']], '手腕有 3 个 revolute，这里合成一节。'),
+          N('gr', '夹爪', 2, 4, [['p', 'l', 'link', '父']], 'prismatic：两根手指直线开合。'),
+        ],
+        edges: [['base.c1', 'wl.p', '左轮挂在底盘上（continuous）。'], ['base.c2', 'wr.p', '右轮挂在底盘上（continuous）。'], ['base.c3', 'sh.p', '机械臂的第一节「肩」装在底盘上。'], ['base.c4', 'cam.p', '相机固定在底盘的支架上（fixed）。'], ['sh.c', 'ua.p', '肩 → 上臂。'], ['ua.c', 'fa.p', '上臂 → 前臂（肘）。'], ['fa.c', 'wr2.p', '前臂 → 手腕。'], ['wr2.c', 'gr.p', '手腕 → 夹爪：这条链从底盘一直到手指。']],
+        quiz: [{ q: '底盘和轮子之间应该用哪种关节？', o: ['revolute（有角度限制）', 'continuous（一直转）', 'fixed（焊死）'], a: 1, why: '轮子要一圈一圈不停地转，没有角度限制。' }] },
+    ] },
+    // ================= 阶段二 =================
+    { id: 's2', no: 2, name: '硬件制造与组装', short: '制造与组装', sum: '把图纸变成实物，按「零件 → 模组 → 整机」制造：加工结构件、组装并测试关节模组（温度、扭矩、转速），整机总装后烧录固件，最后做老化测试和功能测试。', levels: [
+      { id: '2-1', name: '零件怎么做出来', lv: '点', kind: 'wire',
+        learn: [
+          ['同一张图纸，五种做法', '金属臂杆用数控机床（CNC）一刀一刀铣出来；薄铁皮底盘用激光切割再折弯（钣金）；塑料外壳打样用 3D 打印，量大了开模注塑；电路板交给工厂贴片（SMT）；精密齿轮用专门的齿轮加工。', '同样是做饭，有的炒、有的蒸、有的烤。'],
+          ['打样 vs 量产', '做 1 台用 3D 打印和 CNC，快但单价高；做 1 万台就开模具，模具几万块，但每个零件只要几块钱。', '手工包饺子 vs 速冻饺子流水线。'],
+        ],
+        prompt: '把每个零件连到最合适的加工方式（按做第一台样机来选）。',
+        types: ['m'],
+        nodes: [
+          N('a', '铝合金上臂杆', 0, 0, [['o', 'r', 'm', '']]), N('b', '底盘钣金框', 0, 1, [['o', 'r', 'm', '']]), N('c', '塑料外壳（样机）', 0, 2, [['o', 'r', 'm', '']]), N('d', '主控电路板', 0, 3, [['o', 'r', 'm', '']]), N('e', '减速器齿轮', 0, 4, [['o', 'r', 'm', '']]),
+          N('p1', 'SMT 贴片', 1, 0, [['i', 'l', 'm', '']], '机器把芯片、电阻一颗颗贴到电路板上，再过炉焊接。'), N('p2', '精密齿轮加工', 1, 1, [['i', 'l', 'm', '']], '滚齿、磨齿，误差要控制在几微米。'), N('p3', 'CNC 数控铣削', 1, 2, [['i', 'l', 'm', '']], '电脑控制刀具从一整块金属里铣出零件。'), N('p4', '3D 打印', 1, 3, [['i', 'l', 'm', '']], '一层一层堆出来，适合做样机。'), N('p5', '激光切割 + 折弯', 1, 4, [['i', 'l', 'm', '']], '把钢板切出形状再折成盒子。'),
+        ],
+        edges: [['a.o', 'p3.i', '金属、要求强度高、形状复杂 → CNC。'], ['b.o', 'p5.i', '薄板做的框 → 钣金。'], ['c.o', 'p4.i', '样机外壳 → 3D 打印，量产再开模注塑。'], ['d.o', 'p1.i', '电路板 → SMT 贴片。'], ['e.o', 'p2.i', '齿轮 → 精密齿轮加工，精度决定了背隙和噪音。']] },
+      { id: '2-2', name: '组装一个关节模组', lv: '线', kind: 'order',
+        learn: [
+          ['一个关节就是一个小机器人', '关节模组里有：无框力矩电机（定子 + 转子，出力气）、编码器（知道转了多少）、减速器（放大力气）、交叉滚子轴承（扛住各个方向的力）、驱动板（把指令变成电流，常用 FOC 算法）、外壳和输出法兰。', '一台小发动机 + 变速箱 + 里程表 + 行车电脑。'],
+          ['为什么顺序很重要', '里面的零件一层套一层：先装的被后装的盖住。顺序错了，要么装不进去，要么得拆了重来。编码器的读头要对准磁环，装歪了关节就「迷路」。', '穿衣服先穿内衣再穿外套。'],
+        ],
+        prompt: '按正确顺序把零件装进关节模组（有两个零件不属于这里）。',
+        steps: [['外壳（后壳）', '先有一个「碗」，后面的零件都往里装。'], ['电机定子（线圈）', '固定在外壳内壁，通电产生旋转磁场。'], ['电机转子 + 主轴', '套进定子中间，磁铁跟着磁场转起来。'], ['编码器磁环 + 读头', '装在转子尾部，数电机转了多少度。'], ['减速器（谐波或行星）', '接在主轴前端，把转速降下来、力矩放大。'], ['交叉滚子轴承', '支撑输出端，扛住臂杆压下来的各种方向的力。'], ['输出法兰', '下一节臂杆就拧在这里。'], ['驱动板（FOC）', '装在背面，接上电源线和 CAN 线。'], ['后盖', '盖上、拧螺丝，一个模组完成。']],
+        extra: [['激光雷达', '这是传感器，装在底盘或头部，不在关节里。'], ['锂电池', '电池放在底盘的电池仓，关节通过电源线供电。']],
+        quiz: [{ q: '编码器在关节模组里是干什么的？', o: ['让电机转得更快', '测量电机转了多少角度，让控制器知道关节在哪', '给电机散热'], a: 1, why: '没有编码器，控制器就是「闭着眼睛」转电机。' }] },
+      { id: '2-3', name: '模组测试：哪个能出厂', lv: '线', kind: 'choice',
+        learn: [
+          ['每个模组都要过三关', '温度：额定负载连续转 30 分钟，外壳不能超过 80°C（太热会退磁、烧线圈）；扭矩：实测要达到额定值（比如 ≥ 20 N·m）；转速：空载转速要在额定值附近（±10%）。', '体检：体温、握力、跑步速度。'],
+          ['看数据，不看感觉', '测试台把电流、温度、转速记录成表格。工程师只认数字：差一点也不行，因为装上整机后它会在最累的地方工作。', ''],
+        ],
+        qs: [
+          { q: '三个肩关节模组的测试结果如下（标准：温度 ≤ 80°C，扭矩 ≥ 20 N·m，转速 25 ± 2.5 转/分）。哪个可以装上机器人？', ctx: '<table class="emb-t"><tr><th>模组</th><th>30 分钟温度</th><th>实测扭矩</th><th>空载转速</th></tr><tr><td>甲</td><td>92°C</td><td>21.5 N·m</td><td>25.3</td></tr><tr><td>乙</td><td>71°C</td><td>20.8 N·m</td><td>24.6</td></tr><tr><td>丙</td><td>68°C</td><td>17.9 N·m</td><td>25.1</td></tr></table>', o: [
+            ['甲', false, '温度 92°C 超标：长期这么热，线圈绝缘会老化、磁铁会退磁。'], ['乙', true, '对：三项都在标准里。'], ['丙', false, '扭矩 17.9 N·m 不够 20：可能是减速器装配太紧、摩擦大，或者电机本身偏弱。'],
+          ] },
+          { q: '甲模组温度太高，最可能先查哪里？', o: [
+            ['外壳颜色太深', false, '外壳颜色影响很小。'], ['减速器装配过紧、润滑脂不足，摩擦发热', true, '对：同样的输出扭矩，摩擦越大，电机要多出的力就越多，电流越大越热。'], ['编码器分辨率太低', false, '编码器只影响测角度的精度，不会让模组发烫。'],
+          ] },
+        ] },
+      { id: '2-4', name: '电源系统接线', lv: '面', kind: 'wire',
+        learn: [
+          ['电压像水压，设备只吃自己那一档', '电机要 24V，Jetson 要 12V，单片机要 5V。把 24V 直接接到 5V 的板子上，瞬间就会烧毁。DC-DC 降压模块负责把 24V 变成 12V、5V。', '水管：自来水压力太大，进热水器前要先减压阀。'],
+          ['急停开关：安全第一', '急停开关串在电池出来的第一个位置，一拍下去，全车断电。所有真机都必须有，而且要在最容易拍到的地方。', '电梯里的红色紧急按钮。'],
+          ['配电板', '电池出来一路电，配电板把它分成好几路，每路都有保险丝：哪一路短路了，只烧那一路的保险丝，不会全车出事。', '家里的电闸箱，每个房间一个空气开关。'],
+        ],
+        prompt: '给拾光号接电：电池 → 急停 → 配电板，再分给各个设备（注意电压要对上）。',
+        types: ['24V', '12V', '5V'],
+        nodes: [
+          N('bat', '锂电池组 24V（含 BMS）', 0, 1, [['o', 'r', '24V', '24V 出']], '电池管理板 BMS 防止过充、过放、过热、短路。'),
+          N('es', '急停开关', 1, 1, [['i', 'l', '24V', '入'], ['o', 'r', '24V', '出']], '一拍全断电。'),
+          N('pd', '配电板（带保险丝）', 2, 1, [['i', 'l', '24V', '入'], ['a', 'r', '24V', '出 1'], ['b', 'r', '24V', '出 2'], ['c', 'r', '24V', '出 3'], ['d', 'r', '24V', '出 4']], '一进多出，每路一个保险丝。'),
+          N('dc12', 'DC-DC 24V→12V', 3, 0, [['i', 'l', '24V', '入'], ['o', 'r', '12V', '12V 出']], '降压模块。'),
+          N('dc5', 'DC-DC 24V→5V', 3, 1, [['i', 'l', '24V', '入'], ['o', 'r', '5V', '5V 出']], '降压模块。'),
+          N('arm', '机械臂关节（6 个）', 3, 2, [['i', 'l', '24V', '24V 入']], '电机吃 24V 大电流。'),
+          N('base', '底盘轮毂电机驱动', 3, 3, [['i', 'l', '24V', '24V 入']], '底盘电机同样吃 24V。'),
+          N('jet', 'Jetson 边缘电脑', 4, 0, [['i', 'l', '12V', '12V 入']], 'Jetson 开发套件常见输入 9–20V，这里用 12V。'),
+          N('mcu', '单片机主控板', 4, 1, [['i', 'l', '5V', '5V 入']], '单片机和小传感器用 5V。'),
+        ],
+        edges: [['bat.o', 'es.i', '急停必须紧挨着电池：一拍下去，后面全部断电。'], ['es.o', 'pd.i', '经过急停再进配电板。'], ['pd.a', 'dc12.i', '一路 24V 送去降成 12V。'], ['pd.b', 'dc5.i', '一路 24V 送去降成 5V。'], ['pd.c', 'arm.i', '一路 24V 直接给机械臂关节。'], ['pd.d', 'base.i', '一路 24V 直接给底盘电机。'], ['dc12.o', 'jet.i', '12V 给 Jetson。'], ['dc5.o', 'mcu.i', '5V 给单片机。']],
+        quiz: [{ q: '为什么急停开关要接在电池后面、配电板前面，而不是接在某一路设备上？', o: ['那里线最短', '这样一拍就能切断全车所有电源', '急停只管机械臂'], a: 1, why: '出了危险，你没时间想该断哪一路。' }] },
+      { id: '2-5', name: '通信接线：机器人里的公路', lv: '面', kind: 'wire',
+        learn: [
+          ['总线 = 设备之间的公路', '不同的数据走不同的路：相机数据很大，走 USB 或网口（高速公路）；关节指令要准时、抗干扰，走 CAN（专用道）；IMU 这类小传感器数据少，走 I²C（小巷子）；Jetson 和单片机之间走串口 UART。', '高速公路、公交专用道、小区小路。'],
+          ['CAN 可以「串」起来', 'CAN 总线一根线从主控出发，依次经过肩、上臂、前臂、手腕……每个关节有自己的编号，主控喊编号，对应的关节回答。走线沿着手臂一路过去，最省线。', '一列火车依次停靠每个站。'],
+          ['大脑和脊髓分工', 'Jetson（大脑）只告诉单片机「手要去哪」；单片机（脊髓）每毫秒算一次、通过 CAN 指挥每个关节。这样即使 Jetson 卡了一下，电机也不会乱动。', ''],
+        ],
+        prompt: '把各个设备用正确的总线连起来：CAN 要沿着机械臂一路串到夹爪。',
+        types: ['USB', 'ETH', 'UART', 'CAN', 'I2C'],
+        nodes: [
+          N('cam', '深度相机', 0, 0, [['o', 'r', 'USB', 'USB']]), N('mic', '麦克风阵列', 0, 1, [['o', 'r', 'USB', 'USB']]), N('lid', '激光雷达', 0, 2, [['o', 'r', 'ETH', '网口']]),
+          N('jet', 'Jetson 边缘电脑', 1, 1, [['u1', 'l', 'USB', 'USB 1'], ['u2', 'l', 'USB', 'USB 2'], ['e', 'l', 'ETH', '网口'], ['s', 'r', 'UART', '串口']]),
+          N('mcu', '单片机主控', 2, 1, [['s', 'l', 'UART', '串口'], ['c1', 'r', 'CAN', 'CAN1'], ['c2', 'r', 'CAN', 'CAN2'], ['i', 'l', 'I2C', 'I²C']]),
+          N('imu', 'IMU', 1, 3, [['o', 'r', 'I2C', 'I²C']]),
+          N('base', '底盘驱动', 3, 3, [['i', 'l', 'CAN', 'CAN']]),
+          N('sh', '肩关节', 3, 0, [['i', 'l', 'CAN', '入'], ['o', 'r', 'CAN', '出']]), N('el', '肘关节', 4, 0, [['i', 'l', 'CAN', '入'], ['o', 'r', 'CAN', '出']]),
+          N('wr', '腕关节', 4, 1, [['i', 'l', 'CAN', '入'], ['o', 'r', 'CAN', '出']]), N('gr', '夹爪', 4, 2, [['i', 'l', 'CAN', '入']]),
+        ],
+        edges: [['cam.o', 'jet.u1', '相机数据量大，走 USB 进 Jetson，给 AI 看。'], ['mic.o', 'jet.u2', '麦克风走 USB 进 Jetson 做语音识别。'], ['lid.o', 'jet.e', '激光雷达走网口进 Jetson 建图定位。'], ['jet.s', 'mcu.s', 'Jetson 和单片机之间用串口：「手要去哪」。'], ['imu.o', 'mcu.i', 'IMU 走 I²C 接单片机，单片机马上就能知道车有没有歪。'], ['mcu.c1', 'sh.i', 'CAN1 从主控出发，第一站：肩。'], ['sh.o', 'el.i', '肩 → 肘。'], ['el.o', 'wr.i', '肘 → 腕。'], ['wr.o', 'gr.i', '腕 → 夹爪：一根 CAN 串完整条手臂。'], ['mcu.c2', 'base.i', 'CAN2 单独给底盘：手臂和底盘各走一条，互不抢道。']] },
+      { id: '2-6', name: '整机总装', lv: '体', kind: 'order',
+        learn: [
+          ['零件 → 模组 → 整机', '工厂不会把几百个零件一次性往车上堆，而是先做好一个个模组（关节、底盘、头部、电源），每个都测过，再像搭积木一样装成整机。哪里坏了就换哪个模组。', '汽车厂：发动机、座椅、车门各自装好再上总装线。'],
+          ['从下往上、从里往外', '先装底盘这个「地基」，再装电池和电源（最重的放最低，重心稳），再装电子，再装手臂和头，最后理线、盖外壳。', '盖房子：地基 → 承重墙 → 水电 → 装修。'],
+        ],
+        prompt: '把拾光号按正确顺序总装起来（有一步是陷阱）。',
+        steps: [['底盘框架 + 轮毂电机', '先有能站稳的「地基」。'], ['电池仓 + 电池', '最重的东西放最低处，机器人不容易翻。'], ['配电板 + 急停 + 降压模块', '电源系统就位。'], ['单片机主控 + IMU', 'IMU 装在靠近底盘中心的位置，测得最准。'], ['立柱 + 机械臂（肩 → 夹爪）', '手臂装在立柱上，6 个关节模组依次拧上。'], ['头部：深度相机 + 麦克风阵列 + 激光雷达', '传感器装在高处，看得远、听得清。'], ['Jetson 边缘电脑', '放在通风好的位置：它干活时会发热。'], ['理线、扎带、固定', '线乱了会被关节夹断，或者被轮子卷进去。'], ['外壳 + 散热风道', '最后盖外壳，留好进出风口。']],
+        extra: [['先把外壳全部装好再往里塞电路', '装好外壳就伸不进手了，返工只能全拆。']],
+        quiz: [{ q: '为什么电池要装在底盘最低处？', o: ['离地面近好充电', '电池最重，放低让重心低，机器人不容易翻倒', '那里空间大'], a: 1, why: '重心越低越稳，尤其是机械臂伸出去拿东西的时候。' }] },
+      { id: '2-7', name: '烧录固件与零位标定', lv: '线', kind: 'order',
+        learn: [
+          ['固件：硬件里的「本能」', '固件是写进单片机和驱动板芯片里的程序：开机自检、读编码器、按指令控制电流。没有固件，硬件只是一堆零件。把程序写进芯片的过程叫「烧录」。', '新生儿的本能：呼吸、吮吸。'],
+          ['零位标定', '编码器只知道「从开机起转了多少」。必须先告诉它：手臂伸直、指向正前方时，每个关节算 0 度。这一步叫零位标定，做错了机器人会把「抬手」当成「放下」。', '体重秤先归零再称。'],
+        ],
+        prompt: '按正确顺序完成烧录和标定（有一步是陷阱）。',
+        steps: [['用调试器连接电脑和主控板', '比如 ST-Link 或 USB 线。'], ['选择对应的板子型号和固件版本', '烧错版本，轻则不动，重则损坏。'], ['擦除芯片里的旧程序', '腾出空间。'], ['写入新固件', '进度条走完。'], ['校验（比对校验和）', '确认写进去的和电脑上的一模一样，一位都不差。'], ['重启并读取固件版本号', '确认新程序真的跑起来了。'], ['把机械臂摆到零位姿态', '用标定工装把手臂固定在「伸直朝前」。'], ['记录各关节编码器零点并保存', '从此每个关节都知道哪里是 0 度。']],
+        extra: [['烧录过程中拔掉电源省时间', '断电会把芯片烧成「砖头」：程序写了一半，开不了机。']] },
+      { id: '2-8', name: '出厂测试：老化与功能', lv: '面', kind: 'choice',
+        learn: [
+          ['老化测试', '新机器连续工作 24–72 小时，让刚出厂的毛病（虚焊、螺丝没拧紧、电容不良）提前暴露。大部分故障出现在刚开始用的那段时间。', '新车磨合期。'],
+          ['功能测试', '按清单一项项测：直线行走偏不偏、机械臂到不到位、语音能不能唤醒、急停管不管用。每一项都有数字标准。', ''],
+        ],
+        qs: [
+          { q: '测试：直线行走 5 米，标准是偏差 ≤ 5 cm。拾光号走出了一条向左的大弧线，偏了 60 cm。最可能的原因是？', o: [
+            ['地面不平', false, '测试场地是平的，而且偏差这么大不是地面的问题。'], ['右轮编码器（或电机）方向接反 / 参数设反，左右轮速不一致', true, '对：两个轮子转速不一样，车就会画弧线。检查轮子的方向参数和编码器读数。'], ['激光雷达没校准', false, '直线行走测试主要靠轮子和编码器，跟雷达关系不大。'],
+          ] },
+          { q: '老化测试第 18 小时，日志里肘关节报「CAN 通信超时」，重启后又好了。应该怎么处理？', o: [
+            ['重启好了就算通过', false, '偶发故障是老化测试最想抓的东西：到了用户家里会变成「机器人突然不动了」。'], ['检查肘关节的 CAN 接头和走线（有没有松动、被关节磨损），修好后重新老化', true, '对：手臂一动线就跟着弯，接头松或线被磨破就会时好时坏。'], ['把通信超时时间改长一点', false, '这是把问题藏起来，不是解决问题。'],
+          ] },
+          { q: '语音测试：在 3 米外说唤醒词，10 次只醒了 4 次（标准 ≥ 9 次）。先查哪里？', o: [
+            ['扬声器音量', false, '扬声器是机器人说话用的，和它听不听得见无关。'], ['麦克风阵列有没有被外壳挡住、装反，或者和电机噪声靠得太近', true, '对：先查硬件安装，再查算法。外壳上的开孔对不准，声音就进不去。'], ['Jetson 的显卡', false, '唤醒词很小，用不着显卡。'],
+          ] },
+        ] },
+    ] },
+    // ================= 阶段三 =================
+    { id: 's3', no: 3, name: '系统与仿真环境搭建', short: '系统与仿真', sum: '搭软件底座和虚拟训练场：以 ROS 2 作为软件总线管理各模块通信；把 URDF 导入 Isaac Lab、MuJoCo 等仿真平台；先在仿真里验证控制算法（Sim2Sim），降低直接上真机的风险。', levels: [
+      { id: '3-1', name: '软件分层：一层叠一层', lv: '点', kind: 'order',
+        learn: [
+          ['软件也是一层层盖起来的', '最底下是硬件；往上是固件（单片机上跑，常配一个实时操作系统 RTOS）；再往上是 Jetson 上的 Linux 系统和驱动；再往上是 ROS 2（让各个程序互相说话）；最上面是你写的应用：语音、导航、抓取。', '一栋楼：地基 → 承重 → 水电 → 物业 → 住户。'],
+          ['为什么要分层', '每层只管自己的事，换掉一层不影响别的层。比如换一个更好的相机，只要换驱动，上面的抓取程序一行不用改。', ''],
+        ],
+        prompt: '从最底层到最上层，把拾光号的软件栈排好（有一项是陷阱）。',
+        steps: [['硬件（电机、传感器、芯片）', '一切的地基。'], ['固件 + 实时系统 RTOS（单片机上）', '负责准时：每毫秒控制一次电机。'], ['Linux 操作系统 + 设备驱动（Jetson 上）', '驱动让系统认识相机、雷达。'], ['ROS 2 中间件', '机器人的「软件总线」：各个程序通过它互相发消息。'], ['应用：语音、导航、抓取、AI 策略', '真正「干活」的程序。']],
+        extra: [['手机 App 商店', '和机器人的软件栈无关。']] },
+      { id: '3-2', name: 'ROS 2：节点和话题', lv: '线', kind: 'wire',
+        learn: [
+          ['节点 = 员工，话题 = 群聊频道', 'ROS 2 把每个功能写成一个「节点」（一个小程序）。节点之间通过「话题」发消息：相机节点往 /camera/image 频道发图片，谁需要就订阅这个频道。这叫「发布 / 订阅」。', '公司里各部门在不同的群里发通知，关心的人进群就能收到。'],
+          ['消息有格式', '每个话题只传一种格式的消息：图像就是图像，位姿就是位姿。格式不对，接收方读不懂。这就是端口颜色要对上的原因。', '寄快递要按规定格式填单子。'],
+          ['还有服务和动作', '话题是「广播」；服务是「问一句答一句」；动作是「布置一个要花时间的任务，中途还能问进度」，比如「把手臂移到桌子上方」。', ''],
+        ],
+        prompt: '把抓杯子用到的节点用话题连起来，消息格式（颜色）要对上。',
+        types: ['img', 'pose', 'joint', 'traj'],
+        nodes: [
+          N('cam', '相机驱动节点', 0, 0, [['o', 'r', 'img', '/camera/image']], '把相机画面发到话题上。'),
+          N('det', '杯子检测节点', 1, 0, [['i', 'l', 'img', '图像'], ['o', 'r', 'pose', '/cup/pose']], '在画面里找到杯子，算出它的位置。'),
+          N('js', '关节状态节点', 0, 2, [['o', 'r', 'joint', '/joint_states']], '读编码器，告诉大家每个关节现在几度。'),
+          N('plan', '抓取规划节点', 2, 1, [['p', 'l', 'pose', '杯子位姿'], ['j', 'l', 'joint', '当前关节'], ['o', 'r', 'traj', '/arm/trajectory']], '知道杯子在哪、手臂在哪，就能算出一条抓取路线。'),
+          N('ctl', '机械臂控制节点', 3, 1, [['i', 'l', 'traj', '轨迹']], '把轨迹一点点发给单片机执行。'),
+        ],
+        edges: [['cam.o', 'det.i', '检测节点订阅相机画面。'], ['det.o', 'plan.p', '规划节点订阅杯子的位姿。'], ['js.o', 'plan.j', '规划节点还要知道手臂现在在哪里。'], ['plan.o', 'ctl.i', '控制节点订阅规划好的轨迹，去执行。']],
+        quiz: [{ q: '一个新加的「数据记录节点」想保存相机画面，它需要怎么做？', o: ['让相机节点改代码，单独发给它', '订阅 /camera/image 话题', '直接去读相机硬件'], a: 1, why: '发布 / 订阅的好处：加一个听众，发布者一行代码都不用改。' }] },
+      { id: '3-3', name: '运动学：让手指到达目标', lv: '线', kind: 'tune',
+        learn: [
+          ['正运动学：角度 → 位置', '知道每个关节转了多少度，用三角函数（cos、sin）就能算出手指在哪。两节手臂长 L1、L2：x = L1·cosθ1 + L2·cos(θ1+θ2)，y = L1·sinθ1 + L2·sin(θ1+θ2)。', '知道每段路往哪拐、走多远，就知道终点。'],
+          ['逆运动学：位置 → 角度', '反过来：手要到某个点，每个关节该转多少度？这就是逆运动学（IK）。电脑用公式或迭代瞬间算出来；这关你用手调，体会一下它在解什么题。', '要把手指放到桌上某个点，你的肩和肘会自动找到角度——你的大脑一直在解 IK。'],
+        ],
+        prompt: '调两个关节角度，让手指依次碰到三个目标点（误差 ≤ 3 cm）。',
+        intro: '上臂 L1 = 0.35 m，前臂 L2 = 0.30 m，肩在原点。',
+        ik: { L1: 0.35, L2: 0.3, targets: [[0.45, 0.3], [0.2, 0.45], [0.55, 0.05]], tol: 0.03 },
+        ctrl: [{ id: 'a', n: '肩 θ1', min: 0, max: 180, step: 1, v: 90, unit: '°' }, { id: 'b', n: '肘 θ2', min: -150, max: 150, step: 1, v: 0, unit: '°' }],
+        after: '你刚才在手动解逆运动学。真实机械臂有 6 个关节，解有很多个（比如肘朝上或朝下），程序还要挑一个不撞到自己、离关节限位远的解。' },
+      { id: '3-4', name: '导航：建图、定位、走过去', lv: '面', kind: 'wire',
+        learn: [
+          ['状态估计：我在哪', '轮子编码器算出走了多远（里程计），IMU 知道转了多少，两者融合（常用卡尔曼滤波）得到更准的「我在哪」。单靠一个会越算越偏。', '闭着眼走路数步数，越走越不准；扶着墙就准多了。'],
+          ['SLAM：边建图边定位', '激光雷达扫出四周的轮廓，SLAM 算法一边把它们拼成地图，一边算出机器人在地图里的位置。', '进一个陌生商场，边逛边在脑子里画地图。'],
+          ['路径规划', '有了地图、自己的位置和目标点，规划器（ROS 2 里常用 Nav2）算出一条不撞墙的路线，再变成「往前多快、转多少」的速度指令发给底盘。', '手机导航：起点、终点、地图 → 路线 → 「前方 50 米右转」。'],
+        ],
+        prompt: '把导航系统连起来：从传感器一路到底盘的速度指令。',
+        types: ['odom', 'imu', 'pose', 'scan', 'map', 'goal', 'vel'],
+        nodes: [
+          N('enc', '轮子编码器', 0, 0, [['o', 'r', 'odom', '里程计']]), N('imu', 'IMU', 0, 1, [['o', 'r', 'imu', 'IMU']]), N('lid', '激光雷达', 0, 2, [['o', 'r', 'scan', '扫描']]),
+          N('ekf', '状态估计（融合）', 1, 0, [['o1', 'l', 'odom', '里程计'], ['i', 'l', 'imu', 'IMU'], ['o', 'r', 'pose', '融合位姿']], '把轮子和 IMU 的数据融合起来。'),
+          N('slam', 'SLAM 建图定位', 2, 1, [['p', 'l', 'pose', '位姿'], ['s', 'l', 'scan', '扫描'], ['m', 'r', 'map', '地图'], ['q', 'r', 'pose', '地图中的位置']], ''),
+          N('task', '任务：去桌子边', 2, 3, [['g', 'r', 'goal', '目标点']], '语音系统给出的目的地。'),
+          N('nav', '路径规划（Nav2）', 3, 1, [['m', 'l', 'map', '地图'], ['q', 'l', 'pose', '位置'], ['g', 'l', 'goal', '目标'], ['v', 'r', 'vel', '速度指令']], ''),
+          N('base', '底盘控制', 4, 1, [['v', 'l', 'vel', '速度']], '把速度指令换算成左右轮的转速。'),
+        ],
+        edges: [['enc.o', 'ekf.o1', '轮子里程计进融合。'], ['imu.o', 'ekf.i', 'IMU 进融合，修正转向的误差。'], ['ekf.o', 'slam.p', '融合后的位姿给 SLAM 当「大概位置」。'], ['lid.o', 'slam.s', '激光扫描给 SLAM 建图、精确定位。'], ['slam.m', 'nav.m', '地图给规划器。'], ['slam.q', 'nav.q', '「我在地图哪里」给规划器。'], ['task.g', 'nav.g', '目标点给规划器。'], ['nav.v', 'base.v', '速度指令给底盘执行。']] },
+      { id: '3-5', name: '语音系统：唤醒、听清、听懂、回答', lv: '面', kind: 'wire',
+        learn: [
+          ['语音是一条流水线', '唤醒词检测（KWS）：一直在听「拾光拾光」；回声消除（AEC）：把机器人自己说话的声音减掉；语音端点检测（VAD）：判断人什么时候开始说、什么时候说完；语音识别（ASR）：声音变文字；理解（大模型）：文字变任务；语音合成（TTS）：把回答变成声音。', '前台接待：听到有人叫 → 听清 → 听懂 → 办事 → 回话。'],
+          ['麦克风阵列还能听方向', '声源定位（DOA）比较几个麦克风收到声音的先后，算出人在哪个方向，机器人就能转过头去。', '你闭着眼也知道谁在左边叫你。'],
+        ],
+        prompt: '把拾光号的语音系统连起来：听见 → 听懂 → 去干活 → 回答。',
+        types: ['audio', 'text', 'task', 'angle'],
+        nodes: [
+          N('mic', '麦克风阵列', 0, 1, [['a', 'r', 'audio', '多路音频'], ['d', 'r', 'audio', '原始音频']]),
+          N('aec', '回声消除 AEC', 1, 0, [['i', 'l', 'audio', '音频'], ['r', 'l', 'audio', '参考：自己的声音'], ['o', 'r', 'audio', '干净音频']], '减掉扬声器自己发出的声音，免得自己叫醒自己。'),
+          N('doa', '声源定位 DOA', 1, 2, [['i', 'l', 'audio', '多路音频'], ['o', 'r', 'angle', '方向']], ''),
+          N('kws', '唤醒 + 端点检测', 2, 0, [['i', 'l', 'audio', '音频'], ['o', 'r', 'audio', '一句话']], '听到「拾光拾光」后，截出人说的那一句。'),
+          N('asr', '语音识别 ASR', 3, 0, [['i', 'l', 'audio', '一句话'], ['o', 'r', 'text', '文字']]),
+          N('llm', '理解与规划（大模型）', 4, 0, [['i', 'l', 'text', '指令'], ['t', 'r', 'task', '任务'], ['s', 'r', 'text', '回答']]),
+          N('turn', '底盘转向', 2, 2, [['i', 'l', 'angle', '方向']], '先转过去面向说话的人。'),
+          N('exec', '任务执行（导航 + 抓取）', 4, 2, [['i', 'l', 'task', '任务']]),
+          N('tts', '语音合成 TTS', 3, 3, [['i', 'l', 'text', '回答'], ['o', 'r', 'audio', '声音']]),
+          N('spk', '扬声器', 4, 3, [['i', 'l', 'audio', '声音'], ['r', 'r', 'audio', '参考输出']], '播放回答，同时把这段声音交给回声消除做参考。'),
+        ],
+        edges: [['mic.d', 'aec.i', '原始声音先做回声消除。'], ['spk.r', 'aec.r', '告诉 AEC「这段是我自己说的」，它才能减掉。'], ['mic.a', 'doa.i', '多路音频比较先后，算方向。'], ['doa.o', 'turn.i', '转过去面向说话的人。'], ['aec.o', 'kws.i', '干净的声音里等唤醒词。'], ['kws.o', 'asr.i', '截出的那一句送去识别。'], ['asr.o', 'llm.i', '文字交给大模型理解。'], ['llm.t', 'exec.i', '理解出的任务交给导航和抓取。'], ['llm.s', 'tts.i', '回答「好的，马上拿给你」。'], ['tts.o', 'spk.i', '合成的声音从扬声器播出。']] },
+      { id: '3-6', name: '导入仿真：物理参数对不对', lv: '线', kind: 'choice',
+        learn: [
+          ['仿真 = 电脑里的物理世界', 'Isaac Lab、MuJoCo 这些仿真平台读入 URDF，用物理引擎算重力、碰撞、摩擦。机器人可以在里面摔一万次，不花一分钱。', '飞行员先在模拟舱里练。'],
+          ['垃圾进，垃圾出', '仿真只和你填的参数一样准：质量、惯量、摩擦系数、关节限位、碰撞外形。填错一个，仿真里学会的本事到了真机上就不灵。', '照着错的地图开车，开得再好也到不了。'],
+        ],
+        qs: [
+          { q: '拾光号导入仿真后，一开始模拟就「飞」了出去，在空中乱转。最可能是？', o: [['重力设成了月球重力', false, '月球重力会让它变「轻飘」，但不会乱转着飞出去。'], ['某个零件质量或惯量填成了 0（或极小），物理引擎算出了巨大的加速度', true, '对：质量 0 的零件被一碰就会获得「无穷大」的加速度。URDF 导出后要逐个检查质量和惯量。'], ['相机分辨率太高', false, '和物理稳定性无关。']] },
+          { q: '仿真里夹爪总是夹不住杯子，杯子像抹了油一样滑走。先改哪个参数？', o: [['杯子的颜色', false, '颜色不影响物理。'], ['夹爪和杯子的摩擦系数、接触刚度', true, '对：摩擦系数太小就会打滑。可以用真实材料测一下，再填进仿真。'], ['机器人的名字', false, '……']] },
+          { q: '机械臂在仿真里能把手伸到自己身体里面去。少了什么？', o: [['碰撞外形（collision）或关节限位', true, '对：URDF 里每个零件除了「长什么样」（visual），还要有「碰撞外形」（collision）和关节限位。'], ['更好的显卡', false, '不是性能问题。'], ['更高的仿真频率', false, '频率解决不了穿模，要先有碰撞体。']] },
+        ] },
+      { id: '3-7', name: 'Sim2Sim：换个仿真器再考一次', lv: '面', kind: 'tune',
+        learn: [
+          ['控制器也会「钻空子」', '一个控制器在某个仿真器里表现完美，可能只是恰好利用了那个物理引擎的特点（比如接触特别硬）。换一个引擎就不灵了，到真机更不灵。', '只会背一套题的学生，换张卷子就考砸。'],
+          ['Sim2Sim 和域随机化', 'Sim2Sim：在 Isaac Lab 里训练，到 MuJoCo 里验证，两边都过关才上真机。域随机化：训练时故意随机改变质量、摩擦、延迟，让控制器适应各种情况，变得「皮实」。', '体育训练故意换场地、换天气。'],
+        ],
+        prompt: '调关节的刚度增益 Kp：要在两个仿真器里都稳定。如果怎么调都不行，试试打开域随机化。',
+        ctrl: [{ id: 'kp', n: '刚度增益 Kp', min: 10, max: 160, step: 5, v: 120, unit: '' }, { id: 'dr', n: '训练方式', seg: [['off', '只在 Isaac Lab 里训练'], ['on', '训练时打开域随机化']], v: 'off' }],
+        model: (v) => { const kp = +v.kp, on = v.dr === 'on'; const A = on ? [45, 130] : [80, 140], B = on ? [30, 95] : [20, 70]; const okA = kp >= A[0] && kp <= A[1], okB = kp >= B[0] && kp <= B[1]; return [['Isaac Lab 跟踪误差', okA ? '稳定' : kp < A[0] ? '太软，跟不上' : '振荡', okA, A[0] + '–' + A[1]], ['MuJoCo 跟踪误差', okB ? '稳定' : kp < B[0] ? '太软，跟不上' : '振荡', okB, B[0] + '–' + B[1]]]; },
+        after: '不开域随机化时，两个仿真器的「稳定区间」不重叠（80–140 和 20–70）：控制器被 Isaac Lab 惯坏了。打开域随机化后出现重叠区（45–95），这样的控制器上真机才更有把握。' },
+    ] },
+    // ================= 阶段四 =================
+    { id: 's4', no: 4, name: '数据采集与模型训练', short: '数据与训练', sum: '给机器人「注入智能」：用遥操作采集专家演示（主从臂、VR、动捕手套），同步时间戳并转成 LeRobot 等标准格式；用仿真 + 真实数据混合训练（例如约 70 个仿真回合搭配 10–20 个真实回合）；在 GR00T、π0.5 等 VLA 模型上微调，学会把语言指令和视觉画面直接映射成动作。', levels: [
+      { id: '4-1', name: '遥操作：示范给它看', lv: '点', kind: 'teleop',
+        learn: [
+          ['模仿学习：先看人怎么做', '让机器人学抓杯子，最直接的办法是人「附身」操纵它做几十遍，把每一刻的画面和动作都录下来，模型再学着模仿。这些录下来的叫「专家演示数据」。', '学写字先描红。'],
+          ['三种遥操作方式', '主从臂：人摇一条一模一样的「主臂」，机器人的「从臂」同步跟着动（比如 ALOHA）；VR：戴上头显，用手柄控制；动捕手套：手指怎么动，机器手就怎么动。', '提线木偶、遥控车、动作捕捉。'],
+          ['数据质量比数量重要', '抖来抖去、犹犹豫豫的演示会教坏模型。好的演示：动作连贯、一次成功、速度稳定。', ''],
+        ],
+        prompt: '拖动画面操纵夹爪：移到杯子上方 → 点「夹紧」→ 送到人手（右边的绿框）→ 点「松开」。录 3 条合格的演示（动作要稳）。',
+        need: 3 },
+      { id: '4-2', name: '时间戳对齐', lv: '线', kind: 'tune',
+        learn: [
+          ['每条数据都要盖「时间章」', '相机每秒 30 帧，关节每秒 100 次，夹爪开合是瞬间事件。它们各走各的线，到达电脑的时间不同。必须用传感器自己打的时间戳对齐，才知道「这一帧画面里，手在哪」。', '几个人分别拍的视频，靠拍手声对齐。'],
+          ['相机常常「慢半拍」', '相机拍完要曝光、压缩、传输，画面到电脑时已经晚了几十到上百毫秒。不补偿的话，模型会以为「先闭合夹爪，杯子才出现在手里」。', ''],
+        ],
+        prompt: '把相机画面的时间往前挪，让「画面里夹爪闭合」和「关节数据里夹爪闭合」对齐（误差 ≤ 10 ms），并选对同步方式。',
+        align: { lag: 120 },
+        ctrl: [{ id: 'off', n: '相机时间补偿', min: 0, max: 300, step: 5, v: 0, unit: ' ms' }, { id: 'how', n: '同步方式', seg: [['arrive', '按数据到达电脑的时间'], ['stamp', '按传感器打的时间戳']], v: 'arrive' }],
+        model: (v) => { const d = Math.abs(+v.off - 120); return [['夹爪闭合时间差', d + ' ms', d <= 10, '≤ 10'], ['同步方式', v.how === 'stamp' ? '传感器时间戳' : '到达时间（受网络抖动影响）', v.how === 'stamp', '时间戳']]; },
+        after: '相机比关节数据晚了 120 ms。真实系统里常用硬件同步（一根触发线让相机和关节同时采样）或 PTP 网络授时，再按时间戳对齐。' },
+      { id: '4-3', name: '整理成标准数据集', lv: '线', kind: 'sort',
+        learn: [
+          ['LeRobot 数据格式', 'Hugging Face 的 LeRobot 是常用的机器人数据格式：每一帧记录「观测」（看到和感觉到的）和「动作」（下一步要做的），再加上时间、第几回合、任务说明这些「元信息」。格式统一，别人的模型才能直接拿你的数据训练。', '统一格式的成绩单，哪个学校都看得懂。'],
+          ['观测 vs 动作', '观测是输入：相机画面、关节现在的角度。动作是输出：下一刻每个关节的目标、夹爪开还是合。模型学的就是「观测 → 动作」这张对应表。', ''],
+        ],
+        prompt: '把每一条数据放进正确的字段。',
+        bins: [['obs', 'observation 观测'], ['act', 'action 动作'], ['meta', '元信息']],
+        cards: [['头部相机画面', 'obs', 'observation.images.head'], ['手腕相机画面', 'obs', 'observation.images.wrist：离杯子近，看得更清楚'], ['6 个关节现在的角度', 'obs', 'observation.state'], ['下一刻 6 个关节的目标角度', 'act', 'action：模型要学会输出的东西'], ['下一刻夹爪开 / 合', 'act', 'action 的一部分'], ['时间戳 timestamp', 'meta', '这一帧发生在第几秒'], ['回合编号 episode_index', 'meta', '这是第几次演示'], ['任务说明「把杯子递给我」', 'meta', 'task：语言指令，VLA 模型会用到']] },
+      { id: '4-4', name: '仿真 + 真实：混合配比', lv: '线', kind: 'tune',
+        learn: [
+          ['仿真数据：便宜但「假」', '仿真里一小时能采几百个回合，不累人也不坏机器，但画面、摩擦和真实世界总有差距（Sim2Real 差距）。只用仿真数据训练，真机上常常不灵。', '只在驾校场地练车，第一次上路还是慌。'],
+          ['真实数据：真但贵', '真机遥操作，一个回合要几分钟人工，机器还会磨损。只用一点真实数据，模型又学不全各种情况。', ''],
+          ['混合训练', '大量仿真数据学「通用的本事」，少量真实数据「对齐现实」。常见的配法是几十个仿真回合搭配十几个真实回合（比如约 70 + 10–20），具体比例要靠实验找。', '大量模拟题 + 几套真题。'],
+        ],
+        prompt: '调配仿真回合和真实回合的数量：真机成功率 ≥ 75%，真实回合 ≤ 25 个（人力有限）。',
+        ctrl: [{ id: 'sim', n: '仿真回合', min: 0, max: 200, step: 10, v: 0, unit: '' }, { id: 'real', n: '真实回合', min: 0, max: 50, step: 5, v: 5, unit: '' }],
+        model: (v) => { const G = 1 - Math.exp(-v.sim / 60), R = 1 - Math.exp(-v.real / 5), s = 100 * (0.25 * G + 0.75 * R * (0.55 + 0.45 * G)); return [['真机成功率', s.toFixed(0) + '%', s >= 75, '≥ 75%'], ['真实回合（人工）', v.real + ' 个 · 约 ' + v.real * 6 + ' 分钟', v.real <= 25, '≤ 25'], ['仿真回合（算力）', v.sim + ' 个 · 约 ' + Math.round(v.sim * 0.5) + ' 分钟', true, '']]; },
+        after: '只用仿真：成功率卡在 20% 多；只用真实：要很多人工也只有 40% 左右。两者混合，几十个仿真回合 + 十几个真实回合就能过线——这就是混合训练的价值。' },
+      { id: '4-5', name: 'VLA 模型：看 + 听 → 动', lv: '面', kind: 'wire',
+        learn: [
+          ['VLA = 视觉 - 语言 - 动作', 'VLA 模型同时看画面（Vision）、读指令（Language），直接输出动作（Action）。它站在大模型的肩膀上：从海量图片和文字里学到的常识，帮机器人理解「蓝色的杯子」「递给我」是什么意思。', '一个既能看懂场景、又能听懂话、还会动手的学徒。'],
+          ['基础模型 + 微调', 'GR00T（英伟达）、π0.5（Physical Intelligence）这类模型已经在大量机器人数据上预训练过。我们只要在自己的数据集上「微调」一下，它就学会拾光号的手怎么动。', '先读完大学，再在公司实习几周就上岗。'],
+          ['动作块', '模型一次输出接下来一小段动作（比如 0.5 秒、几十步），而不是一步一步想。这样动作更连贯，也不怕模型偶尔慢一拍。', '弹琴时一次想好一小句，而不是一个音一个音地想。'],
+        ],
+        prompt: '把 VLA 模型的内部结构连起来：画面和指令 → 动作。',
+        types: ['img', 'text', 'tok', 'joint', 'act', 'cmd'],
+        nodes: [
+          N('cam', '相机画面', 0, 0, [['o', 'r', 'img', '图像']]), N('ins', '语言指令「把蓝杯子递给我」', 0, 1, [['o', 'r', 'text', '文字']]), N('st', '当前关节角度', 0, 2, [['o', 'r', 'joint', '关节']]),
+          N('vis', '视觉编码器', 1, 0, [['i', 'l', 'img', '图像'], ['o', 'r', 'tok', '视觉特征']], '把画面变成一串数字（特征）。'),
+          N('lm', '语言模型（主干）', 2, 1, [['v', 'l', 'tok', '视觉特征'], ['t', 'l', 'text', '指令'], ['o', 'r', 'tok', '融合理解']], '把「看到的」和「听到的」放在一起理解。'),
+          N('head', '动作头（Action Head）', 3, 1, [['f', 'l', 'tok', '理解'], ['s', 'l', 'joint', '当前状态'], ['o', 'r', 'act', '动作块']], '结合当前姿态，输出接下来一段动作。'),
+          N('ctl', '底层控制（单片机）', 4, 1, [['i', 'l', 'act', '动作块'], ['o', 'r', 'cmd', '关节指令']], '把动作块插值成每毫秒的关节指令。'),
+          N('arm', '机械臂关节', 4, 2, [['i', 'l', 'cmd', '指令']]),
+        ],
+        edges: [['cam.o', 'vis.i', '画面先过视觉编码器。'], ['vis.o', 'lm.v', '视觉特征送进语言模型主干。'], ['ins.o', 'lm.t', '指令文字也送进主干。'], ['lm.o', 'head.f', '融合后的理解交给动作头。'], ['st.o', 'head.s', '动作头还要知道手臂现在的姿态。'], ['head.o', 'ctl.i', '输出一段动作（动作块）。'], ['ctl.o', 'arm.i', '单片机把动作块变成每毫秒的关节指令。']] },
+      { id: '4-6', name: '看懂训练曲线', lv: '面', kind: 'choice',
+        learn: [
+          ['训练集和验证集', '训练时拿一部分数据学（训练集），留一部分不给它看（验证集），专门用来考它。两条损失（loss，越低越好）曲线一起看，才知道它是真学会了还是死记硬背。', '平时作业 vs 期末考试。'],
+          ['三种常见毛病', '过拟合：训练损失一直降，验证损失先降后升——背答案了，要加数据、加随机化或提前停；欠拟合：两条都降不下去——模型太小或练得太少；学习率太大：曲线上下乱跳——步子迈太大，要调小。', ''],
+        ],
+        qs: [
+          { q: '训练 50 轮后：训练损失一路下降到很低，验证损失在第 15 轮后开始上升。这是？', ctx: '<svg class="emb-plot" viewBox="0 0 200 80"><path d="M5 10 C40 40 80 60 195 72" stroke="#4ef0ff" fill="none" stroke-width="2"/><path d="M5 12 C30 40 50 50 70 48 S140 30 195 22" stroke="#ff7a45" fill="none" stroke-width="2"/><text x="120" y="78" fill="#4ef0ff" font-size="8">训练</text><text x="150" y="18" fill="#ff7a45" font-size="8">验证</text></svg>', o: [['欠拟合：模型太小', false, '欠拟合时训练损失也降不下去。'], ['过拟合：在背训练数据，要加数据 / 数据增强 / 提前停止', true, '对：训练集越来越好，没见过的数据越来越差。'], ['学习率太大', false, '学习率太大时曲线会剧烈抖动。']] },
+          { q: '两条损失曲线都卡在很高的位置，几乎不下降。应该？', ctx: '<svg class="emb-plot" viewBox="0 0 200 80"><path d="M5 20 C40 28 80 30 195 31" stroke="#4ef0ff" fill="none" stroke-width="2"/><path d="M5 22 C40 31 80 33 195 34" stroke="#ff7a45" fill="none" stroke-width="2"/></svg>', o: [['欠拟合：换更大的模型、多训练一会儿、检查数据和标签对不对', true, '对：先检查数据有没有错（比如动作和画面没对齐），再考虑模型容量。'], ['过拟合：减少数据', false, '验证和训练一样差，不是过拟合。'], ['已经训练好了', false, '损失还很高，模型还没学会。']] },
+          { q: '损失曲线像心电图一样上下剧烈跳动。应该？', ctx: '<svg class="emb-plot" viewBox="0 0 200 80"><path d="M5 30 L20 10 L35 50 L50 15 L65 55 L80 12 L95 50 L110 18 L125 52 L140 14 L155 48 L170 20 L195 45" stroke="#4ef0ff" fill="none" stroke-width="2"/></svg>', o: [['把学习率调小', true, '对：学习率是每一步改动的大小，太大就会在最低点两边来回跳。'], ['把学习率调大', false, '会跳得更厉害。'], ['加更多 GPU', false, 'GPU 只影响速度，不影响稳定。']] },
+        ] },
+    ] },
+    // ================= 阶段五 =================
+    { id: 's5', no: 5, name: '仿真到现实的迁移部署', short: '部署', sum: '把训练好的策略（通常导出为 ONNX 等格式）部署到真机：常用 Server-Client 架构，边缘设备负责实时推理，底层控制器负责高频执行；真机运行后重点监控动作抖动、响应停顿，优化动作平滑和实时控制参数，完成 Sim2Real 跨越。', levels: [
+      { id: '5-1', name: '模型导出与加速', lv: '线', kind: 'tune',
+        learn: [
+          ['ONNX：模型的「通用格式」', '训练时模型是 PyTorch 格式，只有装了 PyTorch 的电脑才能跑。导出成 ONNX，就像把文档存成 PDF：到哪都能打开。', 'Word 存 PDF。'],
+          ['TensorRT：给 Jetson 的「涡轮增压」', '英伟达的 TensorRT 会针对 Jetson 的芯片重新排布计算，速度常常翻好几倍。', ''],
+          ['量化：用更少的位数存数字', 'FP32 每个数 32 位，FP16 是 16 位，INT8 只有 8 位。位数越少越快、越省内存，但精度会掉一点。INT8 通常需要校准，否则掉得更多。', '把 3.14159265 记成 3.14：够用就好。'],
+        ],
+        prompt: '让策略在 Jetson 上跑到 ≥ 20 次/秒（单次 ≤ 50 ms），而且准确率下降 ≤ 2%。',
+        ctrl: [{ id: 'f', n: '格式', seg: [['pt', 'PyTorch 原样'], ['onnx', 'ONNX'], ['trt', 'ONNX → TensorRT']], v: 'pt' }, { id: 'p', n: '精度', seg: [['32', 'FP32'], ['16', 'FP16'], ['8', 'INT8（未校准）']], v: '32' }],
+        model: (v) => { const ms = 180 * { pt: 1, onnx: 0.8, trt: 0.4 }[v.f] * { 32: 1, 16: 0.55, 8: 0.35 }[v.p], drop = { 32: 0, 16: 0.3, 8: 3.5 }[v.p]; return [['单次推理', ms.toFixed(0) + ' ms（' + (1000 / ms).toFixed(0) + ' 次/秒）', ms <= 50, '≤ 50 ms'], ['准确率下降', drop + '%', drop <= 2, '≤ 2%']]; },
+        after: 'TensorRT + FP16：约 40 ms、准确率几乎不掉，是 Jetson 上最常见的选择。INT8 更快，但要用一小批真实数据做校准，才能把精度损失压下来。' },
+      { id: '5-2', name: 'Server-Client 部署架构', lv: '面', kind: 'wire',
+        learn: [
+          ['三层「大脑」，三种速度', 'GPU 服务器在机房：训练、跑最大的模型，可能几秒才回一次；Jetson 在机器人身上：每秒推理 10–30 次，输出动作块；单片机每秒 1000 次把动作块变成关节指令；驱动板每秒约 2 万次控制电流。越往下越快、越简单、越可靠。', '公司：董事会（季度）→ 经理（每天）→ 组长（每小时）→ 工人（每分钟）。'],
+          ['为什么不全放在服务器上', '网络会卡、会断。机器人不能因为 Wi-Fi 卡一下就把杯子摔了。所以要实时的部分必须留在机器人本地。', ''],
+        ],
+        prompt: '把部署架构连起来：模型从服务器下发，指令一层层变快，失败数据再传回去。',
+        types: ['model', 'WIFI', 'act', 'cmd', 'cur', 'log'],
+        nodes: [
+          N('srv', 'GPU 服务器（机房）', 0, 1, [['m', 'r', 'model', '下发模型'], ['l', 'r', 'log', '收集失败数据']], '训练、存数据、发布新模型。'),
+          N('jet', 'Jetson（实时推理 10–30 Hz）', 1, 1, [['m', 'l', 'model', '模型'], ['l', 'l', 'log', '上传日志'], ['a', 'r', 'act', '动作块']], ''),
+          N('mcu', '单片机（关节控制 1 kHz）', 2, 1, [['a', 'l', 'act', '动作块'], ['c', 'r', 'cmd', '关节指令']], ''),
+          N('drv', '关节驱动板（电流环约 20 kHz）', 3, 1, [['c', 'l', 'cmd', '指令'], ['i', 'r', 'cur', '电流']], 'FOC 算法控制线圈电流。'),
+          N('mot', '电机', 4, 1, [['i', 'l', 'cur', '电流']]),
+        ],
+        edges: [['srv.m', 'jet.m', '训练好的模型（比如 TensorRT 引擎文件）通过网络下发到机器人。'], ['jet.l', 'srv.l', '机器人把失败的片段传回服务器，用来补数据、再训练。'], ['jet.a', 'mcu.a', 'Jetson 每秒十几次给出动作块。'], ['mcu.c', 'drv.c', '单片机每毫秒给驱动板一个关节目标。'], ['drv.i', 'mot.i', '驱动板每秒约 2 万次调整电流，电机才转得又稳又准。']] },
+      { id: '5-3', name: '手眼标定：相机看到的 = 手够到的', lv: '线', kind: 'tune',
+        learn: [
+          ['每个东西都有自己的坐标系', '相机说「杯子在我前方 0.4 米」，机械臂要的是「杯子在我底座前方多少、左边多少」。两者之间差一个平移和一个旋转。ROS 2 里管这些坐标转换的工具叫 tf。', '「在我左边」和「在你左边」不是一回事。'],
+          ['手眼标定', '把相机相对于机械臂底座的位置和角度测准，这一步叫手眼标定。差 1 度，伸到 0.6 米外就会偏 1 厘米，杯子就抓偏了。', ''],
+        ],
+        prompt: '调相机相对底座的位置 (x, y) 和角度，让相机看到的三个标定点和真实位置重合（误差 ≤ 1.5 cm）。',
+        hand: { tx: 0.12, ty: 0.3, rot: 25 },
+        ctrl: [{ id: 'tx', n: '相机 x', min: 0, max: 0.3, step: 0.005, v: 0, unit: ' m' }, { id: 'ty', n: '相机 y', min: 0, max: 0.5, step: 0.005, v: 0, unit: ' m' }, { id: 'rot', n: '相机角度', min: -45, max: 45, step: 1, v: 0, unit: '°' }],
+        after: '真实的手眼标定会让机械臂拿着标定板摆十几个姿势，用最小二乘法自动算出变换，比手调准得多，但道理是一样的。' },
+      { id: '5-4', name: '动作平滑：不抖又不慢', lv: '线', kind: 'tune',
+        learn: [
+          ['抖动从哪来', '模型每次输出都有一点点误差，直接发给电机，手臂就会微微发抖。抖动会让杯子里的水洒出来，也会加速齿轮磨损。', ''],
+          ['平滑的代价是延迟', '把新指令和旧指令按比例混合（指数平滑，系数 α）：α 越小越平滑，但反应也越慢。控制频率越高，同样的平滑带来的延迟越小。动作块在单片机里插值到 100 Hz，就能两头兼顾。', '开车方向盘打得太急会晃，太慢又转不过弯。'],
+        ],
+        prompt: '调平滑系数 α 和控制频率：末端抖动 ≤ 5 mm，响应延迟 ≤ 60 ms。',
+        smooth: true,
+        ctrl: [{ id: 'a', n: '平滑系数 α（越小越平滑）', min: 0.05, max: 1, step: 0.01, v: 1, unit: '' }, { id: 'hz', n: '控制频率', seg: [['10', '10 Hz'], ['30', '30 Hz'], ['100', '100 Hz（动作块插值）']], v: '10' }],
+        model: (v) => { const a = +v.a, j = 10 * Math.pow(a, 0.6), d = (1000 / +v.hz) * ((1 - a) / a); return [['末端抖动', j.toFixed(1) + ' mm', j <= 5, '≤ 5'], ['响应延迟', d.toFixed(0) + ' ms', d <= 60, '≤ 60']]; },
+        after: '在 10 Hz、30 Hz 下，「不抖」和「不慢」不可能同时做到；把动作块插值到 100 Hz，α 取 0.15–0.3 就两头都满足。这就是为什么底层控制频率要高。' },
+      { id: '5-5', name: '闭环调试：看症状找原因', lv: '面', kind: 'choice',
+        learn: [
+          ['上了真机才会出现的问题', '仿真里一切准时、没有噪声；真机上有网络延迟、电机发热、光线变化。调试就是「看症状 → 猜原因 → 改一个参数 → 再测」，每次只改一个。', '看病：先看症状，再做检查，最后开药。'],
+        ],
+        qs: [
+          { q: '机械臂每隔几秒就停顿一下，像在「思考」，然后突然冲一下。最可能是？', o: [['电机力气不够', false, '力气不够是「抬不起来」，不是停一下再冲。'], ['推理偶尔超时（或网络卡顿），动作块没有及时接上', true, '对：上一段动作做完了，新的还没算出来，就停住；新动作来了又一下子追上去。可以提前请求下一块动作、在两块之间平滑衔接。'], ['相机分辨率太高', false, '可能是推理慢的原因之一，但根本是动作块没有接上。']] },
+          { q: '机器人总是抓在杯子左边 2 厘米，每次都一样。最可能是？', o: [['模型没训练好', false, '模型没训练好，偏差会忽左忽右，不会每次都一样。'], ['手眼标定有误差（相机坐标系偏了）', true, '对：固定方向、固定大小的偏差，十有八九是坐标变换不准。重新做手眼标定。'], ['夹爪太小', false, '和偏差的方向无关。']] },
+          { q: '刚开机时一切正常，工作半小时后机械臂开始越来越抖。先查什么？', o: [['电机和驱动板的温度：发热后参数变化，原来的控制参数不再合适', true, '对：温度上升会改变电机特性，必要时要加温度补偿、改善散热，或降低负载。'], ['语音模块', false, '和手臂抖动无关。'], ['地图', false, '和手臂抖动无关。']] },
+        ] },
+    ] },
+    // ================= 阶段六 =================
+    { id: 's6', no: 6, name: '测试与迭代', short: '测试与迭代', sum: '部署不是终点：真机运行中暴露的新问题（感知盲区、特定物体抓取失败）形成反馈，驱动补充采集针对性数据、重新训练、再次部署，形成持续迭代的闭环。', levels: [
+      { id: '6-1', name: '失败分析：缺什么补什么', lv: '面', kind: 'choice',
+        learn: [
+          ['失败是最值钱的数据', '机器人在一千次任务里成功了九百五十次，剩下五十次失败才是改进的方向。把失败的片段分类，找出共同点，再去补那一类数据。', '错题本：只整理做错的题。'],
+          ['针对性补数据', '不是「再多采一万条」，而是缺什么补什么：透明杯子抓不好就专门采透明杯子；晚上找不到东西就在暗光下采。', ''],
+        ],
+        qs: [
+          { q: '统计一周的失败记录：80% 的失败都是「透明玻璃杯」，深度图上杯子那块是空的。最有效的改进是？', o: [['把所有数据再采一遍', false, '浪费：瓷杯、纸杯本来就成功率很高。'], ['专门补采透明杯子的数据，并加上彩色图像的分割模型（深度相机看不清透明物体）', true, '对：深度相机靠反射测距，透明物体几乎不反射。用彩色画面补上，再针对性补数据。'], ['换一个更贵的机械臂', false, '问题出在「看」，不在「手」。']] },
+          { q: '晚上关了大灯，机器人找杯子的成功率从 95% 掉到 40%。怎么办？', o: [['告诉用户晚上别用', false, '用户会退货的。'], ['在暗光下补采数据，训练时加亮度随机化（数据增强），必要时加补光灯', true, '对：既补数据，也让模型对光线不敏感，硬件上还可以加补光。'], ['把相机分辨率调低', false, '会让暗处更看不清。']] },
+        ] },
+      { id: '6-2', name: '安全：最后一道防线', lv: '面', kind: 'choice',
+        learn: [
+          ['安全是层层设防的', '硬件：急停开关、保险丝、电池保护板；固件：关节限位、电流（力矩）上限、看门狗——主程序卡死时自动停机；软件：碰撞检测、速度限制、靠近人时自动减速。任何一层失效，下一层兜底。', '汽车：安全带 + 气囊 + 刹车辅助。'],
+          ['看门狗', '单片机里有个「看门狗」计时器，主程序必须定时去「喂」它。程序一旦卡死不喂了，看门狗就自动让电机停下来。', ''],
+        ],
+        qs: [
+          { q: 'Jetson 突然死机，不再发任何指令。手臂应该？', o: [['保持最后一个指令继续执行', false, '如果最后一个指令是「往前伸」，它就会一直伸下去。'], ['单片机的看门狗 / 通信超时检测发现没有新指令，让手臂在原地刹停并保持', true, '对：失去上级指令时，「安全停止」永远是默认动作。'], ['重启整台机器人', false, '重启的这段时间手臂会失去力量，可能把东西摔了。']] },
+          { q: '有小朋友把手伸进了机械臂的运动路线。哪个机制最直接地防止受伤？', o: [['关节力矩 / 电流上限 + 碰撞检测：一碰到意外的阻力就停下或后退', true, '对：这就是「协作机器人」能和人一起工作的原因。'], ['更大的电机', false, '只会更危险。'], ['更快的速度', false, '只会更危险。']] },
+        ] },
+      { id: '6-3', name: '数据飞轮', lv: '体', kind: 'order',
+        learn: [
+          ['飞轮：越转越快', '部署 → 收集失败 → 标注 → 补采针对性数据 → 重新训练 → 回归测试 → 小范围试用 → 全面更新 → 再部署。每转一圈，机器人更强，遇到的新问题更少、更难，团队的数据也越积越多。', '滚雪球。'],
+          ['回归测试和灰度发布', '新模型上线前，要把以前能做到的事全部重测一遍（回归测试），防止「修好一个，弄坏三个」。上线时先给一小部分机器人更新（灰度），没问题再全面推送（OTA 在线升级）。', '新药先小范围试用。'],
+        ],
+        prompt: '把数据飞轮的一圈按顺序排好（有一项是陷阱）。',
+        steps: [['真机部署运行', '机器人在真实环境里干活。'], ['自动收集失败片段', '失败时前后几十秒的数据自动上传。'], ['分类、标注失败原因', '是看错了、抓偏了，还是听错了？'], ['补采针对性数据', '缺什么补什么。'], ['重新训练 / 微调模型', '新数据 + 老数据一起训练。'], ['回归测试（仿真 + 真机）', '以前会的不能忘。'], ['灰度发布到一小部分机器人', '小范围先试。'], ['OTA 全面升级', '确认没问题，再推送给所有机器人。']],
+        extra: [['新模型训练完直接推送给所有用户', '没有回归测试和灰度，一个 bug 就会让所有机器人同时出问题。']] },
+      { id: '6-4', name: '毕业：一句话到一个动作', lv: '体', kind: 'wire',
+        learn: [
+          ['把所有的「面」合成「体」', '你已经搭过电源、通信、导航、语音、VLA 和部署。现在把它们连成完整的一条链：从主人说一句话，到杯子递到手里。', ''],
+          ['这就是具身智能', '数字世界的智能（听懂、看懂、决定）和物理世界的行动力（走过去、抓起来）在一台机器上闭环。以后不管是四足、人形，还是火星车，都是这条链换了「身体」。', '从这里出发，去造你想造的任何机器人。'],
+        ],
+        prompt: '主人说：「拾光，把桌上的蓝杯子拿给我。」把整条链路连起来。',
+        types: ['audio', 'text', 'task', 'goal', 'vel', 'img', 'act', 'cmd'],
+        nodes: [
+          N('mic', '麦克风阵列', 0, 0, [['o', 'r', 'audio', '声音']]), N('asr', '唤醒 + 语音识别', 1, 0, [['i', 'l', 'audio', '声音'], ['o', 'r', 'text', '文字']]),
+          N('llm', '大模型任务规划', 2, 0, [['i', 'l', 'text', '指令'], ['g', 'r', 'goal', '去哪'], ['t', 'r', 'text', '拿什么'], ['s', 'r', 'text', '回答']]),
+          N('nav', '导航（SLAM + Nav2）', 3, 0, [['g', 'l', 'goal', '目标'], ['v', 'r', 'vel', '速度']]), N('base', '底盘', 4, 0, [['v', 'l', 'vel', '速度']]),
+          N('cam', '头部 + 手腕相机', 2, 2, [['o', 'r', 'img', '画面']]),
+          N('vla', 'VLA 抓取策略（Jetson）', 3, 2, [['i', 'l', 'img', '画面'], ['t', 'l', 'text', '「蓝杯子」'], ['o', 'r', 'act', '动作块']]),
+          N('mcu', '单片机 → 关节', 4, 2, [['a', 'l', 'act', '动作块'], ['c', 'r', 'cmd', '关节指令']]), N('arm', '机械臂 + 夹爪', 4, 3, [['c', 'l', 'cmd', '指令']]),
+          N('tts', '语音合成 + 扬声器', 3, 3, [['i', 'l', 'text', '回答']]),
+        ],
+        edges: [['mic.o', 'asr.i', '听见、唤醒、识别成文字。'], ['asr.o', 'llm.i', '大模型理解：要去桌子、要拿蓝杯子。'], ['llm.g', 'nav.g', '目标点：桌子边。'], ['nav.v', 'base.v', '底盘走过去。'], ['llm.t', 'vla.t', '告诉抓取策略：拿蓝色的那个杯子。'], ['cam.o', 'vla.i', 'VLA 看着画面找到蓝杯子。'], ['vla.o', 'mcu.a', '输出抓取的动作块。'], ['mcu.c', 'arm.c', '每毫秒的关节指令让手臂抓起杯子、递给你。'], ['llm.s', 'tts.i', '「好的，给你。」']] },
+    ] },
+  ];
+
+  // 硬件 / 软件全景（主创说「帮我补充我遗漏的」）：每一项标出在哪一关学
+  const MAP = {
+    hw: [
+      ['机械结构', '底盘框架、立柱、臂杆、外壳、散热风道、走线槽', ['1-6', '2-1', '2-6']],
+      ['执行器', '关节模组 = 无框电机 + 减速器（行星 / 谐波）+ 编码器 + 驱动板 + 交叉滚子轴承；轮毂电机；夹爪', ['1-3', '2-2', '2-3']],
+      ['传感器', '深度相机、激光雷达、IMU、编码器、力 / 力矩传感器、麦克风阵列、超声波 / 碰撞开关', ['1-2', '1-5']],
+      ['能源', '锂电池 + BMS 电池管理板、急停开关、配电板与保险丝、DC-DC 降压（24V → 12V / 5V）', ['1-4', '2-4']],
+      ['计算', 'GPU 训练服务器、Jetson 边缘电脑、单片机 MCU、关节驱动板', ['1-2', '5-2']],
+      ['通信', 'CAN（关节）、USB（相机 / 麦克风）、网口（雷达）、串口 UART、I²C（小传感器）、Wi-Fi（和服务器）；高端机器人还会用 EtherCAT', ['2-5']],
+      ['制造与测试', 'CNC、钣金、3D 打印、注塑、SMT 贴片、齿轮加工；模组测试（温度 / 扭矩 / 转速）、老化测试、功能测试', ['2-1', '2-3', '2-8']],
+      ['安全', '急停、保险丝、关节限位、电流（力矩）上限、看门狗、碰撞检测', ['2-4', '6-2']],
+    ],
+    sw: [
+      ['固件', '烧录、校验、零位标定、实时系统 RTOS、FOC 电流控制', ['2-7', '3-1']],
+      ['操作系统与中间件', 'Linux + 驱动、ROS 2（节点、话题、服务、动作）、tf 坐标变换、URDF', ['3-1', '3-2', '1-6']],
+      ['运动控制', '正 / 逆运动学、轨迹规划、PID、动作平滑、控制频率分层', ['3-3', '5-4', '5-2']],
+      ['感知', '目标检测、深度估计、透明物体分割、手眼标定', ['3-2', '5-3', '6-1']],
+      ['定位与导航', '里程计 + IMU 融合（卡尔曼滤波）、SLAM 建图、Nav2 路径规划', ['3-4']],
+      ['语音交互', '唤醒词、回声消除、端点检测、语音识别、大模型理解、语音合成、声源定位', ['3-5']],
+      ['仿真', 'Isaac Lab、MuJoCo、物理参数、碰撞体、Sim2Sim、域随机化', ['3-6', '3-7']],
+      ['数据与学习', '遥操作（主从臂 / VR / 动捕手套）、时间戳对齐、LeRobot 格式、仿真 + 真实混合、VLA（GR00T / π0.5）微调、训练曲线', ['4-1', '4-2', '4-3', '4-4', '4-5', '4-6']],
+      ['部署与运维', 'ONNX、TensorRT、FP16 / INT8 量化、Server-Client 架构、日志回传、回归测试、灰度发布、OTA 升级', ['5-1', '5-2', '6-3']],
+    ],
+  };
+
+  CF.EmbData = { TYPES, STAGES, MAP, ROBOT: '拾光号' };
+})();
+
+</script>
+<script>
+/* js/embodied.js */
+/* 实验室 · 具身智能：造一台机器人（v9.4，主创要求）——引擎与界面
+ * 课程数据在 js/embodied-data.js。版式按 UI 宪法第 27 章：弹窗页眉不变；横屏左侧竖条（总览 + 六个阶段），竖屏是一排页签；
+ * 进入一关后隐藏导航，整块区域给这一关用（27.12）。每关：学（知识卡）→ 练（玩法）→ 考（小测）→ 结算（星级）。
+ * 玩法引擎：choice 选择 / 诊断 · sort 分类 · order 组装与工序 · wire 接线（像电路图：端口有类型，类型不对接不上）·
+ *   tune 计算与调参（含运动学、时间戳对齐、手眼标定、动作平滑的小画板）· teleop 遥操作示教。
+ * 星级：零失误 3 星；失误 + 提示 ≤ 2 次 2 星；其余 1 星；看了答案 1 星。同一关失败 4 次给答案（与电路工坊一致）。
+ * 解锁：按顺序一关一关开（体验模式全开）；首次通关给实操经验，通关一个阶段记一次实验完成。 */
+(function () {
+  const CF = window.CF;
+  const E = (CF.Emb = {});
+  const D = () => CF.EmbData;
+  const esc = (s) => CF.esc(s);
+  const sv = () => { const d = CF.Save.data; d.emb = d.emb || { lv: {} }; d.emb.lv = d.emb.lv || {}; return d.emb; };
+  const LEVELS = () => D().STAGES.flatMap((s) => s.levels.map((l) => Object.assign(l, { stage: s })));
+  const starsOf = (id) => sv().lv[id] || 0;
+  const isOpen = (l) => { if (CF.P.trial()) return true; const L = LEVELS(), i = L.indexOf(l); return i <= 0 || starsOf(L[i - 1].id) > 0; };
+  const doneIn = (s) => s.levels.filter((l) => starsOf(l.id) > 0).length;
+  const KIND = { choice: '选择 · 诊断', sort: '分类', order: '组装 · 工序', wire: '接线', tune: '计算 · 调参', teleop: '遥操作示教' };
+  const LVD = { 点: '认识一个零件或概念', 线: '把几个连成一条链', 面: '搭出一个完整子系统', 体: '整台机器人、整个闭环' };
+  const CN = '零一二三四五六';
+  const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  E.progress = () => { const L = LEVELS(); return L.filter((l) => starsOf(l.id) > 0).length + '/' + L.length; };
+  E.next = () => LEVELS().find((l) => !starsOf(l.id)) || null;
+
+  let root = null, view = { tab: 'ov', play: null }, cur = null, loopStop = null, ro = null;
+  E.open = function (levelId) {
+    root = CF.h('<div class="emb rail-page"><nav class="rail" role="tablist" aria-label="阶段"></nav><div class="rail-main emb-main"></div></div>');
+    CF.modal.open({ title: '🦾 实验室 · 具身智能：造一台机器人', body: root, wide: true, onClose: () => { stopLoop(); if (ro) ro.disconnect(); CF.$('#modal').classList.remove('ps-on'); root = null; } });
+    CF.$('#modalCard').classList.add('emb-full'); CF.$('#modal').classList.add('ps-on');
+    view = { tab: 'ov', play: null };
+    if (levelId) return E.play(levelId);
+    render();
+  };
+  function stopLoop() { if (loopStop) { loopStop(); loopStop = null; } }
+  function render() {
+    if (!root) return;
+    stopLoop();
+    root.classList.toggle('playing', !!view.play);
+    const rail = root.querySelector('.rail'), main = root.querySelector('.emb-main');
+    const tabs = [['ov', '总览', E.progress()]].concat(D().STAGES.map((s) => [s.id, s.no ? `${CN[s.no]} · ${s.short}` : s.short, `${doneIn(s)}/${s.levels.length}`]));
+    rail.innerHTML = tabs.map(([k, n, c]) => `<button role="tab" data-t="${k}" class="${view.tab === k ? 'on' : ''}" aria-selected="${view.tab === k}">${n}<small>${c}</small></button>`).join('');
+    rail.querySelectorAll('[data-t]').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); view = { tab: b.dataset.t, play: null }; render(); }));
+    main.scrollTop = 0;
+    if (view.play) return player(main);
+    if (view.tab === 'ov') overview(main); else stagePage(main, D().STAGES.find((s) => s.id === view.tab));
+  }
+  // ⓘ 说明：在模块里面弹出（不另开弹窗，免得关掉整个模块）
+  const info = (title, html) => {
+    const o = CF.h(`<div class="emb-info" role="dialog" aria-label="${esc(title)}"><div class="emb-info-c"><h4>ⓘ ${esc(title)}</h4><div class="t-body">${html}</div><button class="btn primary">知道了</button></div></div>`);
+    o.onclick = (e) => { if (e.target === o || e.target.closest('.btn')) { CF.Audio.sfx('click'); o.remove(); } };
+    root.appendChild(o);
+  };
+
+  // ================= 总览 =================
+  function overview(main) {
+    const L = LEVELS(), n = L.filter((l) => starsOf(l.id) > 0).length, nx = E.next();
+    main.innerHTML = `<div class="codex-head"><b class="codex-t">具身智能 · 全流程</b><span class="codex-prog">已通关 <b>${n}</b><span>/${L.length}</span></span><button class="btn sm ghost" data-i>ⓘ 这门课</button></div>
+      <div class="emb-ov"><div class="emb-robot"><canvas width="240" height="240"></canvas><div class="emb-robot-cap"><b>${D().ROBOT}</b> · 完成度 ${Math.round((n / L.length) * 100)}%<small>虚线 = 还在图纸上，实线 = 已经造出来</small></div></div>
+        <div class="emb-loop">${D().STAGES.map((s) => `<button class="emb-st-chip" data-t="${s.id}"><i>${s.no ? CN[s.no] : '序'}</i><b>${s.name}</b><small>${doneIn(s)}/${s.levels.length}</small><span class="emb-bar"><em style="width:${(doneIn(s) / s.levels.length) * 100}%"></em></span></button>`).join('')}<p class="emb-loopcap">设计 → 制造 → 仿真 → 训练 → 部署 → 反馈，再回到设计：一圈一圈地转。</p></div></div>
+      ${nx ? `<div class="emb-next"><button class="btn primary" data-go="${nx.id}">继续：${nx.id} ${esc(nx.name)}</button><span class="small muted">${nx.stage.name}</span></div>` : '<div class="emb-next"><b class="emb-grad">全部通关：拾光号造好了！</b></div>'}
+      <div class="emb-plf">${Object.keys(LVD).map((k) => `<span class="emb-lvl lv-${k}">${k}</span><span class="small">${LVD[k]}</span>`).join('')}</div>
+      <div class="emb-map">${[['hw', '硬件全景（补全你没想到的）'], ['sw', '软件全景（补全你没想到的）']].map(([k, t]) => `<section><h4>${t}</h4>${D().MAP[k].map(([a, b, ids]) => `<div class="emb-mrow"><b>${a}</b><p>${b}</p><span>${ids.map((id) => `<button class="emb-mlv ${starsOf(id) ? 'done' : ''}" data-go="${id}">${id}</button>`).join('')}</span></div>`).join('')}</section>`).join('')}</div>`;
+    drawRobot(main.querySelector('.emb-robot canvas'));
+    main.querySelector('[data-i]').onclick = () => info('这门课', '具身智能机器人的制作，并不是把「大脑」（AI 模型）和「身体」（机械硬件）简单拼在一起，而是软硬件深度耦合、从虚拟仿真到物理世界闭环迭代的系统工程。<br><br>这门课带你从零造出「拾光号」：轮式底盘 + 6 自由度机械臂 + 深度相机 + 麦克风阵列。它听到「把桌上的杯子拿给我」，就走过去、找到杯子、抓起来、递给你。<br><br>按 <b>点 → 线 → 面 → 体</b> 学：先认识零件，再连成链，再搭成系统，最后合成整机、跑通整个闭环。每关先「学」几张卡片，再「练」，有的还要「考」。一关一关按顺序解锁。<br><br>想练电路，可以去主城 · 电路工坊的「具身智能」模块。');
+    main.querySelectorAll('.emb-st-chip').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); view = { tab: b.dataset.t, play: null }; render(); }));
+    main.querySelectorAll('[data-go]').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); E.play(b.dataset.go); }));
+  }
+  // ================= 阶段页 =================
+  function stagePage(main, s) {
+    main.innerHTML = `<div class="codex-head"><b class="codex-t">${s.no ? `阶段${CN[s.no]} · ` : ''}${s.name}</b><span class="codex-prog">通关 <b>${doneIn(s)}</b><span>/${s.levels.length}</span></span><button class="btn sm ghost" data-i>ⓘ 这个阶段</button></div>
+      <div class="emb-path">${s.levels.map((l) => { const op = isOpen(l), st = starsOf(l.id); return `<button class="emb-lv ${op ? '' : 'lock'} ${st ? 'done' : ''}" data-go="${l.id}"><span class="emb-lvl lv-${l.lv}" title="${LVD[l.lv]}">${l.lv}</span><b>${l.id} ${esc(l.name)}</b><small>${KIND[l.kind]}${l.quiz ? ' · 有小测' : ''}</small><span class="emb-stars">${op ? '★'.repeat(st) + '☆'.repeat(3 - st) : '🔒 通关上一关解锁'}</span></button>`; }).join('')}</div>`;
+    main.querySelector('[data-i]').onclick = () => info(s.name, s.sum);
+    main.querySelectorAll('.emb-lv').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); E.play(b.dataset.go); }));
+  }
+
+  // ================= 一关 =================
+  E.play = function (id) {
+    const lv = LEVELS().find((l) => l.id === id); if (!lv) return;
+    if (!root) return E.open(id);
+    if (!isOpen(lv)) { CF.Audio.sfx('error'); CF.toast('先通关上一关', 'bad'); return; }
+    cur = { lv, step: 'learn', card: 0, mis: 0, hint: 0, ans: false };
+    view = { tab: lv.stage.id, play: id }; render();
+  };
+  let body, msgEl, actEl, misEl;
+  function player(main) {
+    const lv = cur.lv;
+    main.innerHTML = `<div class="emb-play"><div class="emb-pbar"><button class="btn sm ghost" data-back>← 返回</button><span class="emb-lvl lv-${lv.lv}" title="${LVD[lv.lv]}">${lv.lv}</span><b class="emb-pt">${lv.id} ${esc(lv.name)}</b>
+      <span class="emb-steps">${['learn', 'play'].concat(lv.quiz ? ['quiz'] : []).map((s) => `<i data-s="${s}">${{ learn: '学', play: '练', quiz: '考' }[s]}</i>`).join('')}</span><span class="emb-mis">失误 <b>${cur.mis + cur.hint}</b></span></div>
+      <div class="emb-pbody"></div><div class="emb-foot"><div class="emb-msg" aria-live="polite"></div><div class="emb-pact"></div></div></div>`;
+    body = main.querySelector('.emb-pbody'); msgEl = main.querySelector('.emb-msg'); actEl = main.querySelector('.emb-pact'); misEl = main.querySelector('.emb-mis b');
+    main.querySelector('[data-back]').onclick = () => { CF.Audio.sfx('click'); view = { tab: lv.stage.id, play: null }; render(); };
+    ({ learn: learnStep, play: playStep, quiz: quizStep, result: resultStep })[cur.step]();
+  }
+  function steps() { root.querySelectorAll('.emb-steps i').forEach((i) => { i.classList.toggle('on', i.dataset.s === cur.step); i.classList.toggle('past', ['learn', 'play', 'quiz'].indexOf(i.dataset.s) < ['learn', 'play', 'quiz', 'result'].indexOf(cur.step)); }); }
+  function msg(t, k) { msgEl.innerHTML = t || ''; msgEl.className = 'emb-msg' + (k ? ' ' + k : ''); }
+  function act(btns) { actEl.innerHTML = ''; btns.forEach(([t, fn, cls]) => { const b = CF.h(`<button class="btn ${cls || ''}">${t}</button>`); b.onclick = () => { CF.Audio.sfx('click'); fn(); }; actEl.appendChild(b); }); }
+  function mis(n = 1) { cur.mis += n; misEl.textContent = cur.mis + cur.hint; CF.Audio.sfx('error'); }
+  function hint() { cur.hint++; misEl.textContent = cur.mis + cur.hint; }
+  function go(step) { stopLoop(); cur.step = step; player(root.querySelector('.emb-main')); }
+
+  // ---------- 学 ----------
+  function learnStep() {
+    steps(); const cards = cur.lv.learn, i = cur.card, c = cards[i];
+    body.innerHTML = `<div class="emb-learn"><div class="emb-ln">知识卡 ${i + 1} / ${cards.length}</div><h3>${c[0]}</h3><p>${c[1]}</p>${c[2] ? `<div class="emb-ana"><b>打个比方</b>${c[2]}</div>` : ''}</div>`;
+    msg(i === cards.length - 1 ? `下一步：${KIND[cur.lv.kind]}。` : '');
+    act([].concat(i ? [['上一张', () => { cur.card--; learnStep(); }, 'ghost']] : []).concat([[i < cards.length - 1 ? '下一张' : '开始练习 →', () => { if (i < cards.length - 1) { cur.card++; learnStep(); } else go('play'); }, 'primary']]));
+  }
+  // ---------- 练 ----------
+  function playStep() {
+    steps(); msg(''); const lv = cur.lv;
+    const done = () => { CF.Audio.sfx('correct'); if (lv.quiz) setTimeout(() => go('quiz'), 0); else go('result'); };
+    ({ choice: () => choice(lv.qs, done), sort: () => sortG(lv, done), order: () => orderG(lv, done), wire: () => wireG(lv, done), tune: () => tuneG(lv, done), teleop: () => teleopG(lv, done) })[lv.kind]();
+  }
+  function quizStep() { steps(); const qs = cur.lv.quiz.map((q) => ({ q: '小测：' + q.q, o: q.o.map((t, i) => [t, i === q.a, i === q.a ? q.why : q.why]) })); choice(qs, () => go('result')); }
+
+  // ---------- 选择 / 诊断 ----------
+  function choice(qs, onDone) {
+    let i = 0;
+    const show = () => {
+      const q = qs[i]; let solved = false;
+      body.innerHTML = `<div class="emb-q">${qs.length > 1 ? `<div class="emb-ln">第 ${i + 1} / ${qs.length} 题</div>` : ''}<p class="emb-qq">${q.q}</p>${q.ctx || ''}<div class="emb-opts">${q.o.map((o, k) => `<button class="emb-opt" data-k="${k}">${o[0]}</button>`).join('')}</div></div>`;
+      msg(cur.step === 'play' && cur.lv.prompt && !i ? cur.lv.prompt : ''); act([]);
+      body.querySelectorAll('.emb-opt').forEach((b) => (b.onclick = () => {
+        if (solved || b.classList.contains('bad')) return; const o = q.o[+b.dataset.k];
+        if (o[1]) { solved = true; b.classList.add('good'); msg('✓ ' + o[2], 'good'); CF.Audio.sfx('correct'); act([[i < qs.length - 1 ? '下一题 →' : '完成 →', () => { i++; if (i < qs.length) show(); else onDone(); }, 'primary']]); }
+        else { b.classList.add('bad'); mis(); msg('✗ ' + o[2], 'bad'); }
+      }));
+    };
+    show();
+  }
+  // ---------- 分类 ----------
+  function sortG(lv, onDone) {
+    let left = shuffle(lv.cards.map((c, i) => ({ t: c[0], b: c[1], why: c[2], i }))), sel = null;
+    const placed = {};
+    const draw = () => {
+      body.innerHTML = `<div class="emb-sort"><div class="emb-bins">${lv.bins.map(([k, n]) => `<button class="emb-bin" data-b="${k}"><b>${n}</b><span>${(placed[k] || []).map((t) => `<i>${esc(t)}</i>`).join('')}</span></button>`).join('')}</div>
+        <div class="emb-tray">${left.map((c) => `<button class="emb-card ${sel === c.i ? 'sel' : ''}" data-c="${c.i}">${esc(c.t)}</button>`).join('')}</div></div>`;
+      body.querySelectorAll('.emb-card').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); sel = +b.dataset.c; msg(`已拿起「${esc(lv.cards[sel][0])}」，点它属于的那一类。`); draw(); }));
+      body.querySelectorAll('.emb-bin').forEach((b) => (b.onclick = () => {
+        if (sel === null) return msg('先点下面的一张卡片，再点它属于的那一类。');
+        const c = left.find((x) => x.i === sel), bn = lv.bins.find((x) => x[0] === b.dataset.b)[1];
+        if (c.b === b.dataset.b) { (placed[c.b] = placed[c.b] || []).push(c.t); left = left.filter((x) => x !== c); sel = null; CF.Audio.sfx('correct'); msg(`✓ ${esc(c.t)}：${c.why}`, 'good'); draw(); if (!left.length) act([['完成 →', onDone, 'primary']]); }
+        else { mis(); msg(`✗「${esc(c.t)}」不属于「${bn}」。${c.why}`, 'bad'); }
+      }));
+    };
+    msg(lv.prompt + ' 点一下卡片，再点一下它属于的那一类。'); act([]); draw();
+  }
+  // ---------- 组装 / 工序（有先后） ----------
+  function orderG(lv, onDone) {
+    let pool = shuffle(lv.steps.map((s, i) => ({ t: s[0], why: s[1], i })).concat((lv.extra || []).map((e) => ({ t: e[0], why: e[1], i: -1 })))), n = 0, fails = 0, glow = -99;   // -1 是陷阱卡，提示用别的值
+    const draw = () => {
+      body.innerHTML = `<div class="emb-order"><ol class="emb-stack">${lv.steps.map((s, i) => i < n ? `<li class="emb-slot ok"><i>${i + 1}</i><b>${esc(s[0])}</b><small>${s[1]}</small></li>` : `<li class="emb-slot ${i === n ? 'next' : ''}"><i>${i + 1}</i><b>${i === n ? '下一步是什么？' : '……'}</b></li>`).join('')}</ol>
+        <div class="emb-tray">${pool.map((c, k) => `<button class="emb-card ${c.i === glow ? 'glow' : ''}" data-k="${k}">${esc(c.t)}</button>`).join('')}</div></div>`;
+      body.querySelectorAll('.emb-card').forEach((b) => (b.onclick = () => {
+        const c = pool[+b.dataset.k];
+        if (c.i === n) { n++; pool = pool.filter((x) => x !== c); glow = -99; CF.Audio.sfx('correct'); msg(`✓ 第 ${n} 步：${esc(c.t)}——${c.why}`, 'good'); draw(); body.querySelector('.emb-slot.next') && body.querySelector('.emb-slot.next').scrollIntoView({ block: 'nearest' }); if (n === lv.steps.length) act([['完成 →', onDone, 'primary']]); }
+        else if (c.i === -1) { mis(); pool = pool.filter((x) => x !== c); msg(`✗ 陷阱：「${esc(c.t)}」——${c.why}`, 'bad'); draw(); }
+        else { mis(); fails++; msg(`✗ 还不是这一步：「${esc(c.t)}」要在后面。想一想，现在最该做的是什么？`, 'bad'); if (fails >= 4) btns(); }
+      }));
+    };
+    const btns = () => act([['提示这一步', () => { hint(); glow = n; const s = lv.steps[n]; msg(`提示：第 ${n + 1} 步是「${esc(s[0])}」——${s[1]}`); draw(); }, 'ghost']]);
+    msg(lv.prompt + ' 按顺序点下面的卡片。'); btns(); draw();
+  }
+
+  // ---------- 接线（像电路图） ----------
+  const SIDE_TR = { l: 't', r: 'b', t: 'l', b: 'r' };
+  const NORM = { l: [-1, 0], r: [1, 0], t: [0, -1], b: [0, 1] };
+  const ekey = (a, b) => (a < b ? a + '|' + b : b + '|' + a);
+  function wireG(lv, onDone) {
+    const T = D().TYPES, nodes = lv.nodes, sol = lv.edges.map((e) => ({ k: ekey(e[0], e[1]), a: e[0], b: e[1], why: e[2] }));
+    let edges = [], sel = null, bad = [], glow = [], fails = 0, pos = {}, finished = false;
+    const port = (pk) => { const [n, p] = pk.split('.'), nd = nodes.find((x) => x.id === n); return { nd, p: nd.p.find((x) => x[0] === p) }; };
+    const pname = (pk) => { const { nd, p } = port(pk); return `「${esc(nd.n)}」${p[3] ? '的「' + esc(p[3]) + '」' : ''}`; };
+    body.innerHTML = `<div class="emb-wire"><div class="emb-legend">${(lv.types || []).map((t) => `<button class="emb-ty" data-t="${t}" style="--c:${T[t][1]}"><i></i>${T[t][0]}</button>`).join('')}<span class="small muted">点一个圆口、再点另一个就连上；也可以按住拖过去。点一根线可以拆掉。</span></div>
+      <div class="emb-bwrap"><div class="emb-board"><svg class="emb-svg"></svg>${nodes.map((nd) => `<div class="emb-node" data-n="${nd.id}"><b>${esc(nd.n)}</b></div>`).join('')}${nodes.flatMap((nd) => nd.p.map((p) => `<button class="emb-port" data-p="${nd.id}.${p[0]}" style="--c:${T[p[2]][1]}" aria-label="${esc(nd.n)} ${esc(p[3] || '')} ${T[p[2]][0]}"><span>${esc(p[3] || '')}</span></button>`)).join('')}</div></div></div>`;
+    const wrap = body.querySelector('.emb-bwrap'), board = body.querySelector('.emb-board'), svg = body.querySelector('.emb-svg');
+    body.querySelectorAll('.emb-ty').forEach((b) => (b.onclick = () => { const t = T[b.dataset.t]; msg(`<b style="color:${t[1]}">${t[0]}</b>：${t[2]}`); }));
+    body.querySelectorAll('.emb-node b').forEach((b) => (b.onclick = () => { const nd = nodes.find((x) => x.id === b.parentNode.dataset.n); msg(`<b>${esc(nd.n)}</b>${nd.d ? '：' + nd.d : ''}`); }));
+    function layout() {
+      const W = Math.max(280, wrap.clientWidth - 4), cols = [...new Set(nodes.map((n) => n.col))].sort((a, b) => a - b), rows = [...new Set(nodes.map((n) => n.row))].sort((a, b) => a - b);
+      const tr = W < 600 && cols.length > 2 && rows.length <= 4, C = tr ? rows : cols, R = tr ? cols : rows;
+      const colW = Math.max(tr ? 84 : 150, W / C.length), nodeW = colW - (tr ? 10 : 26);
+      const sideOf = (s) => (tr ? SIDE_TR[s] : s);
+      const hOf = (nd) => { if (tr) return 64; const c = { l: 0, r: 0 }; nd.p.forEach((p) => { const s = sideOf(p[1]); if (c[s] !== undefined) c[s]++; }); return Math.max(54, 24 + 16 * Math.max(c.l, c.r)); };
+      const rowH = Math.max(...nodes.map(hOf)) + (tr ? 46 : 28);
+      board.style.width = colW * C.length + 'px'; board.style.height = rowH * R.length + 8 + 'px'; board.classList.toggle('tr', tr);
+      svg.setAttribute('width', colW * C.length); svg.setAttribute('height', rowH * R.length + 8);
+      pos = {};
+      nodes.forEach((nd) => {
+        const ci = C.indexOf(tr ? nd.row : nd.col), ri = R.indexOf(tr ? nd.col : nd.row), h = hOf(nd), x = ci * colW + (colW - nodeW) / 2, y = ri * rowH + (rowH - h) / 2 + 4;
+        const el = board.querySelector(`.emb-node[data-n="${nd.id}"]`), lab = (sd) => !tr && nd.p.some((p) => sideOf(p[1]) === sd && p[3]);
+        Object.assign(el.style, { left: x + 'px', top: y + 'px', width: nodeW + 'px', height: h + 'px', paddingLeft: lab('l') ? '44px' : '', paddingRight: lab('r') ? '44px' : '' });   // 有接口文字的一侧多留位置，文字不压名字
+        const by = {}; nd.p.forEach((p) => (by[sideOf(p[1])] = (by[sideOf(p[1])] || []).concat([p])));
+        Object.keys(by).forEach((s) => by[s].forEach((p, k) => {
+          const f = (k + 1) / (by[s].length + 1), px = s === 'l' ? x : s === 'r' ? x + nodeW : x + nodeW * f, py = s === 't' ? y : s === 'b' ? y + h : y + h * f;
+          pos[nd.id + '.' + p[0]] = [px, py, s];
+          const pe = board.querySelector(`.emb-port[data-p="${nd.id}.${p[0]}"]`); pe.style.left = px + 'px'; pe.style.top = py + 'px'; pe.className = 'emb-port s-' + s;
+        }));
+      });
+      draw();
+    }
+    function draw() {
+      const path = (a, b) => { const [x1, y1, s1] = pos[a], [x2, y2, s2] = pos[b], d = Math.max(30, Math.min(90, Math.hypot(x2 - x1, y2 - y1) / 2.5)); const [n1x, n1y] = NORM[s1], [n2x, n2y] = NORM[s2]; return `M${x1} ${y1} C${x1 + n1x * d} ${y1 + n1y * d} ${x2 + n2x * d} ${y2 + n2y * d} ${x2} ${y2}`; };
+      svg.innerHTML = edges.map(([a, b]) => { const k = ekey(a, b), c = T[port(a).p[2]][1]; return `<path class="w ${bad.includes(k) ? 'bad' : ''}" d="${path(a, b)}" stroke="${c}"/><path class="hit" data-k="${k}" d="${path(a, b)}"/>`; }).join('');
+      svg.querySelectorAll('.hit').forEach((p) => (p.onclick = () => { if (finished) return; edges = edges.filter((e) => ekey(e[0], e[1]) !== p.dataset.k); bad = bad.filter((k) => k !== p.dataset.k); CF.Audio.sfx('click'); msg('已拆掉这根线。'); draw(); }));
+      board.querySelectorAll('.emb-port').forEach((pe) => { const k = pe.dataset.p; pe.classList.toggle('sel', sel === k); pe.classList.toggle('used', edges.some((e) => e[0] === k || e[1] === k)); pe.classList.toggle('glow', glow.includes(k)); });
+    }
+    function connect(a, b) {
+      sel = null; if (finished) return;
+      if (a.split('.')[0] === b.split('.')[0]) { msg('同一个零件上的两个口不用互相连。'); return draw(); }
+      const ta = port(a).p[2], tb = port(b).p[2];
+      if (ta !== tb) { mis(); const pw = ['24V', '12V', '5V']; msg(`✗ 接不上：${pname(a)}是 <b>${T[ta][0]}</b>，${pname(b)}是 <b>${T[tb][0]}</b>。${pw.includes(ta) && pw.includes(tb) ? '电压不一样，真机上会直接烧坏设备。' : '类型不同：插头插不进，数据也读不懂。'}`, 'bad'); return draw(); }
+      edges = edges.filter((e) => ![a, b].includes(e[0]) && ![a, b].includes(e[1])); edges.push([a, b]); bad = []; glow = []; CF.Audio.sfx('click');
+      msg(`已连接：${pname(a)} ↔ ${pname(b)}`); draw();
+    }
+    // 点选 + 拖线
+    board.querySelectorAll('.emb-port').forEach((pe) => {
+      let start = null;
+      pe.addEventListener('pointerdown', (e) => { if (finished) return; start = [e.clientX, e.clientY]; try { pe.setPointerCapture(e.pointerId); } catch (er) { /* 合成事件 */ } });
+      pe.addEventListener('pointerup', (e) => {
+        if (!start || finished) return; const moved = Math.hypot(e.clientX - start[0], e.clientY - start[1]); start = null; const k = pe.dataset.p;
+        if (moved > 8) { const t = document.elementFromPoint(e.clientX, e.clientY), te = t && t.closest('.emb-port'); if (te && te !== pe) return connect(k, te.dataset.p); return; }
+        if (!sel) { sel = k; const { nd, p } = port(k); msg(`已选：「${esc(nd.n)}」的 ${p[3] ? '「' + esc(p[3]) + '」' : '接口'}（<b style="color:${T[p[2]][1]}">${T[p[2]][0]}</b>）。再点另一个口连上。`); draw(); }
+        else if (sel === k) { sel = null; msg(''); draw(); } else connect(sel, k);
+      });
+    });
+    const solK = () => sol.map((s) => s.k);
+    const check = () => {
+      const wrong = edges.filter((e) => !solK().includes(ekey(e[0], e[1]))), missing = sol.filter((s) => !edges.some((e) => ekey(e[0], e[1]) === s.k));
+      if (wrong.length) {
+        mis(); fails++; bad = wrong.map((e) => ekey(e[0], e[1])); draw();
+        const w = wrong[0], right = sol.find((s) => s.a === w[0] || s.b === w[0] || s.a === w[1] || s.b === w[1]);
+        msg(`✗ 有 ${wrong.length} 根线接错了（红色虚线）：${pname(w[0])} ↔ ${pname(w[1])}。${right ? `提示：${pname(right.a)}应该连到${pname(right.b)}——${right.why}` : ''}`, 'bad');
+      } else if (missing.length) { fails++; msg(`接对了 ${edges.length} 根，还差 ${missing.length} 根没接。`); }
+      else return win();
+      if (fails >= 4) btns(true);
+    };
+    const win = () => { finished = true; sel = null; draw(); body.querySelector('.emb-wire').insertAdjacentHTML('beforeend', `<div class="emb-recap"><b>每根线为什么这么接</b>${sol.map((s) => `<p><i style="background:${T[port(s.a).p[2]][1]}"></i>${pname(s.a)} ↔ ${pname(s.b)}：${s.why}</p>`).join('')}</div>`); msg(cur.ans ? '答案已经连好，看看下面每根线的道理。' : '✓ 全部接对！', 'good'); act([['完成 →', onDone, 'primary']]); };
+    const btns = (more) => act([['提示', () => { const m = sol.find((s) => !edges.some((e) => ekey(e[0], e[1]) === s.k)); if (!m) return msg('线都接上了，点「检查」。'); hint(); glow = [m.a, m.b]; draw(); msg(`提示：把${pname(m.a)}连到${pname(m.b)}——${m.why}`); }, 'ghost'], ['清空', () => { edges = []; bad = []; glow = []; draw(); msg('已清空。'); }, 'ghost']].concat(more ? [['看答案', () => { cur.ans = true; edges = sol.map((s) => [s.a, s.b]); bad = []; win(); }, 'ghost']] : []).concat([['检查', check, 'primary']]));
+    msg(lv.prompt); btns(false);
+    requestAnimationFrame(layout);
+    if (ro) ro.disconnect(); ro = new ResizeObserver(() => { if (wrap.isConnected) layout(); }); ro.observe(wrap);
+  }
+
+  // ---------- 计算与调参 ----------
+  function tuneG(lv, onDone) {
+    const v = {}; lv.ctrl.forEach((c) => (v[c.id] = c.v)); let round = 0;
+    const special = lv.ik ? 'ik' : lv.align ? 'align' : lv.hand ? 'hand' : lv.smooth ? 'smooth' : null;
+    body.innerHTML = `<div class="emb-tune">${lv.intro ? `<p class="emb-intro">${lv.intro}</p>` : ''}<div class="emb-tgrid"><div class="emb-ctrls">${lv.ctrl.map((c) => c.seg ? `<div class="emb-ctl"><span>${c.n}</span><div class="emb-seg">${c.seg.map(([k, t]) => `<button data-c="${c.id}" data-v="${k}">${t}</button>`).join('')}</div></div>` : `<label class="emb-ctl"><span>${c.n} <b data-show="${c.id}"></b></span><input type="range" data-c="${c.id}" min="${c.min}" max="${c.max}" step="${c.step}" value="${c.v}"></label>`).join('')}</div>
+      <div class="emb-tside">${special ? '<canvas class="emb-cv" width="320" height="220"></canvas>' : ''}<div class="emb-metrics"></div></div></div></div>`;
+    const cv = body.querySelector('.emb-cv');
+    const metrics = () => {
+      if (special === 'ik') { const { L1, L2, targets, tol } = lv.ik, a = (v.a * Math.PI) / 180, b = (v.b * Math.PI) / 180, x = L1 * Math.cos(a) + L2 * Math.cos(a + b), y = L1 * Math.sin(a) + L2 * Math.sin(a + b), t = targets[Math.min(round, targets.length - 1)], d = Math.hypot(x - t[0], y - t[1]); return [['手指位置', `(${x.toFixed(2)}, ${y.toFixed(2)}) m`, true, ''], [`目标 ${Math.min(round + 1, targets.length)} / ${targets.length}`, `(${t[0]}, ${t[1]}) m`, true, ''], ['距离', (d * 100).toFixed(1) + ' cm', d <= tol, '≤ ' + tol * 100 + ' cm']]; }
+      if (special === 'hand') { const errs = handErr(); return [['最大误差', (Math.max(...errs) * 100).toFixed(1) + ' cm', Math.max(...errs) <= 0.015, '≤ 1.5 cm'], ['三个标定点', errs.map((e) => (e * 100).toFixed(1)).join(' / ') + ' cm', true, '']]; }
+      return lv.model(v);
+    };
+    const handErr = () => { const H = lv.hand, M = [[0.35, 0.1], [0.5, -0.15], [0.25, -0.3]], r0 = (H.rot * Math.PI) / 180, rg = (v.rot * Math.PI) / 180; return M.map(([x, y]) => { const dx = x - H.tx, dy = y - H.ty, cx = Math.cos(-r0) * dx - Math.sin(-r0) * dy, cy = Math.sin(-r0) * dx + Math.cos(-r0) * dy, ex = Math.cos(rg) * cx - Math.sin(rg) * cy + +v.tx, ey = Math.sin(rg) * cx + Math.cos(rg) * cy + +v.ty; return Math.hypot(ex - x, ey - y); }); };
+    const update = () => {
+      body.querySelectorAll('[data-show]').forEach((s) => { const c = lv.ctrl.find((x) => x.id === s.dataset.show); s.textContent = (+v[c.id]).toFixed(c.step < 0.01 ? 3 : c.step < 1 ? 2 : 0) + (c.unit || ''); });
+      body.querySelectorAll('.emb-seg button').forEach((b) => b.classList.toggle('on', String(v[b.dataset.c]) === b.dataset.v));
+      body.querySelector('.emb-metrics').innerHTML = metrics().map(([n, val, ok, tg]) => `<div class="emb-met ${tg ? (ok ? 'ok' : 'no') : ''}"><span>${n}</span><b>${val}</b>${tg ? `<small>${ok ? '✓' : '✗'} 要求 ${tg}</small>` : ''}</div>`).join('');
+      if (cv) plot(cv, special);
+    };
+    const plot = (c, kind) => {
+      const g = c.getContext('2d'), W = c.width, Hh = c.height; g.clearRect(0, 0, W, Hh); g.fillStyle = '#0b0a12'; g.fillRect(0, 0, W, Hh);
+      g.strokeStyle = '#ffffff10'; for (let i = 0; i < W; i += 20) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, Hh); g.stroke(); } for (let i = 0; i < Hh; i += 20) { g.beginPath(); g.moveTo(0, i); g.lineTo(W, i); g.stroke(); }
+      if (kind === 'ik') {
+        const { L1, L2, targets, tol } = lv.ik, s = 300, ox = 40, oy = Hh - 20, P = (x, y) => [ox + x * s, oy - y * s], a = (v.a * Math.PI) / 180, b = (v.b * Math.PI) / 180;
+        targets.forEach((t, i) => { const [tx, ty] = P(t[0], t[1]); g.strokeStyle = i < round ? '#6fdc8c' : i === round ? '#ffe08a' : '#ffffff30'; g.lineWidth = 2; g.beginPath(); g.arc(tx, ty, tol * s, 0, 7); g.stroke(); g.fillStyle = g.strokeStyle; g.font = '11px sans-serif'; g.fillText(i < round ? '✓' : String(i + 1), tx + 8, ty - 8); });
+        const e1 = [L1 * Math.cos(a), L1 * Math.sin(a)], e2 = [e1[0] + L2 * Math.cos(a + b), e1[1] + L2 * Math.sin(a + b)], p0 = P(0, 0), p1 = P(...e1), p2 = P(...e2);
+        g.fillStyle = '#2b2641'; g.fillRect(p0[0] - 18, p0[1], 36, 14); g.lineCap = 'round'; g.lineWidth = 9; g.strokeStyle = '#9b7bff'; g.beginPath(); g.moveTo(...p0); g.lineTo(...p1); g.stroke(); g.strokeStyle = '#4ef0ff'; g.beginPath(); g.moveTo(...p1); g.lineTo(...p2); g.stroke();
+        [p0, p1].forEach((p) => { g.fillStyle = '#ede6d6'; g.beginPath(); g.arc(p[0], p[1], 6, 0, 7); g.fill(); }); g.fillStyle = '#ffb14a'; g.beginPath(); g.arc(p2[0], p2[1], 5, 0, 7); g.fill(); g.lineCap = 'butt'; g.lineWidth = 1;
+      } else if (kind === 'align') {
+        const lag = lv.align.lag, off = +v.off, jit = v.how === 'arrive', X = (t) => 20 + (t / 2) * (W - 40);
+        const row = (y, label, t, c, j) => { g.fillStyle = '#9d96ad'; g.font = '11px sans-serif'; g.fillText(label, 20, y - 14); g.strokeStyle = '#ffffff40'; g.beginPath(); g.moveTo(20, y); g.lineTo(W - 20, y); g.stroke(); for (let k = 0; k <= 60; k++) { const tt = k / 30; g.fillStyle = '#ffffff30'; g.fillRect(X(tt), y - 3, 1, 6); } g.fillStyle = c; if (j) { for (let q = -2; q <= 2; q++) { g.globalAlpha = 0.3; g.fillRect(X(t + q * 0.03) - 2, y - 10, 4, 20); } g.globalAlpha = 1; } g.fillRect(X(t) - 2, y - 10, 4, 20); };
+        row(70, '关节数据：夹爪闭合', 1.0, '#ffb14a'); row(160, '相机画面：夹爪闭合' + (jit ? '（到达时间忽快忽慢）' : ''), 1.0 + (lag - off) / 1000, '#4ef0ff', jit);
+        g.setLineDash([4, 4]); g.strokeStyle = '#ffffff60'; g.beginPath(); g.moveTo(X(1), 40); g.lineTo(X(1), Hh - 20); g.stroke(); g.setLineDash([]);
+      } else if (kind === 'hand') {
+        const H = lv.hand, s = 320, ox = 30, oy = Hh / 2 + 20, P = (x, y) => [ox + x * s, oy - y * s], M = [[0.35, 0.1], [0.5, -0.15], [0.25, -0.3]], r0 = (H.rot * Math.PI) / 180, rg = (v.rot * Math.PI) / 180;
+        g.fillStyle = '#2b2641'; const b0 = P(0, 0); g.fillRect(b0[0] - 12, b0[1] - 12, 24, 24); g.fillStyle = '#9d96ad'; g.font = '10px sans-serif'; g.fillText('底座', b0[0] - 10, b0[1] + 24);
+        M.forEach(([x, y]) => { const dx = x - H.tx, dy = y - H.ty, cx = Math.cos(-r0) * dx - Math.sin(-r0) * dy, cy = Math.sin(-r0) * dx + Math.cos(-r0) * dy, ex = Math.cos(rg) * cx - Math.sin(rg) * cy + +v.tx, ey = Math.sin(rg) * cx + Math.cos(rg) * cy + +v.ty, [px, py] = P(x, y), [qx, qy] = P(ex, ey); g.strokeStyle = '#6fdc8c'; g.lineWidth = 2; g.beginPath(); g.arc(px, py, 7, 0, 7); g.stroke(); g.strokeStyle = '#ff5d6c55'; g.beginPath(); g.moveTo(px, py); g.lineTo(qx, qy); g.stroke(); g.fillStyle = '#ede6d6'; g.beginPath(); g.arc(qx, qy, 4, 0, 7); g.fill(); });
+        const [cx0, cy0] = P(+v.tx, +v.ty); g.save(); g.translate(cx0, cy0); g.rotate(-rg); g.fillStyle = '#4ef0ff'; g.fillRect(-8, -5, 16, 10); g.fillRect(8, -2, 6, 4); g.restore(); g.fillStyle = '#9d96ad'; g.fillText('相机（你估计的位置）', cx0 + 10, cy0 - 8); g.fillText('绿圈 = 真实标定点，白点 = 相机看到后换算的位置', 10, 14); g.lineWidth = 1;
+      } else if (kind === 'smooth') {
+        const a = +v.a, hz = +v.hz, X = (t) => 10 + t * (W - 20), Y = (y) => Hh - 30 - y * (Hh - 60); let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5);
+        g.strokeStyle = '#ffffff30'; g.beginPath(); g.moveTo(X(0), Y(0)); g.lineTo(X(0.2), Y(0)); g.lineTo(X(0.2), Y(1)); g.lineTo(X(1), Y(1)); g.stroke();
+        g.strokeStyle = '#ff7a4588'; g.beginPath(); for (let i = 0; i <= 100; i++) { const t = i / 100, r = (t >= 0.2 ? 1 : 0) + rnd() * 0.25; i ? g.lineTo(X(t), Y(r)) : g.moveTo(X(t), Y(r)); } g.stroke();
+        seed = 7; let y = 0, last = 0; g.strokeStyle = '#4ef0ff'; g.lineWidth = 2; g.beginPath(); g.moveTo(X(0), Y(0));
+        for (let i = 0; i <= 1000; i++) { const t = i / 1000; if (t - last >= 1 / hz || i === 0) { last = t; const r = (t >= 0.2 ? 1 : 0) + rnd() * 0.25; y = y + a * (r - y); } g.lineTo(X(t), Y(y)); } g.stroke(); g.lineWidth = 1;
+        g.fillStyle = '#9d96ad'; g.font = '11px sans-serif'; g.fillText('橙：模型原始输出（带噪声）  蓝：平滑后发给电机', 10, 16);
+      }
+    };
+    body.querySelectorAll('input[type=range]').forEach((r) => (r.oninput = () => { v[r.dataset.c] = +r.value; update(); }));
+    body.querySelectorAll('.emb-seg button').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); v[b.dataset.c] = b.dataset.v; update(); }));
+    const finish = () => { if (lv.after) body.querySelector('.emb-tune').insertAdjacentHTML('beforeend', `<div class="emb-recap"><b>想一想</b><p>${lv.after}</p></div>`); act([['完成 →', onDone, 'primary']]); };
+    const check = () => {
+      const m = metrics(), okAll = m.every((x) => !x[3] || x[2]);
+      if (!okAll) { mis(); const f = m.filter((x) => x[3] && !x[2]).map((x) => `${x[0]}（${x[1]}，要求 ${x[3]}）`); return msg('✗ 还没达标：' + f.join('；'), 'bad'); }
+      if (special === 'ik' && round < lv.ik.targets.length - 1) { round++; CF.Audio.sfx('correct'); msg(`✓ 碰到第 ${round} 个目标！下一个。`, 'good'); return update(); }
+      CF.Audio.sfx('correct'); msg('✓ 达标！', 'good'); finish();
+    };
+    msg(lv.prompt); act([['检查', check, 'primary']]); update();
+  }
+
+  // ---------- 遥操作示教 ----------
+  function teleopG(lv, onDone) {
+    body.innerHTML = `<div class="emb-teleop"><canvas class="emb-tcv" width="640" height="360"></canvas><div class="emb-demos"></div></div>`;
+    const c = body.querySelector('.emb-tcv'), g = c.getContext('2d'), WW = 1, HH = 0.5625;
+    const TABLE = { x0: 0.04, x1: 0.56, y: 0.42 }, ZONE = { x0: 0.78, x1: 0.94, y0: 0.24, y1: 0.36 };
+    let demos = [], st, raf = 0, last = 0;
+    const reset = () => { const cx = 0.14 + Math.random() * 0.3; st = { gx: 0.5, gy: 0.12, tx: 0.5, ty: 0.12, closed: false, hold: false, cup: { x: cx, y: TABLE.y }, cup0: cx, t: 0, path: 0, phase: 'go', falling: false, drag: false }; };
+    reset();
+    const toW = (e) => { const r = c.getBoundingClientRect(); return [((e.clientX - r.left) / r.width) * WW, ((e.clientY - r.top) / r.height) * HH]; };
+    c.addEventListener('pointerdown', (e) => { st.drag = true; [st.tx, st.ty] = toW(e); try { c.setPointerCapture(e.pointerId); } catch (er) { /* */ } });
+    c.addEventListener('pointermove', (e) => { if (st.drag || e.pointerType === 'mouse') [st.tx, st.ty] = toW(e); });
+    c.addEventListener('pointerup', () => { st.drag = false; });
+    const grip = () => {
+      if (st.phase !== 'go') return;
+      if (!st.closed) { st.closed = true; const near = Math.abs(st.gx - st.cup.x) < 0.035 && Math.abs(st.gy - (st.cup.y - 0.015)) < 0.035; if (near) { st.hold = true; msg('夹住了！送到右边人手的位置（绿框）再松开。'); } else msg('夹空了：要先把夹爪移到杯子正上方、和杯子一样高的位置。'); }
+      else { st.closed = false; if (st.hold) { st.hold = false; const inZ = st.gx > ZONE.x0 && st.gx < ZONE.x1 && st.gy > ZONE.y0 - 0.03 && st.gy < ZONE.y1 + 0.03; if (inZ) endDemo(true); else { st.falling = true; st.phase = 'fall'; } } }
+      draw2();
+    };
+    const endDemo = (ok) => {
+      st.phase = 'end'; const ideal = Math.hypot(0.5 - st.cup0, 0.12 - (TABLE.y - 0.015)) + Math.hypot(0.86 - st.cup0, 0.3 - (TABLE.y - 0.015)), eff = st.path / ideal, score = Math.max(0, Math.round(100 - 45 * Math.max(0, eff - 1.15) - 4 * Math.max(0, st.t - 9)));
+      const good = ok && score >= 60; demos.push({ ok, score, t: st.t, good });
+      if (!ok) { mis(); msg('✗ 杯子掉了：要在绿框里松开。这条演示作废（失败的演示也会被记录，但不能用来教它）。', 'bad'); }
+      else if (!good) msg(`这条演示成功了，但不够稳（平稳度 ${score} 分，路线绕了 ${Math.round((eff - 1) * 100)}%、用时 ${st.t.toFixed(1)} 秒）。太绕、太犹豫的数据会把模型教坏，不收。`, 'bad');
+      else msg(`✓ 合格的演示：平稳度 ${score} 分，用时 ${st.t.toFixed(1)} 秒。`, 'good');
+      renderDemos(); const n = demos.filter((d) => d.good).length;
+      if (n >= lv.need) { stop(); act([['完成 →', onDone, 'primary']]); msg(`✓ 录够 ${lv.need} 条合格演示。这些数据会变成「观测 → 动作」的训练样本。`, 'good'); }
+      else setTimeout(() => { if (!root || cur.lv !== lv) return; reset(); draw2(); }, 1200);
+    };
+    const renderDemos = () => { body.querySelector('.emb-demos').innerHTML = `<b>已录演示</b>${demos.map((d, i) => `<span class="${d.good ? 'ok' : 'no'}">#${i + 1} ${d.ok ? d.score + ' 分' : '掉了'}${d.good ? ' ✓' : ''}</span>`).join('')}<small>合格 ${demos.filter((d) => d.good).length} / ${lv.need}</small>`; };
+    const step = (now) => {
+      raf = requestAnimationFrame(step); const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now; if (st.phase === 'end') return draw2();
+      if (st.phase === 'go') {
+        st.t += dt; const dx = st.tx - st.gx, dy = st.ty - st.gy, d = Math.hypot(dx, dy), sp = 0.55 * dt;
+        if (d > 0.002) { const k = Math.min(1, sp / d), nx = st.gx + dx * k, ny = st.gy + dy * k; st.path += Math.hypot(nx - st.gx, ny - st.gy); st.gx = nx; st.gy = ny; }
+        if (st.gx > TABLE.x0 - 0.02 && st.gx < TABLE.x1 + 0.02 && st.gy > TABLE.y - 0.012) st.gy = TABLE.y - 0.012;   // 手不能穿过桌面
+        st.gy = Math.max(0.02, Math.min(HH - 0.02, st.gy)); st.gx = Math.max(0.02, Math.min(WW - 0.02, st.gx));
+        if (st.hold) { st.cup.x = st.gx; st.cup.y = st.gy + 0.015; }
+      } else if (st.phase === 'fall') { st.cup.y += 0.6 * dt; const floor = st.cup.x > TABLE.x0 && st.cup.x < TABLE.x1 ? TABLE.y : HH - 0.02; if (st.cup.y >= floor) { st.cup.y = floor; endDemo(false); } }
+      draw2();
+    };
+    const draw2 = () => {
+      const W = c.width, H = c.height, s = W / WW, P = (x, y) => [x * s, y * s];
+      g.fillStyle = '#161325'; g.fillRect(0, 0, W, H); g.fillStyle = '#ffffff08'; for (let i = 0; i < W; i += 16) g.fillRect(i, 0, 1, H);
+      const [t0x, t0y] = P(TABLE.x0, TABLE.y), [t1x] = P(TABLE.x1, 0); g.fillStyle = '#8a4b2a'; g.fillRect(t0x, t0y, t1x - t0x, 10); g.fillRect(t0x + 8, t0y + 10, 8, H - t0y); g.fillRect(t1x - 16, t0y + 10, 8, H - t0y);
+      const [zx, zy] = P(ZONE.x0, ZONE.y0), [zx1, zy1] = P(ZONE.x1, ZONE.y1); g.strokeStyle = '#6fdc8c'; g.setLineDash([5, 4]); g.strokeRect(zx, zy, zx1 - zx, zy1 - zy); g.setLineDash([]); g.fillStyle = '#ffe0cc'; g.fillRect(zx1 - 6, zy + 10, 40, 16); g.fillStyle = '#6fdc8c'; g.font = '12px sans-serif'; g.fillText('人的手', zx, zy - 6);
+      const [cx, cy] = P(st.cup.x, st.cup.y); g.fillStyle = '#4ef0ff'; g.fillRect(cx - 11, cy - 30, 22, 30); g.fillStyle = '#29e0e0'; g.fillRect(cx - 11, cy - 30, 22, 5);
+      const [bx, by] = P(0.5, 0.0), [gx, gy] = P(st.gx, st.gy); g.strokeStyle = '#9b7bff'; g.lineWidth = 8; g.lineCap = 'round'; g.beginPath(); g.moveTo(bx, by); g.lineTo(gx, gy - 14); g.stroke(); g.lineWidth = 1; g.lineCap = 'butt';
+      const op = st.closed ? 12 : 20; g.fillStyle = '#ede6d6'; g.fillRect(gx - op - 4, gy - 16, 4, 22); g.fillRect(gx + op, gy - 16, 4, 22); g.fillRect(gx - op - 4, gy - 18, op * 2 + 8, 4);
+      g.fillStyle = '#9d96ad'; g.fillText(`用时 ${st.t.toFixed(1)} 秒`, 10, 18);
+      if (st.phase === 'go' && !st.drag) { const [tx, ty] = P(st.tx, st.ty); g.strokeStyle = '#ffffff40'; g.beginPath(); g.arc(tx, ty, 6, 0, 7); g.stroke(); }
+    };
+    const stop = () => cancelAnimationFrame(raf);
+    loopStop = stop; raf = requestAnimationFrame(step);
+    const key = (e) => { if (e.key === ' ' && root && cur.lv === lv) { e.preventDefault(); grip(); } };
+    addEventListener('keydown', key); const old = loopStop; loopStop = () => { old(); removeEventListener('keydown', key); };
+    E._teleop = { st: () => st, grip, zone: ZONE, table: TABLE };   // 给自动测试用
+    renderDemos(); msg(lv.prompt); act([['夹紧 / 松开（空格）', grip, 'primary'], ['重来这一条', () => { if (st.phase !== 'end') { reset(); draw2(); msg('重来。'); } }, 'ghost']]);
+  }
+
+  // ---------- 结算 ----------
+  function resultStep() {
+    steps(); const lv = cur.lv, t = cur.mis + cur.hint, stars = cur.ans ? 1 : t === 0 ? 3 : t <= 2 ? 2 : 1, prev = starsOf(lv.id), s = lv.stage;
+    const firstStage = s.levels.every((l) => l === lv || starsOf(l.id) > 0) && !prev;
+    if (stars > prev) sv().lv[lv.id] = stars;
+    const toast0 = CF.toast, got = []; CF.toast = (m) => got.push(m);   // 奖励写进结算卡，不用浮动提示盖住星星（UI 宪法第 26 章「不遮挡」）
+    try {
+    if (!prev) CF.P.addXP({ type: 'p', amt: 10 + s.no * 4 + stars * 3, dims: { zhi: 0.5, ti: 0.2 }, domain: 'emb', label: '具身智能 ' + lv.id });
+    else if (stars > prev) CF.P.addXP({ type: 'p', amt: (stars - prev) * 4, dims: { zhi: 0.5 }, domain: 'emb', label: '具身智能 ' + lv.id });
+    if (firstStage) { const avg = Math.round(s.levels.reduce((a, l) => a + starsOf(l.id), 0) / s.levels.length); CF.P.finishLab('emb', Math.max(1, avg)); got.unshift(`${s.no ? '阶段' + CN[s.no] : '序章'}「${s.name}」全部完成！拾光号又往前走了一步`); }
+    } finally { CF.toast = toast0; }
+    CF.Save.save();
+    const L = LEVELS(), nx = L[L.indexOf(lv) + 1];
+    body.innerHTML = `<div class="emb-result"><div class="emb-rstars">${'<i class="on">★</i>'.repeat(stars)}${'<i>★</i>'.repeat(3 - stars)}</div><h3>${lv.id} ${esc(lv.name)} · 通关</h3><p class="small muted">失误 ${cur.mis} 次 · 提示 ${cur.hint} 次${cur.ans ? ' · 看了答案' : ''}${prev && stars <= prev ? ` · 最好成绩 ${prev} 星` : ''}</p>${got.length ? `<div class="emb-gain">${got.map((m) => `<span>${esc(m)}</span>`).join('')}</div>` : ''}
+      <div class="emb-recap"><b>这一关你学会了</b>${lv.learn.map((c) => `<p>· ${c[0]}</p>`).join('')}</div>${lv.after && lv.kind !== 'tune' ? `<div class="emb-recap"><b>想一想</b><p>${lv.after}</p></div>` : ''}<canvas class="emb-rrobot" width="160" height="160"></canvas></div>`;
+    drawRobot(body.querySelector('.emb-rrobot')); msg(stars === 3 ? '完美通关！' : '通关了！想拿 3 星可以再来一次。', 'good');
+    act([['再来一次', () => E.play(lv.id), 'ghost'], ['返回阶段', () => { view = { tab: s.id, play: null }; render(); }, 'ghost']].concat(nx ? [[`下一关：${nx.id} →`, () => E.play(nx.id), 'primary']] : []));
+  }
+
+  // ================= 拾光号（进度画）：虚线 = 还在图纸上，实线 = 已经造出来 =================
+  function drawRobot(c) {
+    if (!c) return; const g = c.getContext('2d'), W = c.width, Hh = c.height, k = W / 48, has = (id) => starsOf(id) > 0;
+    g.clearRect(0, 0, W, Hh); g.fillStyle = '#0d1530'; g.fillRect(0, 0, W, Hh); g.strokeStyle = '#4ef0ff14'; for (let i = 0; i <= 48; i += 4) { g.beginPath(); g.moveTo(i * k, 0); g.lineTo(i * k, Hh); g.stroke(); g.beginPath(); g.moveTo(0, i * k); g.lineTo(W, i * k); g.stroke(); }
+    const part = (on, x, y, w, h, col) => { if (on) { g.fillStyle = col; g.fillRect(x * k, y * k, w * k, h * k); } else { g.setLineDash([3, 3]); g.strokeStyle = '#4ef0ff88'; g.strokeRect(x * k + 0.5, y * k + 0.5, w * k - 1, h * k - 1); g.setLineDash([]); } };
+    part(has('2-1'), 8, 38, 7, 7, '#2b2641'); part(has('2-1'), 30, 38, 7, 7, '#2b2641');            // 轮子
+    part(has('2-6'), 6, 30, 33, 9, '#6c6680');                                                         // 底盘
+    part(has('2-4'), 9, 32, 10, 5, '#e9b949');                                                         // 电池
+    part(has('2-6'), 20, 14, 4, 16, '#9d96ad');                                                        // 立柱
+    part(has('2-6'), 24, 15, 10, 3, '#9b7bff'); part(has('2-6'), 33, 15, 3, 9, '#9b7bff');           // 上臂、前臂
+    part(has('2-2'), 23, 14, 3, 3, '#ede6d6'); part(has('2-2'), 32, 14, 3, 3, '#ede6d6'); part(has('2-2'), 33, 23, 3, 3, '#ede6d6'); // 关节模组
+    part(has('2-6'), 32, 26, 1, 3, '#ede6d6'); part(has('2-6'), 36, 26, 1, 3, '#ede6d6');            // 夹爪
+    part(has('2-5'), 16, 6, 12, 7, '#2b2641'); part(has('2-5'), 19, 4, 6, 2, '#3fd0c9');             // 头部（相机 + 雷达）
+    if (has('2-7')) { g.fillStyle = '#6fdc8c'; g.fillRect(34 * k, 32 * k, 2 * k, 2 * k); }            // 固件：状态灯
+    if (has('3-2')) { g.strokeStyle = '#9b7bffaa'; g.setLineDash([2, 3]); g.beginPath(); g.moveTo(22 * k, 13 * k); g.lineTo(22 * k, 30 * k); g.moveTo(22 * k, 16 * k); g.lineTo(33 * k, 16 * k); g.stroke(); g.setLineDash([]); }
+    if (has('3-5')) { g.fillStyle = '#ffe08a'; g.fillRect(15 * k, 8 * k, 1 * k, 3 * k); g.fillRect(28 * k, 8 * k, 1 * k, 3 * k); }   // 耳朵：麦克风
+    if (has('4-5')) { g.fillStyle = '#9b7bff55'; g.beginPath(); g.arc(22 * k, 9 * k, 9 * k, 0, 7); g.fill(); }                       // 大脑：VLA
+    g.fillStyle = has('5-2') ? '#4ef0ff' : '#ffffff20'; g.fillRect(19 * k, 8 * k, 2 * k, 2 * k); g.fillRect(23 * k, 8 * k, 2 * k, 2 * k);   // 眼睛：部署后亮起
+    if (has('6-4')) { g.fillStyle = '#4ef0ff'; g.fillRect(33 * k, 27 * k, 3 * k, 4 * k); g.fillStyle = '#ffd257'; [[40, 6], [43, 10], [38, 11]].forEach(([x, y]) => g.fillRect(x * k, y * k, k, k)); }
+  }
+})();
+
+</script>
+<script>
 /* js/academy.js */
 /* 学院、实验室列表、成长档案、成就页面 */
 (function () {
@@ -5968,8 +7087,8 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     const g = CF.h('<div class="grid g3"></div>');
     CF.Labs.ORDER.forEach((id) => {
       const m = CF.Labs.META[id], st = CF.P.labStars(id), done = CF.P.labDone(id);
-      const unlock = { gd: '第 2 关', perceptron: '雷达站 · 第 2 关', pid: '无人机空港 · 第 4 关', robot: '第 3 关', rocket: '第 4 关', startup: '第 5 关', code: 'Agent 工坊（完成 1 个）', pixel: '通讯头像' }[id];
-      const el = CF.h(`<div class="card labcard"><div class="st">${done ? '★'.repeat(st) + '☆'.repeat(3 - st) : ''}</div><div style="font-size:28px">${m.icon}</div><div class="dom">${m.d ? C().DOMAINS[m.d].name : '美'}${id === 'code' ? ` · ${CF.P.codeDone()}/10` : ''}</div><h3>${m.name}</h3><p>${m.desc}</p><p class="small" style="margin-top:6px;color:var(--plight)">🔓 关联解锁：${unlock}</p></div>`);
+      const unlock = { gd: '第 2 关', perceptron: '雷达站 · 第 2 关', pid: '无人机空港 · 第 4 关', robot: '第 3 关', rocket: '第 4 关', startup: '第 5 关', code: 'Agent 工坊（完成 1 个）', pixel: '通讯头像', emb: '每关实操经验 · 拾光号整机' }[id];
+      const el = CF.h(`<div class="card labcard"><div class="st">${done ? '★'.repeat(st) + '☆'.repeat(3 - st) : ''}</div><div style="font-size:28px">${m.icon}</div><div class="dom">${m.d ? C().DOMAINS[m.d].name : '美'}${id === 'code' ? ` · ${CF.P.codeDone()}/10` : ''}${id === 'emb' && CF.Emb ? ` · ${CF.Emb.progress()}` : ''}</div><h3>${m.name}</h3><p>${m.desc}</p><p class="small" style="margin-top:6px;color:var(--plight)">🔓 关联解锁：${unlock}</p></div>`);
       el.onclick = () => { CF.Audio.sfx('click'); CF.Labs.open(id); };
       g.appendChild(el);
     });
