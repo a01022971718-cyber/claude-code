@@ -1179,6 +1179,7 @@ body.reduce-motion .btn.primary::after{animation:none;display:none}
 @keyframes embGlow{to{box-shadow:0 0 0 3px #ffe08a,0 0 18px #ffb14a}}
 .emb-board.tr .emb-node{padding:6px 4px}
 .emb-board.tr .emb-port{width:14px;height:14px;margin:-7px 0 0 -7px;border-width:2px}
+.emb-board.tr .emb-port span{display:none}
 .emb-foot{position:sticky;bottom:-10px;z-index:3;display:flex;flex-direction:column;gap:8px;padding:8px 0 10px;background:linear-gradient(180deg,#0f0d1ae6,var(--bg2) 30%)}
 .emb-recap{margin-top:12px;padding:12px;border-radius:12px;background:#6fdc8c0c;border:1px solid #6fdc8c44;display:flex;flex-direction:column;gap:6px;font-size:13px;line-height:1.6}
 .emb-recap i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
@@ -1208,3 +1209,36 @@ body.reduce-motion .btn.primary::after{animation:none;display:none}
 .emb-rrobot{width:120px;height:120px;border-radius:12px;image-rendering:pixelated}
 .emb-gain{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}.emb-gain span{font-size:12px;padding:4px 10px;border-radius:12px;background:#ffd2571a;border:1px solid #ffd25755;color:#ffe9a3}
 .emb-msg:empty{display:none}
+/* v9.5 具身智能扩展：赛道卡、同原理、赛道页分段、多轮调参（UI 宪法 27.14） */
+.emb-tracks{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin:4px 0 14px}
+.emb-trk{display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px;align-items:center;padding:10px;border-radius:14px;border:1px solid var(--line2);border-color:color-mix(in srgb,var(--tc) 45%,transparent);background:linear-gradient(160deg,#ffffff0a,#ffffff03);background:linear-gradient(160deg,color-mix(in srgb,var(--tc) 16%,transparent),#ffffff04);text-align:left}
+.emb-trk canvas{width:72px;height:72px;border-radius:10px;image-rendering:pixelated}
+.emb-trk-t{display:flex;flex-direction:column;gap:4px;min-width:0}
+.emb-trk-t b{font-size:14px;line-height:1.35}
+.emb-trk-t small{font-size:11px;color:var(--dim);line-height:1.5}
+.emb-trk .emb-bar{display:block}.emb-trk .emb-bar em{background:var(--tc)}
+.emb-trk.lock{opacity:.62}
+.emb-prteaser{padding:12px;border-radius:14px;background:#ffffff06;border:1px solid var(--line);display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.emb-prteaser p{line-height:1.7}.emb-prteaser .btn{align-self:flex-start}
+.emb-prname{font-size:12px;padding:3px 9px;border-radius:10px;background:rgba(var(--hero-rgb),.18);border:1px solid rgba(var(--hero-rgb),.45)}
+.emb-prl{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.emb-pr{padding:12px;border-radius:14px;background:#ffffff06;border:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.emb-pr h4{font-size:15px;color:var(--hero2)}.emb-pr p{font-size:12px;line-height:1.65}
+.emb-prc{display:flex;flex-wrap:wrap;gap:6px}
+.emb-prchip{display:inline-flex;align-items:center;gap:4px;font:12px/1.4 var(--sans);border-color:var(--tc);color:var(--text);text-align:left}
+.emb-prchip i{font-style:normal}
+.emb-prchip.done{background:var(--tc);border-color:var(--tc);color:#160d22}
+.emb-prchip.lock{opacity:.55}
+.emb-stg{margin-top:18px;scroll-margin-top:8px}
+.emb-stg h4{display:flex;align-items:center;gap:8px;font-size:15px;margin-bottom:4px}
+.emb-stg h4 i{font:900 16px/1 var(--display,var(--sans));font-style:normal;color:var(--hero2)}
+.emb-stg h4 small{margin-left:auto;font:11px var(--mono);color:var(--dim)}
+.emb-stg>p{margin-bottom:8px;line-height:1.65}
+.emb-map{margin-top:18px}
+.emb-lockmsg{padding:10px 12px;border-radius:10px;background:#ff5d6c12;border:1px solid #ff5d6c55;font-size:13px;margin-bottom:10px}
+.emb-round{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;padding:8px 12px;border-radius:10px;background:rgba(var(--hero-rgb),.18);border:1px solid rgba(var(--hero-rgb),.5);font-size:14px;margin-bottom:10px}
+.emb-round b{color:#ffe08a;font-family:var(--mono);font-size:12px}
+.emb-same{font-size:12px;color:var(--dim);line-height:1.65;border-top:1px dashed var(--line2);padding-top:8px}.emb-same b{color:var(--hero2)}
+.emb-samebox .emb-prc{margin-top:2px}
+@media (orientation:landscape) and (min-width:700px){.emb>.rail button{flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;white-space:nowrap;line-height:1.15}}
+

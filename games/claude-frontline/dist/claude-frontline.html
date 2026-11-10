@@ -1188,6 +1188,7 @@ body.reduce-motion .btn.primary::after{animation:none;display:none}
 @keyframes embGlow{to{box-shadow:0 0 0 3px #ffe08a,0 0 18px #ffb14a}}
 .emb-board.tr .emb-node{padding:6px 4px}
 .emb-board.tr .emb-port{width:14px;height:14px;margin:-7px 0 0 -7px;border-width:2px}
+.emb-board.tr .emb-port span{display:none}
 .emb-foot{position:sticky;bottom:-10px;z-index:3;display:flex;flex-direction:column;gap:8px;padding:8px 0 10px;background:linear-gradient(180deg,#0f0d1ae6,var(--bg2) 30%)}
 .emb-recap{margin-top:12px;padding:12px;border-radius:12px;background:#6fdc8c0c;border:1px solid #6fdc8c44;display:flex;flex-direction:column;gap:6px;font-size:13px;line-height:1.6}
 .emb-recap i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
@@ -1217,6 +1218,39 @@ body.reduce-motion .btn.primary::after{animation:none;display:none}
 .emb-rrobot{width:120px;height:120px;border-radius:12px;image-rendering:pixelated}
 .emb-gain{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}.emb-gain span{font-size:12px;padding:4px 10px;border-radius:12px;background:#ffd2571a;border:1px solid #ffd25755;color:#ffe9a3}
 .emb-msg:empty{display:none}
+/* v9.5 具身智能扩展：赛道卡、同原理、赛道页分段、多轮调参（UI 宪法 27.14） */
+.emb-tracks{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin:4px 0 14px}
+.emb-trk{display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px;align-items:center;padding:10px;border-radius:14px;border:1px solid var(--line2);border-color:color-mix(in srgb,var(--tc) 45%,transparent);background:linear-gradient(160deg,#ffffff0a,#ffffff03);background:linear-gradient(160deg,color-mix(in srgb,var(--tc) 16%,transparent),#ffffff04);text-align:left}
+.emb-trk canvas{width:72px;height:72px;border-radius:10px;image-rendering:pixelated}
+.emb-trk-t{display:flex;flex-direction:column;gap:4px;min-width:0}
+.emb-trk-t b{font-size:14px;line-height:1.35}
+.emb-trk-t small{font-size:11px;color:var(--dim);line-height:1.5}
+.emb-trk .emb-bar{display:block}.emb-trk .emb-bar em{background:var(--tc)}
+.emb-trk.lock{opacity:.62}
+.emb-prteaser{padding:12px;border-radius:14px;background:#ffffff06;border:1px solid var(--line);display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.emb-prteaser p{line-height:1.7}.emb-prteaser .btn{align-self:flex-start}
+.emb-prname{font-size:12px;padding:3px 9px;border-radius:10px;background:rgba(var(--hero-rgb),.18);border:1px solid rgba(var(--hero-rgb),.45)}
+.emb-prl{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.emb-pr{padding:12px;border-radius:14px;background:#ffffff06;border:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.emb-pr h4{font-size:15px;color:var(--hero2)}.emb-pr p{font-size:12px;line-height:1.65}
+.emb-prc{display:flex;flex-wrap:wrap;gap:6px}
+.emb-prchip{display:inline-flex;align-items:center;gap:4px;font:12px/1.4 var(--sans);border-color:var(--tc);color:var(--text);text-align:left}
+.emb-prchip i{font-style:normal}
+.emb-prchip.done{background:var(--tc);border-color:var(--tc);color:#160d22}
+.emb-prchip.lock{opacity:.55}
+.emb-stg{margin-top:18px;scroll-margin-top:8px}
+.emb-stg h4{display:flex;align-items:center;gap:8px;font-size:15px;margin-bottom:4px}
+.emb-stg h4 i{font:900 16px/1 var(--display,var(--sans));font-style:normal;color:var(--hero2)}
+.emb-stg h4 small{margin-left:auto;font:11px var(--mono);color:var(--dim)}
+.emb-stg>p{margin-bottom:8px;line-height:1.65}
+.emb-map{margin-top:18px}
+.emb-lockmsg{padding:10px 12px;border-radius:10px;background:#ff5d6c12;border:1px solid #ff5d6c55;font-size:13px;margin-bottom:10px}
+.emb-round{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;padding:8px 12px;border-radius:10px;background:rgba(var(--hero-rgb),.18);border:1px solid rgba(var(--hero-rgb),.5);font-size:14px;margin-bottom:10px}
+.emb-round b{color:#ffe08a;font-family:var(--mono);font-size:12px}
+.emb-same{font-size:12px;color:var(--dim);line-height:1.65;border-top:1px dashed var(--line2);padding-top:8px}.emb-same b{color:var(--hero2)}
+.emb-samebox .emb-prc{margin-top:2px}
+@media (orientation:landscape) and (min-width:700px){.emb>.rail button{flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;white-space:nowrap;line-height:1.15}}
+
 
 </style>
 </head>
@@ -4181,7 +4215,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
 (function () {
   const CF = window.CF;
   const META = {
-    emb: { name: '具身智能 · 造一台机器人', d: 'emb', icon: '🦾', desc: '从零造出会听话、会拿杯子的「拾光号」：需求设计 → 制造组装 → 系统仿真 → 数据训练 → 部署 → 迭代，6 个阶段、37 关，每关先学再练再考。', dims: { zhi: 0.5, ti: 0.2 } },
+    emb: { name: '具身智能 · 造一台机器人', d: 'emb', icon: '🦾', desc: '从零造出会听话、会拿杯子的「拾光号」（6 个阶段 37 关），再造无人机（直升 / 双旋 / 四旋）、四足机器狗、人形机器人，外加航天与工程师之路：5 条赛道 76 关，相同原理放在一起学，每关先学再练再考。', dims: { zhi: 0.5, ti: 0.2 } },
     gd: { name: '梯度下降', d: 'ai', icon: '📉', desc: '亲手训练一条直线：感受学习率太小、刚好、太大的区别。', dims: { zhi: 0.5 } },
     perceptron: { name: '感知机', d: 'ai', icon: '🧠', desc: '调权重把「乱码」和「信号」分开，理解一个神经元在做什么。', dims: { zhi: 0.5 } },
     pid: { name: 'PID 无人机', d: 'emb', icon: '🚁', desc: '调 Kp/Ki/Kd 让载重无人机稳稳悬停在 10 米，还要扛住一阵下压风。', dims: { zhi: 0.4 } },
@@ -4699,7 +4733,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
   // 旧存档的头像按下标存颜色，所以只在末尾追加（v6：信号兵模板用的蓝钢色）
   const PIX_PAL = ['transparent', '#d97757', '#b85f40', '#1b1226', '#ede6d6', '#8b80d6', '#5b3aa8', '#e9b949', '#3fd0c9', '#ff4f9a', '#6fdc8c', '#7fa8d8', '#4f6f9e'];
   L.PIX_PAL = PIX_PAL;
-  L.emb = function () { if (CF.Emb) return CF.Emb.open(); };   // v9.4 具身智能全流程（js/embodied.js）
+  L.emb = function () { if (CF.Emb) return CF.Emb.open(); };   // v9.4 具身智能全流程，v9.5 五条赛道（js/embodied.js）
   L.pixel = function () { if (CF.PixStudio) return CF.PixStudio.open(); return L.pixelOld(); };
   // v8 及以前的 16×16 画板（像素工坊 2.0 加载失败时兜底）
   L.pixelOld = function () {
@@ -5906,7 +5940,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
 </script>
 <script>
 /* js/embodied-data.js */
-/* 实验室 · 具身智能：造一台机器人（v9.4，主创要求）——课程数据
+/* 实验室 · 具身智能：造一台机器人（v9.4，主创要求；v9.5 起是五条赛道里的主线）——课程数据
  * 主线：从零造出「拾光号」——轮式底盘 + 6 自由度机械臂 + 头部深度相机 + 麦克风阵列的移动操作机器人。
  * 任务：听到「把桌上的杯子拿给我」，就走到桌边、找到杯子、抓起来、递到人手里。
  * 六个阶段 = 主创给的制作流程：需求与本体设计 → 硬件制造与组装 → 系统与仿真 → 数据与训练 → 仿真到现实部署 → 测试与迭代。
@@ -6028,6 +6062,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
           const t = M[0] * R[0] * R[1], rpm = M[1] / R[0], g = M[3] + R[3], c = M[2] + R[2];
           return [['输出力矩', t.toFixed(1) + ' N·m', t >= 16.2, '≥ 16.2'], ['输出转速', rpm.toFixed(0) + ' 转/分', rpm >= 20, '≥ 20'], ['背隙', R[4] ? R[4] + '°' : '≈ 0', !R[4], '≈ 0'], ['重量', g + ' g', g <= 800, '≤ 800'], ['价格', '¥' + c, true, '越少越好']];
         },
+        sol: { m: 'A', r: 'h100' },
         after: '合格的组合有三种：A + 谐波 1:100（¥900，最省钱）、B + 谐波 1:50（¥950）、B + 谐波 1:100（¥1050）。注意小电机配大减速比反而更便宜——这就是工程师天天在做的取舍。' },
       { id: '1-4', name: '能源：算电池', lv: '线', kind: 'tune',
         learn: [
@@ -6039,6 +6074,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
         intro: '干活时的平均功率：底盘 60 W + 机械臂 40 W + Jetson 25 W + 传感器 10 W + 单片机等 5 W = <b>140 W</b>。可用能量 = 电压 25.2V × 容量 × 80%。',
         ctrl: [{ id: 'ah', n: '电池容量（24V 系统）', seg: [['5', '5 Ah'], ['10', '10 Ah'], ['15', '15 Ah'], ['20', '20 Ah']], v: '5' }],
         model: (v) => { const wh = 25.2 * +v.ah, h = (wh * 0.8) / 140, kg = wh / 100; return [['电池能量', wh.toFixed(0) + ' Wh', true, ''], ['续航', h.toFixed(2) + ' 小时', h >= 2, '≥ 2'], ['重量', kg.toFixed(2) + ' kg', kg <= 4, '≤ 4']]; },
+        sol: { ah: '15' },
         after: '15 Ah：378 Wh × 80% ÷ 140 W ≈ 2.2 小时，重 3.8 kg。真实产品还要考虑充电时间、BMS（电池管理板：防过充、过放、过热）和能不能快速换电。',
         quiz: [{ q: '把功率降到 100 W（比如换更省电的电脑），同一块 15 Ah 电池能用多久？', o: ['约 2.2 小时', '约 3.0 小时', '约 4.5 小时'], a: 1, why: '378 × 0.8 ÷ 100 ≈ 3.0 小时：省电和加电池一样能延长续航，还不增加重量。' }] },
       { id: '1-5', name: '传感器选型：给每件事配一双「眼睛」', lv: '线', kind: 'wire',
@@ -6219,6 +6255,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
         intro: '上臂 L1 = 0.35 m，前臂 L2 = 0.30 m，肩在原点。',
         ik: { L1: 0.35, L2: 0.3, targets: [[0.45, 0.3], [0.2, 0.45], [0.55, 0.05]], tol: 0.03 },
         ctrl: [{ id: 'a', n: '肩 θ1', min: 0, max: 180, step: 1, v: 90, unit: '°' }, { id: 'b', n: '肘 θ2', min: -150, max: 150, step: 1, v: 0, unit: '°' }],
+        sol: [{ a: 65, b: -68 }, { a: 103, b: -82 }, { a: 34, b: -64 }],
         after: '你刚才在手动解逆运动学。真实机械臂有 6 个关节，解有很多个（比如肘朝上或朝下），程序还要挑一个不撞到自己、离关节限位远的解。' },
       { id: '3-4', name: '导航：建图、定位、走过去', lv: '面', kind: 'wire',
         learn: [
@@ -6275,6 +6312,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
         prompt: '调关节的刚度增益 Kp：要在两个仿真器里都稳定。如果怎么调都不行，试试打开域随机化。',
         ctrl: [{ id: 'kp', n: '刚度增益 Kp', min: 10, max: 160, step: 5, v: 120, unit: '' }, { id: 'dr', n: '训练方式', seg: [['off', '只在 Isaac Lab 里训练'], ['on', '训练时打开域随机化']], v: 'off' }],
         model: (v) => { const kp = +v.kp, on = v.dr === 'on'; const A = on ? [45, 130] : [80, 140], B = on ? [30, 95] : [20, 70]; const okA = kp >= A[0] && kp <= A[1], okB = kp >= B[0] && kp <= B[1]; return [['Isaac Lab 跟踪误差', okA ? '稳定' : kp < A[0] ? '太软，跟不上' : '振荡', okA, A[0] + '–' + A[1]], ['MuJoCo 跟踪误差', okB ? '稳定' : kp < B[0] ? '太软，跟不上' : '振荡', okB, B[0] + '–' + B[1]]]; },
+        sol: { kp: 70, dr: 'on' },
         after: '不开域随机化时，两个仿真器的「稳定区间」不重叠（80–140 和 20–70）：控制器被 Isaac Lab 惯坏了。打开域随机化后出现重叠区（45–95），这样的控制器上真机才更有把握。' },
     ] },
     // ================= 阶段四 =================
@@ -6296,6 +6334,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
         align: { lag: 120 },
         ctrl: [{ id: 'off', n: '相机时间补偿', min: 0, max: 300, step: 5, v: 0, unit: ' ms' }, { id: 'how', n: '同步方式', seg: [['arrive', '按数据到达电脑的时间'], ['stamp', '按传感器打的时间戳']], v: 'arrive' }],
         model: (v) => { const d = Math.abs(+v.off - 120); return [['夹爪闭合时间差', d + ' ms', d <= 10, '≤ 10'], ['同步方式', v.how === 'stamp' ? '传感器时间戳' : '到达时间（受网络抖动影响）', v.how === 'stamp', '时间戳']]; },
+        sol: { off: 120, how: 'stamp' },
         after: '相机比关节数据晚了 120 ms。真实系统里常用硬件同步（一根触发线让相机和关节同时采样）或 PTP 网络授时，再按时间戳对齐。' },
       { id: '4-3', name: '整理成标准数据集', lv: '线', kind: 'sort',
         learn: [
@@ -6314,6 +6353,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
         prompt: '调配仿真回合和真实回合的数量：真机成功率 ≥ 75%，真实回合 ≤ 25 个（人力有限）。',
         ctrl: [{ id: 'sim', n: '仿真回合', min: 0, max: 200, step: 10, v: 0, unit: '' }, { id: 'real', n: '真实回合', min: 0, max: 50, step: 5, v: 5, unit: '' }],
         model: (v) => { const G = 1 - Math.exp(-v.sim / 60), R = 1 - Math.exp(-v.real / 5), s = 100 * (0.25 * G + 0.75 * R * (0.55 + 0.45 * G)); return [['真机成功率', s.toFixed(0) + '%', s >= 75, '≥ 75%'], ['真实回合（人工）', v.real + ' 个 · 约 ' + v.real * 6 + ' 分钟', v.real <= 25, '≤ 25'], ['仿真回合（算力）', v.sim + ' 个 · 约 ' + Math.round(v.sim * 0.5) + ' 分钟', true, '']]; },
+        sol: { sim: 100, real: 10 },
         after: '只用仿真：成功率卡在 20% 多；只用真实：要很多人工也只有 40% 左右。两者混合，几十个仿真回合 + 十几个真实回合就能过线——这就是混合训练的价值。' },
       { id: '4-5', name: 'VLA 模型：看 + 听 → 动', lv: '面', kind: 'wire',
         learn: [
@@ -6354,6 +6394,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
         prompt: '让策略在 Jetson 上跑到 ≥ 20 次/秒（单次 ≤ 50 ms），而且准确率下降 ≤ 2%。',
         ctrl: [{ id: 'f', n: '格式', seg: [['pt', 'PyTorch 原样'], ['onnx', 'ONNX'], ['trt', 'ONNX → TensorRT']], v: 'pt' }, { id: 'p', n: '精度', seg: [['32', 'FP32'], ['16', 'FP16'], ['8', 'INT8（未校准）']], v: '32' }],
         model: (v) => { const ms = 180 * { pt: 1, onnx: 0.8, trt: 0.4 }[v.f] * { 32: 1, 16: 0.55, 8: 0.35 }[v.p], drop = { 32: 0, 16: 0.3, 8: 3.5 }[v.p]; return [['单次推理', ms.toFixed(0) + ' ms（' + (1000 / ms).toFixed(0) + ' 次/秒）', ms <= 50, '≤ 50 ms'], ['准确率下降', drop + '%', drop <= 2, '≤ 2%']]; },
+        sol: { f: 'trt', p: '16' },
         after: 'TensorRT + FP16：约 40 ms、准确率几乎不掉，是 Jetson 上最常见的选择。INT8 更快，但要用一小批真实数据做校准，才能把精度损失压下来。' },
       { id: '5-2', name: 'Server-Client 部署架构', lv: '面', kind: 'wire',
         learn: [
@@ -6361,7 +6402,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
           ['为什么不全放在服务器上', '网络会卡、会断。机器人不能因为 Wi-Fi 卡一下就把杯子摔了。所以要实时的部分必须留在机器人本地。', ''],
         ],
         prompt: '把部署架构连起来：模型从服务器下发，指令一层层变快，失败数据再传回去。',
-        types: ['model', 'WIFI', 'act', 'cmd', 'cur', 'log'],
+        types: ['model', 'act', 'cmd', 'cur', 'log'],
         nodes: [
           N('srv', 'GPU 服务器（机房）', 0, 1, [['m', 'r', 'model', '下发模型'], ['l', 'r', 'log', '收集失败数据']], '训练、存数据、发布新模型。'),
           N('jet', 'Jetson（实时推理 10–30 Hz）', 1, 1, [['m', 'l', 'model', '模型'], ['l', 'l', 'log', '上传日志'], ['a', 'r', 'act', '动作块']], ''),
@@ -6378,6 +6419,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
         prompt: '调相机相对底座的位置 (x, y) 和角度，让相机看到的三个标定点和真实位置重合（误差 ≤ 1.5 cm）。',
         hand: { tx: 0.12, ty: 0.3, rot: 25 },
         ctrl: [{ id: 'tx', n: '相机 x', min: 0, max: 0.3, step: 0.005, v: 0, unit: ' m' }, { id: 'ty', n: '相机 y', min: 0, max: 0.5, step: 0.005, v: 0, unit: ' m' }, { id: 'rot', n: '相机角度', min: -45, max: 45, step: 1, v: 0, unit: '°' }],
+        sol: { tx: 0.12, ty: 0.3, rot: 25 },
         after: '真实的手眼标定会让机械臂拿着标定板摆十几个姿势，用最小二乘法自动算出变换，比手调准得多，但道理是一样的。' },
       { id: '5-4', name: '动作平滑：不抖又不慢', lv: '线', kind: 'tune',
         learn: [
@@ -6388,6 +6430,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
         smooth: true,
         ctrl: [{ id: 'a', n: '平滑系数 α（越小越平滑）', min: 0.05, max: 1, step: 0.01, v: 1, unit: '' }, { id: 'hz', n: '控制频率', seg: [['10', '10 Hz'], ['30', '30 Hz'], ['100', '100 Hz（动作块插值）']], v: '10' }],
         model: (v) => { const a = +v.a, j = 10 * Math.pow(a, 0.6), d = (1000 / +v.hz) * ((1 - a) / a); return [['末端抖动', j.toFixed(1) + ' mm', j <= 5, '≤ 5'], ['响应延迟', d.toFixed(0) + ' ms', d <= 60, '≤ 60']]; },
+        sol: { a: 0.2, hz: '100' },
         after: '在 10 Hz、30 Hz 下，「不抖」和「不慢」不可能同时做到；把动作块插值到 100 Hz，α 取 0.15–0.3 就两头都满足。这就是为什么底层控制频率要高。' },
       { id: '5-5', name: '闭环调试：看症状找原因', lv: '面', kind: 'choice',
         learn: [
@@ -6433,7 +6476,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
           ['这就是具身智能', '数字世界的智能（听懂、看懂、决定）和物理世界的行动力（走过去、抓起来）在一台机器上闭环。以后不管是四足、人形，还是火星车，都是这条链换了「身体」。', '从这里出发，去造你想造的任何机器人。'],
         ],
         prompt: '主人说：「拾光，把桌上的蓝杯子拿给我。」把整条链路连起来。',
-        types: ['audio', 'text', 'task', 'goal', 'vel', 'img', 'act', 'cmd'],
+        types: ['audio', 'text', 'goal', 'vel', 'img', 'act', 'cmd'],
         nodes: [
           N('mic', '麦克风阵列', 0, 0, [['o', 'r', 'audio', '声音']]), N('asr', '唤醒 + 语音识别', 1, 0, [['i', 'l', 'audio', '声音'], ['o', 'r', 'text', '文字']]),
           N('llm', '大模型任务规划', 2, 0, [['i', 'l', 'text', '指令'], ['g', 'r', 'goal', '去哪'], ['t', 'r', 'text', '拿什么'], ['s', 'r', 'text', '回答']]),
@@ -6472,43 +6515,834 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     ],
   };
 
-  CF.EmbData = { TYPES, STAGES, MAP, ROBOT: '拾光号' };
+  // v9.5：课程按「赛道」组织。主线拾光号是第一条赛道，其余赛道（无人机、四足、人形、进阶）在 js/embodied-tracks.js 里追加
+  const MAIN = { id: 'mm', name: '移动操作 · 拾光号', short: '拾光号', icon: '🦾', robot: '拾光号', color: '#6fdc8c',
+    blurb: '轮式底盘 + 6 自由度机械臂：主创给的六个阶段，从需求设计一路到测试迭代。',
+    sum: '具身智能机器人的制作，并不是把「大脑」（AI 模型）和「身体」（机械硬件）简单拼在一起，而是软硬件深度耦合、从虚拟仿真到物理世界闭环迭代的系统工程。<br><br>这条主线带你从零造出「拾光号」：轮式底盘 + 6 自由度机械臂 + 深度相机 + 麦克风阵列。它听到「把桌上的杯子拿给我」，就走过去、找到杯子、抓起来、递给你。<br><br>六个阶段就是主创给的制作流程：需求定义与本体设计 → 硬件制造与组装 → 系统与仿真环境搭建 → 数据采集与模型训练 → 仿真到现实的迁移部署 → 测试与迭代。',
+    stages: STAGES, map: MAP };
+  CF.EmbData = { TYPES, STAGES, MAP, ROBOT: '拾光号', TRACKS: [MAIN], PRINCIPLES: [] };
+})();
+
+</script>
+<script>
+/* js/embodied-tracks.js */
+/* 实验室 · 具身智能：扩展赛道（v9.5，主创要求「再加几个不同类型无人机：直升、双旋、四旋，相同原理放一起，再加一些扩展内容」）
+ * 在 js/embodied-data.js（主线「拾光号」）之后加载，往 CF.EmbData 里追加：
+ *   - 新的接口类型（电池电压、三相线、电调信号、遥控、卫星定位、航点、姿态、推力、48V、EtherCAT）；
+ *   - 四条赛道：无人机（直升 / 双旋 / 四旋）· 四足机器狗 · 人形机器人 · 进阶扩展（航天、成本、岗位、标准、学习路线）；
+ *   - 同原理表 PRINCIPLES：同一个原理在不同机器上出现的关卡放在一起（UI 宪法 27.14）。
+ * 无人机赛道本身就按「相同原理放一起」排：阶段一是三种旋翼机都一样的原理，阶段二只讲三种不一样的地方
+ * （怎么抵消反扭矩、怎么转向），阶段三又是三种都一样的自主飞行与安全。
+ * 调参关新增两种写法：rounds（同一关分几轮，每轮一个目标，model(v, round)）和 plot(g, W, H, v, round)（关卡自己画小画板）。
+ * 每个调参关都写 sol（一组能过关的参数，多轮的是数组），给数据检查和自动测试用。
+ * 数字是教学用的近似值，量级按真实设定、做了简化，见 design/08-embodied-course.md「诚实说明」。 */
+(function () {
+  const CF = window.CF, D = CF.EmbData;
+  const N = (id, n, col, row, ports, d) => ({ id, n, col, row, p: ports, d: d || '' });
+  Object.assign(D.TYPES, {
+    BAT: ['电池电压', '#ff7a45', '4S 锂电池约 14.8–16.8V，直接给电调供几十安的大电流。'],
+    ph: ['三相电机线', '#ff9a5c', '无刷电机的三根线。任意对调两根，电机就反着转——装机时就靠它改转向。'],
+    PWM: ['电调信号（PWM / DShot）', '#ff4f9a', '飞控告诉电调「转多快」。DShot 是数字信号，比老式 PWM 更准，也不用校准油门行程。'],
+    RC: ['遥控信号（SBUS / CRSF）', '#7aa2ff', '接收机把遥控器摇杆的位置传给飞控。'],
+    gps: ['卫星定位', '#3fd0c9', 'GPS / 北斗给出经纬度和高度，普通精度几米，RTK 能到厘米级。'],
+    wp: ['航点', '#ffe08a', '任务里一个个要飞到的位置。'],
+    att: ['期望姿态', '#c8ff2e', '「机身要往前倾 10°、机头朝北」。'],
+    thr: ['推力 + 力矩指令', '#ffb14a', '总共要多大推力、绕三个轴各要多大力矩，交给混控去分配。'],
+    '48V': ['48V 电源', '#ff5d6c', '人形的腿功率很大：电压高一些，同样功率电流更小、线更细、发热更少。'],
+    ECAT: ['EtherCAT 总线', '#b3abea', '工业实时总线：一根网线串起几十个关节，每毫秒全部刷新一遍，延迟很稳。'],
+  });
+
+  // ---------- 小仿真（模型和画板共用，按参数缓存） ----------
+  const memo = (f) => { const c = {}; return (...a) => { const k = a.join('|'); return c[k] || (c[k] = f(...a)); }; };
+  // 互补滤波：真实角度左右摆，陀螺仪每秒漂 3°，加速度计受振动抖 ±6°
+  const imuSim = memo((mode, tau) => {
+    const a = mode === 'gyro' ? 1 : mode === 'acc' ? 0 : tau / (tau + 0.01);
+    let seed = 12345; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647, gauss = () => { let s = 0; for (let i = 0; i < 6; i++) s += rnd(); return (s - 3) * Math.SQRT2; };
+    const dt = 0.01, n = 800, out = []; let phi = 0, gy = 0, se = 0, mx = 0;
+    for (let k = 0; k < n; k++) {
+      const t = k * dt, w = 2 * Math.PI * 0.4, th = 20 * Math.sin(w * t), dth = 20 * w * Math.cos(w * t), g = dth + 3 + 0.8 * gauss(), acc = th + 6 * gauss();
+      phi = a * (phi + g * dt) + (1 - a) * acc; gy += g * dt;
+      const e = Math.abs(phi - th); if (t > 0.5) { se += e * e; mx = Math.max(mx, e); }
+      out.push([th, phi, gy, acc]);
+    }
+    return { rms: Math.sqrt(se / (n - 50)), mx, a, out };
+  });
+  // 串级 P：外环角度 → 期望角速度 → 内环 → 电机（一阶滞后 30 ms）→ 机身
+  const pidSim = memo((kr, ka) => {
+    const dt = 0.002; let th = 0, w = 0, u = 0, peak = 0, rise = null; const tr = [];
+    for (let i = 0; i <= 500; i++) {
+      const t = i * dt, wc = ka * (1 - th), uc = kr * (wc - w); u += ((uc - u) * dt) / 0.03; w += (u * 40 - 0.5 * w) * dt; th += w * dt;
+      if (!isFinite(th) || Math.abs(th) > 50) th = 50;
+      peak = Math.max(peak, th); if (rise === null && th >= 0.9) rise = t; if (i % 5 === 0) tr.push(th);
+    }
+    return { rise, os: Math.max(0, (peak - 1) * 100), err: Math.max(...tr.slice(-20).map((x) => Math.abs(1 - x))), tr };
+  });
+  // 火箭着陆：点火前以 50 m/s 匀速下落；满油门推力 = 3 倍重力，最低油门 40%，满油门每秒 300 kg
+  const rocketSim = (H, mode) => {
+    const g = 9.8, v0 = 50, acc = (p) => (3 * p - 1) * g;
+    if (mode === 'fix') {
+      const p = 0.7, a = acc(p), stop = (v0 * v0) / (2 * a);
+      if (H > stop + 0.01) return { up: true, vt: 0, pk: p, fuel: 300 * p * (v0 / a), a, p, txt: `在离地约 ${Math.round(H - stop)} m 处速度就减到 0，推力比重力大，又被推回天上` };
+      const vt = Math.sqrt(v0 * v0 - 2 * a * H); return { up: false, vt, pk: p, fuel: 300 * p * ((v0 - vt) / a), a, p, txt: vt <= 2 ? '平稳落地' : `撞地：${vt.toFixed(0)} m/s` };
+    }
+    const need = (v0 * v0) / (2 * H), p = (need / g + 1) / 3;
+    if (p > 1) { const a = acc(1), vt = Math.sqrt(Math.max(0, v0 * v0 - 2 * a * H)); return { up: false, vt, pk: 1, fuel: 300 * ((v0 - vt) / a), a, p: 1, txt: `点火太晚：满油门也刹不住，撞地 ${vt.toFixed(0)} m/s` }; }
+    if (p < 0.4) { const a = acc(0.4); return { up: true, vt: 0, pk: 0.4, fuel: 300 * 0.4 * (v0 / a), a, p: 0.4, txt: '点火太早：油门降到最低也刹得太猛，在半空停住又往上飞' }; }
+    return { up: false, vt: 0.5, pk: p, fuel: 300 * p * (v0 / need), a: need, p, txt: '平稳落地' };
+  };
+  // 画板小工具
+  const txt = (g, s, x, y, c, f) => { g.fillStyle = c || '#9d96ad'; g.font = f || '11px sans-serif'; g.fillText(s, x, y); };
+  const line = (g, pts, c, w, dash) => { g.strokeStyle = c; g.lineWidth = w || 1.5; g.setLineDash(dash || []); g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.stroke(); g.setLineDash([]); g.lineWidth = 1; };
+  const rect = (g, x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+
+  // ======================================================================
+  // 无人机赛道：直升 / 双旋 / 四旋——相同原理放一起
+  // ======================================================================
+  const DRONE = { id: 'd', name: '无人机 · 直升 / 双旋 / 四旋', short: '无人机', icon: '🚁', robot: '云雀', color: '#4ef0ff',
+    req: ['0-1', '先通关序章 0-1「机器人是怎么造出来的」'],
+    blurb: '单旋翼直升机、双旋翼（共轴 / 纵列）、四旋翼：先学三种都一样的，再学三种不一样的。',
+    sum: '同样是「靠旋翼飞起来」，单旋翼直升机、双旋翼（上下叠的共轴、前后排的纵列）和四旋翼，大部分原理是相同的：升力从哪来、电池够飞多久、怎么知道自己歪没歪、怎么用闭环把自己扶正、怎么自己飞航线、出事了怎么办。<br><br>真正不同的只有一件事：<b>怎么抵消反扭矩、怎么改变方向</b>。<br><br>所以这条赛道按「相同原理放一起」排：阶段一学三种都一样的，阶段二只学三种不一样的，阶段三再学三种都一样的自主飞行与安全。你会发现：把最后一步「混控」换掉，同一套飞控就能飞三种飞机。',
+    stages: [
+      { id: 'd1', no: 1, name: '同原理：三种旋翼机都一样的', short: '共同原理', sum: '升力、推重比与续航、IMU 姿态估计、装机接线、串级 PID——直升机、双旋翼、四旋翼在这些地方原理完全相同。', levels: [
+        { id: 'D1-1', name: '三种旋翼机长什么样', lv: '点', kind: 'sort',
+          learn: [
+            ['旋翼为什么能把飞机举起来', '旋翼（螺旋桨）转起来，把空气用力往下推；空气反过来把旋翼往上推——这就是牛顿第三定律：作用力与反作用力。往下推的空气越多、越快，向上的升力就越大。', '游泳时手往后划水，身体就往前走。'],
+            ['三大家族', '单旋翼直升机：头顶一副大旋翼，尾巴上一副小尾桨。双旋翼：两副旋翼反着转——上下叠在一根轴上叫「共轴」，一前一后叫「纵列」（比如支奴干运输直升机）。多旋翼：最常见的是四旋翼，四个螺旋桨，全靠转速快慢来控制。', '自行车、双人自行车、四驱车：都是车，驱动方式不同。'],
+            ['相同的比不同的多', '三种飞机都要：电池和电机（大的也可能用发动机）、电调、飞控、IMU、遥控和定位。不同的主要只有一件事：怎么抵消反扭矩、怎么改变飞行方向。这条赛道就按「相同的放一起」来学。', ''],
+          ],
+          prompt: '把每个零件放进它属于的那一类：只有某一种飞机才有，还是三种都有。',
+          bins: [['heli', '只有单旋翼直升机'], ['twin', '只有双旋翼'], ['quad', '只有四旋翼'], ['all', '三种都有']],
+          cards: [
+            ['尾桨', 'heli', '装在尾巴上横着吹风，抵消主旋翼让机身打转的力（阶段二细讲）。'],
+            ['长长的尾梁', 'heli', '把尾桨支到远处：力臂越长越省力，就是「力矩 = 力 × 力臂」。'],
+            ['上下叠着、反向旋转的两副旋翼', 'twin', '共轴双旋翼：两副反着转，打转的力互相抵消，不需要尾桨。'],
+            ['一前一后、反向旋转的两副旋翼', 'twin', '纵列双旋翼，比如支奴干：机身长，能装很多货。'],
+            ['四个桨叶角度固定的螺旋桨', 'quad', '桨叶角度不能变，全靠改变转速来控制。'],
+            ['飞控（飞行控制器）', 'all', '飞机的「小脑」：每秒几百到几千次地算出怎么保持平衡。'],
+            ['IMU 惯性测量单元', 'all', '测加速度和转动速度，知道自己歪没歪。所有飞行器都离不开它。'],
+            ['锂电池', 'all', '电动飞行器的能源。'],
+            ['电调 ESC', 'all', '把电池的直流电变成驱动无刷电机的三相电，按飞控的指令调转速。'],
+          ],
+          quiz: [{ q: '为什么说三种旋翼机「相同的比不同的多」？', o: ['它们长得一样', '升力原理、能源、电调、飞控、IMU 都一样，不同的主要是怎么抵消反扭矩和怎么转向', '它们都是同一家公司造的'], a: 1, why: '抓住相同的原理，学会一种就会了大半，再专门学不同的部分。' }] },
+        { id: 'D1-2', name: '升力够不够、能飞多久', lv: '线', kind: 'tune',
+          learn: [
+            ['推重比：力气要有富余', '所有螺旋桨的最大推力加起来 ÷ 飞机总重 = 推重比。悬停只要推力等于重力，但飞机还要加速、抗风、转弯，所以推重比至少要 2（悬停时大约用一半油门）。', '你能举 20 公斤，搬 10 公斤的箱子才轻松。'],
+            ['桨越大越省电', '同样举起 1 公斤，用大桨慢慢推一大团空气，比用小桨飞快地推一小团空气省电得多。所以一副大旋翼的直升机，通常比同样重的四旋翼飞得更久。', '大扇子慢慢扇，比小扇子拼命扇省力。'],
+            ['又是一环扣一环', '电池越大飞得越久，但电池越重，又要更大的电机和桨……和拾光号算电池（1-4）是同一个道理：能量 = 电压 × 容量，只按 80% 用。', ''],
+          ],
+          prompt: '给四旋翼「云雀」选「电机 + 桨」和电池：推重比 ≥ 2、续航 ≥ 15 分钟、起飞重量 ≤ 1.7 kg（一只手能拿着走）。',
+          intro: '机架、飞控、GPS、相机等一共 <b>600 g</b>，电池都是 4S（标称 14.8V）。起飞重量 = 600 g + 4 × 电机和桨 + 电池。悬停功率 = 起飞重量 ÷ 效率（每瓦能举起几克）。',
+          ctrl: [
+            { id: 'm', n: '电机 + 桨（每个）', seg: [['A', 'A：小电机 + 5 寸桨 · 30 g · 最大推力 600 g · 3.5 g/W'], ['B', 'B：中电机 + 7 寸桨 · 50 g · 最大推力 1000 g · 5.5 g/W'], ['C', 'C：大电机 + 10 寸桨 · 90 g · 最大推力 1600 g · 8 g/W']], v: 'A' },
+            { id: 'b', n: '电池（4S）', seg: [['1.5', '1500 mAh · 180 g'], ['3', '3000 mAh · 330 g'], ['5', '5000 mAh · 520 g'], ['8', '8000 mAh · 850 g']], v: '1.5' },
+          ],
+          model: (v) => {
+            const M = { A: [30, 600, 3.5], B: [50, 1000, 5.5], C: [90, 1600, 8] }[v.m], B = { 1.5: 180, 3: 330, 5: 520, 8: 850 }[v.b];
+            const W = 600 + 4 * M[0] + B, tw = (4 * M[1]) / W, P = W / M[2], min = ((14.8 * +v.b * 0.8) / P) * 60, hov = Math.sqrt(W / (4 * M[1])) * 100;
+            return [['起飞重量', (W / 1000).toFixed(2) + ' kg', W <= 1700, '≤ 1.7 kg'], ['推重比', tw.toFixed(2), tw >= 2, '≥ 2'], ['续航', min.toFixed(1) + ' 分钟', min >= 15, '≥ 15 分钟'], ['悬停功率', P.toFixed(0) + ' W', true, ''], ['悬停油门', '约 ' + hov.toFixed(0) + '%', true, '']];
+          },
+          sol: { m: 'C', b: '5' },
+          after: '合格的有两种：C + 5000 mAh（1.48 kg、约 19 分钟）和 B + 8000 mAh（1.65 kg、约 19 分钟）。大桨效率高，同样的电池飞得更久——这也是直升机（一副更大的旋翼）续航通常更长的原因。',
+          quiz: [{ q: '同一架飞机换成更省电的桨（效率从 5.5 提到 8 g/W），其他不变，续航大约变成？', o: ['变短', '几乎不变', '约 1.45 倍'], a: 2, why: '悬停功率 = 重量 ÷ 效率。效率变成 8 / 5.5 ≈ 1.45 倍，功率就降到 1 / 1.45，续航变成约 1.45 倍（先不算桨变重）。' }] },
+        { id: 'D1-3', name: '我歪了吗：IMU 姿态估计', lv: '线', kind: 'tune',
+          learn: [
+            ['陀螺仪：反应快，但会「漂」', '陀螺仪测的是转动速度。把速度一点点累加（积分）就得到角度。但它每次都有一点点误差，越累加越多，过一会儿角度就「漂」走了。', '闭着眼数步子走路：一开始很准，走久了就偏。'],
+            ['加速度计：不会漂，但很「吵」', '静止时，加速度计能测出重力朝哪边，算出歪了几度，误差不会累积。可电机一转，机身振动，读数就跳来跳去。', '在颠簸的车上看水平仪。'],
+            ['互补滤波：取长补短', '新角度 = α ×（旧角度 + 陀螺仪这一小步）+（1 − α）× 加速度计的角度。短时间相信陀螺仪（顺滑），长时间靠加速度计慢慢纠正（不漂）。α 也可以用「信任陀螺仪的时间 τ」来表示。四足、人形、拾光号的 IMU 都用同一个思路，讲究的会用卡尔曼滤波。', '一个反应快但会走神的人，配一个慢但靠谱的人。'],
+          ],
+          prompt: '让估计出来的角度跟上真实角度：平均误差 ≤ 1.5°、最大误差 ≤ 4.2°。先分别试试只用陀螺仪、只用加速度计，再用互补滤波调 τ。',
+          intro: '画板里白色虚线是飞机真实的倾斜角（在左右摇摆）。这颗陀螺仪每秒会漂 3°，加速度计受振动影响会抖 ±6° 左右。',
+          ctrl: [{ id: 'mode', n: '怎么估计角度', seg: [['gyro', '只用陀螺仪积分'], ['acc', '只用加速度计'], ['cf', '互补滤波']], v: 'gyro' }, { id: 'tau', n: '信任陀螺仪的时间 τ（只对互补滤波有效）', min: 0, max: 1, step: 0.02, v: 1, unit: ' 秒' }],
+          model: (v) => { const r = imuSim(v.mode, +v.tau); return [['平均误差', r.rms.toFixed(2) + '°', r.rms <= 1.5, '≤ 1.5°'], ['最大误差', r.mx.toFixed(1) + '°', r.mx <= 4.2, '≤ 4.2°'], ['相当于 α', v.mode === 'gyro' ? '1（全信陀螺仪）' : v.mode === 'acc' ? '0（全信加速度计）' : r.a.toFixed(3), true, '']]; },
+          plot: (g, W, H, v) => {
+            const r = imuSim(v.mode, +v.tau), X = (k) => 8 + (k / 800) * (W - 16), Y = (d) => H / 2 - (d / 40) * (H / 2 - 16);
+            line(g, [[8, Y(0)], [W - 8, Y(0)]], '#ffffff22', 1);
+            line(g, r.out.filter((_, k) => k % 4 === 0).map((o, i) => [X(i * 4), Y(Math.max(-40, Math.min(40, o[3])))]), '#9d96ad55', 1);
+            line(g, r.out.map((o, k) => [X(k), Y(Math.max(-40, Math.min(40, o[2])))]), '#ff7a4588', 1.2);
+            line(g, r.out.map((o, k) => [X(k), Y(o[0])]), '#ffffffcc', 1.2, [4, 3]);
+            line(g, r.out.map((o, k) => [X(k), Y(Math.max(-40, Math.min(40, o[1])))]), '#4ef0ff', 2.2);
+            txt(g, '白虚线 真实  灰 加速度计  橙 陀螺仪积分  蓝 你的估计', 8, 14);
+          },
+          sol: { mode: 'cf', tau: 0.3 },
+          after: 'τ 太小，滤波器几乎只信加速度计，抖得厉害；τ 太大，几乎只信陀螺仪，又会慢慢漂。τ 取 0.2–0.4 秒最合适（α 约 0.95–0.98）。飞控、手机转屏、四足和人形的平衡，都靠这一招或它的升级版卡尔曼滤波。' },
+        { id: 'D1-4', name: '装机接线：电池、电调、电机、飞控', lv: '面', kind: 'wire',
+          learn: [
+            ['无刷电机 + 电调', '无人机用无刷电机：三根线，要按顺序轮流通电才会转。电调（ESC）就干这件事：把电池的直流电变成三相电，按飞控给的信号决定转多快。任意对调电机的两根线，电机就反着转。', '电调像乐队指挥，三根线像三个轮流敲鼓的人。'],
+            ['四合一电调和飞控叠在一起', '小型无人机常把四个电调做在一块板上（四合一电调），飞控叠在它上面：电调把电池电压送给飞控，飞控板上自己再降压给芯片用；飞控把四路转速信号发回电调。', '楼下是配电房，楼上是控制室。'],
+            ['接收机和 GPS', '接收机收遥控器的信号（常用 SBUS、CRSF 协议），GPS 模块接飞控的串口。直升机和双旋翼的接法几乎一样，只是多了几个推自动倾斜器的舵机。', ''],
+          ],
+          prompt: '给四旋翼「云雀」接线：电池 → 电调 → 四个电机，电调和飞控互相连，再接上接收机和 GPS。',
+          types: ['BAT', 'ph', 'PWM', 'RC', 'UART'],
+          nodes: [
+            N('rx', '接收机', 0, 0, [['o', 'r', 'RC', '遥控']], '收遥控器的信号。'),
+            N('fc', '飞控（板上有 IMU）', 1, 0, [['r', 'l', 'RC', '遥控'], ['g', 'r', 'UART', '串口'], ['v', 'b', 'BAT', '供电'], ['s', 'b', 'PWM', '信号']], '飞机的小脑：IMU 就焊在飞控板上，每秒几千次算出四个电机该转多快。'),
+            N('gps', 'GPS / 北斗 + 罗盘', 2, 0, [['o', 'l', 'UART', '串口']], '告诉飞控「我在哪、机头朝哪」。'),
+            N('bat', '4S 锂电池', 0, 1, [['o', 'r', 'BAT', 'XT60']], '插头叫 XT60，能过几十安的电流。'),
+            N('esc', '四合一电调', 1, 1, [['b', 'l', 'BAT', '电池'], ['f', 't', 'BAT', '给飞控'], ['s', 't', 'PWM', '信号'], ['m1', 'r', 'ph', 'M1'], ['m2', 'r', 'ph', 'M2'], ['m3', 'b', 'ph', 'M3'], ['m4', 'b', 'ph', 'M4']], '四个电调做在一块板上，电池的大电流从这里分给四个电机。'),
+            N('m1', 'M1 左前（顺时针）', 2, 1, [['i', 'l', 'ph', '']]), N('m2', 'M2 右前（逆时针）', 3, 1, [['i', 'l', 'ph', '']]),
+            N('m3', 'M3 左后（逆时针）', 2, 2, [['i', 'l', 'ph', '']]), N('m4', 'M4 右后（顺时针）', 3, 2, [['i', 'l', 'ph', '']]),
+          ],
+          edges: [
+            ['bat.o', 'esc.b', '电池的大电流先进电调：四个电机加起来可能要几十安。'], ['esc.f', 'fc.v', '电调把电池电压送给飞控，飞控板上的稳压芯片再降到 5V、3.3V 自己用。'],
+            ['fc.s', 'esc.s', '飞控把四路转速指令（DShot 数字信号）发给电调。'], ['esc.m1', 'm1.i', '三根相线接电机，转向反了就对调任意两根。'], ['esc.m2', 'm2.i', 'M2 和 M1 转向相反。'],
+            ['esc.m3', 'm3.i', 'M3 和 M2 一样逆时针（对角同向）。'], ['esc.m4', 'm4.i', 'M4 和 M1 一样顺时针。'], ['rx.o', 'fc.r', '接收机把遥控器摇杆的位置传给飞控。'], ['gps.o', 'fc.g', 'GPS 走串口，告诉飞控「我在地球上的哪里」。'],
+          ],
+          swap: [['esc.m1', 'esc.m2', 'esc.m3', 'esc.m4']],   // 四路输出接哪个电机都行：飞控软件里可以重新指定电机顺序
+          quiz: [{ q: '装好后发现 M2 转反了，最简单的改法？', o: ['把螺旋桨反过来装', '对调 M2 的任意两根电机线（或在电调设置里改转向）', '换一个电机'], a: 1, why: '无刷电机三相线对调任意两根就反转，现在的电调也能在软件里直接改。桨装反了会把飞机往下压。' }] },
+        { id: 'D1-5', name: '把自己扶正：串级 PID', lv: '面', kind: 'tune',
+          learn: [
+            ['闭环：看偏差、去纠正', '飞控每一刻都在做同一件事：想要的角度 − 现在的角度 = 偏差，偏差越大，纠正得越猛。这叫闭环反馈。拾光号调的 Kp（3-7）、四足站稳（Q2-2）、火箭着陆（X1-2），全是这个原理。', '骑自行车：车往左歪，你就往左打一点车把。'],
+            ['P、I、D 各管什么', 'P（比例）：差多少推多少，太大会来回晃（超调）。I（积分）：慢慢消除一直存在的小偏差，比如重心偏了。D（微分）：看偏差变化得多快，提前刹车，减少晃动。', '开车跟车：P 看距离，D 看前车减速多快，I 纠正一直偏左。'],
+            ['串级：外环管角度，内环管转速', '外环：角度差多少 → 要多快的转动速度；内环：转动速度差多少 → 要多大的力矩（电机转速差）。内环比外环快好几倍。直升机、双旋翼、四旋翼的姿态控制都是这一套，区别只在最后把力矩交给谁。', '经理定目标，组长盯执行：上级慢，下级快。'],
+          ],
+          prompt: '让飞机从水平倾斜到 10°（画板里纵轴的 1）。调内环和外环增益：0.25 秒内到 90%、超调 ≤ 10%、最后误差 ≤ 3%。',
+          cv: [320, 200],
+          ctrl: [{ id: 'kr', n: '内环：角速度增益', min: 0.05, max: 1.5, step: 0.05, v: 0.1, unit: '' }, { id: 'ka', n: '外环：角度增益', min: 1, max: 15, step: 0.5, v: 2, unit: '' }],
+          model: (v) => { const r = pidSim(+v.kr, +v.ka); return [['到 90% 用时', r.rise === null ? '1 秒内没到' : r.rise.toFixed(2) + ' 秒', r.rise !== null && r.rise <= 0.25, '≤ 0.25 秒'], ['超调', r.os.toFixed(1) + '%', r.os <= 10, '≤ 10%'], ['最后误差', (r.err * 100).toFixed(1) + '%', r.err <= 0.03, '≤ 3%']]; },
+          plot: (g, W, H, v) => {
+            const r = pidSim(+v.kr, +v.ka), X = (i) => 10 + (i / (r.tr.length - 1)) * (W - 20), Y = (y) => H - 20 - (Math.max(-0.2, Math.min(1.6, y)) / 1.6) * (H - 40);
+            g.fillStyle = '#6fdc8c18'; g.fillRect(10, Y(1.03), W - 20, Y(0.97) - Y(1.03));
+            line(g, [[10, Y(1)], [W - 10, Y(1)]], '#6fdc8c88', 1, [4, 3]); line(g, [[10, Y(1.1)], [W - 10, Y(1.1)]], '#ff5d6c55', 1, [2, 4]); line(g, [[X(r.tr.length * 0.25), 10], [X(r.tr.length * 0.25), H - 20]], '#ffe08a44', 1, [2, 4]);
+            line(g, r.tr.map((y, i) => [X(i), Y(y)]), '#4ef0ff', 2.2);
+            txt(g, '目标 10°', W - 64, Y(1) - 6, '#6fdc8c'); txt(g, '超调线', W - 50, Y(1.1) - 4, '#ff8a8a'); txt(g, '0.25 秒', X(r.tr.length * 0.25) + 4, H - 6, '#ffe08a'); txt(g, '1 秒', W - 30, H - 6);
+          },
+          sol: { kr: 0.5, ka: 8 },
+          after: '内环太软，转得慢、跟不上；外环太猛，又会冲过头来回晃。真实飞控还有 I 和 D，而且总是先调内环、再调外环——从里往外调。' },
+      ] },
+      { id: 'd2', no: 2, name: '不同之处：怎么抵消反扭矩、怎么转向', short: '三种的不同', sum: '三种旋翼机真正不一样的地方：单旋翼靠尾桨和自动倾斜器，双旋翼靠两副旋翼反转和差动，四旋翼只靠四个电机的转速差。最后再学按任务选机型。', levels: [
+        { id: 'D2-1', name: '反扭矩：为什么直升机要尾桨', lv: '点', kind: 'choice',
+          learn: [
+            ['电机推桨，桨也推电机', '电机让旋翼往一个方向转，旋翼同时把电机（连同整个机身）往反方向推——这叫反扭矩，还是牛顿第三定律。不管住它，机身就会跟着往反方向打转。', '站在转椅上用力甩哑铃，椅子会往反方向转。'],
+            ['三种办法，同一个道理', '单旋翼直升机：尾桨横着吹，把机身推回来。双旋翼：两副旋翼反着转，反扭矩互相抵消。四旋翼：两个顺时针、两个逆时针，对角线上转向相同。卫星在太空里转身用的反作用飞轮，也是这个道理（进阶 X1-1）。', ''],
+          ],
+          qs: [
+            { q: '一架单旋翼直升机飞行中尾桨断了，最先发生什么？', o: [['马上掉下来', false, '主旋翼还在转，升力还在。真正的问题是方向。'], ['机身朝着和主旋翼相反的方向越转越快', true, '对：反扭矩没人抵消了。飞行员要马上减小功率（反扭矩随之变小），设法着陆。'], ['什么也不会发生', false, '尾桨就是为了抵消反扭矩才装的。']] },
+            { q: '共轴双旋翼（上下两副）为什么不需要尾桨？', o: [['因为它飞得慢', false, '和速度无关。'], ['上下两副旋翼转向相反，反扭矩互相抵消', true, '对：两股反扭矩一正一反，加起来接近零。'], ['因为它更轻', false, '和重量无关。']] },
+            { q: '四旋翼四个螺旋桨的转向应该怎么排？', o: [['四个都顺时针', false, '四股反扭矩同向相加，机身会原地打转。'], ['对角线上两个同向，相邻两个反向', true, '对：两顺两逆，反扭矩抵消；对角排布还让「转向」和「侧倾」互不干扰（D2-4 会用到）。'], ['左边两个顺时针、右边两个逆时针', false, '反扭矩能抵消，但往一侧倾斜时一边快一边慢，机身会同时打转，控制更乱。']] },
+          ] },
+        { id: 'D2-2', name: '单旋翼直升机：三种操纵', lv: '线', kind: 'wire',
+          learn: [
+            ['总距：所有桨叶一起变角度', '直升机旋翼的转速基本保持不变。想上升，就让每片桨叶都「斜一点」去切空气（桨距变大），升力变大；想下降就变小。这叫总距。', '手掌斜着伸出车窗，角度越大，被风往上抬得越厉害。'],
+            ['周期变距：转一圈里时大时小', '自动倾斜器（十字盘）让桨叶转到某个方位时桨距大、转到对面时桨距小。于是一边升力大、一边小，整个旋翼盘就往一边倾斜，拉力分出一部分往那边，飞机就往那边飞。进阶：旋翼像陀螺，效果会晚 90° 出现，所以连杆要提前 90° 装。', '划船时一边桨用力、一边轻划，船就转向。'],
+            ['尾桨桨距：管机头朝向', '尾桨推力大一点，机头往一边转；小一点，往另一边转。它在和主旋翼的反扭矩「拔河」。', ''],
+          ],
+          prompt: '把直升机的每种操纵连到它的效果上。',
+          types: ['m'],
+          nodes: [
+            N('c1', '总距（所有桨叶一起变角度）', 0, 0, [['o', 'r', 'm', '']]), N('c2', '周期变距（桨叶转一圈中角度时大时小）', 0, 1, [['o', 'r', 'm', '']]),
+            N('c3', '尾桨桨距', 0, 2, [['o', 'r', 'm', '']]), N('c4', '调速器（管发动机 / 电机转速）', 0, 3, [['o', 'r', 'm', '']]),
+            N('e1', '机头左右转（航向）', 1, 0, [['i', 'l', 'm', '']]), N('e2', '旋翼转速保持不变', 1, 1, [['i', 'l', 'm', '']]),
+            N('e3', '往前后左右倾斜着飞', 1, 2, [['i', 'l', 'm', '']]), N('e4', '上升 / 下降', 1, 3, [['i', 'l', 'm', '']]),
+          ],
+          edges: [['c1.o', 'e4.i', '桨叶角度一起变大，整副旋翼的升力变大。'], ['c2.o', 'e3.i', '旋翼盘倾斜，拉力的一部分指向要去的方向。'], ['c3.o', 'e1.i', '尾桨推力变化，和反扭矩拔河，机头就转。'], ['c4.o', 'e2.i', '加总距时阻力变大，调速器自动加油门，让旋翼转速不掉。']],
+          quiz: [{ q: '直升机想向前飞，旋翼盘应该怎么倾斜？', o: ['向后倾', '向前倾，同时加一点总距补上分走的升力', '不倾斜，只加总距'], a: 1, why: '旋翼盘向前倾，拉力就分出一部分向前；向上的部分变少了，所以还要加一点总距。' }] },
+        { id: 'D2-3', name: '双旋翼：共轴与纵列', lv: '线', kind: 'choice',
+          learn: [
+            ['共轴：上下两副，一正一反', '两副旋翼装在同一根轴上，上面和下面转向相反。反扭矩抵消了，所以没有尾桨，机身可以很短。想转向时，就让上下两副的扭矩一大一小。卡莫夫的舰载直升机、火星直升机「机智号」都是共轴。', '两个人背靠背推磨：一个用力大一点，磨盘就转起来。'],
+            ['纵列：一前一后，一正一反', '两副旋翼一前一后、转向相反（比如支奴干）。想抬头，就让前旋翼升力大、后旋翼小；想转向，就让前旋翼往一边倾、后旋翼往另一边倾。机身长、重心可以前后移动，很适合运货。', '两个人抬一根长杠子：前面的人抬高一点，杠子就翘头。'],
+          ],
+          qs: [
+            { q: '共轴双旋翼想让机头向右转，应该？', o: [['两副旋翼同时加大总距', false, '那是上升，两股反扭矩还是一样大。'], ['让上下两副旋翼的扭矩一大一小（差动总距或差动转速）', true, '对：反扭矩不再完全抵消，多出来的那一点就让机身转起来。'], ['加装一个尾桨', false, '共轴的好处就是不用尾桨。']] },
+            { q: '纵列双旋翼（支奴干）想抬头爬升，应该？', o: [['前旋翼升力加大、后旋翼减小', true, '对：前后升力差产生让机头抬起的力矩，这叫差动总距。'], ['后旋翼升力加大、前旋翼减小', false, '那会低头。'], ['两副一起加大', false, '那是整体上升，不会抬头。']] },
+            { q: '和「单旋翼 + 尾桨」比，共轴双旋翼的主要好处和代价？', o: [['好处：便宜；代价：飞不高', false, '共轴通常更贵、机械更复杂。'], ['好处：不用尾桨，功率都用来产生升力、机身短；代价：旋翼头机械复杂、机身高、上下桨要防止打到一起', true, '对：工程永远是取舍。舰船甲板小，所以舰载直升机很喜欢共轴。'], ['没有区别', false, '区别很大。']] },
+          ] },
+        { id: 'D2-4', name: '四旋翼：只靠转速差', lv: '面', kind: 'tune',
+          learn: [
+            ['四旋翼没有「舵」', '四旋翼的桨叶角度是固定的：没有自动倾斜器，也没有尾桨，只能改变四个电机的转速——一切控制都来自转速差。机械最简单，所以最便宜、最好修，这是它流行的原因。', '只有油门没有方向盘的车，靠左右轮子一快一慢来转弯。'],
+            ['四种动作', '上升：四个一起加速。往前飞：后面两个快、前面两个慢，机头往下压。往侧面飞：一侧快、一侧慢。原地转向：顺时针的两个和逆时针的两个一快一慢，反扭矩不再抵消，机身就转；总推力不变，所以高度也不变。', ''],
+            ['混控：把指令分给电机', '飞控先算出「要多大总推力、绕三个轴各要多大力矩」，再由混控分给四个电机。直升机的混控分给推自动倾斜器的三个舵机和尾桨，共轴的分给上下两副旋翼——三种飞机只有这最后一步不一样。', ''],
+          ],
+          prompt: '「云雀」俯视图：左前、右后顺时针；右前、左后逆时针。每一轮给每个电机选「减速 / 不变 / 加速」，做出指定动作，其他方向不能乱动。',
+          rounds: ['上升（其他都不变）', '低头往前飞（总推力不变）', '往右侧滚转（总推力不变）', '原地向右转：俯视顺时针（高度不变）'],
+          ctrl: [['fl', '左前（顺时针）'], ['fr', '右前（逆时针）'], ['rl', '左后（逆时针）'], ['rr', '右后（顺时针）']].map(([id, n]) => ({ id, n, seg: [['-1', '减速'], ['0', '不变'], ['1', '加速']], v: '0' })),
+          model: (v, r) => {
+            const fl = +v.fl, fr = +v.fr, rl = +v.rl, rr = +v.rr, T = fl + fr + rl + rr, P = rl + rr - fl - fr, R = fl + rl - fr - rr, Y = fr + rl - fl - rr, want = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]][r];
+            const d = (x, a, b) => (x > 0 ? a : x < 0 ? b : '不变'), need = (w, a) => (w ? a : '不变');
+            return [['高度', d(T, '上升', '下降'), Math.sign(T) === want[0], need(want[0], '上升')], ['俯仰', d(P, '低头（往前）', '抬头（往后）'), Math.sign(P) === want[1], need(want[1], '低头')], ['滚转', d(R, '往右滚', '往左滚'), Math.sign(R) === want[2], need(want[2], '往右滚')], ['偏航', d(Y, '顺时针转', '逆时针转'), Math.sign(Y) === want[3], need(want[3], '顺时针转')]];
+          },
+          plot: (g, W, H, v) => {
+            const cx = W / 2, cy = H / 2 + 6, a = 62, M = [['fl', -1, -1, 1], ['fr', 1, -1, -1], ['rl', -1, 1, -1], ['rr', 1, 1, 1]];
+            g.strokeStyle = '#6c6680'; g.lineWidth = 6; g.beginPath(); g.moveTo(cx - a, cy - a); g.lineTo(cx + a, cy + a); g.moveTo(cx + a, cy - a); g.lineTo(cx - a, cy + a); g.stroke(); g.lineWidth = 1;
+            rect(g, cx - 16, cy - 20, 32, 40, '#2b2641'); rect(g, cx - 4, cy - 26, 8, 6, '#ffe08a'); txt(g, '机头', cx - 12, cy - 30, '#ffe08a');
+            M.forEach(([k, sx, sy, cw]) => {
+              const x = cx + sx * a, y = cy + sy * a, s = +v[k], rad = 22 + s * 6, col = s > 0 ? '#ff7a45' : s < 0 ? '#7aa2ff' : '#ede6d6';
+              const a0 = cw > 0 ? -2.4 : -0.7, a1 = cw > 0 ? -0.7 : -2.4;   // 画布 y 朝下：角度变大 = 屏幕上顺时针；箭头点在弧线终点
+              g.fillStyle = col + '33'; g.beginPath(); g.arc(x, y, rad, 0, 7); g.fill(); g.strokeStyle = col; g.lineWidth = 2; g.beginPath(); g.arc(x, y, rad, a0, a1, cw < 0); g.stroke(); g.lineWidth = 1;
+              g.fillStyle = col; g.beginPath(); g.arc(x + rad * Math.cos(a1), y + rad * Math.sin(a1), 3.5, 0, 7); g.fill();
+              txt(g, cw > 0 ? '顺' : '逆', x - 6, y + 4, col, '12px sans-serif'); txt(g, s > 0 ? '加速' : s < 0 ? '减速' : '', x - 12, y + rad + 13, col);
+            });
+            txt(g, '橙 = 加速  蓝 = 减速  圆越大转得越快', 8, 14);
+          },
+          sol: [{ fl: '1', fr: '1', rl: '1', rr: '1' }, { fl: '-1', fr: '-1', rl: '1', rr: '1' }, { fl: '1', fr: '-1', rl: '1', rr: '-1' }, { fl: '-1', fr: '1', rl: '1', rr: '-1' }],
+          after: '四旋翼的全部本事就是这四种组合叠加起来。真实飞控每秒几千次算出四个电机各自的转速——你刚才做的，就是混控的工作。',
+          quiz: [{ q: '四旋翼原地转向时，为什么高度能保持不变？', o: ['因为转向时电机全部停转', '加速的两个和减速的两个推力变化抵消，总推力不变，只有反扭矩不再平衡', '因为陀螺仪'], a: 1, why: '转向靠的是反扭矩之差，不是推力之差（实际上有一点耦合，飞控会补偿）。' }] },
+        { id: 'D2-5', name: '按任务选机型', lv: '面', kind: 'choice',
+          learn: [
+            ['没有最好的，只有最合适的', '四旋翼：机械最简单、便宜、好修、悬停稳，但小桨效率低，续航和载重有限。单旋翼直升机：一副大旋翼效率高，续航长、载重大，但旋翼头和尾桨传动复杂。共轴：没有尾桨，机身紧凑。纵列：载重大、机舱长。', ''],
+            ['先任务、再形态', '和拾光号第一关（1-1）一样：先写清楚要飞多久、带多重、在哪飞、谁来操作，再选机型。还有一种常见答案叫垂直起降固定翼（复合翼）：像直升机一样起降、像飞机一样巡航，适合飞很远，这条赛道不细讲。', ''],
+          ],
+          qs: [
+            { q: '新手团队做一架航拍无人机：飞 15–20 分钟、带 200 g 相机、要便宜好修。选？', o: [['四旋翼', true, '对：只有四个电机会动，坏了换电机、换桨就行，开源飞控软件也最成熟。'], ['单旋翼直升机', false, '旋翼头和尾桨传动要精细调校，新手维护难。'], ['纵列双旋翼', false, '大材小用，机械复杂。']] },
+            { q: '要做一架大型舰载无人直升机：甲板很小、海上侧风大，机身越短越好。选？', o: [['单旋翼带长尾梁', false, '长尾梁在小甲板上转不开，尾桨也容易受侧风干扰。'], ['共轴双旋翼', true, '对：没有尾梁和尾桨，机身短，舰载直升机常用这种。'], ['四旋翼', false, '大载重时小桨效率太低，不适合大型舰载机。']] },
+            { q: '电力巡线：一次要飞 2 小时以上、带 20 kg 检测设备。在这三种里选？', o: [['四旋翼', false, '小桨效率低，带 20 kg 飞 2 小时，电池会重到飞不起来。'], ['单旋翼无人直升机（常用燃油发动机）', true, '对：一副大旋翼效率高，燃油的能量密度又远高于锂电池，适合长航时、大载重。'], ['小型共轴航模', false, '载重不够。']] },
+          ] },
+      ] },
+      { id: 'd3', no: 3, name: '同原理：自主飞行与安全', short: '自主与安全', sum: '定位、航点任务、自主飞行链路、失控保护——三种机型又完全一样了，只有最后的「混控」不同。最后把整条赛道串起来，从零做一架无人机。', levels: [
+        { id: 'D3-1', name: '我在哪：定位、高度、朝向', lv: '线', kind: 'sort',
+          learn: [
+            ['悬停在一个点，要知道三件事', '水平位置（前后左右在哪）、高度、机头朝向。每件事都有好几种传感器，室外和室内用的还不一样。', ''],
+            ['室外靠卫星，室内靠眼睛', '室外：GPS / 北斗给几米精度，RTK 用地面基站修正可到厘米级。室内收不到卫星：用朝下的光流相机看地面纹理「数步子」，或者用视觉 SLAM。高度：气压计（受风和温度影响）+ 激光或超声波测距（贴近地面时准）。朝向：磁罗盘配合陀螺仪。', '在室外看路牌，进了地下车库只能数柱子。'],
+          ],
+          prompt: '把每个传感器放进它主要负责的那件事。',
+          bins: [['out', '室外水平位置'], ['in', '室内水平位置'], ['alt', '高度'], ['head', '机头朝向']],
+          cards: [['GPS / 北斗', 'out', '几米精度，室外最常用。'], ['RTK 差分定位', 'out', '用地面基站修正，精度到厘米级：植保、测绘无人机常用。'], ['朝下的光流相机', 'in', '看地面纹理怎么移动，算出水平速度和位置。'], ['视觉 SLAM', 'in', '用相机边建地图边定位，和拾光号的导航（3-4）同一个原理。'], ['气压计', 'alt', '气压随高度降低，能测相对高度，但受风和温度影响。'], ['激光 / 超声波测距', 'alt', '直接测离地多高，起飞降落时最准。'], ['磁罗盘', 'head', '像指南针，知道机头朝哪；怕电机和铁器干扰，所以常装在高高的 GPS 支架上。']] },
+        { id: 'D3-2', name: '一次自动巡检任务', lv: '线', kind: 'order',
+          learn: [
+            ['飞前检查是保命的', '电池电量、桨叶有没有裂、螺丝紧不紧、卫星够不够、遥控器失控保护设好没有、周围有没有人和电线。很多事故都是因为跳过了检查。', '飞行员起飞前也要按检查单一项项过。'],
+            ['解锁、起飞、任务、返航', '「解锁」后电机才允许转，防止搬运时误碰。自动任务按航点一个个飞，到点拍照；电量降到预设值就自动返航。降落后先「上锁」再断电。', ''],
+          ],
+          prompt: '把一次自动巡检任务按顺序排好（有一张是陷阱）。',
+          steps: [['检查电池、桨叶、机身螺丝', '桨叶有裂纹，会在空中断开。'], ['等卫星数够、记录返航点', '返航点记错，返航就会飞去别处。'], ['确认失控保护设为「返航」', '信号丢了，飞机知道该干什么。'], ['解锁电机', '解锁后电机才会转：防止搬运时误启动。'], ['自动起飞到任务高度', '先爬到安全高度，避开树和电线。'], ['按航点巡检、拍照', '飞控依次飞向每一个航点。'], ['返航', '任务完成或电量到警戒线就回来。'], ['降落、上锁、断电', '先上锁再断电，防止误碰让桨转起来。']],
+          extra: [['电量只剩 20% 时再多飞一圈', '返航和降落也要电，遇到逆风更费电。很多摔机就发生在「再飞一会儿」。']] },
+        { id: 'D3-3', name: '自主飞行链路', lv: '面', kind: 'wire',
+          learn: [
+            ['从「去哪」到「电机转多快」', '任务规划给出航点 → 位置控制算出该往哪边倾斜（期望姿态）→ 姿态控制（你在 D1-5 调过的串级 PID）算出推力和力矩 → 混控分给每个电机。越往后越快：位置环几十赫兹，姿态环几百到上千赫兹。', '和拾光号的部署架构（5-2）一样：上级慢、下级快。'],
+            ['状态估计：把所有传感器揉在一起', 'EKF（扩展卡尔曼滤波）把 IMU、GPS、视觉里程计融合起来，给出最可信的「在哪、多快、什么姿态」。PX4、ArduPilot 这些开源飞控都是这么做的。', '几个证人的证词互相印证，比只听一个人可靠。'],
+            ['三种机型，只差最后一格', '把混控换掉，同一套链路就能飞直升机（分给自动倾斜器的舵机和尾桨）或共轴（分给上下两副旋翼）。这就是「相同原理放一起」的好处。', ''],
+          ],
+          prompt: '把「云雀」的自主飞行链路连起来：传感器 → 状态估计 → 位置控制 → 姿态控制 → 混控 → 电调。',
+          types: ['img', 'imu', 'gps', 'pose', 'wp', 'att', 'thr', 'PWM'],
+          nodes: [
+            N('cam', '相机', 0, 0, [['o', 'r', 'img', '画面']]), N('imu', 'IMU', 0, 1, [['o', 'r', 'imu', '']]), N('gps', 'GPS / RTK', 0, 2, [['o', 'r', 'gps', '']]),
+            N('vio', '视觉里程计', 1, 0, [['i', 'l', 'img', '画面'], ['o', 'r', 'pose', '位移']], '看画面里的特征点怎么移动，算出自己走了多远：没有 GPS 也能用。'),
+            N('plan', '任务规划', 1, 2, [['o', 'r', 'wp', '航点']], '巡检路线上一个个航点。'),
+            N('ekf', '状态估计 EKF', 2, 1, [['v', 'l', 'pose', '视觉'], ['u', 'l', 'imu', 'IMU'], ['g', 'l', 'gps', 'GPS'], ['o', 'r', 'pose', '位置'], ['a', 'b', 'pose', '姿态']], '融合多个传感器，输出最可信的位置、速度和姿态。'),
+            N('pos', '位置控制', 3, 1, [['s', 'l', 'pose', '现在'], ['w', 'b', 'wp', '目标'], ['o', 'r', 'att', '期望姿态']], '离目标还差多远 → 要往哪边倾斜多少（几十 Hz）。'),
+            N('att', '姿态控制（串级 PID）', 4, 1, [['i', 'l', 'att', '期望'], ['s', 'b', 'pose', '现在'], ['o', 'r', 'thr', '推力 + 力矩']], '就是 D1-5 你调的那一套（几百 Hz 以上）。'),
+            N('mix', '混控', 5, 1, [['i', 'l', 'thr', ''], ['o', 'b', 'PWM', '四路转速']], '四旋翼分给四个电机；直升机分给自动倾斜器和尾桨。'),
+            N('esc', '电调 + 电机', 5, 2, [['i', 't', 'PWM', '']]),
+          ],
+          edges: [
+            ['cam.o', 'vio.i', '视觉里程计看画面里的特征点怎么移动。'], ['vio.o', 'ekf.v', '视觉算出的位移交给 EKF。'], ['imu.o', 'ekf.u', 'IMU 每秒上千次，是 EKF 的主心骨。'], ['gps.o', 'ekf.g', 'GPS 慢但不漂，用来纠正累积的误差。'],
+            ['ekf.o', 'pos.s', '位置控制要知道「现在在哪」。'], ['plan.o', 'pos.w', '任务规划给出下一个航点。'], ['pos.o', 'att.i', '想往目标飞，就得把机身倾斜一个角度。'], ['ekf.a', 'att.s', '姿态控制要知道「现在歪了多少」。'],
+            ['att.o', 'mix.i', '算出总推力和三个轴的力矩。'], ['mix.o', 'esc.i', '分成四路转速发给电调。'],
+          ],
+          swap: [['ekf.o', 'ekf.a']],
+          quiz: [{ q: '把这套飞控改去控制一架共轴双旋翼，主要要换哪一块？', o: ['状态估计 EKF', '混控（以及执行机构的参数）', '任务规划'], a: 1, why: '感知、估计、规划、位置和姿态控制的原理都一样，只有「把推力和力矩分给谁」不同。PX4、ArduPilot 就是这样用一套代码支持多种机型的。' }] },
+        { id: 'D3-4', name: '失控保护：万一出事了', lv: '面', kind: 'choice',
+          learn: [
+            ['先想好「万一」', '遥控信号丢了、电量低了、卫星信号没了、飞出了允许范围……每种情况都要提前设好飞机自己该怎么做。这叫失控保护（Failsafe），和拾光号的看门狗（6-2）是同一个思路：失去上级指令时，进入安全状态。', ''],
+            ['电子围栏与禁飞区', '飞控里可以画一个「围栏」，飞出去就自动返航或悬停。机场、军事区等是禁飞或管制区域；正规无人机还要实名登记、遵守当地法规（进阶 X2-3）。', ''],
+          ],
+          qs: [
+            { q: '飞到 1 公里外，遥控信号突然断了。设计得好的无人机应该？', o: [['原地一直悬停，等信号回来', false, '电量会耗光，最后掉下来。'], ['按预设自动返航：先爬升到安全高度，再飞回返航点降落', true, '对：先爬高能越过路上的树和楼，这是最常用的失控保护。'], ['立刻关掉电机', false, '会直接摔下来，还可能砸到人。']] },
+            { q: '在高楼之间飞，卫星信号突然变差、位置乱跳。应该？', o: [['继续相信 GPS 自动飞', false, '位置乱跳时，自动飞行会乱冲。'], ['切到不依赖卫星的模式（定高 / 视觉定位），交给人手动或就近降落', true, '对：发现某个传感器不可信就降级，是安全设计的关键。'], ['马上自动返航', false, '返航本身要靠卫星定位，这时反而危险。']] },
+            { q: '四旋翼在空中突然断了一根桨。下面哪一项是真的？', o: [['少一根桨照样能像原来一样飞', false, '少一个电机，力矩就平衡不了。'], ['研究者演示过靠让机身快速自旋来勉强保持高度、降落，但普通机型会坠落；所以载重的多旋翼常做成六旋翼、八旋翼来留余量', true, '对：多几个电机就多一份冗余。苏黎世联邦理工学院的团队演示过四旋翼丢桨后靠自旋降落。'], ['直升机和四旋翼都不怕断桨', false, '直升机主旋翼出问题更危险。']] },
+          ] },
+        { id: 'D3-5', name: '毕业：从零做一架无人机', lv: '体', kind: 'order',
+          learn: [
+            ['把三个阶段串起来', '写需求 → 选机型（D2-5）→ 算推重比和续航（D1-2）→ 装机接线（D1-4）→ 校准传感器（D1-3）→ 调姿态（D1-5）→ 设好失控保护（D3-4）→ 自主任务（D3-2、D3-3）。直升机和双旋翼也是这条路，只是装机和混控那两步不一样。', ''],
+            ['安全地第一次起飞', '第一次通电不装桨，先确认电机转向、遥控方向都对；第一次试飞在空旷场地、低空进行，必要时用绳子拴住。PID 先保守，再一点点加。', '学车先在空场地，再上路。'],
+          ],
+          prompt: '从零做一架能自动巡检的无人机，把步骤排好（有一张是陷阱）。',
+          steps: [['写需求：飞多久、带多重、在哪飞', '先有任务，再有形态。'], ['选机型，算推重比和续航', 'D2-5、D1-2。'], ['装机接线', 'D1-4：电池、电调、电机、飞控、接收机、GPS。'], ['刷固件，校准 IMU 和罗盘，设置遥控通道', '传感器不准，后面全白费。'], ['不装桨通电：检查电机转向和遥控方向', '不装桨，出错也伤不了人。'], ['空旷场地低空试飞，从保守的 PID 开始调', 'D1-5：先内环后外环。'], ['设置失控保护和电子围栏', 'D3-4。'], ['自动航点任务试飞', 'D3-2、D3-3。'], ['看飞行日志，分析、改进', '数据飞轮在无人机上一样适用。']],
+          extra: [['第一次通电就装上桨，在室内推满油门', '电机转向或遥控方向错了，飞机会直接冲向人。']] },
+      ] },
+    ],
+    map: {
+      hw: [
+        ['机体', '机架 / 机身；直升机的旋翼头、自动倾斜器、尾桨传动；共轴的上下旋翼轴；起落架', ['D1-1', 'D2-2', 'D2-3']],
+        ['动力', '无刷电机 + 螺旋桨（多旋翼）/ 主旋翼 + 尾桨（直升机）、电调、锂电池（大型机也用燃油发动机）', ['D1-2', 'D1-4']],
+        ['飞控与传感器', '飞控、IMU、气压计、磁罗盘、GPS / RTK、光流、测距、相机', ['D1-3', 'D3-1']],
+        ['链路', '遥控器 + 接收机、数传、图传、地面站', ['D1-4', 'D3-2']],
+      ],
+      sw: [
+        ['状态估计', '互补滤波、EKF 融合 IMU / GPS / 视觉', ['D1-3', 'D3-3']],
+        ['控制', '串级 PID（角度 → 角速度）、位置控制、混控', ['D1-5', 'D2-4', 'D3-3']],
+        ['任务与安全', '航点规划、飞行模式、失控保护、电子围栏、法规', ['D3-2', 'D3-4', 'X2-3']],
+        ['开源生态', 'PX4、ArduPilot、Betaflight（穿越机）、QGroundControl 地面站', ['D3-3']],
+      ],
+    },
+    // 进度画：上排直升机、共轴，下面一架四旋翼（俯视）
+    art: (P, has, g, k) => {
+      P(has('D2-2'), 3, 4, 20, 1, '#ede6d6'); P(has('D1-1'), 8, 7, 9, 5, '#9b7bff'); P(has('D2-1'), 17, 8, 9, 1, '#6c6680'); P(has('D2-1'), 26, 6, 1, 4, '#ede6d6');   // 直升机
+      P(has('D2-3'), 30, 3, 15, 1, '#ede6d6'); P(has('D2-3'), 31, 5, 13, 1, '#ede6d6'); P(has('D2-3'), 37, 3, 1, 4, '#9d96ad'); P(has('D2-5'), 34, 7, 7, 5, '#3fd0c9');     // 共轴
+      g.strokeStyle = has('D1-4') ? '#6c6680' : '#4ef0ff88'; g.lineWidth = has('D1-4') ? 1.6 * k : 1; g.setLineDash(has('D1-4') ? [] : [3, 3]);                          // 四旋翼机臂：X 形，和 D2-4 的俯视图一致
+      g.beginPath(); g.moveTo(11.5 * k, 21 * k); g.lineTo(36.5 * k, 31 * k); g.moveTo(36.5 * k, 21 * k); g.lineTo(11.5 * k, 31 * k); g.stroke(); g.setLineDash([]); g.lineWidth = 1;
+      [[8, 20], [33, 20], [8, 30], [33, 30]].forEach(([x, y], i) => P(has('D2-4'), x, y, 7, 2, i === 0 || i === 3 ? '#ff7a45' : '#7aa2ff'));                           // 四个桨
+      P(has('D1-2'), 20, 23, 8, 6, '#e9b949'); P(has('D3-1'), 23, 19, 2, 3, '#3fd0c9'); P(has('D3-3'), 22, 30, 4, 3, '#2b2641');
+      if (has('D1-5')) { g.fillStyle = '#6fdc8c'; g.fillRect(26 * k, 24 * k, k, k); }
+      if (has('D3-4')) { g.strokeStyle = '#6fdc8c66'; g.setLineDash([3, 3]); g.strokeRect(4 * k, 15 * k, 40 * k, 24 * k); g.setLineDash([]); }
+      if (has('D3-5')) { g.fillStyle = '#ffd257'; [[42, 40], [45, 36], [40, 44]].forEach(([x, y]) => g.fillRect(x * k, y * k, k, k)); }
+    } };
+
+  // ======================================================================
+  // 四足机器狗赛道
+  // ======================================================================
+  const QUAD = { id: 'q', name: '四足机器狗 · 踏雪', short: '四足', icon: '🐕', robot: '踏雪', color: '#ffb14a',
+    req: ['0-1', '先通关序章 0-1「机器人是怎么造出来的」'],
+    blurb: '能爬楼梯、走野外的机器狗：站稳、步态、柔顺控制、强化学习。',
+    sum: '四条腿能爬楼梯、走草地和碎石，能去的地方比轮子多得多。它和拾光号用的是同一套原理——选电机、闭环控制、仿真训练、Sim2Real——只是「腿」带来了新问题：怎么站稳、怎么迈步、落地的冲击怎么吸收。<br><br>现在的四足机器狗大多是在仿真里用强化学习学会走路的。学完这条赛道，再去学人形会轻松很多：人形的平衡就是从四足的「支撑多边形」讲起的。',
+    stages: [
+      { id: 'q1', no: 1, name: '身体：站稳与腿的设计', short: '站稳与腿', sum: '静态稳定和动态稳定、一条腿怎么装才轻、关节电机为什么要「准直驱」。', levels: [
+        { id: 'Q1-1', name: '站稳：支撑多边形', lv: '点', kind: 'choice',
+          learn: [
+            ['重心要落在脚围成的区域里', '把着地的脚连起来，围成一个区域，叫支撑多边形。只要重心（整台机器的平衡点）的垂直投影落在这个区域里，站着不动也不会倒——这叫静态稳定。', '三脚架很稳，独脚架要用手扶着。'],
+            ['抬一条腿会怎样', '四条腿站着时支撑区是四边形；抬起一条腿，只剩三角形，重心要提前移进三角形。只有两条腿着地时，支撑区缩成一条线，只能靠不停地迈步保持平衡——这叫动态稳定。', '人跑步时其实一直在「往前倒，再接住自己」。'],
+            ['为什么是四条腿', '比轮子能过楼梯、碎石、草地；比两条腿更容易站稳。每条腿 3 个关节（髋部 2 个 + 膝 1 个），四条腿一共 12 个。', ''],
+          ],
+          qs: [
+            { q: '踏雪抬起左前腿。剩下三条腿围成三角形，重心的投影（红点）在三角形外面。会怎样？', ctx: '<svg class="emb-plot" viewBox="0 0 200 96"><polygon points="150,18 50,80 150,80" fill="#6fdc8c22" stroke="#6fdc8c"/><circle cx="50" cy="18" r="7" fill="none" stroke="#9d96ad" stroke-dasharray="3 3"/><circle cx="150" cy="18" r="5" fill="#ede6d6"/><circle cx="50" cy="80" r="5" fill="#ede6d6"/><circle cx="150" cy="80" r="5" fill="#ede6d6"/><circle cx="72" cy="32" r="5" fill="#ff5d6c"/><text x="22" y="12" fill="#9d96ad" font-size="8">左前（抬起）</text><text x="156" y="14" fill="#9d96ad" font-size="8">右前</text><text x="20" y="92" fill="#9d96ad" font-size="8">左后</text><text x="156" y="92" fill="#9d96ad" font-size="8">右后</text><text x="80" y="35" fill="#ff8a8a" font-size="8">重心投影</text></svg>', o: [['照样站稳', false, '重心在支撑区外，重力会把它往那边拉倒。'], ['往重心那一侧倒，除非赶快把腿放下或移动重心', true, '对：所以抬腿之前，要先把身体往另外三条腿那边挪一挪。'], ['会原地转圈', false, '和转圈无关。']] },
+            { q: '慢走（walk）时为什么一次只抬一条腿？', o: [['为了省电', false, '主要不是为了省电。'], ['始终有三条腿着地，重心一直能留在三角形里：走得慢，但每一刻都站得稳', true, '对：静态稳定，适合在复杂地形上慢慢走。'], ['因为电机不够', false, '每条腿都有自己的电机。']] },
+            { q: '小跑（trot）时对角两条腿同时抬起，只有两条腿着地。它为什么不倒？', o: [['跑得快：来不及倒下去就换腿接住了，这是动态稳定', true, '对：支撑区只是一条线，站着不动会倒，但每零点几秒就换一次腿，一直在「接住自己」。'], ['腿上有吸盘', false, '没有。'], ['它其实是三条腿着地', false, '小跑时就是两条腿着地。']] },
+          ] },
+        { id: 'Q1-2', name: '一条腿怎么装', lv: '线', kind: 'order',
+          learn: [
+            ['腿要轻，电机往身上放', '腿甩得越快越要轻：腿越重，迈一步要的力矩越大，落地冲击也越大。所以设计师把三个电机都尽量装在髋部附近，膝关节的电机用连杆或皮带「遥控」小腿。', '鞭子的手柄重、鞭梢轻，才甩得快。'],
+            ['三个关节', '髋外展（让整条腿往外张开，侧向站稳）、髋前后摆（迈步）、膝（弯曲和蹬伸）。足端是一个橡胶球，有的还能检测「脚有没有着地」。', ''],
+          ],
+          prompt: '从躯干开始，把踏雪的一条腿装起来（有一张是陷阱）。',
+          steps: [['躯干上的髋部安装座', '所有力最后都传到躯干上，安装座要够结实。'], ['髋外展关节电机', '第一个关节：让整条腿往外张开。'], ['髋前后摆关节电机', '第二个关节：迈步就靠它。'], ['膝关节电机（也装在髋部附近）', '电机放在上面，腿就轻。'], ['大腿杆', '连接髋和膝。'], ['连杆 / 皮带：把膝电机的力传到膝盖', '「遥控」小腿弯曲，小腿上不用装电机。'], ['小腿杆', '轻、细、结实。'], ['橡胶足端（能检测着地）', '缓冲冲击、防滑，告诉控制器「脚着地了」。']],
+          extra: [['在小腿末端装一个大电机', '腿末端越重，甩腿越费力、落地冲击越大，还容易把关节撞坏。']] },
+        { id: 'Q1-3', name: '关节电机：准直驱', lv: '线', kind: 'tune',
+          learn: [
+            ['腿和手臂要的不一样', '拾光号的手臂要精准、不晃，所以选了大减速比的谐波减速器（1-3）。腿却要承受落地冲击、要快速甩动，还要能「被推动」——落地时关节顺势弯一下来缓冲。', '手要稳，腿要有弹性。'],
+            ['准直驱：大电机 + 小减速比', '用扁平的大力矩电机，配 6:1–10:1 的行星减速器。减速比小，从脚底传回来的冲击能反推电机转动（反向可驱动），不会硬生生崩坏齿轮；电机还能通过电流「感觉」到受了多大的力。MIT 的 Mini Cheetah 让这种设计流行开来。', '自行车的低速挡：好蹬，被推的时候也能倒着转。'],
+            ['力矩怎么算', '和 1-3 一样：力矩 = 力 × 力臂；减速器把电机力矩放大「减速比 × 效率」倍，转速缩小「减速比」倍。', ''],
+          ],
+          prompt: '给踏雪的膝关节选「电机 + 减速器」：峰值力矩 ≥ 20 N·m、关节转速 ≥ 20 rad/s（甩腿够快）、能被反向推动（落地缓冲）。',
+          intro: '踏雪重 12 kg。小跑时只有两条腿着地，每条腿撑 6 kg × 9.8 ≈ 59 N；脚离膝关节水平最远约 0.17 m → 约 10 N·m，乘动态系数 2 → 至少 <b>20 N·m</b>。',
+          ctrl: [{ id: 'm', n: '电机', seg: [['A', 'A：小扁平电机 · 峰值 1.2 N·m · 314 rad/s'], ['B', 'B：大扁平电机 · 峰值 4 N·m · 209 rad/s']], v: 'A' }, { id: 'r', n: '减速器', seg: [['1', '不减速（直驱）'], ['6', '行星 6:1 · 效率 90%'], ['9', '行星 9:1 · 效率 90%'], ['50', '谐波 50:1 · 效率 70%']], v: '1' }],
+          model: (v) => { const M = { A: [1.2, 314], B: [4, 209] }[v.m], r = +v.r, eff = r === 1 ? 1 : r === 50 ? 0.7 : 0.9, t = M[0] * r * eff, w = M[1] / r, back = r <= 10; return [['峰值力矩', t.toFixed(1) + ' N·m', t >= 20, '≥ 20 N·m'], ['关节转速', w.toFixed(1) + ' rad/s', w >= 20, '≥ 20 rad/s'], ['能被反向推动', back ? '能（落地能缓冲）' : '不能（冲击直接打在齿轮上）', back, '能']]; },
+          sol: { m: 'B', r: '6' },
+          after: '合格的是 B + 6:1 和 B + 9:1。这和 1-3 给机械臂选电机的结论正好相反：同一个原理（力矩 × 减速比），需求不同，答案就不同。',
+          quiz: [{ q: '为什么踏雪的腿不用拾光号手臂那种 1:100 谐波减速器？', o: ['谐波减速器太便宜', '减速比太大：腿甩不快，落地冲击也推不动电机，容易崩坏齿轮', '谐波减速器太重'], a: 1, why: '腿要快、要能缓冲；手臂要准、要不晃。需求决定选型。' }] },
+      ] },
+      { id: 'q2', no: 2, name: '走起来：步态与柔顺控制', short: '步态与控制', sum: '四条腿的节奏（步态）、把腿当成带减震的弹簧（PD）、提前给上已知的力（前馈）。', levels: [
+        { id: 'Q2-1', name: '步态：四条腿怎么配合', lv: '线', kind: 'tune',
+          learn: [
+            ['步态 = 四条腿的节奏', '每条腿一个周期里，一段时间着地（支撑）、一段时间在空中（摆动）。四条腿谁先谁后、差多少，就决定了步态。画成「步态图」：每条腿一行，涂色的地方表示这条腿着地。', '乐队四个声部：各自什么时候进、什么时候停。'],
+            ['三种常见步态', '慢走 walk：按「左前 → 右后 → 右前 → 左后」轮流抬腿，每条腿 75% 的时间着地，任何时候至少三条腿着地。小跑 trot：对角两条腿一起动，最常用，又稳又省电。跳跑 bound：前两条一起、后两条一起，像兔子一样跳，快但最难控制。', ''],
+            ['相位怎么填', '一个周期记作 1。相位 0 的腿最先落地，相位 ½ 的腿晚半个周期。两条腿相位一样，就是同时动。', ''],
+          ],
+          prompt: '给每条腿选相位（出发时刻）和着地时间占比，拼出每一轮要求的步态。',
+          cv: [340, 210],
+          rounds: ['小跑 trot：对角两条腿一起动', '慢走 walk：任何时候至少三条腿着地', '跳跑 bound：前两条一起、后两条一起'],
+          ctrl: [['lf', '左前腿相位'], ['rf', '右前腿相位'], ['lh', '左后腿相位'], ['rh', '右后腿相位']].map(([id, n]) => ({ id, n, seg: [['0', '0'], ['0.25', '¼'], ['0.5', '½'], ['0.75', '¾']], v: '0' })).concat([{ id: 'duty', n: '着地时间占比', seg: [['0.5', '50%（跑）'], ['0.75', '75%（走）']], v: '0.5' }]),
+          model: (v, r) => {
+            const p = { lf: +v.lf, rf: +v.rf, lh: +v.lh, rh: +v.rh }, d = +v.duty, K = ['lf', 'rf', 'lh', 'rh'], on = (ph, t) => ((((t - ph) % 1) + 1) % 1) < d - 1e-9;
+            let mn = 4; for (let i = 0; i < 200; i++) mn = Math.min(mn, K.filter((k) => on(p[k], i / 200)).length);
+            const eq = (a, b) => Math.abs(a - b) < 1e-6, half = (a, b) => eq((((a - b) % 1) + 1) % 1, 0.5), q = (x) => (((x - p.lf) % 1) + 1) % 1;
+            const walk = eq(q(p.rh), 0.25) && eq(q(p.rf), 0.5) && eq(q(p.lh), 0.75);
+            const nm = eq(p.lf, p.rh) && eq(p.rf, p.lh) && half(p.lf, p.rf) ? 'trot' : eq(p.lf, p.rf) && eq(p.lh, p.rh) && half(p.lf, p.lh) ? 'bound' : eq(p.lf, p.lh) && eq(p.rf, p.rh) && half(p.lf, p.rf) ? 'pace' : K.every((k) => eq(p[k], p.lf)) ? 'pronk' : walk ? 'walk' : new Set(K.map((k) => p[k])).size === 4 ? 'seq' : '';
+            const NM = { trot: '小跑 trot', bound: '跳跑 bound', pace: '溜蹄 pace（同侧两条腿一起，容易左右晃）', pronk: '四腿齐跳 pronk', walk: '慢走 walk', seq: '四条腿轮流，但顺序不对（重心来不及挪）', '': '没有固定名字' };
+            const want = ['trot', 'walk', 'bound'][r], dw = r === 1 ? 0.75 : 0.5;
+            return [['你拼出的步态', NM[nm], nm === want, { trot: '小跑', walk: '慢走', bound: '跳跑' }[want]], ['着地时间占比', d * 100 + '%', d === dw, dw * 100 + '%'], ['最少几条腿着地', mn + ' 条', r !== 1 || mn >= 3, r === 1 ? '≥ 3 条' : '']];
+          },
+          plot: (g, W, H, v) => {
+            const K = [['lf', '左前'], ['rf', '右前'], ['lh', '左后'], ['rh', '右后']], d = +v.duty, x0 = 40, x1 = W - 10, X = (t) => x0 + (t / 2) * (x1 - x0), on = (ph, t) => ((((t - ph) % 1) + 1) % 1) < d - 1e-9;
+            K.forEach(([k, n], i) => { const y = 24 + i * 32; txt(g, n, 6, y + 14); rect(g, x0, y, x1 - x0, 20, '#ffffff08'); for (let s = 0; s < 400; s++) { const t = s / 200; if (on(+v[k], t)) rect(g, X(t), y, (x1 - x0) / 400 + 0.5, 20, i < 2 ? '#ffb14a' : '#ff7a45'); } });
+            const yb = 24 + 4 * 32 + 6; txt(g, '着地', 6, yb + 12);
+            for (let s = 0; s < 400; s++) { const t = s / 200, n = K.filter(([k]) => on(+v[k], t)).length; rect(g, X(t), yb + 20 - n * 5, (x1 - x0) / 400 + 0.5, n * 5, n >= 3 ? '#6fdc8c' : n === 2 ? '#ffe08a' : '#ff5d6c'); }
+            line(g, [[X(1), 18], [X(1), H - 8]], '#ffffff30', 1, [3, 3]); txt(g, '第 1 个周期', x0 + 4, 14); txt(g, '第 2 个周期', X(1) + 4, 14);
+          },
+          sol: [{ lf: '0', rf: '0.5', lh: '0.5', rh: '0', duty: '0.5' }, { lf: '0', rh: '0.25', rf: '0.5', lh: '0.75', duty: '0.75' }, { lf: '0', rf: '0', lh: '0.5', rh: '0.5', duty: '0.5' }],
+          after: '真实的四足会按速度自动换步态：慢的时候走，快一点小跑，再快就跳跑——和马一样。用强化学习训练出来的策略，常常自己就学会了在不同速度下换步态。' },
+        { id: 'Q2-2', name: '站得又稳又软：PD + 前馈', lv: '面', kind: 'tune',
+          learn: [
+            ['把腿当成弹簧', '每个关节用 PD 控制：P 像弹簧（偏离越多，拉回来的力越大），D 像减震器（动得越快，阻力越大）。整条腿合起来，就像一根带减震的弹簧腿撑着身体。', '汽车的弹簧 + 减震器。'],
+            ['太硬太软都不行', 'P 太小，身体被重力压得往下沉；P 太大，腿像钢管，落地冲击全传给齿轮，还会抖。D 太小会弹来弹去，太大又反应迟钝。阻尼比在 0.6–1.2 之间最舒服。', ''],
+            ['前馈：提前把已知的力给上', '重力是已知的：12 kg × 9.8 ≈ 118 N。与其等身体沉下去再用弹簧顶回来，不如提前算出撑住体重要的力矩，直接加上——这叫前馈。这样 P 可以设得很软，既柔顺又不下沉。四足和人形几乎都这么做。', '知道箱子多重，搬之前就先用上那份力。'],
+          ],
+          prompt: '让踏雪站稳：下沉 ≤ 2 cm、腿的刚度 Kp ≤ 3000 N/m（够软，落地不硬碰硬）、阻尼比 0.6–1.2（不弹不拖）。如果怎么调都不行，看看还有什么开关。',
+          ctrl: [{ id: 'kp', n: '刚度 Kp', min: 500, max: 6000, step: 100, v: 1000, unit: ' N/m' }, { id: 'kd', n: '阻尼 Kd', min: 20, max: 600, step: 10, v: 40, unit: ' N·s/m' }, { id: 'ff', n: '重力前馈', seg: [['off', '关'], ['on', '开：先把撑住体重的力加上']], v: 'off' }],
+          model: (v) => { const m = 12, kp = +v.kp, kd = +v.kd, sag = ((v.ff === 'on' ? 0.1 : 1) * (m * 9.8)) / kp, z = kd / (2 * Math.sqrt(kp * m)); return [['下沉', (sag * 100).toFixed(1) + ' cm', sag <= 0.02, '≤ 2 cm'], ['刚度', kp + ' N/m', kp <= 3000, '≤ 3000'], ['阻尼比', z.toFixed(2), z >= 0.6 && z <= 1.2, '0.6–1.2']]; },
+          plot: (g, W, H, v) => {
+            const m = 12, kp = +v.kp, kd = +v.kd, ff = v.ff === 'on' ? 0.9 * m * 9.8 : 0, dt = 0.001, pts = []; let x = 0, xv = 0.4, mx = 0;
+            for (let i = 0; i <= 1200; i++) { const a = (m * 9.8 - kp * x - kd * xv - ff) / m; xv += a * dt; x += xv * dt; mx = Math.max(mx, x); if (i % 6 === 0) pts.push([i / 1200, x]); }
+            const sc = Math.max(0.06, mx * 1.15), X = (t) => 12 + t * (W - 24), Y = (y) => 30 + (y / sc) * (H - 56);
+            rect(g, 12, Y(0) - 2, W - 24, Y(0.02) - Y(0) + 2, '#6fdc8c18'); line(g, [[12, Y(0)], [W - 12, Y(0)]], '#6fdc8c88', 1, [4, 3]); line(g, [[12, Y(0.02)], [W - 12, Y(0.02)]], '#ffe08a66', 1, [2, 4]);
+            line(g, pts.map(([t, y]) => [X(t), Y(y)]), '#ffb14a', 2.2);
+            txt(g, '落地后 1.2 秒内，身体往下沉了多少（越往下沉得越多）', 8, 14); txt(g, '站立高度', W - 58, Y(0) - 4, '#6fdc8c'); txt(g, '下沉 2 cm', W - 62, Y(0.02) + 12, '#ffe08a');
+          },
+          sol: { kp: 2000, kd: 250, ff: 'on' },
+          after: '不开前馈时，「不下沉」要 Kp ≥ 约 5900，「够软」要 Kp ≤ 3000，两个要求打架；打开重力前馈，弹簧只需要管剩下的一点误差，就能又软又稳。这叫「前馈 + 反馈」：已知的提前给，未知的靠闭环纠正。' },
+      ] },
+      { id: 'q3', no: 3, name: '学会走路：强化学习到真机', short: '强化学习', sum: '设计奖励让它在仿真里自己学会走路；策略吃什么、吐什么；真机上的毛病怎么诊断；最后把四足的全流程串起来。', levels: [
+        { id: 'Q3-1', name: '强化学习：设计奖励', lv: '面', kind: 'tune',
+          learn: [
+            ['强化学习 = 试错 + 打分', '不告诉机器狗「腿该怎么动」，只给它打分（奖励）：往前走了加分、摔倒扣分、费电扣分。它在仿真里摔几百万次，慢慢学会拿高分的走法。在 Isaac Lab 里几千只虚拟狗可以同时练。', '训练小狗：做对了给零食。'],
+            ['奖励设计是门手艺', '只奖励速度，它会学会怪异的抽搐、蹦跳，非常费电；能耗惩罚太重，它干脆趴着不动（「躺平」最省电）；还得惩罚身体乱晃。分数怎么配，决定它学成什么样。', '只按字数给作文打分，学生就会凑字数。'],
+            ['别忘了上真机', '和拾光号的 Sim2Sim（3-7）一样：训练时打开域随机化（随机改质量、摩擦、电机延迟，还时不时推它一把），学出来的策略才皮实，上真机才不翻车。', ''],
+          ],
+          prompt: '调三项奖励的权重，再决定训练方式：速度 ≥ 0.7 m/s、功率 ≤ 150 W、身体晃动 ≤ 5°、真机成功率 ≥ 80%。',
+          ctrl: [{ id: 'wv', n: '前进速度奖励', min: 0, max: 2, step: 0.1, v: 1, unit: '' }, { id: 'we', n: '能耗惩罚', min: 0, max: 1, step: 0.05, v: 0, unit: '' }, { id: 'wp', n: '身体晃动惩罚', min: 0, max: 1, step: 0.05, v: 0, unit: '' }, { id: 'dr', n: '训练方式', seg: [['off', '固定参数'], ['on', '域随机化 + 随机推一把']], v: 'off' }],
+          model: (v) => {
+            const wv = +v.wv, we = +v.we, wp = +v.wp, sp = (1.5 * wv) / (wv + 2 * we + 0.2) / (1 + 0.4 * wp), en = 50 + (200 * wv) / (1 + 12 * we), wob = (12 / (1 + 6 * wp)) * (0.5 + 0.5 * Math.min(wv, 1.5)), real = v.dr === 'on' ? 88 : 30;
+            const look = sp < 0.2 ? '（学会了躺平）' : en > 200 ? '（抽搐着往前蹦）' : wob > 8 ? '（摇头晃脑）' : '';
+            return [['仿真里的速度', sp.toFixed(2) + ' m/s' + look, sp >= 0.7, '≥ 0.7 m/s'], ['功率', en.toFixed(0) + ' W', en <= 150, '≤ 150 W'], ['身体晃动', wob.toFixed(1) + '°', wob <= 5, '≤ 5°'], ['真机成功率', real + '%', real >= 80, '≥ 80%']];
+          },
+          sol: { wv: 1, we: 0.1, wp: 0.3, dr: 'on' },
+          after: '没有唯一的标准答案，只有一片可行区。真实项目的奖励往往有十几项（脚抬多高、步频、别撞关节限位……），调奖励、看视频、再调，是训练工程师的日常。' },
+        { id: 'Q3-2', name: '策略的输入和输出', lv: '面', kind: 'wire',
+          learn: [
+            ['盲走：只靠身体的感觉', '很多四足的行走策略不用相机，只用「本体感觉」：IMU（身体转得多快、重力朝哪）、12 个关节的角度和速度，再加上遥控给的速度指令。就这些，已经能走楼梯、草地和碎石。', '闭着眼也能凭脚感上楼梯。'],
+            ['策略慢，PD 快', '策略网络每秒算 50 次左右，输出 12 个关节的目标角度；关节驱动器里的 PD 每秒上千次，把目标角度变成电流。又是「上级慢、下级快」（5-2、D3-3）。', ''],
+          ],
+          prompt: '把踏雪的行走策略连起来：感觉 → 策略 → PD → 电机。',
+          types: ['vel', 'imu', 'joint', 'act', 'cur'],
+          nodes: [
+            N('pad', '遥控手柄', 0, 0, [['o', 'r', 'vel', '速度指令']], '「往前 0.8 m/s、左转一点」。'), N('imu', 'IMU（躯干）', 0, 1, [['o', 'r', 'imu', '']], '身体转得多快、重力朝哪边。'),
+            N('enc', '12 个关节编码器', 0, 2, [['a', 'r', 'joint', '给策略'], ['b', 'b', 'joint', '给 PD']], '每个关节的角度和速度。'),
+            N('pol', '行走策略网络（约 50 Hz）', 1, 1, [['v', 'l', 'vel', '指令'], ['i', 'l', 'imu', '身体'], ['j', 'l', 'joint', '关节'], ['o', 'r', 'act', '目标角度']], '在仿真里用强化学习练出来的小神经网络。'),
+            N('pd', '关节 PD（约 1 kHz 以上）', 2, 1, [['a', 'l', 'act', '目标'], ['j', 'b', 'joint', '现在'], ['o', 'r', 'cur', '电流']], '目标角度和现在的角度一比，算出该给多大电流。'),
+            N('mot', '12 个关节电机', 3, 1, [['i', 'l', 'cur', '']]),
+          ],
+          edges: [['pad.o', 'pol.v', '策略要知道你想让它往哪走、多快。'], ['imu.o', 'pol.i', '身体有没有歪，是平衡的关键。'], ['enc.a', 'pol.j', '腿现在是什么姿势。'], ['pol.o', 'pd.a', '每 20 毫秒给一次 12 个关节的目标角度。'], ['enc.b', 'pd.j', 'PD 要比较目标和现在差多少。'], ['pd.o', 'mot.i', '每毫秒更新电流，让关节像弹簧一样跟着目标走。']],
+          swap: [['enc.a', 'enc.b']],
+          quiz: [{ q: '这个策略没用相机，为什么还能上楼梯？', o: ['它偷偷用了相机', '脚踢到台阶时，关节和 IMU 能感觉到；策略在仿真里练过各种台阶，学会了「踢到就抬高」', '楼梯是假的'], a: 1, why: '靠本体感觉的「盲走」很皮实；想走得更聪明（提前看到台阶），再加上深度相机或雷达的地形图。' }] },
+        { id: 'Q3-3', name: '真机诊断：看症状找原因', lv: '面', kind: 'choice',
+          learn: [['仿真里会走，真机上歪歪扭扭', '常见原因：仿真里的电机太理想（没有延迟、力矩想多快有多快）、摩擦不准、真机的零位没标好、IMU 装反了。办法：在仿真里加电机模型和延迟、做域随机化、认真做零位标定。还是「看症状 → 猜原因 → 改一个 → 再测」（5-5）。', '看病：先看症状，再做检查，最后开药。']],
+          qs: [
+            { q: '踏雪在仿真里走得很好，上了真机就原地剧烈抖动。最可能是？', o: [['仿真里没有模拟电机和通信的延迟，策略在真机上「慢半拍」，越纠正越抖', true, '对：给仿真加上延迟和电机模型（甚至用真实数据训练一个电机网络），是 Sim2Real 的关键一步。'], ['电池电量太高', false, '和电量无关。'], ['遥控器离得太远', false, '那是失控问题，不是抖动。']] },
+            { q: '踏雪走路总是慢慢往左偏，左右腿看起来一样。先查什么？', o: [['关节零位：某条腿的零位差了几度，站姿就歪了', true, '对：和拾光号的零位标定（2-7）一样，零位不准，所有动作都会偏。'], ['换一块更大的电池', false, '和电池无关。'], ['调高步频', false, '只会更快地往左偏。']] },
+            { q: '在瓷砖地上走得好好的，一到湿滑地面就劈叉滑倒。最好的办法？', o: [['训练时随机改变地面摩擦（域随机化），并在奖励里惩罚脚底打滑', true, '对：让策略见过各种「滑」，它就会学会小步走、脚踩稳。'], ['让电机力气更大', false, '力气越大越容易打滑。'], ['只在瓷砖上用', false, '用户家里什么地面都有。']] },
+          ] },
+        { id: 'Q3-4', name: '毕业：踏雪上楼梯', lv: '体', kind: 'order',
+          learn: [
+            ['四足的全流程', '和拾光号的六个阶段一模一样，只是每一步换成了「腿」：需求 → 本体（腿和准直驱电机）→ 仿真（URDF + 电机模型）→ 强化学习（奖励、域随机化、课程）→ Sim2Sim → 真机 → 迭代。', ''],
+            ['课程学习：先易后难', '一上来就练楼梯，策略什么也学不会。先在平地练，过关了自动加一点坡度和台阶高度，难度一级一级往上——这叫课程学习，和你学这门课的方式一样。', '先学 1 + 1，再学微积分。'],
+          ],
+          prompt: '让踏雪学会上楼梯，把开发步骤排好（有一张是陷阱）。',
+          steps: [['写需求：要上 15 cm 的台阶、能走草地', '先有任务。'], ['设计腿和准直驱关节（Q1-2、Q1-3）', '腿轻，电机能缓冲。'], ['URDF + 电机模型和延迟，导入 Isaac Lab', 'Q3-3：电机模型不准，真机会抖。'], ['设计奖励，在平地上并行训练（Q3-1）', '几千只虚拟狗同时练。'], ['课程学习：坡度和台阶一级级加高', '先易后难。'], ['域随机化：质量、摩擦、延迟、推一把', '学得皮实。'], ['换到 MuJoCo 做 Sim2Sim 验证', '换个仿真器再考一次（3-7）。'], ['真机：吊着安全绳，先平地、再台阶', '摔不坏、伤不了人。'], ['收集失败片段，补训练、再部署', '数据飞轮。']],
+          extra: [['让真机直接在楼梯上从零开始试错学习', '真机要摔几十万次才学得会：机器狗会摔坏，也太慢、太危险。所以要先在仿真里学。']] },
+      ] },
+    ],
+    map: {
+      hw: [['腿', '髋外展 + 髋前后 + 膝，三个电机都靠近躯干，膝用连杆 / 皮带传动；橡胶足端', ['Q1-2']], ['关节', '准直驱：大力矩扁平电机 + 6:1–10:1 行星减速，能反向推动', ['Q1-3']], ['感知', 'IMU、关节编码器、足端着地检测；可选深度相机 / 激光雷达看地形', ['Q3-2']]],
+      sw: [['平衡与步态', '支撑多边形、walk / trot / bound', ['Q1-1', 'Q2-1']], ['控制', '关节 PD + 重力前馈，策略 50 Hz、PD 1 kHz 以上', ['Q2-2', 'Q3-2']], ['学习', '强化学习奖励设计、域随机化、课程学习、Sim2Sim', ['Q3-1', 'Q3-3', 'Q3-4']]],
+    },
+    art: (P, has, g, k) => {
+      P(has('Q1-2'), 10, 18, 24, 7, '#ede6d6'); P(has('Q3-2'), 33, 13, 8, 7, '#ede6d6'); P(has('Q3-2'), 40, 15, 2, 3, '#2b2641');   // 身体、头
+      [[12, 0], [16, 1], [28, 0], [32, 1]].forEach(([x, b]) => { P(has('Q1-3'), x, 25, 3, 7, b ? '#9d96ad' : '#6c6680'); P(has('Q1-3'), x + (b ? -1 : 1), 32, 2, 7, b ? '#9d96ad' : '#6c6680'); P(has('Q1-1'), x + (b ? -2 : 1), 39, 3, 2, '#2b2641'); });
+      if (has('Q2-2')) { g.fillStyle = '#ffb14a'; g.fillRect(14 * k, 20 * k, 16 * k, k); }
+      if (has('Q3-1')) { g.fillStyle = '#4ef0ff'; g.fillRect(36 * k, 15 * k, k, k); }
+      if (has('Q3-4')) { g.fillStyle = '#6c6680'; [[38, 41, 10], [42, 37, 6], [45, 33, 3]].forEach(([x, y, w]) => g.fillRect(x * k, y * k, w * k, (48 - y) * k)); }
+    } };
+
+  // ======================================================================
+  // 人形机器人赛道
+  // ======================================================================
+  const HUMAN = { id: 'h', name: '人形机器人 · 行者', short: '人形', icon: '🧍', robot: '行者', color: '#9b7bff',
+    req: ['Q1-1', '先通关四足 Q1-1「站稳：支撑多边形」——人形的平衡从那里讲起'],
+    blurb: '最像人、也最难：自由度预算、48V + EtherCAT、倒立摆与捕获点、双系统大脑、数据金字塔。',
+    sum: '人形机器人最像人：能直接用人的工具、走人的楼梯，在为人设计的环境里干活。它也最难：只有两只脚，站着都要不停地调整；全身三四十个关节要一起协调；还要一双灵巧的手。<br><br>它几乎把前面学过的原理全用上了：力矩与减速、电源与总线、IMU、闭环控制、控制分层、强化学习、仿真与域随机化、示教数据、安全兜底。',
+    stages: [
+      { id: 'h1', no: 1, name: '全身：自由度与总线', short: '自由度与总线', sum: '要几个关节、钱花在哪里；48V 供电和 EtherCAT 总线怎么把三四十个关节串起来。', levels: [
+        { id: 'H1-1', name: '自由度预算', lv: '点', kind: 'tune',
+          learn: [
+            ['每个自由度都要钱', '人形的每个关节都是一个关节模组（电机 + 减速器 + 编码器 + 驱动板）。腿要大力矩，最贵；灵巧手一只就有 6 到二十多个自由度，又小又精密，也很贵。', ''],
+            ['最少要几个', '一条腿要 6 个：髋 3 + 膝 1 + 踝 2，脚掌才能在空间里任意放、任意斜。一条手臂至少 6 个（肩 3 + 肘 1 + 腕 2），7 个更灵活，能绕开障碍。腰至少 1 个才能转身。想拧瓶盖，夹爪不够，要灵巧手。', '人的一条胳膊大约 7 个自由度。'],
+          ],
+          prompt: '在 ¥100,000 预算内设计「行者」：能走、手能任意摆姿态、能转身、能拧瓶盖。',
+          intro: '每个自由度的价格（教学近似）：腿 ¥3,000 · 手臂 ¥1,500 · 腰 ¥3,000 · 头 ¥500；手：夹爪一只 ¥2,000（1 个自由度），灵巧手一只 ¥20,000（6 个自由度）。',
+          ctrl: [{ id: 'leg', n: '每条腿', seg: [['4', '4 个'], ['5', '5 个'], ['6', '6 个']], v: '4' }, { id: 'arm', n: '每条手臂', seg: [['4', '4 个'], ['5', '5 个'], ['6', '6 个'], ['7', '7 个']], v: '4' }, { id: 'waist', n: '腰', seg: [['0', '不能动'], ['1', '1 个（转身）'], ['3', '3 个（转身 + 弯腰 + 侧弯）']], v: '0' }, { id: 'hand', n: '手', seg: [['g', '夹爪'], ['d', '灵巧手']], v: 'g' }, { id: 'head', n: '头', seg: [['0', '不能动'], ['2', '2 个（点头 + 转头）']], v: '0' }],
+          model: (v) => {
+            const lg = +v.leg, ar = +v.arm, wa = +v.waist, hd = v.hand === 'd', he = +v.head, dof = 2 * lg + 2 * ar + wa + (hd ? 12 : 2) + he, cost = 2 * lg * 3000 + 2 * ar * 1500 + wa * 3000 + (hd ? 40000 : 4000) + he * 500;
+            return [['总自由度', dof + ' 个', true, ''], ['能走（脚能任意放）', lg >= 6 ? '能' : '不能', lg >= 6, '每条腿 ≥ 6'], ['手能任意摆姿态', ar >= 6 ? '能' : '不能', ar >= 6, '每条臂 ≥ 6'], ['能转身', wa >= 1 ? '能' : '不能', wa >= 1, '腰 ≥ 1'], ['能拧瓶盖', hd ? '能' : '不能', hd, '灵巧手'], ['成本', '¥' + cost.toLocaleString('en-US'), cost <= 100000, '≤ ¥100,000']];
+          },
+          sol: { leg: '6', arm: '6', waist: '1', hand: 'd', head: '0' },
+          after: '合格方案只有几种：腿 6、手臂 6 或 7、腰 1、灵巧手，头可动可不动——一共 37 个左右的自由度，其中灵巧手就占了 12 个、钱占了四成。真实产品也常在这里取舍：很多人形先用简单的手，甚至不装手。' },
+        { id: 'H1-2', name: '全身接线：48V 与 EtherCAT', lv: '面', kind: 'wire',
+          learn: [
+            ['电压高一点，线细一点', '人形的腿在跳跃、下蹲时功率很大。功率 = 电压 × 电流：用 48V 比 24V，同样的功率电流减半，线可以更细、更轻、发热更少。', '高压输电也是这个道理。'],
+            ['EtherCAT：一根网线串起所有关节', '三四十个关节都要每毫秒准时刷新。EtherCAT 的数据帧像一列火车，从主控出发依次经过每个关节，每个关节在火车「路过」时读走自己的指令、写入自己的状态，绕一圈只要很短的时间。拾光号用的 CAN（2-5）更简单，但速度和节点数有限。', '火车每站上下客，不用停很久。'],
+            ['两台电脑', '运动控制电脑负责实时控制（平衡、关节），AI 电脑负责看、听、想，两者用网线连起来。和拾光号一样：会想的和准时的分开。', ''],
+          ],
+          prompt: '给「行者」接电源和总线：48V 经过急停和配电分给三个部分，EtherCAT 从主控出发串过每个部分。',
+          types: ['48V', 'ECAT', 'ETH'],
+          nodes: [
+            N('ai', 'AI 电脑（看、听、想）', 0, 0, [['o', 'r', 'ETH', '网口']], '跑视觉和语言模型，告诉运动控制「去哪、做什么」。'),
+            N('mc', '运动控制电脑（EtherCAT 主站）', 1, 0, [['a', 'l', 'ETH', '网口'], ['o', 'r', 'ECAT', '总线出']], '每毫秒算一次全身平衡，发出所有关节的指令。'),
+            N('bat', '48V 电池', 0, 2, [['o', 'r', '48V', '']]),
+            N('pd', '急停 + 配电', 1, 2, [['i', 'l', '48V', '输入'], ['a', 'r', '48V', '左腿'], ['b', 'r', '48V', '右腿'], ['c', 'r', '48V', '上身']], '急停一按，所有关节断电并刹住。每一路都有保险丝。'),
+            N('ll', '左腿 6 个关节', 2, 0, [['i', 'l', 'ECAT', '总线进'], ['p', 'l', '48V', '电'], ['o', 'b', 'ECAT', '总线出']]),
+            N('rl', '右腿 6 个关节', 2, 1, [['i', 't', 'ECAT', '总线进'], ['p', 'l', '48V', '电'], ['o', 'b', 'ECAT', '总线出']]),
+            N('ub', '腰 + 双臂 + 灵巧手', 2, 2, [['i', 't', 'ECAT', '总线进'], ['p', 'l', '48V', '电']]),
+          ],
+          edges: [['bat.o', 'pd.i', '电池先过急停和配电。'], ['pd.a', 'll.p', '每个部分单独一路电，带保险丝。'], ['pd.b', 'rl.p', '右腿一路。'], ['pd.c', 'ub.p', '上身一路。'], ['ai.o', 'mc.a', 'AI 电脑把「要做什么」发给运动控制。'], ['mc.o', 'll.i', 'EtherCAT 从主站出发。'], ['ll.o', 'rl.i', '数据帧穿过左腿的 6 个关节，再进右腿。'], ['rl.o', 'ub.i', '最后经过腰、双臂和手，再绕回主站。']],
+          swap: [['pd.a', 'pd.b', 'pd.c']],
+          quiz: [{ q: '为什么 AI 电脑不直接控制关节，要多一台运动控制电脑？', o: ['因为 AI 电脑太便宜', 'AI 模型算一次要几十毫秒、还可能卡顿；平衡控制必须每毫秒准时，交给专门的实时电脑', '为了好看'], a: 1, why: '「会想」和「准时」分开，是所有机器人的共同原则（1-2、5-2、Q3-2）。' }] },
+      ] },
+      { id: 'h2', no: 2, name: '平衡：倒立摆与全身控制', short: '平衡与控制', sum: '把人看成倒立摆：ZMP 和捕获点；慢思考 + 快反应的双系统大脑；摔倒了怎么保护自己。', levels: [
+        { id: 'H2-1', name: '被推了一下，往哪迈一步', lv: '线', kind: 'tune',
+          learn: [
+            ['人站着就是一根倒立摆', '把身体想成顶在一根杆子上的一个球（重心），杆子下端是脚。它天生想倒：歪一点，就倒得越来越快。重心高 0.9 m 时，「倒下有多快」由 ω = √(g ÷ 高度) ≈ 3.3 决定。', '手掌上竖一根扫帚。'],
+            ['ZMP：脚底压力的「合力点」', '脚底每一点都在受力，合起来的那一点叫零力矩点（ZMP）。它必须落在脚掌范围内，不然脚就会翻起来——和四足的支撑多边形（Q1-1）是同一个原理。', ''],
+            ['捕获点：迈到那里就能停下', '被推了一下、有了速度 v，只要把脚迈到「捕获点」——现在的位置 + v ÷ ω——就能刚好停在脚的正上方。迈近了会继续往前倒，迈远了又会往回倒。', '扫帚要倒时，手往倒的方向挪一下接住它。'],
+          ],
+          prompt: '「行者」站着被推了一下。每一轮选好迈步的位置（相对现在重心，前 +、后 −），让它刚好停住（误差 ≤ 2 cm）。用捕获点公式算一算，或者看画板慢慢试。',
+          rounds: ['被往前推，速度 0.3 m/s', '被往前推得更狠，速度 0.6 m/s', '被往后拽，速度 0.45 m/s'],
+          ctrl: [{ id: 'p', n: '迈步位置', min: -0.4, max: 0.4, step: 0.01, v: 0, unit: ' m' }],
+          model: (v, r) => {
+            const w = Math.sqrt(9.8 / 0.9), vel = [0.3, 0.6, -0.45][r], d = +v.p - vel / w, near = vel > 0 ? d < 0 : d > 0, ok = Math.abs(d) <= 0.02, dir = vel > 0 ? '前' : '后';
+            return [['被推的速度', '往' + dir + ' ' + Math.abs(vel) + ' m/s', true, ''], ['结果', ok ? '稳稳停住' : near ? '迈得不够：继续往' + dir + '倒' : '迈过头：又往回倒', ok, '停住']];
+          },
+          plot: (g, W, H, v, r) => {
+            const w = Math.sqrt(9.8 / 0.9), vel = [0.3, 0.6, -0.45][r], p = +v.p, X = (x) => W / 2 + x * (W / 1.3), gy = H - 24, zy = 40;
+            line(g, [[10, gy], [W - 10, gy]], '#6c6680', 2); rect(g, X(0) - 10, gy - 4, 20, 4, '#9d96ad66'); rect(g, X(p) - 10, gy - 4, 20, 4, '#9b7bff');
+            const pts = []; let fall = 0; for (let i = 0; i <= 60; i++) { const t = i * 0.02, x = p + (0 - p) * Math.cosh(w * t) + (vel / w) * Math.sinh(w * t); if (Math.abs(x) > 0.62) { fall = Math.sign(x); break; } pts.push([t, x]); }
+            pts.forEach(([t, x], i) => { if (i % 10) return; g.globalAlpha = 0.25 + (0.6 * i) / pts.length; line(g, [[X(i ? p : 0), gy - 4], [X(x), zy]], '#ede6d6', 1.5); g.globalAlpha = 1; });
+            const last = pts[pts.length - 1][1]; line(g, [[X(p), gy - 4], [X(last), zy]], '#9b7bff', 3); g.fillStyle = '#ffb14a'; g.beginPath(); g.arc(X(last), zy, 9, 0, 7); g.fill();
+            line(g, pts.map(([, x]) => [X(x), zy]), '#ffb14a88', 2);
+            g.strokeStyle = '#ff7a45'; g.lineWidth = 2; g.beginPath(); g.moveTo(X(0), zy - 18); g.lineTo(X(0) + Math.sign(vel) * 28, zy - 18); g.stroke(); g.lineWidth = 1; txt(g, '推', X(0) + Math.sign(vel) * 30 - (vel < 0 ? 12 : 0), zy - 14, '#ff7a45');
+            txt(g, fall ? '摔倒了' : '1.2 秒后', 8, 14, fall ? '#ff8a8a' : '#9d96ad'); txt(g, '紫 = 迈出去的脚  灰 = 原来的脚  橙 = 重心', 8, H - 6);
+          },
+          sol: [{ p: 0.09 }, { p: 0.18 }, { p: -0.14 }],
+          after: '推得越狠，要迈得越远；一旦超过腿能迈的最大距离，一步就救不回来，要连续迈好几步（或者启动摔倒保护）。真实的人形会把「往哪迈」「上身怎么摆」交给 MPC（模型预测控制）或强化学习策略实时算。' },
+        { id: 'H2-2', name: '双系统大脑：慢思考 + 快反应', lv: '面', kind: 'wire',
+          learn: [
+            ['一个模型干不了所有事', '听懂「把红色的杯子放进水槽」要大模型，算一次很慢（一秒几次）；可手要稳稳地抓、身体要一直保持平衡，需要每秒几百次以上的反应。所以现在的人形大脑常常分两层：系统 2 慢思考（视觉语言大模型），系统 1 快反应（动作策略）。NVIDIA 的 GR00T N1、Figure 的 Helix 都是这种思路。', '你想「去拿杯子」很慢，手指抓握的微调是下意识的。'],
+            ['下肢和上身分工', '走路和平衡交给专门训练的行走策略（强化学习，和踏雪一样）；上身和手的动作来自系统 1；全身控制器（WBC）把两边合起来，保证不摔倒、不撞关节限位，再发给关节。', ''],
+          ],
+          prompt: '把「行者」的大脑连起来：看和听 → 慢思考 → 快反应 → 行走策略和全身控制 → 关节。',
+          types: ['img', 'text', 'tok', 'joint', 'act', 'vel', 'imu', 'traj', 'cmd'],
+          nodes: [
+            N('cam', '头部相机', 0, 0, [['o', 'r', 'img', '画面']]), N('ins', '语音指令（已转文字）', 0, 1, [['o', 'r', 'text', '文字']]),
+            N('s2', '系统 2：慢思考', 1, 0, [['i', 'l', 'img', '画面'], ['t', 'l', 'text', '指令'], ['o', 'r', 'tok', '意图']], '视觉语言大模型，约每秒 7–10 次：看懂场景、听懂指令，想清楚下一步要干什么。'),
+            N('enc', '关节状态', 1, 2, [['o', 'r', 'joint', '']]),
+            N('s1', '系统 1：快反应', 2, 1, [['f', 'l', 'tok', '意图'], ['s', 'l', 'joint', '状态'], ['a', 'r', 'act', '上身动作'], ['w', 'b', 'vel', '走路指令']], '动作策略，每秒上百次：把意图变成连续的手臂和手指动作。'),
+            N('imu', 'IMU', 2, 3, [['o', 'r', 'imu', '']]),
+            N('loco', '行走策略', 3, 2, [['v', 'l', 'vel', '去哪'], ['i', 'l', 'imu', '平衡'], ['o', 'r', 'traj', '下肢目标']], '强化学习练出来的，约 50 Hz，和踏雪的一样。'),
+            N('wbc', '全身控制 WBC', 4, 1, [['a', 'l', 'act', '上身'], ['l', 'b', 'traj', '下肢'], ['o', 'r', 'cmd', '关节指令']], '约 500 Hz–1 kHz：把上身和下肢合在一起，保证重心稳、不撞限位。'),
+            N('jnt', '全身关节', 5, 1, [['i', 'l', 'cmd', '']]),
+          ],
+          edges: [['cam.o', 's2.i', '大模型看画面。'], ['ins.o', 's2.t', '也听懂指令。'], ['s2.o', 's1.f', '把「下一步干什么」的意图交给快反应的系统 1。'], ['enc.o', 's1.s', '系统 1 要知道手臂现在的姿态。'], ['s1.a', 'wbc.a', '上身和手的动作交给全身控制。'], ['s1.w', 'loco.v', '要走到哪，交给行走策略。'], ['imu.o', 'loco.i', '行走靠 IMU 保持平衡。'], ['loco.o', 'wbc.l', '下肢的目标也交给全身控制。'], ['wbc.o', 'jnt.i', '合在一起，发给全身关节。']],
+          quiz: [{ q: '如果只用一个大模型直接输出全身关节指令，最大的问题是？', o: ['大模型太聪明', '太慢：一秒几次的指令控制不了平衡，人形会摔倒', '没有问题'], a: 1, why: '分层是因为「快」和「聪明」很难兼得：上层负责聪明，下层负责快。' }] },
+        { id: 'H2-3', name: '会摔倒，也要会保护', lv: '面', kind: 'choice',
+          learn: [
+            ['人形一定会摔', '两只脚、重心高，被绊一下、踩空一下都可能摔。设计时就要假设它会摔，做好三件事：检测（IMU 发现倾角和转速超过阈值）、保护（降低重心、用手臂缓冲、关节变软免得崩齿轮）、爬起来（专门训练的起身动作）。', ''],
+            ['测试时的安全', '早期测试一定要用吊架（安全绳）挂着；划出隔离区，人不进去；急停按钮在手边。和拾光号的层层设防（6-2）一样。', ''],
+          ],
+          qs: [
+            { q: '「行者」开始往后倒，已经救不回来了。哪种做法最好？', o: [['所有关节锁死，保持站姿', false, '像木头一样直挺挺地倒下，冲击全打在一个点上，最容易摔坏。'], ['屈膝下蹲降低重心、手臂往后撑缓冲，关节调软', true, '对：和人摔倒时的本能一样。很多团队会用强化学习专门训练「摔倒保护」和「起身」动作。'], ['马上切断所有电源', false, '断电后关节完全没力，会软塌塌地砸下去，也没法缓冲。']] },
+            { q: '第一次在真机上试新训练的行走策略，应该？', o: [['在办公室人多的地方试，方便大家看', false, '危险。'], ['吊着安全绳，在隔离区里试，急停按钮在手边', true, '对：吊架让它摔不到地上，隔离区保证人不在旁边。'], ['直接上楼梯，看看极限在哪', false, '先平地，再一步步加难度。']] },
+            { q: '靠什么判断「要摔了」？', o: [['看相机画面', false, '太慢，也不可靠。'], ['IMU 测到身体倾角或转速超过阈值，或者脚底力传感器显示 ZMP 跑到了脚掌边缘', true, '对：IMU 和脚底的力是平衡最直接的「感觉」（D1-3 的姿态估计在这里一样重要）。'], ['听声音', false, '来不及。']] },
+          ] },
+      ] },
+      { id: 'h3', no: 3, name: '学本事：数据与开发', short: '数据与开发', sum: '数据从哪来（数据金字塔）、怎么把人的动作变成机器人的动作，最后把人形的开发顺序排一遍。', levels: [
+        { id: 'H3-1', name: '数据金字塔', lv: '线', kind: 'sort',
+          learn: [
+            ['人形的数据从哪来', '底层：互联网上海量的人类视频——学「世界长什么样、人怎么做事」，但没有机器人的动作数据。中层：仿真和合成数据——能大量生成、标签精确，但和现实有差距。顶层：真机遥操作数据——最真实，但最少、最贵。NVIDIA 把它叫作「数据金字塔」，训练时三层混着用。', '课外书、模拟题、真题。'],
+            ['和拾光号的混合训练一样', '大量便宜的数据学通用本事，少量真实的数据对齐现实（4-4）。', ''],
+          ],
+          prompt: '把每种数据放进金字塔的哪一层。',
+          bins: [['web', '底层：互联网视频'], ['sim', '中层：仿真与合成'], ['real', '顶层：真机遥操作']],
+          cards: [['网上的做饭教学视频', 'web', '数量巨大，能学到人是怎么做事的，但没有机器人的关节数据。'], ['第一视角拍的日常生活视频', 'web', '学「从眼睛看出去」的世界。'], ['Isaac Lab 里自动生成的抓取动作', 'sim', '一晚上几万条，标签精确。'], ['用生成模型把一条演示变成一千条不同场景的', 'sim', '合成数据：换光线、换桌布、换物体。'], ['戴 VR 头显和动捕手套操纵行者叠衣服', 'real', '最真实、最贵：一个人一天只能采几百条。'], ['真机工作时记录下来的失败片段', 'real', '数据飞轮：针对性最强。']],
+          quiz: [{ q: '只用顶层的真机数据训练，最大的问题是？', o: ['太真实了', '太少太贵，模型见识不够，换个场景就不会了', '没有问题'], a: 1, why: '所以要用底层和中层的海量数据打底。' }] },
+        { id: 'H3-2', name: '从人的动作到机器人的动作', lv: '线', kind: 'order',
+          learn: [
+            ['动作捕捉', '光学动捕（身上贴反光点，周围一圈相机）、惯性动捕（穿一套带 IMU 的衣服），甚至直接从普通视频里估计人的姿势，都能得到人体骨架每一刻的关节角。', ''],
+            ['重定向：人 ≠ 机器人', '人和机器人的腿长、手臂长、关节能转的范围都不一样，不能把人的关节角直接发给电机。要先把动作「翻译」成机器人能做的（重定向），再修掉脚底打滑、脚穿进地面这些不符合物理的部分，最后在仿真里训练一个策略去「跟着做」。', '把一首歌改编成适合自己嗓音的调。'],
+          ],
+          prompt: '把「人跳一段舞」变成「行者跳同一段舞」，步骤排好（有一张是陷阱）。',
+          steps: [['动作捕捉：录下人跳舞', '光学、惯性或视频估计都行。'], ['得到人体骨架每一刻的关节角', '一串随时间变化的姿势。'], ['重定向：按行者的骨长和关节限位映射', '坐标系和运动学（3-3）在这里派上用场。'], ['物理修正：去掉脚打滑、穿地、失去平衡的部分', '人能做的，机器人不一定做得到。'], ['在仿真里用强化学习训练「跟着做」的策略', '动作跟得越像、越稳，分越高。'], ['域随机化后，吊着安全绳上真机', '和踏雪一样的 Sim2Real 流程。']],
+          extra: [['把人的关节角直接发给行者的电机', '骨长和限位都不一样，也不满足平衡条件：轻则动作变形，重则当场摔倒。']] },
+        { id: 'H3-3', name: '毕业：从零造一台人形', lv: '体', kind: 'order',
+          learn: [
+            ['把所有原理合在一起', '人形几乎用上了这门课的每一个原理：先任务后形态、力矩与减速、电源与总线、IMU 姿态估计、倒立摆与支撑区、控制分层、强化学习、仿真与域随机化、数据金字塔、安全兜底、数据飞轮。', ''],
+            ['先站稳，再干活', '没有稳定的平衡和行走，上身再灵巧也用不上。业界通常是先下肢、后上身，先走稳、再操作。', '先学会走路，再学端盘子。'],
+          ],
+          prompt: '让「行者」学会在仓库里搬箱子，把开发顺序排好（有一张是陷阱）。',
+          steps: [['定场景和指标：搬 10 kg 的箱子、连续工作 2 小时', '先有任务。'], ['定自由度和执行器（H1-1）', '腿要大力矩，手要灵巧。'], ['结构与电气：48V、EtherCAT、急停（H1-2）', '电和总线先打通。'], ['底层：关节零位标定、IMU、总线通信测试', '底层不准，上层全白费。'], ['仿真：URDF / MJCF + 电机模型', '为强化学习准备训练场。'], ['强化学习训练平衡和行走（H2-1、Q3-1）', '先站稳，再走路。'], ['采集搬箱子的上身数据：遥操作 + 仿真 + 视频（H3-1）', '数据金字塔。'], ['训练双系统大脑，接上全身控制（H2-2）', '慢思考 + 快反应。'], ['吊架 → 隔离区 → 真实仓库试运行', '安全第一（H2-3）。'], ['收集失败、补数据、再训练', '数据飞轮。']],
+          extra: [['先做灵巧手叠衣服，再研究怎么站稳', '站都站不稳，手再巧也用不上；而且一摔，最贵的灵巧手最先坏。']] },
+      ] },
+    ],
+    map: {
+      hw: [['自由度', '腿 2 × 6、手臂 2 × 6–7、腰 1–3、头 0–2、灵巧手 2 × 6–20', ['H1-1']], ['电气', '48V 电池、急停与配电、EtherCAT 总线、运动控制电脑 + AI 电脑', ['H1-2']], ['感知', '头部相机、IMU、关节编码器、脚底力传感器', ['H2-2', 'H2-3']]],
+      sw: [['平衡', '倒立摆、ZMP、捕获点、MPC / 强化学习行走', ['H2-1']], ['大脑', '系统 2 视觉语言大模型 + 系统 1 动作策略 + 全身控制 WBC', ['H2-2']], ['数据', '数据金字塔、动作捕捉、重定向、模仿策略', ['H3-1', 'H3-2']], ['安全', '吊架、隔离区、急停、摔倒检测与保护', ['H2-3']]],
+    },
+    art: (P, has, g, k) => {
+      P(has('H2-2'), 20, 3, 8, 7, '#ede6d6'); P(has('H1-2'), 18, 11, 12, 15, '#9b7bff'); P(has('H1-1'), 14, 12, 3, 13, '#ede6d6'); P(has('H1-1'), 31, 12, 3, 13, '#ede6d6');
+      P(has('H3-1'), 14, 25, 3, 3, '#ffb14a'); P(has('H3-1'), 31, 25, 3, 3, '#ffb14a'); P(has('H2-1'), 19, 27, 4, 14, '#ede6d6'); P(has('H2-1'), 25, 27, 4, 14, '#ede6d6');
+      P(has('H2-3'), 17, 41, 7, 2, '#2b2641'); P(has('H2-3'), 24, 41, 7, 2, '#2b2641');
+      g.fillStyle = has('H3-3') ? '#4ef0ff' : '#ffffff20'; g.fillRect(22 * k, 6 * k, k, k); g.fillRect(25 * k, 6 * k, k, k);
+      if (has('H3-2')) { g.fillStyle = '#ffd257'; [[8, 8], [40, 10], [38, 30]].forEach(([x, y]) => g.fillRect(x * k, y * k, k, k)); }
+    } };
+
+  // ======================================================================
+  // 进阶扩展：航天 + 工程师之路
+  // ======================================================================
+  const EXT = { id: 'x', name: '进阶扩展 · 航天与工程师之路', short: '进阶', icon: '🚀', robot: '远航', color: '#ffe08a',
+    req: ['D2-1', '先通关无人机 D2-1「反扭矩」：卫星转身用的是同一个原理'],
+    blurb: '同样的原理飞得更远（卫星、火箭、火星），再看成本、岗位、标准和一条从零到专家的路线。',
+    sum: '前面学的原理，到了航空航天照样适用：卫星转身和直升机的反扭矩是一回事，火箭着陆和无人机定高都是闭环控制，火星直升机就是一架共轴双旋翼。<br><br>后半段是「工程师之路」：一台机器人要多少钱、公司里有哪些岗位、要守哪些安全标准和法规，以及一条从零基础到具身智能工程师的学习路线。路线是建议，不是唯一的路。',
+    stages: [
+      { id: 'x1', no: 1, name: '航空航天：同样的原理飞得更远', short: '航空航天', sum: '卫星的反作用飞轮、火箭回收的点火时机与闭环制导、火星上没有 GPS 也要自己飞。', levels: [
+        { id: 'X1-1', name: '卫星怎么转身', lv: '点', kind: 'choice',
+          learn: [
+            ['太空里没有空气', '螺旋桨、尾桨、舵面在太空都没用。卫星要转身对准地面或太阳，靠的是「角动量守恒」：一个东西往一边转，另一个就往另一边转。', ''],
+            ['反作用飞轮', '卫星里装着几个飞轮。电机让飞轮往顺时针加速，卫星本身就往逆时针转——和直升机的反扭矩（D2-1）是同一个原理，只是这次我们正好需要它。飞轮转到最高转速（饱和）后，要用磁力矩器（和地球磁场「较劲」）或小推力器把多余的角动量「卸掉」。', '在转椅上转动手里的自行车轮，人和椅子会反着转。'],
+            ['火箭靠摆动发动机', '火箭在大气层里飞，主要靠把发动机喷口摆一个小角度（推力矢量），让推力不再穿过重心，产生转身的力矩；有的火箭回收时还会打开栅格舵。', ''],
+          ],
+          qs: [
+            { q: '卫星要逆时针转 30°，它的反作用飞轮应该？', o: [['往逆时针加速', false, '飞轮和卫星的总角动量守恒：飞轮往哪边转，卫星就往反方向转。'], ['往顺时针加速，快到位时再减速停住', true, '对：飞轮加速时卫星开始转，飞轮减速时卫星停住。'], ['飞轮不用动，喷一口气就行', false, '推力器也能转身，但要消耗燃料，用一点少一点；飞轮只要电（太阳能）。']] },
+            { q: '飞轮一直往一个方向加速，最后到了最高转速。接下来？', o: [['卫星就再也不能转了', false, '还有办法卸载。'], ['用磁力矩器或推力器产生外力矩，让飞轮减速，把多余的角动量「卸掉」', true, '对：这叫动量卸载。'], ['把飞轮拆下来', false, '在太空里拆不了。']] },
+            { q: '火箭上升时想往东偏一点，最常用的是？', o: [['把发动机喷口往一边摆一个小角度（推力矢量）', true, '对：推力偏开重心，就产生让箭体转向的力矩。'], ['打开尾桨', false, '火箭没有尾桨。'], ['让宇航员往一边走', false, '质量太小，没用。']] },
+          ] },
+        { id: 'X1-2', name: '火箭回收：什么时候点火', lv: '面', kind: 'tune',
+          learn: [
+            ['火箭不能悬停', '回收的一级火箭快没燃料了，很轻，但发动机油门最低也只能降到约四成，推力还是比重力大——它没法像无人机那样悬停。必须算准时机点火，让速度正好在落地那一刻减到零。', '刹车只能重踩、不能轻点的车，要算好在哪里开始踩。'],
+            ['闭环制导', '人算不准，就交给闭环：每一刻看高度和速度，算出还需要多大的减速度，实时调油门——和无人机扶正（D1-5）、四足站稳（Q2-2）同一个原理。点火太晚，油门推满也刹不住；点火太早，燃料不够，还会在空中停住又往上飞。', ''],
+            ['留余量', '风会吹、推力有误差，所以规划时最多只用约八成油门，留两成应对意外——和无人机推重比要 ≥ 2 一个道理。', ''],
+          ],
+          prompt: '火箭以 50 m/s 往下掉（教学简化：点火前匀速下落）。选点火高度和控制方式：平稳落地（≤ 2 m/s）、峰值油门 ≤ 80%、燃料 ≤ 1500 kg。',
+          intro: '满油门时推力是重力的 3 倍，最低油门 40%（推力仍是重力的 1.2 倍）。满油门每秒烧 300 kg 燃料。',
+          ctrl: [{ id: 'h', n: '点火高度', min: 40, max: 400, step: 10, v: 400, unit: ' m' }, { id: 'mode', n: '控制方式', seg: [['fix', '固定油门 70%'], ['loop', '闭环制导（实时调油门）']], v: 'fix' }],
+          model: (v) => { const r = rocketSim(+v.h, v.mode), ok = !r.up && r.vt <= 2; return [['结果', r.txt, ok, '平稳落地'], ['峰值油门', Math.round(r.pk * 100) + '%', r.pk <= 0.8, '≤ 80%'], ['燃料', Math.round(r.fuel) + ' kg', r.fuel <= 1500, '≤ 1500 kg']]; },
+          plot: (g, W, H, v) => {
+            const H0 = 420, h = +v.h, r = rocketSim(h, v.mode), T = 18, X = (t) => 30 + (t / T) * (W - 40), Y = (y) => H - 22 - (Math.max(0, y) / H0) * (H - 40), pts = [];
+            let y = H0, vv = -50, t = 0; const dt = 0.02;
+            let stop = null;
+            for (; t < T && y > 0; t += dt) {
+              if (y <= h) { vv += r.a * dt; if (vv >= 0 && stop === null) { if (!r.up) { pts.push([t, 0]); y = 0; break; } stop = t; } if (stop !== null && t - stop > 1.5) break; }
+              y += vv * dt; pts.push([t, Math.max(0, y)]);
+            }
+            line(g, [[30, Y(0)], [W - 10, Y(0)]], '#6c6680', 2); line(g, [[30, Y(h)], [W - 10, Y(h)]], '#ff7a4555', 1, [3, 3]); txt(g, '点火 ' + h + ' m', W - 70, Y(h) - 4, '#ff7a45');
+            line(g, pts.map(([tt, yy]) => [X(tt), Y(yy)]), '#ffe08a', 2.2);
+            const [lt, ly] = pts[pts.length - 1]; rect(g, X(lt) - 3, Y(ly) - 16, 6, 16, '#ede6d6'); if (r.up) txt(g, '↑ 又飞上去了', X(lt) + 6, Y(ly) - 4, '#ff8a8a'); else txt(g, r.vt <= 2 ? '✓ 落地' : '✗ 撞地', X(lt) + 6, Y(0) - 6, r.vt <= 2 ? '#6fdc8c' : '#ff8a8a');
+            txt(g, '高度 – 时间', 8, 14); txt(g, '0', 18, Y(0) + 4); txt(g, H0 + ' m', 4, Y(H0) + 10);
+          },
+          sol: { h: 150, mode: 'loop' },
+          after: '固定油门时，只有一个很精确的高度能刚好停在地面，差几米就要么撞地、要么悬在半空。闭环制导把「算准」交给计算机每秒算几十次，点火高度就有了一片可行区；再考虑燃料，点火要尽量晚（在空中「浪费」的时间少），但又不能晚到要用满油门。' },
+        { id: 'X1-3', name: '火星：信号要走十几分钟', lv: '线', kind: 'choice',
+          learn: [
+            ['光速也嫌慢', '地球到火星，无线电单程要 3 到 22 分钟（看两颗星离得多远）。火星车遇到一块石头，等你看到画面再发指令，可能已经过去半小时。所以火星车必须自己看路、自己绕开障碍。', ''],
+            ['火星直升机「机智号」', '2021 年，机智号成为第一架在另一个星球上动力飞行的飞行器，后来一共飞了 72 次。火星大气只有地球的约 1%，所以它用了共轴双旋翼（D2-3），桨叶又大、转得又快（每分钟两千多转）。火星没有 GPS，它靠朝下的相机 + IMU + 激光测高来定位（D3-1 的室内方案）。', '同样的原理，换一个星球照样用。'],
+          ],
+          qs: [
+            { q: '为什么火星车不能像玩遥控车一样实时操控？', o: [['火星上收不到信号', false, '有中继卫星帮忙转发。'], ['信号单程要 3–22 分钟，看到画面再发指令就太晚了，必须让它自己判断', true, '对：地面团队一般只给目标点，路怎么走由火星车自己规划。'], ['因为太贵', false, '主要是时延问题。']] },
+            { q: '火星大气只有地球的约 1%。要在火星上飞起来，机智号怎么办？', o: [['用更小的桨', false, '空气稀薄，要推动更多空气：桨要更大。'], ['桨叶更大、转得更快，机身尽量轻（约 1.8 kg）', true, '对：升力和空气密度、桨盘面积、桨尖速度的平方都有关，空气少了，就用更大、更快来补。'], ['在火星上补充空气', false, '做不到。']] },
+            { q: '机智号在火星上靠什么知道自己在哪？', o: [['GPS', false, '火星没有 GPS 卫星。'], ['朝下的相机看地面怎么移动 + IMU + 激光测高', true, '对：和无人机在室内用的光流定位是同一个原理（D3-1）。'], ['地球上的雷达', false, '太远了。']] },
+          ] },
+      ] },
+      { id: 'x2', no: 2, name: '工程师之路：成本、岗位、标准、路线', short: '工程师之路', sum: '把钱花在刀刃上；这门课里做的每件事对应哪个岗位；安全标准、隐私和法规；一条从零基础到具身智能工程师的学习路线。', levels: [
+        { id: 'X2-1', name: '成本：一台拾光号要多少钱', lv: '线', kind: 'tune',
+          learn: [
+            ['BOM：物料清单', '把一台机器人用到的所有零件列成表，价格加起来就是 BOM 成本。工程师选型时，性能和价格要一起看：在指标够用的前提下，把钱花在刀刃上。', '装修：先列清单，再决定哪里用好材料。'],
+            ['样机贵，量产便宜', '第一台样机零件都是零买、手工加工，可能是量产单价的好几倍；量产时开模、批量采购、换成本更低的零件，成本能降很多。所以新产品刚出来时贵，几年后往往会降一大截。', ''],
+          ],
+          prompt: '在 ¥30,000 预算内给拾光号配齐零件：推理 ≥ 20 次/秒、抓取精度 ≤ ±3 mm、能在室内建图导航。',
+          intro: '底盘、电池、电源、外壳等固定部分 ¥8,000（教学近似价格）。',
+          ctrl: [{ id: 'cam', n: '深度相机', seg: [['a', '消费级 · ¥1,500 · 0.5 m 处误差 ±1.5 mm'], ['b', '工业级 · ¥6,000 · ±0.5 mm']], v: 'b' }, { id: 'cpu', n: '边缘电脑', seg: [['s', '入门 · ¥3,000 · 12 次/秒'], ['m', '中端 · ¥7,000 · 25 次/秒'], ['l', '旗舰 · ¥15,000 · 45 次/秒']], v: 'l' }, { id: 'arm', n: '机械臂 6 个关节', seg: [['p', '行星减速 · ¥6,000 · 末端 ±5 mm'], ['h', '谐波减速 · ¥12,000 · 末端 ±1 mm']], v: 'p' }, { id: 'lid', n: '激光雷达', seg: [['2', '2D · ¥800'], ['3', '3D · ¥6,000']], v: '3' }],
+          model: (v) => { const C = { a: [1500, 1.5], b: [6000, 0.5] }[v.cam], P = { s: [3000, 12], m: [7000, 25], l: [15000, 45] }[v.cpu], A = { p: [6000, 5], h: [12000, 1] }[v.arm], L = { 2: 800, 3: 6000 }[v.lid], cost = 8000 + C[0] + P[0] + A[0] + L, acc = C[1] + A[1]; return [['推理速度', P[1] + ' 次/秒', P[1] >= 20, '≥ 20'], ['抓取精度', '±' + acc + ' mm', acc <= 3, '≤ ±3 mm'], ['室内建图导航', v.lid === '2' ? '能（平地室内 2D 就够）' : '能', true, ''], ['总价', '¥' + cost.toLocaleString('en-US'), cost <= 30000, '≤ ¥30,000']]; },
+          sol: { cam: 'a', cpu: 'm', arm: 'h', lid: '2' },
+          after: '唯一的解：消费级相机 + 中端电脑 + 谐波关节 + 2D 雷达，¥29,300。精度的大头在机械臂，相机用消费级就够；家里是平地，2D 雷达足够建图。这就是「把钱花在刀刃上」。' },
+        { id: 'X2-2', name: '这条路上有哪些岗位', lv: '点', kind: 'sort',
+          learn: [
+            ['一台机器人，一整个团队', '你在这门课里做过的每件事，在公司里都对应一个岗位。具身智能公司常见的有：机械结构、电子硬件、嵌入式与控制、机器人学习（强化学习、模仿学习、VLA）、仿真与测试，还有感知、SLAM、运维等。', ''],
+            ['先找到一个入口', '没有人一开始就什么都会。从一个岗位切进去、做深，再慢慢往旁边扩——这就是「点 → 线 → 面 → 体」。', ''],
+          ],
+          prompt: '你在这门课里做过的事，分别属于哪个岗位？',
+          bins: [['mech', '机械结构'], ['elec', '电子硬件'], ['ctrl', '嵌入式与控制'], ['ai', '机器人学习 / AI'], ['sim', '仿真与测试']],
+          cards: [['选减速器、算力矩（1-3）', 'mech', '机械工程师：结构、传动、选型。'], ['设计腿的连杆，让腿更轻（Q1-2）', 'mech', '机械结构设计。'], ['画电源系统、配保险丝（2-4）', 'elec', '电子硬件：原理图、电路板、电源。'], ['给无人机接电调和飞控（D1-4）', 'elec', '电子硬件与装调。'], ['调串级 PID（D1-5）', 'ctrl', '控制工程师。'], ['写看门狗和关节限位（6-2）', 'ctrl', '嵌入式：单片机固件、实时系统。'], ['设计强化学习的奖励（Q3-1）', 'ai', '机器人学习工程师。'], ['微调 VLA 模型（4-5）', 'ai', '机器人学习 / 大模型。'], ['搭仿真训练场、做 Sim2Sim（3-7）', 'sim', '仿真工程师。'], ['做回归测试和灰度发布（6-3）', 'sim', '测试与运维。']] },
+        { id: 'X2-3', name: '安全、隐私与法规', lv: '面', kind: 'choice',
+          learn: [
+            ['标准是前人用事故换来的', '工业机器人有安全标准（例如 ISO 10218）；和人一起干活的协作机器人，还有限制碰撞力和压力的技术规范（ISO/TS 15066）；家用、服务机器人也有对应的安全标准。产品要上市，先要过这些关。', ''],
+            ['隐私也是安全', '家里的机器人整天开着相机和麦克风。要尽量在本地处理，不必要的不上传；必须上传的先去掉人脸、声音等隐私信息，并且明确告诉用户、征得同意。', ''],
+            ['无人机：实名、空域、规则', '在中国，民用无人机要实名登记；机场、军事区周边等是禁飞或管制区域；能飞多高、哪里能飞、要不要执照，要看《无人驾驶航空器飞行管理暂行条例》等规定。法规会更新，飞之前要查当地最新的官方规定。', ''],
+          ],
+          qs: [
+            { q: '拾光号在家里和老人、孩子一起活动，哪一项最关键？', o: [['跑得越快越好', false, '速度越快，碰撞越危险。'], ['限制碰撞力和速度、靠近人时自动减速，并符合协作 / 服务机器人的安全标准', true, '对：协作机器人能和人共处，靠的就是力和速度的限制（6-2）。'], ['外壳做得越硬越好', false, '硬外壳撞人更疼，常常反而要包软材料。']] },
+            { q: '机器人的相机拍到了家里的画面，想用来改进模型。正确的做法？', o: [['全部原样上传服务器', false, '侵犯隐私。'], ['征得用户同意，尽量本地处理；必须上传的先脱敏（比如模糊人脸），并说明用途', true, '对：数据飞轮也要守规矩。'], ['偷偷上传，反正用户看不到', false, '违法，也会毁掉用户的信任。']] },
+            { q: '买了新无人机，想去机场附近拍飞机起降。应该？', o: [['飞低一点就没事', false, '机场周边是管制空域，飞得低也可能违规，还会威胁航班安全。'], ['不去：机场周边是禁飞 / 管制区域；飞之前先实名登记，并查当地最新规定', true, '对：法规会更新，以官方最新发布的为准。'], ['晚上偷偷飞', false, '夜里更危险，也违规。']] },
+          ] },
+        { id: 'X2-4', name: '从零到专家：一条可走的路', lv: '体', kind: 'order',
+          learn: [
+            ['你现在在哪', '你已经走完了一遍「造机器人」的全景：知道每个零件干什么、每个流程为什么这样排、每个原理在哪里反复出现。这是地图，不是终点。下一步是亲手做。', ''],
+            ['一条现实的路线（建议，不是唯一）', '每天抽出一两个小时，按「补基础 → 能动手 → 做项目 → 专一个方向」走。数学和编程绕不过去，但不用一次学完，用到哪补到哪。做出能展示的作品（开源到 GitHub、写博客、录视频），比证书更能说明你会什么。', '先学会走，再学跑。'],
+          ],
+          prompt: '把从零基础到具身智能工程师的学习路线排好（有一张是陷阱）。',
+          steps: [['补高中数学和物理：三角函数、向量、牛顿定律', '这门课里的力矩、运动学都靠它们。'], ['学 Python 编程', '机器人学习、数据处理的主力语言。'], ['线性代数和概率入门', '坐标变换、神经网络、卡尔曼滤波都要用。'], ['Linux 和 Git', '机器人几乎都跑在 Linux 上，Git 管代码。'], ['单片机入门：点灯、读传感器、驱动舵机', '亲手做一个「能动的东西」。'], ['ROS 2 + 仿真（Gazebo / MuJoCo）', '软件总线和虚拟训练场（3-2、3-6）。'], ['控制：PID → 状态空间入门', 'D1-5、Q2-2 用到的东西，系统地学一遍。'], ['机器学习和 PyTorch', '训练模型的基本功。'], ['用 LeRobot + 低成本开源机械臂（如 SO-100）做一个抓取项目', '开源社区常见的入门组合，花费不多就能做真机实验。'], ['做一个完整作品并开源，选一个方向深挖', '作品就是你的简历。']],
+          extra: [['第一步就去啃人形机器人论文、买最贵的机器人', '没有基础，论文看不懂、贵的机器人也用不起来；先从能动手的小东西开始。']] },
+      ] },
+    ],
+    art: (P, has, g, k) => {
+      P(has('X1-2'), 20, 8, 8, 26, '#ede6d6'); P(has('X1-2'), 21, 4, 6, 4, '#ff5d6c'); P(has('X1-2'), 17, 28, 3, 7, '#9d96ad'); P(has('X1-2'), 28, 28, 3, 7, '#9d96ad');
+      if (has('X1-2')) { g.fillStyle = '#ffb14a'; g.fillRect(21 * k, 35 * k, 6 * k, 4 * k); g.fillStyle = '#ffe08a'; g.fillRect(22 * k, 39 * k, 4 * k, 3 * k); }
+      P(has('X1-1'), 36, 6, 4, 4, '#e9b949'); P(has('X1-1'), 31, 7, 5, 2, '#4ef0ff'); P(has('X1-1'), 40, 7, 5, 2, '#4ef0ff');
+      P(has('X1-3'), 3, 36, 10, 9, '#c1440e');
+      [['X2-1', 6, 6], ['X2-2', 10, 14], ['X2-3', 4, 20], ['X2-4', 42, 20]].forEach(([id, x, y]) => { if (has(id)) { g.fillStyle = '#ffd257'; g.fillRect(x * k, y * k, k, k); } });
+    } };
+
+  D.TRACKS.push(DRONE, QUAD, HUMAN, EXT);
+
+  // 同原理：同一个原理在不同机器上出现的关卡放在一起（UI 宪法 27.14）
+  D.PRINCIPLES = [
+    { id: 'form', n: '先有任务，再有形态', d: '先写清楚要干什么、指标是多少，再决定长什么样、用什么零件。', ids: ['1-1', 'D2-5', 'H1-1', 'X2-1'] },
+    { id: 'torque', n: '力矩与减速：用速度换力气', d: '力矩 = 力 × 力臂，减速器把转速换成力矩。需求不同，选型可以正好相反：手臂要准，腿要能缓冲。', ids: ['1-3', 'Q1-2', 'Q1-3'] },
+    { id: 'energy', n: '能量与余量', d: '能量 = 电压 × 容量；力气要留余量：安全系数 2、推重比 ≥ 2、油门留两成。', ids: ['1-4', 'D1-2', 'X1-2'] },
+    { id: 'reaction', n: '作用与反作用：反扭矩、角动量', d: '电机推桨，桨也推机身。尾桨、共轴、四旋翼对角转向、卫星飞轮，都是在管住它或利用它。', ids: ['D1-1', 'D2-1', 'D2-2', 'D2-3', 'D2-4', 'X1-1'] },
+    { id: 'imu', n: 'IMU 与状态估计', d: '陀螺仪快但会漂，加速度计不漂但吵，GPS 和视觉慢但准：融合起来才可信。', ids: ['1-5', 'D1-3', 'D3-1', 'D3-3', 'X1-3'] },
+    { id: 'pid', n: '闭环反馈：看偏差、去纠正', d: 'PID、PD、前馈 + 反馈：飞机扶正、狗站稳、火箭着陆、关节跟随，都是同一招。', ids: ['3-7', '5-4', 'D1-5', 'Q2-2', 'X1-2'] },
+    { id: 'layer', n: '控制分层：上级慢、下级快', d: '大模型几赫兹 → 策略几十赫兹 → 姿态 / 关节几百到上千赫兹 → 电流两万赫兹。', ids: ['1-2', '5-2', 'D3-3', 'Q3-2', 'H1-2', 'H2-2'] },
+    { id: 'balance', n: '平衡：支撑区、ZMP、捕获点', d: '重心要落在脚围成的区域里；站不住，就迈一步去接住自己。', ids: ['Q1-1', 'Q2-1', 'H2-1', 'H2-3'] },
+    { id: 'wire', n: '电源与总线', d: '电压对得上才能接；关节走 CAN / EtherCAT，传感器走 USB / 网口 / 串口；急停放在最前面。', ids: ['2-4', '2-5', 'D1-4', 'H1-2'] },
+    { id: 'kin', n: '坐标系与运动学', d: '关节角 ↔ 手和脚在哪：正逆运动学、手眼标定、动作重定向。', ids: ['1-6', '3-3', '5-3', 'H3-2'] },
+    { id: 'sim', n: '仿真训练 + 域随机化', d: '在虚拟世界里大量练习，故意随机改参数，学出来的本事上真机才不翻车。', ids: ['3-6', '3-7', 'Q3-1', 'Q3-3', 'H3-2'] },
+    { id: 'data', n: '示教数据与混合训练', d: '真机演示少而贵，仿真和视频多而便宜：混着用。', ids: ['4-1', '4-3', '4-4', 'H3-1'] },
+    { id: 'safe', n: '安全兜底', d: '失去指令就进入安全状态：看门狗、失控返航、摔倒保护，还有标准、隐私和法规。', ids: ['6-2', 'D3-2', 'D3-4', 'H2-3', 'X2-3'] },
+    { id: 'loop', n: '全流程与数据飞轮', d: '需求 → 本体 → 仿真 → 训练 → 部署 → 迭代：每种机器人都是这一圈。', ids: ['0-1', '6-3', 'D3-5', 'Q3-4', 'H3-3', 'X2-4'] },
+  ];
 })();
 
 </script>
 <script>
 /* js/embodied.js */
 /* 实验室 · 具身智能：造一台机器人（v9.4，主创要求）——引擎与界面
- * 课程数据在 js/embodied-data.js。版式按 UI 宪法第 27 章：弹窗页眉不变；横屏左侧竖条（总览 + 六个阶段），竖屏是一排页签；
- * 进入一关后隐藏导航，整块区域给这一关用（27.12）。每关：学（知识卡）→ 练（玩法）→ 考（小测）→ 结算（星级）。
+ * 课程数据在 js/embodied-data.js（主线拾光号）和 js/embodied-tracks.js（v9.5：无人机、四足、人形、进阶扩展 + 同原理表）。
+ * 版式按 UI 宪法第 27 章：弹窗页眉不变；横屏左侧竖条，竖屏是一排页签；进入一关后隐藏导航，整块区域给这一关用（27.12）。
+ * v9.5 起竖条 = 总览 + 同原理 + 各条赛道，阶段放进赛道页，一个阶段一段（27.14）。每关：学（知识卡）→ 练（玩法）→ 考（小测）→ 结算（星级）。
  * 玩法引擎：choice 选择 / 诊断 · sort 分类 · order 组装与工序 · wire 接线（像电路图：端口有类型，类型不对接不上）·
  *   tune 计算与调参（含运动学、时间戳对齐、手眼标定、动作平滑的小画板）· teleop 遥操作示教。
  * 星级：零失误 3 星；失误 + 提示 ≤ 2 次 2 星；其余 1 星；看了答案 1 星。同一关失败 4 次给答案（与电路工坊一致）。
- * 解锁：按顺序一关一关开（体验模式全开）；首次通关给实操经验，通关一个阶段记一次实验完成。 */
+ * 解锁：每条赛道内按顺序一关一关开；新赛道的第一关要先通过它的前置关（track.req），体验模式全开。
+ * 首次通关给实操经验，通关一个阶段记一次实验完成。调参关可以分几轮（rounds）、自带画板（plot）。 */
 (function () {
   const CF = window.CF;
   const E = (CF.Emb = {});
   const D = () => CF.EmbData;
   const esc = (s) => CF.esc(s);
   const sv = () => { const d = CF.Save.data; d.emb = d.emb || { lv: {} }; d.emb.lv = d.emb.lv || {}; return d.emb; };
-  const LEVELS = () => D().STAGES.flatMap((s) => s.levels.map((l) => Object.assign(l, { stage: s })));
+  let ready = null;
+  const TRACKS = () => { const T = D().TRACKS; if (ready !== T.length) { T.forEach((t) => (t.levels = t.stages.flatMap((s) => s.levels.map((l) => Object.assign(l, { stage: s, track: t }))))); ready = T.length; } return T; };
+  const LEVELS = () => TRACKS().flatMap((t) => t.levels);
+  const byId = (id) => LEVELS().find((l) => l.id === id);
   const starsOf = (id) => sv().lv[id] || 0;
-  const isOpen = (l) => { if (CF.P.trial()) return true; const L = LEVELS(), i = L.indexOf(l); return i <= 0 || starsOf(L[i - 1].id) > 0; };
-  const doneIn = (s) => s.levels.filter((l) => starsOf(l.id) > 0).length;
+  const passed = (id) => starsOf(id) > 0;
+  const trackOpen = (t) => CF.P.trial() || !t.req || passed(t.req[0]);
+  const isOpen = (l) => { if (CF.P.trial()) return true; const TL = l.track.levels, i = TL.indexOf(l); return i <= 0 ? trackOpen(l.track) : passed(TL[i - 1].id); };
+  const lockWhy = (l) => (l.track.levels[0] === l && l.track.req ? l.track.req[1] : '先通关上一关');
+  const doneIn = (s) => s.levels.filter((l) => passed(l.id)).length;
+  const doneT = (t) => t.levels.filter((l) => passed(l.id)).length;
+  const prOf = (id) => (D().PRINCIPLES || []).filter((p) => p.ids.includes(id));
+  const stNo = (s) => (s.no ? CN[s.no] : '序');
+  const stTitle = (s, t) => (t.id === 'mm' ? '' : t.short + ' · ') + (s.no ? '阶段' + CN[s.no] : '序章');
   const KIND = { choice: '选择 · 诊断', sort: '分类', order: '组装 · 工序', wire: '接线', tune: '计算 · 调参', teleop: '遥操作示教' };
   const LVD = { 点: '认识一个零件或概念', 线: '把几个连成一条链', 面: '搭出一个完整子系统', 体: '整台机器人、整个闭环' };
   const CN = '零一二三四五六';
   const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  E.progress = () => { const L = LEVELS(); return L.filter((l) => starsOf(l.id) > 0).length + '/' + L.length; };
-  E.next = () => LEVELS().find((l) => !starsOf(l.id)) || null;
+  E.progress = () => { const L = LEVELS(); return L.filter((l) => passed(l.id)).length + '/' + L.length; };
+  E.next = () => LEVELS().find((l) => !passed(l.id) && isOpen(l)) || null;
 
   let root = null, view = { tab: 'ov', play: null }, cur = null, loopStop = null, ro = null;
   E.open = function (levelId) {
-    root = CF.h('<div class="emb rail-page"><nav class="rail" role="tablist" aria-label="阶段"></nav><div class="rail-main emb-main"></div></div>');
+    root = CF.h('<div class="emb rail-page"><nav class="rail" role="tablist" aria-label="赛道"></nav><div class="rail-main emb-main"></div></div>');
     CF.modal.open({ title: '🦾 实验室 · 具身智能：造一台机器人', body: root, wide: true, onClose: () => { stopLoop(); if (ro) ro.disconnect(); CF.$('#modal').classList.remove('ps-on'); root = null; } });
     CF.$('#modalCard').classList.add('emb-full'); CF.$('#modal').classList.add('ps-on');
     view = { tab: 'ov', play: null };
-    if (levelId) return E.play(levelId);
+    if (levelId && TRACKS().some((t) => t.id === levelId)) view.tab = levelId;
+    else if (levelId) return E.play(levelId);
     render();
   };
   function stopLoop() { if (loopStop) { loopStop(); loopStop = null; } }
@@ -6517,12 +7351,12 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     stopLoop();
     root.classList.toggle('playing', !!view.play);
     const rail = root.querySelector('.rail'), main = root.querySelector('.emb-main');
-    const tabs = [['ov', '总览', E.progress()]].concat(D().STAGES.map((s) => [s.id, s.no ? `${CN[s.no]} · ${s.short}` : s.short, `${doneIn(s)}/${s.levels.length}`]));
+    const tabs = [['ov', '总览', E.progress()], ['pr', '同原理', (D().PRINCIPLES || []).length + ' 组']].concat(TRACKS().map((t) => [t.id, `${t.icon} ${t.short}`, trackOpen(t) ? `${doneT(t)}/${t.levels.length}` : '🔒']));
     rail.innerHTML = tabs.map(([k, n, c]) => `<button role="tab" data-t="${k}" class="${view.tab === k ? 'on' : ''}" aria-selected="${view.tab === k}">${n}<small>${c}</small></button>`).join('');
     rail.querySelectorAll('[data-t]').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); view = { tab: b.dataset.t, play: null }; render(); }));
     main.scrollTop = 0;
     if (view.play) return player(main);
-    if (view.tab === 'ov') overview(main); else stagePage(main, D().STAGES.find((s) => s.id === view.tab));
+    if (view.tab === 'ov') overview(main); else if (view.tab === 'pr') principles(main); else trackPage(main, TRACKS().find((t) => t.id === view.tab) || TRACKS()[0]);
   }
   // ⓘ 说明：在模块里面弹出（不另开弹窗，免得关掉整个模块）
   const info = (title, html) => {
@@ -6532,34 +7366,52 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
   };
 
   // ================= 总览 =================
+  const goBtns = (el) => el.querySelectorAll('[data-go]').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); E.play(b.dataset.go); }));
+  const tabBtns = (el) => el.querySelectorAll('[data-t]').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); view = { tab: b.dataset.t, play: null }; render(); }));
+  const prChip = (id) => { const l = byId(id); if (!l) return ''; return `<button class="emb-mlv emb-prchip ${passed(id) ? 'done' : ''} ${isOpen(l) ? '' : 'lock'}" data-go="${id}" style="--tc:${l.track.color}"><i>${l.track.icon}</i>${id} ${esc(l.name)}</button>`; };
   function overview(main) {
-    const L = LEVELS(), n = L.filter((l) => starsOf(l.id) > 0).length, nx = E.next();
-    main.innerHTML = `<div class="codex-head"><b class="codex-t">具身智能 · 全流程</b><span class="codex-prog">已通关 <b>${n}</b><span>/${L.length}</span></span><button class="btn sm ghost" data-i>ⓘ 这门课</button></div>
-      <div class="emb-ov"><div class="emb-robot"><canvas width="240" height="240"></canvas><div class="emb-robot-cap"><b>${D().ROBOT}</b> · 完成度 ${Math.round((n / L.length) * 100)}%<small>虚线 = 还在图纸上，实线 = 已经造出来</small></div></div>
-        <div class="emb-loop">${D().STAGES.map((s) => `<button class="emb-st-chip" data-t="${s.id}"><i>${s.no ? CN[s.no] : '序'}</i><b>${s.name}</b><small>${doneIn(s)}/${s.levels.length}</small><span class="emb-bar"><em style="width:${(doneIn(s) / s.levels.length) * 100}%"></em></span></button>`).join('')}<p class="emb-loopcap">设计 → 制造 → 仿真 → 训练 → 部署 → 反馈，再回到设计：一圈一圈地转。</p></div></div>
-      ${nx ? `<div class="emb-next"><button class="btn primary" data-go="${nx.id}">继续：${nx.id} ${esc(nx.name)}</button><span class="small muted">${nx.stage.name}</span></div>` : '<div class="emb-next"><b class="emb-grad">全部通关：拾光号造好了！</b></div>'}
-      <div class="emb-plf">${Object.keys(LVD).map((k) => `<span class="emb-lvl lv-${k}">${k}</span><span class="small">${LVD[k]}</span>`).join('')}</div>
-      <div class="emb-map">${[['hw', '硬件全景（补全你没想到的）'], ['sw', '软件全景（补全你没想到的）']].map(([k, t]) => `<section><h4>${t}</h4>${D().MAP[k].map(([a, b, ids]) => `<div class="emb-mrow"><b>${a}</b><p>${b}</p><span>${ids.map((id) => `<button class="emb-mlv ${starsOf(id) ? 'done' : ''}" data-go="${id}">${id}</button>`).join('')}</span></div>`).join('')}</section>`).join('')}</div>`;
-    drawRobot(main.querySelector('.emb-robot canvas'));
-    main.querySelector('[data-i]').onclick = () => info('这门课', '具身智能机器人的制作，并不是把「大脑」（AI 模型）和「身体」（机械硬件）简单拼在一起，而是软硬件深度耦合、从虚拟仿真到物理世界闭环迭代的系统工程。<br><br>这门课带你从零造出「拾光号」：轮式底盘 + 6 自由度机械臂 + 深度相机 + 麦克风阵列。它听到「把桌上的杯子拿给我」，就走过去、找到杯子、抓起来、递给你。<br><br>按 <b>点 → 线 → 面 → 体</b> 学：先认识零件，再连成链，再搭成系统，最后合成整机、跑通整个闭环。每关先「学」几张卡片，再「练」，有的还要「考」。一关一关按顺序解锁。<br><br>想练电路，可以去主城 · 电路工坊的「具身智能」模块。');
-    main.querySelectorAll('.emb-st-chip').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); view = { tab: b.dataset.t, play: null }; render(); }));
-    main.querySelectorAll('[data-go]').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); E.play(b.dataset.go); }));
+    const L = LEVELS(), n = L.filter((l) => passed(l.id)).length, nx = E.next(), P = D().PRINCIPLES || [];
+    main.innerHTML = `<div class="codex-head"><b class="codex-t">具身智能 · 造机器人</b><span class="codex-prog">已通关 <b>${n}</b><span>/${L.length}</span></span><button class="btn sm ghost" data-i>ⓘ 这门课</button></div>
+      ${nx ? `<div class="emb-next"><button class="btn primary" data-go="${nx.id}">继续：${nx.id} ${esc(nx.name)}</button><span class="small muted">${nx.track.icon} ${esc(nx.track.short)} · ${esc(nx.stage.name)}</span></div>` : '<div class="emb-next"><b class="emb-grad">全部通关：五条赛道都走完了！</b></div>'}
+      <div class="emb-tracks">${TRACKS().map((t) => { const op = trackOpen(t), d = doneT(t); return `<button class="emb-trk ${op ? '' : 'lock'}" data-t="${t.id}" style="--tc:${t.color}"><canvas width="96" height="96"></canvas><span class="emb-trk-t"><b>${t.icon} ${esc(t.name)}</b><small>${esc(t.blurb || '')}</small><span class="emb-bar"><em style="width:${(d / t.levels.length) * 100}%"></em></span><small>${op ? `通关 ${d}/${t.levels.length}` : '🔒 ' + esc(t.req[1])}</small></span></button>`; }).join('')}</div>
+      ${P.length ? `<div class="emb-prteaser"><b>同原理：学会一次，到处能用</b><p class="small">同一个原理会在不同的机器上反复出现：反扭矩管着直升机和四旋翼，也管着太空里的卫星；闭环反馈让无人机扶正、机器狗站稳、火箭着陆。相同原理的关放在一起，学的时候互相印证。</p><div class="emb-prc">${P.slice(0, 4).map((p) => `<span class="emb-prname">${esc(p.n)}</span>`).join('')}</div><button class="btn sm ghost" data-t="pr">看全部 ${P.length} 组同原理 →</button></div>` : ''}
+      <div class="emb-plf">${Object.keys(LVD).map((k) => `<span class="emb-lvl lv-${k}">${k}</span><span class="small">${LVD[k]}</span>`).join('')}</div>`;
+    main.querySelectorAll('.emb-trk canvas').forEach((c, i) => drawRobot(c, TRACKS()[i]));
+    main.querySelector('[data-i]').onclick = () => info('这门课', '具身智能机器人的制作，并不是把「大脑」（AI 模型）和「身体」（机械硬件）简单拼在一起，而是软硬件深度耦合、从虚拟仿真到物理世界闭环迭代的系统工程。<br><br>这门课有五条赛道：<b>拾光号</b>（主线：轮式底盘 + 机械臂，主创给的六个阶段）、<b>无人机</b>（直升 / 双旋 / 四旋，相同原理放一起学）、<b>四足机器狗</b>、<b>人形机器人</b>，以及<b>进阶扩展</b>（航天、成本、岗位、标准、学习路线）。<br><br>每条赛道按 <b>点 → 线 → 面 → 体</b> 学：先认识零件，再连成链，再搭成系统，最后合成整机、跑通整个闭环。每关先「学」几张卡片，再「练」，有的还要「考」。赛道里一关一关按顺序解锁；新赛道要先通过它的前置关。<br><br>「同原理」页把不同机器上的同一个原理放在一起：学会一次，到处能用。<br><br>想练电路，可以去主城 · 电路工坊的「具身智能」「航空航天」模块。');
+    tabBtns(main); goBtns(main);
   }
-  // ================= 阶段页 =================
-  function stagePage(main, s) {
-    main.innerHTML = `<div class="codex-head"><b class="codex-t">${s.no ? `阶段${CN[s.no]} · ` : ''}${s.name}</b><span class="codex-prog">通关 <b>${doneIn(s)}</b><span>/${s.levels.length}</span></span><button class="btn sm ghost" data-i>ⓘ 这个阶段</button></div>
-      <div class="emb-path">${s.levels.map((l) => { const op = isOpen(l), st = starsOf(l.id); return `<button class="emb-lv ${op ? '' : 'lock'} ${st ? 'done' : ''}" data-go="${l.id}"><span class="emb-lvl lv-${l.lv}" title="${LVD[l.lv]}">${l.lv}</span><b>${l.id} ${esc(l.name)}</b><small>${KIND[l.kind]}${l.quiz ? ' · 有小测' : ''}</small><span class="emb-stars">${op ? '★'.repeat(st) + '☆'.repeat(3 - st) : '🔒 通关上一关解锁'}</span></button>`; }).join('')}</div>`;
-    main.querySelector('[data-i]').onclick = () => info(s.name, s.sum);
-    main.querySelectorAll('.emb-lv').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); E.play(b.dataset.go); }));
+  // ================= 同原理 =================
+  function principles(main) {
+    const P = D().PRINCIPLES || [];
+    main.innerHTML = `<div class="codex-head"><b class="codex-t">同原理</b><span class="codex-prog"><b>${P.length}</b><span> 组</span></span><button class="btn sm ghost" data-i>ⓘ 为什么放一起</button></div>
+      <div class="emb-prl">${P.map((p) => `<section class="emb-pr"><h4>${esc(p.n)}</h4><p>${esc(p.d)}</p><div class="emb-prc">${p.ids.map(prChip).join('')}</div></section>`).join('')}</div>`;
+    main.querySelector('[data-i]').onclick = () => info('为什么放一起', '机器人的种类很多，但底下的原理没几个。把同一个原理在不同机器上的关卡放在一起学，你会发现：四旋翼的对角转向、直升机的尾桨、卫星的反作用飞轮，其实是同一件事；无人机扶正、机器狗站稳、火箭着陆，用的是同一招。<br><br>每个小块的颜色代表它所在的赛道；填满颜色的是已经通关的关。点一下就能去那一关（没解锁的会告诉你先通关哪一关）。');
+    goBtns(main);
+  }
+  // ================= 赛道页：一个阶段一段 =================
+  const levelBtn = (l) => { const op = isOpen(l), st = starsOf(l.id), pr = prOf(l.id); return `<button class="emb-lv ${op ? '' : 'lock'} ${st ? 'done' : ''}" data-go="${l.id}"><span class="emb-lvl lv-${l.lv}" title="${LVD[l.lv]}">${l.lv}</span><b>${l.id} ${esc(l.name)}</b><small>${KIND[l.kind]}${l.quiz ? ' · 有小测' : ''}${pr.length ? ' · 同原理：' + pr.map((p) => esc(p.n.split('：')[0])).join('、') : ''}</small><span class="emb-stars">${op ? '★'.repeat(st) + '☆'.repeat(3 - st) : '🔒 ' + esc(lockWhy(l))}</span></button>`; };
+  function trackPage(main, t) {
+    const op = trackOpen(t), d = doneT(t), M = t.map;
+    main.innerHTML = `<div class="codex-head"><b class="codex-t">${t.icon} ${esc(t.name)}</b><span class="codex-prog">通关 <b>${d}</b><span>/${t.levels.length}</span></span><button class="btn sm ghost" data-i>ⓘ 这条赛道</button></div>
+      ${op ? '' : `<p class="emb-lockmsg">🔒 ${esc(t.req[1])}。</p>`}
+      <div class="emb-ov"><div class="emb-robot"><canvas width="240" height="240"></canvas><div class="emb-robot-cap"><span><b>${esc(t.robot)}</b> · 完成度 ${Math.round((d / t.levels.length) * 100)}%</span><small>虚线 = 还在图纸上，实线 = 已经造出来</small></div></div>
+        <div class="emb-loop">${t.stages.map((s) => `<button class="emb-st-chip" data-s="${s.id}" title="${esc(s.name)}"><i>${stNo(s)}</i><b>${esc(s.short)}</b><small>${doneIn(s)}/${s.levels.length}</small><span class="emb-bar"><em style="width:${(doneIn(s) / s.levels.length) * 100}%"></em></span></button>`).join('')}${t.id === 'mm' ? '<p class="emb-loopcap">设计 → 制造 → 仿真 → 训练 → 部署 → 反馈，再回到设计：一圈一圈地转。</p>' : ''}</div></div>
+      ${t.stages.map((s) => `<section class="emb-stg" data-stg="${s.id}"><h4><i>${stNo(s)}</i>${esc(s.name)}<small>${doneIn(s)}/${s.levels.length}</small></h4><p class="small muted">${s.sum}</p><div class="emb-path">${s.levels.map(levelBtn).join('')}</div></section>`).join('')}
+      ${M ? `<div class="emb-map">${[['hw', '硬件全景'], ['sw', '软件全景']].map(([k, tt]) => `<section><h4>${esc(t.robot)} · ${tt}${t.id === 'mm' ? '（补全你没想到的）' : ''}</h4>${M[k].map(([a, b, ids]) => `<div class="emb-mrow"><b>${a}</b><p>${b}</p><span>${ids.map((id) => `<button class="emb-mlv ${passed(id) ? 'done' : ''}" data-go="${id}">${id}</button>`).join('')}</span></div>`).join('')}</section>`).join('')}</div>` : ''}`;
+    drawRobot(main.querySelector('.emb-robot canvas'), t);
+    main.querySelector('[data-i]').onclick = () => info(t.name, t.sum);
+    main.querySelectorAll('.emb-st-chip').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); const sec = main.querySelector(`[data-stg="${b.dataset.s}"]`); if (sec) sec.scrollIntoView({ block: 'start', behavior: 'smooth' }); }));
+    goBtns(main);
+    if (view.stg) { const sec = main.querySelector(`[data-stg="${view.stg}"]`); view.stg = null; if (sec) requestAnimationFrame(() => sec.scrollIntoView({ block: 'start' })); }
   }
 
   // ================= 一关 =================
   E.play = function (id) {
     const lv = LEVELS().find((l) => l.id === id); if (!lv) return;
     if (!root) return E.open(id);
-    if (!isOpen(lv)) { CF.Audio.sfx('error'); CF.toast('先通关上一关', 'bad'); return; }
+    if (!isOpen(lv)) { CF.Audio.sfx('error'); CF.toast(lockWhy(lv), 'bad'); return; }
     cur = { lv, step: 'learn', card: 0, mis: 0, hint: 0, ans: false };
-    view = { tab: lv.stage.id, play: id }; render();
+    view = { tab: lv.track.id, play: id }; render();
   };
   let body, msgEl, actEl, misEl;
   function player(main) {
@@ -6568,7 +7420,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       <span class="emb-steps">${['learn', 'play'].concat(lv.quiz ? ['quiz'] : []).map((s) => `<i data-s="${s}">${{ learn: '学', play: '练', quiz: '考' }[s]}</i>`).join('')}</span><span class="emb-mis">失误 <b>${cur.mis + cur.hint}</b></span></div>
       <div class="emb-pbody"></div><div class="emb-foot"><div class="emb-msg" aria-live="polite"></div><div class="emb-pact"></div></div></div>`;
     body = main.querySelector('.emb-pbody'); msgEl = main.querySelector('.emb-msg'); actEl = main.querySelector('.emb-pact'); misEl = main.querySelector('.emb-mis b');
-    main.querySelector('[data-back]').onclick = () => { CF.Audio.sfx('click'); view = { tab: lv.stage.id, play: null }; render(); };
+    main.querySelector('[data-back]').onclick = () => { CF.Audio.sfx('click'); view = { tab: lv.track.id, play: null, stg: lv.stage.id }; render(); };
     ({ learn: learnStep, play: playStep, quiz: quizStep, result: resultStep })[cur.step]();
   }
   function steps() { root.querySelectorAll('.emb-steps i').forEach((i) => { i.classList.toggle('on', i.dataset.s === cur.step); i.classList.toggle('past', ['learn', 'play', 'quiz'].indexOf(i.dataset.s) < ['learn', 'play', 'quiz', 'result'].indexOf(cur.step)); }); }
@@ -6581,7 +7433,8 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
   // ---------- 学 ----------
   function learnStep() {
     steps(); const cards = cur.lv.learn, i = cur.card, c = cards[i];
-    body.innerHTML = `<div class="emb-learn"><div class="emb-ln">知识卡 ${i + 1} / ${cards.length}</div><h3>${c[0]}</h3><p>${c[1]}</p>${c[2] ? `<div class="emb-ana"><b>打个比方</b>${c[2]}</div>` : ''}</div>`;
+    const same = i ? [] : prOf(cur.lv.id).map((p) => `<p class="emb-same">同原理：<b>${esc(p.n)}</b>——也在 ${p.ids.filter((x) => x !== cur.lv.id).map((x) => { const l = byId(x); return `${l.track.icon} ${x}`; }).join('、')}</p>`);
+    body.innerHTML = `<div class="emb-learn"><div class="emb-ln">知识卡 ${i + 1} / ${cards.length}</div><h3>${c[0]}</h3><p>${c[1]}</p>${c[2] ? `<div class="emb-ana"><b>打个比方</b>${c[2]}</div>` : ''}${same.join('')}</div>`;
     msg(i === cards.length - 1 ? `下一步：${KIND[cur.lv.kind]}。` : '');
     act([].concat(i ? [['上一张', () => { cur.card--; learnStep(); }, 'ghost']] : []).concat([[i < cards.length - 1 ? '下一张' : '开始练习 →', () => { if (i < cards.length - 1) { cur.card++; learnStep(); } else go('play'); }, 'primary']]));
   }
@@ -6659,8 +7512,8 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     function layout() {
       const W = Math.max(280, wrap.clientWidth - 4), cols = [...new Set(nodes.map((n) => n.col))].sort((a, b) => a - b), rows = [...new Set(nodes.map((n) => n.row))].sort((a, b) => a - b);
       const tr = W < 600 && cols.length > 2 && rows.length <= 4, C = tr ? rows : cols, R = tr ? cols : rows;
-      const colW = Math.max(tr ? 84 : 150, W / C.length), nodeW = colW - (tr ? 10 : 26);
-      const sideOf = (s) => (tr ? SIDE_TR[s] : s);
+      const sideOf = (s) => (tr ? SIDE_TR[s] : s), lrTr = tr && nodes.some((nd) => nd.p.some((p) => 'lr'.includes(sideOf(p[1]))));   // 转置后左右也有接口：相邻零件之间留宽一点，接口不重叠
+      const colW = Math.max(tr ? (lrTr ? 104 : 84) : 150, W / C.length), nodeW = colW - (tr ? (lrTr ? 30 : 10) : 26);
       const hOf = (nd) => { if (tr) return 64; const c = { l: 0, r: 0 }; nd.p.forEach((p) => { const s = sideOf(p[1]); if (c[s] !== undefined) c[s]++; }); return Math.max(54, 24 + 16 * Math.max(c.l, c.r)); };
       const rowH = Math.max(...nodes.map(hOf)) + (tr ? 46 : 28);
       board.style.width = colW * C.length + 'px'; board.style.height = rowH * R.length + 8 + 'px'; board.classList.toggle('tr', tr);
@@ -6704,9 +7557,16 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
         else if (sel === k) { sel = null; msg(''); draw(); } else connect(sel, k);
       });
     });
-    const solK = () => sol.map((s) => s.k);
+    // v9.5：lv.swap 里同一组的接口可以互换（比如四合一电调的四路电机输出接哪个电机都行），检查时按组比较
+    const grp = (pk) => (lv.swap || []).find((G) => G.includes(pk)), canon = (pk) => { const G = grp(pk); return G ? '#' + G[0] : pk; }, ck = (a, b) => ekey(canon(a), canon(b));
+    const match = () => {
+      const cnt = {}; sol.forEach((x) => { const k = ck(x.a, x.b); cnt[k] = (cnt[k] || 0) + 1; });
+      const wrong = edges.filter((e) => { const k = ck(e[0], e[1]); if (cnt[k]) { cnt[k]--; return false; } return true; });
+      return { wrong, missing: sol.filter((x) => { const k = ck(x.a, x.b); if (cnt[k] > 0) { cnt[k]--; return true; } return false; }) };
+    };
+    const free = (pk) => { const G = grp(pk); return G ? [pk].concat(G).find((x) => !edges.some((e) => e[0] === x || e[1] === x)) || pk : pk; };
     const check = () => {
-      const wrong = edges.filter((e) => !solK().includes(ekey(e[0], e[1]))), missing = sol.filter((s) => !edges.some((e) => ekey(e[0], e[1]) === s.k));
+      const { wrong, missing } = match();
       if (wrong.length) {
         mis(); fails++; bad = wrong.map((e) => ekey(e[0], e[1])); draw();
         const w = wrong[0], right = sol.find((s) => s.a === w[0] || s.b === w[0] || s.a === w[1] || s.b === w[1]);
@@ -6716,7 +7576,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       if (fails >= 4) btns(true);
     };
     const win = () => { finished = true; sel = null; draw(); body.querySelector('.emb-wire').insertAdjacentHTML('beforeend', `<div class="emb-recap"><b>每根线为什么这么接</b>${sol.map((s) => `<p><i style="background:${T[port(s.a).p[2]][1]}"></i>${pname(s.a)} ↔ ${pname(s.b)}：${s.why}</p>`).join('')}</div>`); msg(cur.ans ? '答案已经连好，看看下面每根线的道理。' : '✓ 全部接对！', 'good'); act([['完成 →', onDone, 'primary']]); };
-    const btns = (more) => act([['提示', () => { const m = sol.find((s) => !edges.some((e) => ekey(e[0], e[1]) === s.k)); if (!m) return msg('线都接上了，点「检查」。'); hint(); glow = [m.a, m.b]; draw(); msg(`提示：把${pname(m.a)}连到${pname(m.b)}——${m.why}`); }, 'ghost'], ['清空', () => { edges = []; bad = []; glow = []; draw(); msg('已清空。'); }, 'ghost']].concat(more ? [['看答案', () => { cur.ans = true; edges = sol.map((s) => [s.a, s.b]); bad = []; win(); }, 'ghost']] : []).concat([['检查', check, 'primary']]));
+    const btns = (more) => act([['提示', () => { const m = match().missing[0]; if (!m) return msg('线都接上了，点「检查」。'); hint(); const a = free(m.a), b = free(m.b); glow = [a, b]; draw(); msg(`提示：把${pname(a)}连到${pname(b)}——${m.why}`); }, 'ghost'], ['清空', () => { edges = []; bad = []; glow = []; draw(); msg('已清空。'); }, 'ghost']].concat(more ? [['看答案', () => { cur.ans = true; edges = sol.map((s) => [s.a, s.b]); bad = []; win(); }, 'ghost']] : []).concat([['检查', check, 'primary']]));
     msg(lv.prompt); btns(false);
     requestAnimationFrame(layout);
     if (ro) ro.disconnect(); ro = new ResizeObserver(() => { if (wrap.isConnected) layout(); }); ro.observe(wrap);
@@ -6725,26 +7585,28 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
   // ---------- 计算与调参 ----------
   function tuneG(lv, onDone) {
     const v = {}; lv.ctrl.forEach((c) => (v[c.id] = c.v)); let round = 0;
-    const special = lv.ik ? 'ik' : lv.align ? 'align' : lv.hand ? 'hand' : lv.smooth ? 'smooth' : null;
-    body.innerHTML = `<div class="emb-tune">${lv.intro ? `<p class="emb-intro">${lv.intro}</p>` : ''}<div class="emb-tgrid"><div class="emb-ctrls">${lv.ctrl.map((c) => c.seg ? `<div class="emb-ctl"><span>${c.n}</span><div class="emb-seg">${c.seg.map(([k, t]) => `<button data-c="${c.id}" data-v="${k}">${t}</button>`).join('')}</div></div>` : `<label class="emb-ctl"><span>${c.n} <b data-show="${c.id}"></b></span><input type="range" data-c="${c.id}" min="${c.min}" max="${c.max}" step="${c.step}" value="${c.v}"></label>`).join('')}</div>
-      <div class="emb-tside">${special ? '<canvas class="emb-cv" width="320" height="220"></canvas>' : ''}<div class="emb-metrics"></div></div></div></div>`;
+    const special = lv.ik ? 'ik' : lv.align ? 'align' : lv.hand ? 'hand' : lv.smooth ? 'smooth' : null, R = lv.rounds || null, cvs = lv.cv || [320, 220];   // v9.5：rounds 多轮、plot 关卡自带画板
+    body.innerHTML = `<div class="emb-tune">${lv.intro ? `<p class="emb-intro">${lv.intro}</p>` : ''}${R ? '<div class="emb-round" aria-live="polite"></div>' : ''}<div class="emb-tgrid"><div class="emb-ctrls">${lv.ctrl.map((c) => c.seg ? `<div class="emb-ctl"><span>${c.n}</span><div class="emb-seg">${c.seg.map(([k, t]) => `<button data-c="${c.id}" data-v="${k}">${t}</button>`).join('')}</div></div>` : `<label class="emb-ctl"><span>${c.n} <b data-show="${c.id}"></b></span><input type="range" data-c="${c.id}" min="${c.min}" max="${c.max}" step="${c.step}" value="${c.v}"></label>`).join('')}</div>
+      <div class="emb-tside">${special || lv.plot ? `<canvas class="emb-cv" width="${cvs[0]}" height="${cvs[1]}"></canvas>` : ''}<div class="emb-metrics"></div></div></div></div>`;
     const cv = body.querySelector('.emb-cv');
     const metrics = () => {
       if (special === 'ik') { const { L1, L2, targets, tol } = lv.ik, a = (v.a * Math.PI) / 180, b = (v.b * Math.PI) / 180, x = L1 * Math.cos(a) + L2 * Math.cos(a + b), y = L1 * Math.sin(a) + L2 * Math.sin(a + b), t = targets[Math.min(round, targets.length - 1)], d = Math.hypot(x - t[0], y - t[1]); return [['手指位置', `(${x.toFixed(2)}, ${y.toFixed(2)}) m`, true, ''], [`目标 ${Math.min(round + 1, targets.length)} / ${targets.length}`, `(${t[0]}, ${t[1]}) m`, true, ''], ['距离', (d * 100).toFixed(1) + ' cm', d <= tol, '≤ ' + tol * 100 + ' cm']]; }
       if (special === 'hand') { const errs = handErr(); return [['最大误差', (Math.max(...errs) * 100).toFixed(1) + ' cm', Math.max(...errs) <= 0.015, '≤ 1.5 cm'], ['三个标定点', errs.map((e) => (e * 100).toFixed(1)).join(' / ') + ' cm', true, '']]; }
-      return lv.model(v);
+      return lv.model(v, round);
     };
     const handErr = () => { const H = lv.hand, M = [[0.35, 0.1], [0.5, -0.15], [0.25, -0.3]], r0 = (H.rot * Math.PI) / 180, rg = (v.rot * Math.PI) / 180; return M.map(([x, y]) => { const dx = x - H.tx, dy = y - H.ty, cx = Math.cos(-r0) * dx - Math.sin(-r0) * dy, cy = Math.sin(-r0) * dx + Math.cos(-r0) * dy, ex = Math.cos(rg) * cx - Math.sin(rg) * cy + +v.tx, ey = Math.sin(rg) * cx + Math.cos(rg) * cy + +v.ty; return Math.hypot(ex - x, ey - y); }); };
     const update = () => {
       body.querySelectorAll('[data-show]').forEach((s) => { const c = lv.ctrl.find((x) => x.id === s.dataset.show); s.textContent = (+v[c.id]).toFixed(c.step < 0.01 ? 3 : c.step < 1 ? 2 : 0) + (c.unit || ''); });
       body.querySelectorAll('.emb-seg button').forEach((b) => b.classList.toggle('on', String(v[b.dataset.c]) === b.dataset.v));
+      if (R) body.querySelector('.emb-round').innerHTML = `<b>第 ${round + 1} / ${R.length} 轮</b><span>${esc(R[round])}</span>`;
       body.querySelector('.emb-metrics').innerHTML = metrics().map(([n, val, ok, tg]) => `<div class="emb-met ${tg ? (ok ? 'ok' : 'no') : ''}"><span>${n}</span><b>${val}</b>${tg ? `<small>${ok ? '✓' : '✗'} 要求 ${tg}</small>` : ''}</div>`).join('');
       if (cv) plot(cv, special);
     };
     const plot = (c, kind) => {
       const g = c.getContext('2d'), W = c.width, Hh = c.height; g.clearRect(0, 0, W, Hh); g.fillStyle = '#0b0a12'; g.fillRect(0, 0, W, Hh);
       g.strokeStyle = '#ffffff10'; for (let i = 0; i < W; i += 20) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, Hh); g.stroke(); } for (let i = 0; i < Hh; i += 20) { g.beginPath(); g.moveTo(0, i); g.lineTo(W, i); g.stroke(); }
-      if (kind === 'ik') {
+      if (!kind && lv.plot) lv.plot(g, W, Hh, v, round);
+      else if (kind === 'ik') {
         const { L1, L2, targets, tol } = lv.ik, s = 300, ox = 40, oy = Hh - 20, P = (x, y) => [ox + x * s, oy - y * s], a = (v.a * Math.PI) / 180, b = (v.b * Math.PI) / 180;
         targets.forEach((t, i) => { const [tx, ty] = P(t[0], t[1]); g.strokeStyle = i < round ? '#6fdc8c' : i === round ? '#ffe08a' : '#ffffff30'; g.lineWidth = 2; g.beginPath(); g.arc(tx, ty, tol * s, 0, 7); g.stroke(); g.fillStyle = g.strokeStyle; g.font = '11px sans-serif'; g.fillText(i < round ? '✓' : String(i + 1), tx + 8, ty - 8); });
         const e1 = [L1 * Math.cos(a), L1 * Math.sin(a)], e2 = [e1[0] + L2 * Math.cos(a + b), e1[1] + L2 * Math.sin(a + b)], p0 = P(0, 0), p1 = P(...e1), p2 = P(...e2);
@@ -6776,6 +7638,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
       const m = metrics(), okAll = m.every((x) => !x[3] || x[2]);
       if (!okAll) { mis(); const f = m.filter((x) => x[3] && !x[2]).map((x) => `${x[0]}（${x[1]}，要求 ${x[3]}）`); return msg('✗ 还没达标：' + f.join('；'), 'bad'); }
       if (special === 'ik' && round < lv.ik.targets.length - 1) { round++; CF.Audio.sfx('correct'); msg(`✓ 碰到第 ${round} 个目标！下一个。`, 'good'); return update(); }
+      if (R && round < R.length - 1) { round++; CF.Audio.sfx('correct'); msg(`✓ 第 ${round} 轮完成！下一轮：${esc(R[round])}`, 'good'); return update(); }
       CF.Audio.sfx('correct'); msg('✓ 达标！', 'good'); finish();
     };
     msg(lv.prompt); act([['检查', check, 'primary']]); update();
@@ -6842,28 +7705,29 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
 
   // ---------- 结算 ----------
   function resultStep() {
-    steps(); const lv = cur.lv, t = cur.mis + cur.hint, stars = cur.ans ? 1 : t === 0 ? 3 : t <= 2 ? 2 : 1, prev = starsOf(lv.id), s = lv.stage;
+    steps(); const lv = cur.lv, t = cur.mis + cur.hint, stars = cur.ans ? 1 : t === 0 ? 3 : t <= 2 ? 2 : 1, prev = starsOf(lv.id), s = lv.stage, tk = lv.track;
     const firstStage = s.levels.every((l) => l === lv || starsOf(l.id) > 0) && !prev;
     if (stars > prev) sv().lv[lv.id] = stars;
     const toast0 = CF.toast, got = []; CF.toast = (m) => got.push(m);   // 奖励写进结算卡，不用浮动提示盖住星星（UI 宪法第 26 章「不遮挡」）
     try {
     if (!prev) CF.P.addXP({ type: 'p', amt: 10 + s.no * 4 + stars * 3, dims: { zhi: 0.5, ti: 0.2 }, domain: 'emb', label: '具身智能 ' + lv.id });
     else if (stars > prev) CF.P.addXP({ type: 'p', amt: (stars - prev) * 4, dims: { zhi: 0.5 }, domain: 'emb', label: '具身智能 ' + lv.id });
-    if (firstStage) { const avg = Math.round(s.levels.reduce((a, l) => a + starsOf(l.id), 0) / s.levels.length); CF.P.finishLab('emb', Math.max(1, avg)); got.unshift(`${s.no ? '阶段' + CN[s.no] : '序章'}「${s.name}」全部完成！拾光号又往前走了一步`); }
+    if (firstStage) { const avg = Math.round(s.levels.reduce((a, l) => a + starsOf(l.id), 0) / s.levels.length); CF.P.finishLab('emb', Math.max(1, avg)); got.unshift(`${stTitle(s, tk)}「${s.name}」全部完成！${tk.robot}又往前走了一步`); }
     } finally { CF.toast = toast0; }
     CF.Save.save();
-    const L = LEVELS(), nx = L[L.indexOf(lv) + 1];
+    const TL = tk.levels, nx = TL[TL.indexOf(lv) + 1], same = prOf(lv.id);
     body.innerHTML = `<div class="emb-result"><div class="emb-rstars">${'<i class="on">★</i>'.repeat(stars)}${'<i>★</i>'.repeat(3 - stars)}</div><h3>${lv.id} ${esc(lv.name)} · 通关</h3><p class="small muted">失误 ${cur.mis} 次 · 提示 ${cur.hint} 次${cur.ans ? ' · 看了答案' : ''}${prev && stars <= prev ? ` · 最好成绩 ${prev} 星` : ''}</p>${got.length ? `<div class="emb-gain">${got.map((m) => `<span>${esc(m)}</span>`).join('')}</div>` : ''}
-      <div class="emb-recap"><b>这一关你学会了</b>${lv.learn.map((c) => `<p>· ${c[0]}</p>`).join('')}</div>${lv.after && lv.kind !== 'tune' ? `<div class="emb-recap"><b>想一想</b><p>${lv.after}</p></div>` : ''}<canvas class="emb-rrobot" width="160" height="160"></canvas></div>`;
-    drawRobot(body.querySelector('.emb-rrobot')); msg(stars === 3 ? '完美通关！' : '通关了！想拿 3 星可以再来一次。', 'good');
-    act([['再来一次', () => E.play(lv.id), 'ghost'], ['返回阶段', () => { view = { tab: s.id, play: null }; render(); }, 'ghost']].concat(nx ? [[`下一关：${nx.id} →`, () => E.play(nx.id), 'primary']] : []));
+      <div class="emb-recap"><b>这一关你学会了</b>${lv.learn.map((c) => `<p>· ${c[0]}</p>`).join('')}</div>${lv.after && lv.kind !== 'tune' ? `<div class="emb-recap"><b>想一想</b><p>${lv.after}</p></div>` : ''}${same.map((p) => `<div class="emb-recap emb-samebox"><b>同原理：${esc(p.n)}</b><p>${esc(p.d)}</p><div class="emb-prc">${p.ids.filter((x) => x !== lv.id).map(prChip).join('')}</div></div>`).join('')}<canvas class="emb-rrobot" width="160" height="160"></canvas></div>`;
+    drawRobot(body.querySelector('.emb-rrobot'), tk); goBtns(body); msg(stars === 3 ? '完美通关！' : '通关了！想拿 3 星可以再来一次。', 'good');
+    act([['再来一次', () => E.play(lv.id), 'ghost'], ['返回赛道', () => { view = { tab: tk.id, play: null, stg: s.id }; render(); }, 'ghost']].concat(nx ? [[`下一关：${nx.id} →`, () => E.play(nx.id), 'primary']] : [['回到总览', () => { view = { tab: 'ov', play: null }; render(); }, 'primary']]));
   }
 
-  // ================= 拾光号（进度画）：虚线 = 还在图纸上，实线 = 已经造出来 =================
-  function drawRobot(c) {
+  // ================= 进度画：虚线 = 还在图纸上，实线 = 已经造出来（每条赛道一台；主线是拾光号） =================
+  function drawRobot(c, t) {
     if (!c) return; const g = c.getContext('2d'), W = c.width, Hh = c.height, k = W / 48, has = (id) => starsOf(id) > 0;
     g.clearRect(0, 0, W, Hh); g.fillStyle = '#0d1530'; g.fillRect(0, 0, W, Hh); g.strokeStyle = '#4ef0ff14'; for (let i = 0; i <= 48; i += 4) { g.beginPath(); g.moveTo(i * k, 0); g.lineTo(i * k, Hh); g.stroke(); g.beginPath(); g.moveTo(0, i * k); g.lineTo(W, i * k); g.stroke(); }
     const part = (on, x, y, w, h, col) => { if (on) { g.fillStyle = col; g.fillRect(x * k, y * k, w * k, h * k); } else { g.setLineDash([3, 3]); g.strokeStyle = '#4ef0ff88'; g.strokeRect(x * k + 0.5, y * k + 0.5, w * k - 1, h * k - 1); g.setLineDash([]); } };
+    if (t && t.art) return t.art(part, has, g, k);
     part(has('2-1'), 8, 38, 7, 7, '#2b2641'); part(has('2-1'), 30, 38, 7, 7, '#2b2641');            // 轮子
     part(has('2-6'), 6, 30, 33, 9, '#6c6680');                                                         // 底盘
     part(has('2-4'), 9, 32, 10, 5, '#e9b949');                                                         // 电池
@@ -7087,7 +7951,7 @@ window.CF.LOGO = {"icon":{"d":"M285.0 515.0C259.3 511.4 235.3 502.2 213.5 487.5C
     const g = CF.h('<div class="grid g3"></div>');
     CF.Labs.ORDER.forEach((id) => {
       const m = CF.Labs.META[id], st = CF.P.labStars(id), done = CF.P.labDone(id);
-      const unlock = { gd: '第 2 关', perceptron: '雷达站 · 第 2 关', pid: '无人机空港 · 第 4 关', robot: '第 3 关', rocket: '第 4 关', startup: '第 5 关', code: 'Agent 工坊（完成 1 个）', pixel: '通讯头像', emb: '每关实操经验 · 拾光号整机' }[id];
+      const unlock = { gd: '第 2 关', perceptron: '雷达站 · 第 2 关', pid: '无人机空港 · 第 4 关', robot: '第 3 关', rocket: '第 4 关', startup: '第 5 关', code: 'Agent 工坊（完成 1 个）', pixel: '通讯头像', emb: '每关实操经验 · 拾光号、云雀、踏雪、行者' }[id];
       const el = CF.h(`<div class="card labcard"><div class="st">${done ? '★'.repeat(st) + '☆'.repeat(3 - st) : ''}</div><div style="font-size:28px">${m.icon}</div><div class="dom">${m.d ? C().DOMAINS[m.d].name : '美'}${id === 'code' ? ` · ${CF.P.codeDone()}/10` : ''}${id === 'emb' && CF.Emb ? ` · ${CF.Emb.progress()}` : ''}</div><h3>${m.name}</h3><p>${m.desc}</p><p class="small" style="margin-top:6px;color:var(--plight)">🔓 关联解锁：${unlock}</p></div>`);
       el.onclick = () => { CF.Audio.sfx('click'); CF.Labs.open(id); };
       g.appendChild(el);

@@ -2,7 +2,7 @@
 (function () {
   const CF = window.CF;
   const META = {
-    emb: { name: '具身智能 · 造一台机器人', d: 'emb', icon: '🦾', desc: '从零造出会听话、会拿杯子的「拾光号」：需求设计 → 制造组装 → 系统仿真 → 数据训练 → 部署 → 迭代，6 个阶段、37 关，每关先学再练再考。', dims: { zhi: 0.5, ti: 0.2 } },
+    emb: { name: '具身智能 · 造一台机器人', d: 'emb', icon: '🦾', desc: '从零造出会听话、会拿杯子的「拾光号」（6 个阶段 37 关），再造无人机（直升 / 双旋 / 四旋）、四足机器狗、人形机器人，外加航天与工程师之路：5 条赛道 76 关，相同原理放在一起学，每关先学再练再考。', dims: { zhi: 0.5, ti: 0.2 } },
     gd: { name: '梯度下降', d: 'ai', icon: '📉', desc: '亲手训练一条直线：感受学习率太小、刚好、太大的区别。', dims: { zhi: 0.5 } },
     perceptron: { name: '感知机', d: 'ai', icon: '🧠', desc: '调权重把「乱码」和「信号」分开，理解一个神经元在做什么。', dims: { zhi: 0.5 } },
     pid: { name: 'PID 无人机', d: 'emb', icon: '🚁', desc: '调 Kp/Ki/Kd 让载重无人机稳稳悬停在 10 米，还要扛住一阵下压风。', dims: { zhi: 0.4 } },
@@ -520,7 +520,7 @@
   // 旧存档的头像按下标存颜色，所以只在末尾追加（v6：信号兵模板用的蓝钢色）
   const PIX_PAL = ['transparent', '#d97757', '#b85f40', '#1b1226', '#ede6d6', '#8b80d6', '#5b3aa8', '#e9b949', '#3fd0c9', '#ff4f9a', '#6fdc8c', '#7fa8d8', '#4f6f9e'];
   L.PIX_PAL = PIX_PAL;
-  L.emb = function () { if (CF.Emb) return CF.Emb.open(); };   // v9.4 具身智能全流程（js/embodied.js）
+  L.emb = function () { if (CF.Emb) return CF.Emb.open(); };   // v9.4 具身智能全流程，v9.5 五条赛道（js/embodied.js）
   L.pixel = function () { if (CF.PixStudio) return CF.PixStudio.open(); return L.pixelOld(); };
   // v8 及以前的 16×16 画板（像素工坊 2.0 加载失败时兜底）
   L.pixelOld = function () {

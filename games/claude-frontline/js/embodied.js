@@ -1,34 +1,47 @@
 /* 实验室 · 具身智能：造一台机器人（v9.4，主创要求）——引擎与界面
- * 课程数据在 js/embodied-data.js。版式按 UI 宪法第 27 章：弹窗页眉不变；横屏左侧竖条（总览 + 六个阶段），竖屏是一排页签；
- * 进入一关后隐藏导航，整块区域给这一关用（27.12）。每关：学（知识卡）→ 练（玩法）→ 考（小测）→ 结算（星级）。
+ * 课程数据在 js/embodied-data.js（主线拾光号）和 js/embodied-tracks.js（v9.5：无人机、四足、人形、进阶扩展 + 同原理表）。
+ * 版式按 UI 宪法第 27 章：弹窗页眉不变；横屏左侧竖条，竖屏是一排页签；进入一关后隐藏导航，整块区域给这一关用（27.12）。
+ * v9.5 起竖条 = 总览 + 同原理 + 各条赛道，阶段放进赛道页，一个阶段一段（27.14）。每关：学（知识卡）→ 练（玩法）→ 考（小测）→ 结算（星级）。
  * 玩法引擎：choice 选择 / 诊断 · sort 分类 · order 组装与工序 · wire 接线（像电路图：端口有类型，类型不对接不上）·
  *   tune 计算与调参（含运动学、时间戳对齐、手眼标定、动作平滑的小画板）· teleop 遥操作示教。
  * 星级：零失误 3 星；失误 + 提示 ≤ 2 次 2 星；其余 1 星；看了答案 1 星。同一关失败 4 次给答案（与电路工坊一致）。
- * 解锁：按顺序一关一关开（体验模式全开）；首次通关给实操经验，通关一个阶段记一次实验完成。 */
+ * 解锁：每条赛道内按顺序一关一关开；新赛道的第一关要先通过它的前置关（track.req），体验模式全开。
+ * 首次通关给实操经验，通关一个阶段记一次实验完成。调参关可以分几轮（rounds）、自带画板（plot）。 */
 (function () {
   const CF = window.CF;
   const E = (CF.Emb = {});
   const D = () => CF.EmbData;
   const esc = (s) => CF.esc(s);
   const sv = () => { const d = CF.Save.data; d.emb = d.emb || { lv: {} }; d.emb.lv = d.emb.lv || {}; return d.emb; };
-  const LEVELS = () => D().STAGES.flatMap((s) => s.levels.map((l) => Object.assign(l, { stage: s })));
+  let ready = null;
+  const TRACKS = () => { const T = D().TRACKS; if (ready !== T.length) { T.forEach((t) => (t.levels = t.stages.flatMap((s) => s.levels.map((l) => Object.assign(l, { stage: s, track: t }))))); ready = T.length; } return T; };
+  const LEVELS = () => TRACKS().flatMap((t) => t.levels);
+  const byId = (id) => LEVELS().find((l) => l.id === id);
   const starsOf = (id) => sv().lv[id] || 0;
-  const isOpen = (l) => { if (CF.P.trial()) return true; const L = LEVELS(), i = L.indexOf(l); return i <= 0 || starsOf(L[i - 1].id) > 0; };
-  const doneIn = (s) => s.levels.filter((l) => starsOf(l.id) > 0).length;
+  const passed = (id) => starsOf(id) > 0;
+  const trackOpen = (t) => CF.P.trial() || !t.req || passed(t.req[0]);
+  const isOpen = (l) => { if (CF.P.trial()) return true; const TL = l.track.levels, i = TL.indexOf(l); return i <= 0 ? trackOpen(l.track) : passed(TL[i - 1].id); };
+  const lockWhy = (l) => (l.track.levels[0] === l && l.track.req ? l.track.req[1] : '先通关上一关');
+  const doneIn = (s) => s.levels.filter((l) => passed(l.id)).length;
+  const doneT = (t) => t.levels.filter((l) => passed(l.id)).length;
+  const prOf = (id) => (D().PRINCIPLES || []).filter((p) => p.ids.includes(id));
+  const stNo = (s) => (s.no ? CN[s.no] : '序');
+  const stTitle = (s, t) => (t.id === 'mm' ? '' : t.short + ' · ') + (s.no ? '阶段' + CN[s.no] : '序章');
   const KIND = { choice: '选择 · 诊断', sort: '分类', order: '组装 · 工序', wire: '接线', tune: '计算 · 调参', teleop: '遥操作示教' };
   const LVD = { 点: '认识一个零件或概念', 线: '把几个连成一条链', 面: '搭出一个完整子系统', 体: '整台机器人、整个闭环' };
   const CN = '零一二三四五六';
   const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  E.progress = () => { const L = LEVELS(); return L.filter((l) => starsOf(l.id) > 0).length + '/' + L.length; };
-  E.next = () => LEVELS().find((l) => !starsOf(l.id)) || null;
+  E.progress = () => { const L = LEVELS(); return L.filter((l) => passed(l.id)).length + '/' + L.length; };
+  E.next = () => LEVELS().find((l) => !passed(l.id) && isOpen(l)) || null;
 
   let root = null, view = { tab: 'ov', play: null }, cur = null, loopStop = null, ro = null;
   E.open = function (levelId) {
-    root = CF.h('<div class="emb rail-page"><nav class="rail" role="tablist" aria-label="阶段"></nav><div class="rail-main emb-main"></div></div>');
+    root = CF.h('<div class="emb rail-page"><nav class="rail" role="tablist" aria-label="赛道"></nav><div class="rail-main emb-main"></div></div>');
     CF.modal.open({ title: '🦾 实验室 · 具身智能：造一台机器人', body: root, wide: true, onClose: () => { stopLoop(); if (ro) ro.disconnect(); CF.$('#modal').classList.remove('ps-on'); root = null; } });
     CF.$('#modalCard').classList.add('emb-full'); CF.$('#modal').classList.add('ps-on');
     view = { tab: 'ov', play: null };
-    if (levelId) return E.play(levelId);
+    if (levelId && TRACKS().some((t) => t.id === levelId)) view.tab = levelId;
+    else if (levelId) return E.play(levelId);
     render();
   };
   function stopLoop() { if (loopStop) { loopStop(); loopStop = null; } }
@@ -37,12 +50,12 @@
     stopLoop();
     root.classList.toggle('playing', !!view.play);
     const rail = root.querySelector('.rail'), main = root.querySelector('.emb-main');
-    const tabs = [['ov', '总览', E.progress()]].concat(D().STAGES.map((s) => [s.id, s.no ? `${CN[s.no]} · ${s.short}` : s.short, `${doneIn(s)}/${s.levels.length}`]));
+    const tabs = [['ov', '总览', E.progress()], ['pr', '同原理', (D().PRINCIPLES || []).length + ' 组']].concat(TRACKS().map((t) => [t.id, `${t.icon} ${t.short}`, trackOpen(t) ? `${doneT(t)}/${t.levels.length}` : '🔒']));
     rail.innerHTML = tabs.map(([k, n, c]) => `<button role="tab" data-t="${k}" class="${view.tab === k ? 'on' : ''}" aria-selected="${view.tab === k}">${n}<small>${c}</small></button>`).join('');
     rail.querySelectorAll('[data-t]').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); view = { tab: b.dataset.t, play: null }; render(); }));
     main.scrollTop = 0;
     if (view.play) return player(main);
-    if (view.tab === 'ov') overview(main); else stagePage(main, D().STAGES.find((s) => s.id === view.tab));
+    if (view.tab === 'ov') overview(main); else if (view.tab === 'pr') principles(main); else trackPage(main, TRACKS().find((t) => t.id === view.tab) || TRACKS()[0]);
   }
   // ⓘ 说明：在模块里面弹出（不另开弹窗，免得关掉整个模块）
   const info = (title, html) => {
@@ -52,34 +65,52 @@
   };
 
   // ================= 总览 =================
+  const goBtns = (el) => el.querySelectorAll('[data-go]').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); E.play(b.dataset.go); }));
+  const tabBtns = (el) => el.querySelectorAll('[data-t]').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); view = { tab: b.dataset.t, play: null }; render(); }));
+  const prChip = (id) => { const l = byId(id); if (!l) return ''; return `<button class="emb-mlv emb-prchip ${passed(id) ? 'done' : ''} ${isOpen(l) ? '' : 'lock'}" data-go="${id}" style="--tc:${l.track.color}"><i>${l.track.icon}</i>${id} ${esc(l.name)}</button>`; };
   function overview(main) {
-    const L = LEVELS(), n = L.filter((l) => starsOf(l.id) > 0).length, nx = E.next();
-    main.innerHTML = `<div class="codex-head"><b class="codex-t">具身智能 · 全流程</b><span class="codex-prog">已通关 <b>${n}</b><span>/${L.length}</span></span><button class="btn sm ghost" data-i>ⓘ 这门课</button></div>
-      <div class="emb-ov"><div class="emb-robot"><canvas width="240" height="240"></canvas><div class="emb-robot-cap"><b>${D().ROBOT}</b> · 完成度 ${Math.round((n / L.length) * 100)}%<small>虚线 = 还在图纸上，实线 = 已经造出来</small></div></div>
-        <div class="emb-loop">${D().STAGES.map((s) => `<button class="emb-st-chip" data-t="${s.id}"><i>${s.no ? CN[s.no] : '序'}</i><b>${s.name}</b><small>${doneIn(s)}/${s.levels.length}</small><span class="emb-bar"><em style="width:${(doneIn(s) / s.levels.length) * 100}%"></em></span></button>`).join('')}<p class="emb-loopcap">设计 → 制造 → 仿真 → 训练 → 部署 → 反馈，再回到设计：一圈一圈地转。</p></div></div>
-      ${nx ? `<div class="emb-next"><button class="btn primary" data-go="${nx.id}">继续：${nx.id} ${esc(nx.name)}</button><span class="small muted">${nx.stage.name}</span></div>` : '<div class="emb-next"><b class="emb-grad">全部通关：拾光号造好了！</b></div>'}
-      <div class="emb-plf">${Object.keys(LVD).map((k) => `<span class="emb-lvl lv-${k}">${k}</span><span class="small">${LVD[k]}</span>`).join('')}</div>
-      <div class="emb-map">${[['hw', '硬件全景（补全你没想到的）'], ['sw', '软件全景（补全你没想到的）']].map(([k, t]) => `<section><h4>${t}</h4>${D().MAP[k].map(([a, b, ids]) => `<div class="emb-mrow"><b>${a}</b><p>${b}</p><span>${ids.map((id) => `<button class="emb-mlv ${starsOf(id) ? 'done' : ''}" data-go="${id}">${id}</button>`).join('')}</span></div>`).join('')}</section>`).join('')}</div>`;
-    drawRobot(main.querySelector('.emb-robot canvas'));
-    main.querySelector('[data-i]').onclick = () => info('这门课', '具身智能机器人的制作，并不是把「大脑」（AI 模型）和「身体」（机械硬件）简单拼在一起，而是软硬件深度耦合、从虚拟仿真到物理世界闭环迭代的系统工程。<br><br>这门课带你从零造出「拾光号」：轮式底盘 + 6 自由度机械臂 + 深度相机 + 麦克风阵列。它听到「把桌上的杯子拿给我」，就走过去、找到杯子、抓起来、递给你。<br><br>按 <b>点 → 线 → 面 → 体</b> 学：先认识零件，再连成链，再搭成系统，最后合成整机、跑通整个闭环。每关先「学」几张卡片，再「练」，有的还要「考」。一关一关按顺序解锁。<br><br>想练电路，可以去主城 · 电路工坊的「具身智能」模块。');
-    main.querySelectorAll('.emb-st-chip').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); view = { tab: b.dataset.t, play: null }; render(); }));
-    main.querySelectorAll('[data-go]').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); E.play(b.dataset.go); }));
+    const L = LEVELS(), n = L.filter((l) => passed(l.id)).length, nx = E.next(), P = D().PRINCIPLES || [];
+    main.innerHTML = `<div class="codex-head"><b class="codex-t">具身智能 · 造机器人</b><span class="codex-prog">已通关 <b>${n}</b><span>/${L.length}</span></span><button class="btn sm ghost" data-i>ⓘ 这门课</button></div>
+      ${nx ? `<div class="emb-next"><button class="btn primary" data-go="${nx.id}">继续：${nx.id} ${esc(nx.name)}</button><span class="small muted">${nx.track.icon} ${esc(nx.track.short)} · ${esc(nx.stage.name)}</span></div>` : '<div class="emb-next"><b class="emb-grad">全部通关：五条赛道都走完了！</b></div>'}
+      <div class="emb-tracks">${TRACKS().map((t) => { const op = trackOpen(t), d = doneT(t); return `<button class="emb-trk ${op ? '' : 'lock'}" data-t="${t.id}" style="--tc:${t.color}"><canvas width="96" height="96"></canvas><span class="emb-trk-t"><b>${t.icon} ${esc(t.name)}</b><small>${esc(t.blurb || '')}</small><span class="emb-bar"><em style="width:${(d / t.levels.length) * 100}%"></em></span><small>${op ? `通关 ${d}/${t.levels.length}` : '🔒 ' + esc(t.req[1])}</small></span></button>`; }).join('')}</div>
+      ${P.length ? `<div class="emb-prteaser"><b>同原理：学会一次，到处能用</b><p class="small">同一个原理会在不同的机器上反复出现：反扭矩管着直升机和四旋翼，也管着太空里的卫星；闭环反馈让无人机扶正、机器狗站稳、火箭着陆。相同原理的关放在一起，学的时候互相印证。</p><div class="emb-prc">${P.slice(0, 4).map((p) => `<span class="emb-prname">${esc(p.n)}</span>`).join('')}</div><button class="btn sm ghost" data-t="pr">看全部 ${P.length} 组同原理 →</button></div>` : ''}
+      <div class="emb-plf">${Object.keys(LVD).map((k) => `<span class="emb-lvl lv-${k}">${k}</span><span class="small">${LVD[k]}</span>`).join('')}</div>`;
+    main.querySelectorAll('.emb-trk canvas').forEach((c, i) => drawRobot(c, TRACKS()[i]));
+    main.querySelector('[data-i]').onclick = () => info('这门课', '具身智能机器人的制作，并不是把「大脑」（AI 模型）和「身体」（机械硬件）简单拼在一起，而是软硬件深度耦合、从虚拟仿真到物理世界闭环迭代的系统工程。<br><br>这门课有五条赛道：<b>拾光号</b>（主线：轮式底盘 + 机械臂，主创给的六个阶段）、<b>无人机</b>（直升 / 双旋 / 四旋，相同原理放一起学）、<b>四足机器狗</b>、<b>人形机器人</b>，以及<b>进阶扩展</b>（航天、成本、岗位、标准、学习路线）。<br><br>每条赛道按 <b>点 → 线 → 面 → 体</b> 学：先认识零件，再连成链，再搭成系统，最后合成整机、跑通整个闭环。每关先「学」几张卡片，再「练」，有的还要「考」。赛道里一关一关按顺序解锁；新赛道要先通过它的前置关。<br><br>「同原理」页把不同机器上的同一个原理放在一起：学会一次，到处能用。<br><br>想练电路，可以去主城 · 电路工坊的「具身智能」「航空航天」模块。');
+    tabBtns(main); goBtns(main);
   }
-  // ================= 阶段页 =================
-  function stagePage(main, s) {
-    main.innerHTML = `<div class="codex-head"><b class="codex-t">${s.no ? `阶段${CN[s.no]} · ` : ''}${s.name}</b><span class="codex-prog">通关 <b>${doneIn(s)}</b><span>/${s.levels.length}</span></span><button class="btn sm ghost" data-i>ⓘ 这个阶段</button></div>
-      <div class="emb-path">${s.levels.map((l) => { const op = isOpen(l), st = starsOf(l.id); return `<button class="emb-lv ${op ? '' : 'lock'} ${st ? 'done' : ''}" data-go="${l.id}"><span class="emb-lvl lv-${l.lv}" title="${LVD[l.lv]}">${l.lv}</span><b>${l.id} ${esc(l.name)}</b><small>${KIND[l.kind]}${l.quiz ? ' · 有小测' : ''}</small><span class="emb-stars">${op ? '★'.repeat(st) + '☆'.repeat(3 - st) : '🔒 通关上一关解锁'}</span></button>`; }).join('')}</div>`;
-    main.querySelector('[data-i]').onclick = () => info(s.name, s.sum);
-    main.querySelectorAll('.emb-lv').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); E.play(b.dataset.go); }));
+  // ================= 同原理 =================
+  function principles(main) {
+    const P = D().PRINCIPLES || [];
+    main.innerHTML = `<div class="codex-head"><b class="codex-t">同原理</b><span class="codex-prog"><b>${P.length}</b><span> 组</span></span><button class="btn sm ghost" data-i>ⓘ 为什么放一起</button></div>
+      <div class="emb-prl">${P.map((p) => `<section class="emb-pr"><h4>${esc(p.n)}</h4><p>${esc(p.d)}</p><div class="emb-prc">${p.ids.map(prChip).join('')}</div></section>`).join('')}</div>`;
+    main.querySelector('[data-i]').onclick = () => info('为什么放一起', '机器人的种类很多，但底下的原理没几个。把同一个原理在不同机器上的关卡放在一起学，你会发现：四旋翼的对角转向、直升机的尾桨、卫星的反作用飞轮，其实是同一件事；无人机扶正、机器狗站稳、火箭着陆，用的是同一招。<br><br>每个小块的颜色代表它所在的赛道；填满颜色的是已经通关的关。点一下就能去那一关（没解锁的会告诉你先通关哪一关）。');
+    goBtns(main);
+  }
+  // ================= 赛道页：一个阶段一段 =================
+  const levelBtn = (l) => { const op = isOpen(l), st = starsOf(l.id), pr = prOf(l.id); return `<button class="emb-lv ${op ? '' : 'lock'} ${st ? 'done' : ''}" data-go="${l.id}"><span class="emb-lvl lv-${l.lv}" title="${LVD[l.lv]}">${l.lv}</span><b>${l.id} ${esc(l.name)}</b><small>${KIND[l.kind]}${l.quiz ? ' · 有小测' : ''}${pr.length ? ' · 同原理：' + pr.map((p) => esc(p.n.split('：')[0])).join('、') : ''}</small><span class="emb-stars">${op ? '★'.repeat(st) + '☆'.repeat(3 - st) : '🔒 ' + esc(lockWhy(l))}</span></button>`; };
+  function trackPage(main, t) {
+    const op = trackOpen(t), d = doneT(t), M = t.map;
+    main.innerHTML = `<div class="codex-head"><b class="codex-t">${t.icon} ${esc(t.name)}</b><span class="codex-prog">通关 <b>${d}</b><span>/${t.levels.length}</span></span><button class="btn sm ghost" data-i>ⓘ 这条赛道</button></div>
+      ${op ? '' : `<p class="emb-lockmsg">🔒 ${esc(t.req[1])}。</p>`}
+      <div class="emb-ov"><div class="emb-robot"><canvas width="240" height="240"></canvas><div class="emb-robot-cap"><span><b>${esc(t.robot)}</b> · 完成度 ${Math.round((d / t.levels.length) * 100)}%</span><small>虚线 = 还在图纸上，实线 = 已经造出来</small></div></div>
+        <div class="emb-loop">${t.stages.map((s) => `<button class="emb-st-chip" data-s="${s.id}" title="${esc(s.name)}"><i>${stNo(s)}</i><b>${esc(s.short)}</b><small>${doneIn(s)}/${s.levels.length}</small><span class="emb-bar"><em style="width:${(doneIn(s) / s.levels.length) * 100}%"></em></span></button>`).join('')}${t.id === 'mm' ? '<p class="emb-loopcap">设计 → 制造 → 仿真 → 训练 → 部署 → 反馈，再回到设计：一圈一圈地转。</p>' : ''}</div></div>
+      ${t.stages.map((s) => `<section class="emb-stg" data-stg="${s.id}"><h4><i>${stNo(s)}</i>${esc(s.name)}<small>${doneIn(s)}/${s.levels.length}</small></h4><p class="small muted">${s.sum}</p><div class="emb-path">${s.levels.map(levelBtn).join('')}</div></section>`).join('')}
+      ${M ? `<div class="emb-map">${[['hw', '硬件全景'], ['sw', '软件全景']].map(([k, tt]) => `<section><h4>${esc(t.robot)} · ${tt}${t.id === 'mm' ? '（补全你没想到的）' : ''}</h4>${M[k].map(([a, b, ids]) => `<div class="emb-mrow"><b>${a}</b><p>${b}</p><span>${ids.map((id) => `<button class="emb-mlv ${passed(id) ? 'done' : ''}" data-go="${id}">${id}</button>`).join('')}</span></div>`).join('')}</section>`).join('')}</div>` : ''}`;
+    drawRobot(main.querySelector('.emb-robot canvas'), t);
+    main.querySelector('[data-i]').onclick = () => info(t.name, t.sum);
+    main.querySelectorAll('.emb-st-chip').forEach((b) => (b.onclick = () => { CF.Audio.sfx('click'); const sec = main.querySelector(`[data-stg="${b.dataset.s}"]`); if (sec) sec.scrollIntoView({ block: 'start', behavior: 'smooth' }); }));
+    goBtns(main);
+    if (view.stg) { const sec = main.querySelector(`[data-stg="${view.stg}"]`); view.stg = null; if (sec) requestAnimationFrame(() => sec.scrollIntoView({ block: 'start' })); }
   }
 
   // ================= 一关 =================
   E.play = function (id) {
     const lv = LEVELS().find((l) => l.id === id); if (!lv) return;
     if (!root) return E.open(id);
-    if (!isOpen(lv)) { CF.Audio.sfx('error'); CF.toast('先通关上一关', 'bad'); return; }
+    if (!isOpen(lv)) { CF.Audio.sfx('error'); CF.toast(lockWhy(lv), 'bad'); return; }
     cur = { lv, step: 'learn', card: 0, mis: 0, hint: 0, ans: false };
-    view = { tab: lv.stage.id, play: id }; render();
+    view = { tab: lv.track.id, play: id }; render();
   };
   let body, msgEl, actEl, misEl;
   function player(main) {
@@ -88,7 +119,7 @@
       <span class="emb-steps">${['learn', 'play'].concat(lv.quiz ? ['quiz'] : []).map((s) => `<i data-s="${s}">${{ learn: '学', play: '练', quiz: '考' }[s]}</i>`).join('')}</span><span class="emb-mis">失误 <b>${cur.mis + cur.hint}</b></span></div>
       <div class="emb-pbody"></div><div class="emb-foot"><div class="emb-msg" aria-live="polite"></div><div class="emb-pact"></div></div></div>`;
     body = main.querySelector('.emb-pbody'); msgEl = main.querySelector('.emb-msg'); actEl = main.querySelector('.emb-pact'); misEl = main.querySelector('.emb-mis b');
-    main.querySelector('[data-back]').onclick = () => { CF.Audio.sfx('click'); view = { tab: lv.stage.id, play: null }; render(); };
+    main.querySelector('[data-back]').onclick = () => { CF.Audio.sfx('click'); view = { tab: lv.track.id, play: null, stg: lv.stage.id }; render(); };
     ({ learn: learnStep, play: playStep, quiz: quizStep, result: resultStep })[cur.step]();
   }
   function steps() { root.querySelectorAll('.emb-steps i').forEach((i) => { i.classList.toggle('on', i.dataset.s === cur.step); i.classList.toggle('past', ['learn', 'play', 'quiz'].indexOf(i.dataset.s) < ['learn', 'play', 'quiz', 'result'].indexOf(cur.step)); }); }
@@ -101,7 +132,8 @@
   // ---------- 学 ----------
   function learnStep() {
     steps(); const cards = cur.lv.learn, i = cur.card, c = cards[i];
-    body.innerHTML = `<div class="emb-learn"><div class="emb-ln">知识卡 ${i + 1} / ${cards.length}</div><h3>${c[0]}</h3><p>${c[1]}</p>${c[2] ? `<div class="emb-ana"><b>打个比方</b>${c[2]}</div>` : ''}</div>`;
+    const same = i ? [] : prOf(cur.lv.id).map((p) => `<p class="emb-same">同原理：<b>${esc(p.n)}</b>——也在 ${p.ids.filter((x) => x !== cur.lv.id).map((x) => { const l = byId(x); return `${l.track.icon} ${x}`; }).join('、')}</p>`);
+    body.innerHTML = `<div class="emb-learn"><div class="emb-ln">知识卡 ${i + 1} / ${cards.length}</div><h3>${c[0]}</h3><p>${c[1]}</p>${c[2] ? `<div class="emb-ana"><b>打个比方</b>${c[2]}</div>` : ''}${same.join('')}</div>`;
     msg(i === cards.length - 1 ? `下一步：${KIND[cur.lv.kind]}。` : '');
     act([].concat(i ? [['上一张', () => { cur.card--; learnStep(); }, 'ghost']] : []).concat([[i < cards.length - 1 ? '下一张' : '开始练习 →', () => { if (i < cards.length - 1) { cur.card++; learnStep(); } else go('play'); }, 'primary']]));
   }
@@ -179,8 +211,8 @@
     function layout() {
       const W = Math.max(280, wrap.clientWidth - 4), cols = [...new Set(nodes.map((n) => n.col))].sort((a, b) => a - b), rows = [...new Set(nodes.map((n) => n.row))].sort((a, b) => a - b);
       const tr = W < 600 && cols.length > 2 && rows.length <= 4, C = tr ? rows : cols, R = tr ? cols : rows;
-      const colW = Math.max(tr ? 84 : 150, W / C.length), nodeW = colW - (tr ? 10 : 26);
-      const sideOf = (s) => (tr ? SIDE_TR[s] : s);
+      const sideOf = (s) => (tr ? SIDE_TR[s] : s), lrTr = tr && nodes.some((nd) => nd.p.some((p) => 'lr'.includes(sideOf(p[1]))));   // 转置后左右也有接口：相邻零件之间留宽一点，接口不重叠
+      const colW = Math.max(tr ? (lrTr ? 104 : 84) : 150, W / C.length), nodeW = colW - (tr ? (lrTr ? 30 : 10) : 26);
       const hOf = (nd) => { if (tr) return 64; const c = { l: 0, r: 0 }; nd.p.forEach((p) => { const s = sideOf(p[1]); if (c[s] !== undefined) c[s]++; }); return Math.max(54, 24 + 16 * Math.max(c.l, c.r)); };
       const rowH = Math.max(...nodes.map(hOf)) + (tr ? 46 : 28);
       board.style.width = colW * C.length + 'px'; board.style.height = rowH * R.length + 8 + 'px'; board.classList.toggle('tr', tr);
@@ -224,9 +256,16 @@
         else if (sel === k) { sel = null; msg(''); draw(); } else connect(sel, k);
       });
     });
-    const solK = () => sol.map((s) => s.k);
+    // v9.5：lv.swap 里同一组的接口可以互换（比如四合一电调的四路电机输出接哪个电机都行），检查时按组比较
+    const grp = (pk) => (lv.swap || []).find((G) => G.includes(pk)), canon = (pk) => { const G = grp(pk); return G ? '#' + G[0] : pk; }, ck = (a, b) => ekey(canon(a), canon(b));
+    const match = () => {
+      const cnt = {}; sol.forEach((x) => { const k = ck(x.a, x.b); cnt[k] = (cnt[k] || 0) + 1; });
+      const wrong = edges.filter((e) => { const k = ck(e[0], e[1]); if (cnt[k]) { cnt[k]--; return false; } return true; });
+      return { wrong, missing: sol.filter((x) => { const k = ck(x.a, x.b); if (cnt[k] > 0) { cnt[k]--; return true; } return false; }) };
+    };
+    const free = (pk) => { const G = grp(pk); return G ? [pk].concat(G).find((x) => !edges.some((e) => e[0] === x || e[1] === x)) || pk : pk; };
     const check = () => {
-      const wrong = edges.filter((e) => !solK().includes(ekey(e[0], e[1]))), missing = sol.filter((s) => !edges.some((e) => ekey(e[0], e[1]) === s.k));
+      const { wrong, missing } = match();
       if (wrong.length) {
         mis(); fails++; bad = wrong.map((e) => ekey(e[0], e[1])); draw();
         const w = wrong[0], right = sol.find((s) => s.a === w[0] || s.b === w[0] || s.a === w[1] || s.b === w[1]);
@@ -236,7 +275,7 @@
       if (fails >= 4) btns(true);
     };
     const win = () => { finished = true; sel = null; draw(); body.querySelector('.emb-wire').insertAdjacentHTML('beforeend', `<div class="emb-recap"><b>每根线为什么这么接</b>${sol.map((s) => `<p><i style="background:${T[port(s.a).p[2]][1]}"></i>${pname(s.a)} ↔ ${pname(s.b)}：${s.why}</p>`).join('')}</div>`); msg(cur.ans ? '答案已经连好，看看下面每根线的道理。' : '✓ 全部接对！', 'good'); act([['完成 →', onDone, 'primary']]); };
-    const btns = (more) => act([['提示', () => { const m = sol.find((s) => !edges.some((e) => ekey(e[0], e[1]) === s.k)); if (!m) return msg('线都接上了，点「检查」。'); hint(); glow = [m.a, m.b]; draw(); msg(`提示：把${pname(m.a)}连到${pname(m.b)}——${m.why}`); }, 'ghost'], ['清空', () => { edges = []; bad = []; glow = []; draw(); msg('已清空。'); }, 'ghost']].concat(more ? [['看答案', () => { cur.ans = true; edges = sol.map((s) => [s.a, s.b]); bad = []; win(); }, 'ghost']] : []).concat([['检查', check, 'primary']]));
+    const btns = (more) => act([['提示', () => { const m = match().missing[0]; if (!m) return msg('线都接上了，点「检查」。'); hint(); const a = free(m.a), b = free(m.b); glow = [a, b]; draw(); msg(`提示：把${pname(a)}连到${pname(b)}——${m.why}`); }, 'ghost'], ['清空', () => { edges = []; bad = []; glow = []; draw(); msg('已清空。'); }, 'ghost']].concat(more ? [['看答案', () => { cur.ans = true; edges = sol.map((s) => [s.a, s.b]); bad = []; win(); }, 'ghost']] : []).concat([['检查', check, 'primary']]));
     msg(lv.prompt); btns(false);
     requestAnimationFrame(layout);
     if (ro) ro.disconnect(); ro = new ResizeObserver(() => { if (wrap.isConnected) layout(); }); ro.observe(wrap);
@@ -245,26 +284,28 @@
   // ---------- 计算与调参 ----------
   function tuneG(lv, onDone) {
     const v = {}; lv.ctrl.forEach((c) => (v[c.id] = c.v)); let round = 0;
-    const special = lv.ik ? 'ik' : lv.align ? 'align' : lv.hand ? 'hand' : lv.smooth ? 'smooth' : null;
-    body.innerHTML = `<div class="emb-tune">${lv.intro ? `<p class="emb-intro">${lv.intro}</p>` : ''}<div class="emb-tgrid"><div class="emb-ctrls">${lv.ctrl.map((c) => c.seg ? `<div class="emb-ctl"><span>${c.n}</span><div class="emb-seg">${c.seg.map(([k, t]) => `<button data-c="${c.id}" data-v="${k}">${t}</button>`).join('')}</div></div>` : `<label class="emb-ctl"><span>${c.n} <b data-show="${c.id}"></b></span><input type="range" data-c="${c.id}" min="${c.min}" max="${c.max}" step="${c.step}" value="${c.v}"></label>`).join('')}</div>
-      <div class="emb-tside">${special ? '<canvas class="emb-cv" width="320" height="220"></canvas>' : ''}<div class="emb-metrics"></div></div></div></div>`;
+    const special = lv.ik ? 'ik' : lv.align ? 'align' : lv.hand ? 'hand' : lv.smooth ? 'smooth' : null, R = lv.rounds || null, cvs = lv.cv || [320, 220];   // v9.5：rounds 多轮、plot 关卡自带画板
+    body.innerHTML = `<div class="emb-tune">${lv.intro ? `<p class="emb-intro">${lv.intro}</p>` : ''}${R ? '<div class="emb-round" aria-live="polite"></div>' : ''}<div class="emb-tgrid"><div class="emb-ctrls">${lv.ctrl.map((c) => c.seg ? `<div class="emb-ctl"><span>${c.n}</span><div class="emb-seg">${c.seg.map(([k, t]) => `<button data-c="${c.id}" data-v="${k}">${t}</button>`).join('')}</div></div>` : `<label class="emb-ctl"><span>${c.n} <b data-show="${c.id}"></b></span><input type="range" data-c="${c.id}" min="${c.min}" max="${c.max}" step="${c.step}" value="${c.v}"></label>`).join('')}</div>
+      <div class="emb-tside">${special || lv.plot ? `<canvas class="emb-cv" width="${cvs[0]}" height="${cvs[1]}"></canvas>` : ''}<div class="emb-metrics"></div></div></div></div>`;
     const cv = body.querySelector('.emb-cv');
     const metrics = () => {
       if (special === 'ik') { const { L1, L2, targets, tol } = lv.ik, a = (v.a * Math.PI) / 180, b = (v.b * Math.PI) / 180, x = L1 * Math.cos(a) + L2 * Math.cos(a + b), y = L1 * Math.sin(a) + L2 * Math.sin(a + b), t = targets[Math.min(round, targets.length - 1)], d = Math.hypot(x - t[0], y - t[1]); return [['手指位置', `(${x.toFixed(2)}, ${y.toFixed(2)}) m`, true, ''], [`目标 ${Math.min(round + 1, targets.length)} / ${targets.length}`, `(${t[0]}, ${t[1]}) m`, true, ''], ['距离', (d * 100).toFixed(1) + ' cm', d <= tol, '≤ ' + tol * 100 + ' cm']]; }
       if (special === 'hand') { const errs = handErr(); return [['最大误差', (Math.max(...errs) * 100).toFixed(1) + ' cm', Math.max(...errs) <= 0.015, '≤ 1.5 cm'], ['三个标定点', errs.map((e) => (e * 100).toFixed(1)).join(' / ') + ' cm', true, '']]; }
-      return lv.model(v);
+      return lv.model(v, round);
     };
     const handErr = () => { const H = lv.hand, M = [[0.35, 0.1], [0.5, -0.15], [0.25, -0.3]], r0 = (H.rot * Math.PI) / 180, rg = (v.rot * Math.PI) / 180; return M.map(([x, y]) => { const dx = x - H.tx, dy = y - H.ty, cx = Math.cos(-r0) * dx - Math.sin(-r0) * dy, cy = Math.sin(-r0) * dx + Math.cos(-r0) * dy, ex = Math.cos(rg) * cx - Math.sin(rg) * cy + +v.tx, ey = Math.sin(rg) * cx + Math.cos(rg) * cy + +v.ty; return Math.hypot(ex - x, ey - y); }); };
     const update = () => {
       body.querySelectorAll('[data-show]').forEach((s) => { const c = lv.ctrl.find((x) => x.id === s.dataset.show); s.textContent = (+v[c.id]).toFixed(c.step < 0.01 ? 3 : c.step < 1 ? 2 : 0) + (c.unit || ''); });
       body.querySelectorAll('.emb-seg button').forEach((b) => b.classList.toggle('on', String(v[b.dataset.c]) === b.dataset.v));
+      if (R) body.querySelector('.emb-round').innerHTML = `<b>第 ${round + 1} / ${R.length} 轮</b><span>${esc(R[round])}</span>`;
       body.querySelector('.emb-metrics').innerHTML = metrics().map(([n, val, ok, tg]) => `<div class="emb-met ${tg ? (ok ? 'ok' : 'no') : ''}"><span>${n}</span><b>${val}</b>${tg ? `<small>${ok ? '✓' : '✗'} 要求 ${tg}</small>` : ''}</div>`).join('');
       if (cv) plot(cv, special);
     };
     const plot = (c, kind) => {
       const g = c.getContext('2d'), W = c.width, Hh = c.height; g.clearRect(0, 0, W, Hh); g.fillStyle = '#0b0a12'; g.fillRect(0, 0, W, Hh);
       g.strokeStyle = '#ffffff10'; for (let i = 0; i < W; i += 20) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, Hh); g.stroke(); } for (let i = 0; i < Hh; i += 20) { g.beginPath(); g.moveTo(0, i); g.lineTo(W, i); g.stroke(); }
-      if (kind === 'ik') {
+      if (!kind && lv.plot) lv.plot(g, W, Hh, v, round);
+      else if (kind === 'ik') {
         const { L1, L2, targets, tol } = lv.ik, s = 300, ox = 40, oy = Hh - 20, P = (x, y) => [ox + x * s, oy - y * s], a = (v.a * Math.PI) / 180, b = (v.b * Math.PI) / 180;
         targets.forEach((t, i) => { const [tx, ty] = P(t[0], t[1]); g.strokeStyle = i < round ? '#6fdc8c' : i === round ? '#ffe08a' : '#ffffff30'; g.lineWidth = 2; g.beginPath(); g.arc(tx, ty, tol * s, 0, 7); g.stroke(); g.fillStyle = g.strokeStyle; g.font = '11px sans-serif'; g.fillText(i < round ? '✓' : String(i + 1), tx + 8, ty - 8); });
         const e1 = [L1 * Math.cos(a), L1 * Math.sin(a)], e2 = [e1[0] + L2 * Math.cos(a + b), e1[1] + L2 * Math.sin(a + b)], p0 = P(0, 0), p1 = P(...e1), p2 = P(...e2);
@@ -296,6 +337,7 @@
       const m = metrics(), okAll = m.every((x) => !x[3] || x[2]);
       if (!okAll) { mis(); const f = m.filter((x) => x[3] && !x[2]).map((x) => `${x[0]}（${x[1]}，要求 ${x[3]}）`); return msg('✗ 还没达标：' + f.join('；'), 'bad'); }
       if (special === 'ik' && round < lv.ik.targets.length - 1) { round++; CF.Audio.sfx('correct'); msg(`✓ 碰到第 ${round} 个目标！下一个。`, 'good'); return update(); }
+      if (R && round < R.length - 1) { round++; CF.Audio.sfx('correct'); msg(`✓ 第 ${round} 轮完成！下一轮：${esc(R[round])}`, 'good'); return update(); }
       CF.Audio.sfx('correct'); msg('✓ 达标！', 'good'); finish();
     };
     msg(lv.prompt); act([['检查', check, 'primary']]); update();
@@ -362,28 +404,29 @@
 
   // ---------- 结算 ----------
   function resultStep() {
-    steps(); const lv = cur.lv, t = cur.mis + cur.hint, stars = cur.ans ? 1 : t === 0 ? 3 : t <= 2 ? 2 : 1, prev = starsOf(lv.id), s = lv.stage;
+    steps(); const lv = cur.lv, t = cur.mis + cur.hint, stars = cur.ans ? 1 : t === 0 ? 3 : t <= 2 ? 2 : 1, prev = starsOf(lv.id), s = lv.stage, tk = lv.track;
     const firstStage = s.levels.every((l) => l === lv || starsOf(l.id) > 0) && !prev;
     if (stars > prev) sv().lv[lv.id] = stars;
     const toast0 = CF.toast, got = []; CF.toast = (m) => got.push(m);   // 奖励写进结算卡，不用浮动提示盖住星星（UI 宪法第 26 章「不遮挡」）
     try {
     if (!prev) CF.P.addXP({ type: 'p', amt: 10 + s.no * 4 + stars * 3, dims: { zhi: 0.5, ti: 0.2 }, domain: 'emb', label: '具身智能 ' + lv.id });
     else if (stars > prev) CF.P.addXP({ type: 'p', amt: (stars - prev) * 4, dims: { zhi: 0.5 }, domain: 'emb', label: '具身智能 ' + lv.id });
-    if (firstStage) { const avg = Math.round(s.levels.reduce((a, l) => a + starsOf(l.id), 0) / s.levels.length); CF.P.finishLab('emb', Math.max(1, avg)); got.unshift(`${s.no ? '阶段' + CN[s.no] : '序章'}「${s.name}」全部完成！拾光号又往前走了一步`); }
+    if (firstStage) { const avg = Math.round(s.levels.reduce((a, l) => a + starsOf(l.id), 0) / s.levels.length); CF.P.finishLab('emb', Math.max(1, avg)); got.unshift(`${stTitle(s, tk)}「${s.name}」全部完成！${tk.robot}又往前走了一步`); }
     } finally { CF.toast = toast0; }
     CF.Save.save();
-    const L = LEVELS(), nx = L[L.indexOf(lv) + 1];
+    const TL = tk.levels, nx = TL[TL.indexOf(lv) + 1], same = prOf(lv.id);
     body.innerHTML = `<div class="emb-result"><div class="emb-rstars">${'<i class="on">★</i>'.repeat(stars)}${'<i>★</i>'.repeat(3 - stars)}</div><h3>${lv.id} ${esc(lv.name)} · 通关</h3><p class="small muted">失误 ${cur.mis} 次 · 提示 ${cur.hint} 次${cur.ans ? ' · 看了答案' : ''}${prev && stars <= prev ? ` · 最好成绩 ${prev} 星` : ''}</p>${got.length ? `<div class="emb-gain">${got.map((m) => `<span>${esc(m)}</span>`).join('')}</div>` : ''}
-      <div class="emb-recap"><b>这一关你学会了</b>${lv.learn.map((c) => `<p>· ${c[0]}</p>`).join('')}</div>${lv.after && lv.kind !== 'tune' ? `<div class="emb-recap"><b>想一想</b><p>${lv.after}</p></div>` : ''}<canvas class="emb-rrobot" width="160" height="160"></canvas></div>`;
-    drawRobot(body.querySelector('.emb-rrobot')); msg(stars === 3 ? '完美通关！' : '通关了！想拿 3 星可以再来一次。', 'good');
-    act([['再来一次', () => E.play(lv.id), 'ghost'], ['返回阶段', () => { view = { tab: s.id, play: null }; render(); }, 'ghost']].concat(nx ? [[`下一关：${nx.id} →`, () => E.play(nx.id), 'primary']] : []));
+      <div class="emb-recap"><b>这一关你学会了</b>${lv.learn.map((c) => `<p>· ${c[0]}</p>`).join('')}</div>${lv.after && lv.kind !== 'tune' ? `<div class="emb-recap"><b>想一想</b><p>${lv.after}</p></div>` : ''}${same.map((p) => `<div class="emb-recap emb-samebox"><b>同原理：${esc(p.n)}</b><p>${esc(p.d)}</p><div class="emb-prc">${p.ids.filter((x) => x !== lv.id).map(prChip).join('')}</div></div>`).join('')}<canvas class="emb-rrobot" width="160" height="160"></canvas></div>`;
+    drawRobot(body.querySelector('.emb-rrobot'), tk); goBtns(body); msg(stars === 3 ? '完美通关！' : '通关了！想拿 3 星可以再来一次。', 'good');
+    act([['再来一次', () => E.play(lv.id), 'ghost'], ['返回赛道', () => { view = { tab: tk.id, play: null, stg: s.id }; render(); }, 'ghost']].concat(nx ? [[`下一关：${nx.id} →`, () => E.play(nx.id), 'primary']] : [['回到总览', () => { view = { tab: 'ov', play: null }; render(); }, 'primary']]));
   }
 
-  // ================= 拾光号（进度画）：虚线 = 还在图纸上，实线 = 已经造出来 =================
-  function drawRobot(c) {
+  // ================= 进度画：虚线 = 还在图纸上，实线 = 已经造出来（每条赛道一台；主线是拾光号） =================
+  function drawRobot(c, t) {
     if (!c) return; const g = c.getContext('2d'), W = c.width, Hh = c.height, k = W / 48, has = (id) => starsOf(id) > 0;
     g.clearRect(0, 0, W, Hh); g.fillStyle = '#0d1530'; g.fillRect(0, 0, W, Hh); g.strokeStyle = '#4ef0ff14'; for (let i = 0; i <= 48; i += 4) { g.beginPath(); g.moveTo(i * k, 0); g.lineTo(i * k, Hh); g.stroke(); g.beginPath(); g.moveTo(0, i * k); g.lineTo(W, i * k); g.stroke(); }
     const part = (on, x, y, w, h, col) => { if (on) { g.fillStyle = col; g.fillRect(x * k, y * k, w * k, h * k); } else { g.setLineDash([3, 3]); g.strokeStyle = '#4ef0ff88'; g.strokeRect(x * k + 0.5, y * k + 0.5, w * k - 1, h * k - 1); g.setLineDash([]); } };
+    if (t && t.art) return t.art(part, has, g, k);
     part(has('2-1'), 8, 38, 7, 7, '#2b2641'); part(has('2-1'), 30, 38, 7, 7, '#2b2641');            // 轮子
     part(has('2-6'), 6, 30, 33, 9, '#6c6680');                                                         // 底盘
     part(has('2-4'), 9, 32, 10, 5, '#e9b949');                                                         // 电池

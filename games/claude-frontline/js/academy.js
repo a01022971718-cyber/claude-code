@@ -201,7 +201,7 @@
     const g = CF.h('<div class="grid g3"></div>');
     CF.Labs.ORDER.forEach((id) => {
       const m = CF.Labs.META[id], st = CF.P.labStars(id), done = CF.P.labDone(id);
-      const unlock = { gd: '第 2 关', perceptron: '雷达站 · 第 2 关', pid: '无人机空港 · 第 4 关', robot: '第 3 关', rocket: '第 4 关', startup: '第 5 关', code: 'Agent 工坊（完成 1 个）', pixel: '通讯头像', emb: '每关实操经验 · 拾光号整机' }[id];
+      const unlock = { gd: '第 2 关', perceptron: '雷达站 · 第 2 关', pid: '无人机空港 · 第 4 关', robot: '第 3 关', rocket: '第 4 关', startup: '第 5 关', code: 'Agent 工坊（完成 1 个）', pixel: '通讯头像', emb: '每关实操经验 · 拾光号、云雀、踏雪、行者' }[id];
       const el = CF.h(`<div class="card labcard"><div class="st">${done ? '★'.repeat(st) + '☆'.repeat(3 - st) : ''}</div><div style="font-size:28px">${m.icon}</div><div class="dom">${m.d ? C().DOMAINS[m.d].name : '美'}${id === 'code' ? ` · ${CF.P.codeDone()}/10` : ''}${id === 'emb' && CF.Emb ? ` · ${CF.Emb.progress()}` : ''}</div><h3>${m.name}</h3><p>${m.desc}</p><p class="small" style="margin-top:6px;color:var(--plight)">🔓 关联解锁：${unlock}</p></div>`);
       el.onclick = () => { CF.Audio.sfx('click'); CF.Labs.open(id); };
       g.appendChild(el);
