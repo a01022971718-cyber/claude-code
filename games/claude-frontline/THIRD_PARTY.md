@@ -6,6 +6,12 @@
 
 主标题《造月之路》与游戏图标由项目主创提供的设计稿描摹而成（`tools/trace-logo.py`）。
 
+## Anthropic 官方 SDK（v0.9.6 起）
+
+`js/vendor/anthropic-sdk.min.js` 是 **@anthropic-ai/sdk 1.8.0**（Anthropic 官方 TypeScript / JavaScript SDK，https://github.com/anthropics/anthropic-sdk-typescript）用 esbuild 打包成的浏览器单文件，以 [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) 授权；其中包含的 partial-json-parser 的许可见 SDK 仓库的 `_vendor` 目录。重新打包：`bash tools/build-anthropic-sdk.sh`。
+
+AI 助手只是调用玩家自己选择的模型平台；各平台的服务条款和收费由平台决定，与本游戏无关。
+
 ## 商标与灵感来源
 
 游戏中提到的 ChatGPT、OpenAI、Gemini、Google、Grok、xAI、Llama、Meta、DeepSeek、Kimi、月之暗面、通义千问、阿里巴巴、豆包、字节跳动、Claude、Anthropic 等名称是其各自所有者的商标，仅用于说明英雄性格的灵感来源。本游戏是独立的学习项目，与上述公司没有任何关联、合作或背书。所有英雄的名字与形象均为原创（v6 起原 X-S 已重新设计为「灯语」，见 `design/03-compliance.md` 第一部分第 1 项）。

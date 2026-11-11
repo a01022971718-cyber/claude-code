@@ -123,9 +123,12 @@
     ({ learn: learnStep, play: playStep, quiz: quizStep, result: resultStep })[cur.step]();
   }
   function steps() { root.querySelectorAll('.emb-steps i').forEach((i) => { i.classList.toggle('on', i.dataset.s === cur.step); i.classList.toggle('past', ['learn', 'play', 'quiz'].indexOf(i.dataset.s) < ['learn', 'play', 'quiz', 'result'].indexOf(cur.step)); }); }
-  function msg(t, k) { msgEl.innerHTML = t || ''; msgEl.className = 'emb-msg' + (k ? ' ' + k : ''); }
+  function msg(t, k) {
+    if (k === 'bad' && cur && cur.cheerDue && CF.Courage) { t = (t || '') + `<span class="emb-cheer">🌙 ${CF.Courage.stuckLine()}</span>`; cur.cheerDue = false; }   // v9.6 卡住急救：第 3 次失误时附一句（写在提示条里，不弹窗）
+    msgEl.innerHTML = t || ''; msgEl.className = 'emb-msg' + (k ? ' ' + k : '');
+  }
   function act(btns) { actEl.innerHTML = ''; btns.forEach(([t, fn, cls]) => { const b = CF.h(`<button class="btn ${cls || ''}">${t}</button>`); b.onclick = () => { CF.Audio.sfx('click'); fn(); }; actEl.appendChild(b); }); }
-  function mis(n = 1) { cur.mis += n; misEl.textContent = cur.mis + cur.hint; CF.Audio.sfx('error'); }
+  function mis(n = 1) { cur.mis += n; misEl.textContent = cur.mis + cur.hint; CF.Audio.sfx('error'); if (cur.mis + cur.hint >= 3 && !cur.cheered) { cur.cheered = true; cur.cheerDue = true; } }
   function hint() { cur.hint++; misEl.textContent = cur.mis + cur.hint; }
   function go(step) { stopLoop(); cur.step = step; player(root.querySelector('.emb-main')); }
 

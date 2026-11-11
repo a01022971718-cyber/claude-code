@@ -20,6 +20,7 @@
     const R = { lobby: () => CF.Lobby.render(), heroes: () => CF.Lobby.renderHeroes(), hero: () => CF.Lobby.renderHero(arg), campaign: UI.renderCampaign, academy: () => CF.Academy.render(), labs: () => CF.Academy.renderLabs(), profile: () => CF.Academy.renderProfile(), achievements: () => CF.Academy.renderAch(), settings: UI.renderSettings, shop: () => CF.Shop.render(), help: () => CF.Tutorial.renderHelp(), city: () => CF.City.enter() };
     (R[name] || (() => {}))();
     UI.checkRotate();
+    CF.bus.emit('screen', name);   // v9.6：AI 助手悬浮按钮、脚本模组用
   };
   CF.bus.on('modal:closed', () => {
     if (UI.cur === 'battle' || UI.cur === 'quick') return;

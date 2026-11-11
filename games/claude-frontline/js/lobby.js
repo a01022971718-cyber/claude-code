@@ -100,6 +100,9 @@
       b.onclick = () => go(id);
       $('#lobbySide').appendChild(b);
     });
+    // v9.6 勇气手账（js/courage.js）：今天的心情、这周来了几天、可以拆的信
+    if (CF.Courage) { const b = CF.h(`<button class="act act-cg"><b>🌙 勇气手账</b>${CF.esc(CF.Courage.lobbyLine())}</button>`); b.onclick = () => { CF.Audio.sfx('click'); CF.Courage.open(); }; $('#lobbySide').appendChild(b); }
+    $('#lobbySide').classList.toggle('has4', $('#lobbySide').children.length > 3);   // 多了第四张卡就把整排加宽，原来三张卡保持原宽
   };
 
   // ================= 英雄图鉴 =================

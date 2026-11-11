@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -35,8 +36,15 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.json.JSONObject;
 
 /**
  * 《造月之路》安卓套壳：全屏 WebView 加载 assets/index.html（node build.mjs 打包出的单文件 H5）。
@@ -52,6 +60,12 @@ import java.util.Map;
  * - 英文发音模型：和原版安卓壳一样，田园向本地 vendor/kokoro/onnx-community/… 要模型文件；第一次从原版的下载地址取回并存到手机里，以后离线可用。
  *   田园的代码一行没改（主创要求：只改 UI，其它不动）。
  * - 新增权限：联网（第一次下载发音 / 口语评分模型、检查更新）、录音（口语评分，用的时候才申请）。
+ * v0.9.6 AI 助手（js/ai-net.js）：XSNet 原生网络桥。
+ * - 网页的请求交给这里用 HttpURLConnection 发出，不受跨域限制；回复按块推回网页（流式输出）。
+ * - API Key 存在本应用私有的 SharedPreferences（ai_keys），网页只拿到占位符「__XS_KEY__:配置编号」；
+ *   只有 https（或本机地址）、并且主机名和保存 Key 时一致，才把占位符换成真的 Key。
+ * - 会话令牌：页面开始加载时作废旧令牌；页面里第一个调用 session() 的脚本（游戏主页面，启动时就调用）拿到新令牌，
+ *   之后的调用（例如扩展工坊沙盒里的小游戏、iframe）拿不到，所以它们不能用这个桥发请求。
  */
 public class MainActivity extends Activity {
     static final String ASSET_HOST = "appassets.androidplatform.net";
@@ -95,6 +109,7 @@ public class MainActivity extends Activity {
         web.setWebViewClient(new Client(this));
         web.addJavascriptInterface(new Bridge(this), "XSNative");
         web.addJavascriptInterface(new Files(this), "AndroidFiles");
+        web.addJavascriptInterface(new Net(this), "XSNet");
         setContentView(web);
         hideBars();
         tts = new TextToSpeech(this, new TtsInit(this));
@@ -353,6 +368,95 @@ public class MainActivity extends Activity {
 
     // 以下都用具名的非泛型类：新版 javac 为匿名类 / 泛型回调生成的桥接方法会让 build-tools 34 的 d8 崩溃
     @SuppressWarnings({"rawtypes", "unchecked"})
+    // ---------- AI 助手：原生网络桥（v0.9.6） ----------
+    private String netToken = null;
+    private boolean netIssued = false;
+    private final Map<String, HttpURLConnection> netLive = new ConcurrentHashMap<>();
+    static final Pattern KEY_PH = Pattern.compile("__XS_KEY__:([A-Za-z0-9_-]{1,40})");
+    synchronized String netSession() { if (netIssued) return ""; netIssued = true; netToken = UUID.randomUUID().toString(); return netToken; }
+    synchronized void netReset() { netIssued = false; netToken = null; }
+    synchronized boolean netOk(String t) { return t != null && netToken != null && netToken.equals(t); }
+    SharedPreferences keys() { return getSharedPreferences("ai_keys", MODE_PRIVATE); }
+    void keyStore(String pid, String host, String key) {
+        SharedPreferences.Editor e = keys().edit();
+        if (key == null || key.isEmpty()) { e.remove("k_" + pid); e.remove("h_" + pid); } else { e.putString("k_" + pid, key); e.putString("h_" + pid, host == null ? "" : host); }
+        e.apply();
+    }
+    boolean keyHas(String pid) { return keys().contains("k_" + pid); }
+    void netPost(String js) { if (web != null) runOnUiThread(new Eval(web, js)); }
+    void netFail(String id, String msg) { netPost("window.__xsNet&&__xsNet.fail(" + JSONObject.quote(id) + "," + JSONObject.quote(msg == null ? "" : msg) + ")"); }
+    void netCancel(String id) { HttpURLConnection c = netLive.remove(id); if (c != null) try { c.disconnect(); } catch (Exception e) { /* 已断开 */ } }
+    static boolean isLocal(String h) { return "localhost".equals(h) || "127.0.0.1".equals(h) || h.startsWith("192.168.") || h.startsWith("10."); }
+    String injectKey(String v, URL u) {
+        Matcher m = KEY_PH.matcher(v);
+        StringBuffer sb = new StringBuffer();
+        SharedPreferences p = keys();
+        String host = u.getHost() + (u.getPort() > 0 && u.getPort() != u.getDefaultPort() ? ":" + u.getPort() : "");
+        while (m.find()) {
+            String pid = m.group(1), saved = p.getString("h_" + pid, ""), key = p.getString("k_" + pid, "");
+            boolean ok = !key.isEmpty() && saved.equals(host) && ("https".equals(u.getProtocol()) || isLocal(u.getHost()));
+            m.appendReplacement(sb, Matcher.quoteReplacement(ok ? key : ""));
+        }
+        m.appendTail(sb);
+        return sb.toString();
+    }
+    void netRun(String id, String method, String url, String headers, String body) {
+        HttpURLConnection c = null;
+        try {
+            URL u = new URL(url);
+            if (!"https".equals(u.getProtocol()) && !"http".equals(u.getProtocol())) throw new Exception("只支持 http / https 地址");
+            c = (HttpURLConnection) u.openConnection();
+            netLive.put(id, c);
+            c.setConnectTimeout(20000);
+            c.setReadTimeout(180000);
+            c.setRequestMethod(method);
+            c.setUseCaches(false);
+            c.setInstanceFollowRedirects(false);
+            JSONObject h = new JSONObject(headers == null || headers.isEmpty() ? "{}" : headers);
+            Iterator<String> it = h.keys();
+            while (it.hasNext()) { String k = it.next(); c.setRequestProperty(k, injectKey(h.optString(k, ""), u)); }
+            if (body != null && !body.isEmpty() && !"GET".equals(method)) {
+                byte[] b = body.getBytes("UTF-8");
+                c.setDoOutput(true);
+                c.setFixedLengthStreamingMode(b.length);
+                OutputStream os = c.getOutputStream(); os.write(b); os.close();
+            }
+            int status = c.getResponseCode();
+            JSONObject rh = new JSONObject();
+            for (Map.Entry<String, List<String>> e : c.getHeaderFields().entrySet()) {
+                String k = e.getKey();
+                if (k == null || e.getValue() == null || e.getValue().isEmpty()) continue;
+                k = k.toLowerCase(Locale.ROOT);
+                if ("content-encoding".equals(k) || "content-length".equals(k) || "transfer-encoding".equals(k)) continue;   // 已由系统解压，长度会变
+                rh.put(k, e.getValue().get(0));
+            }
+            netPost("window.__xsNet&&__xsNet.head(" + JSONObject.quote(id) + "," + status + "," + JSONObject.quote(rh.toString()) + ")");
+            InputStream in = status >= 400 ? c.getErrorStream() : c.getInputStream();
+            if (in != null) {
+                byte[] buf = new byte[8192];
+                int n;
+                while ((n = in.read(buf)) > 0) {
+                    if (!netLive.containsKey(id)) break;
+                    netPost("window.__xsNet&&__xsNet.chunk(" + JSONObject.quote(id) + ",'" + Base64.encodeToString(buf, 0, n, Base64.NO_WRAP) + "')");
+                }
+                in.close();
+            }
+            netPost("window.__xsNet&&__xsNet.end(" + JSONObject.quote(id) + ")");
+        } catch (Exception e) {
+            netFail(id, String.valueOf(e.getMessage()));
+        } finally {
+            netLive.remove(id);
+            if (c != null) try { c.disconnect(); } catch (Exception e) { /* 已断开 */ }
+        }
+    }
+
+    static final class NetCall implements Runnable {
+        private final MainActivity act; private final String id, method, url, headers, body;
+        NetCall(MainActivity a, String id, String method, String url, String headers, String body) { act = a; this.id = id; this.method = method; this.url = url; this.headers = headers; this.body = body; }
+        @Override
+        public void run() { act.netRun(id, method, url, headers, body); }
+    }
+
     static final class BackCallback implements ValueCallback {
         private final Activity act;
         BackCallback(Activity a) { act = a; }
@@ -401,6 +505,8 @@ public class MainActivity extends Activity {
         private final MainActivity act;
         Client(MainActivity a) { act = a; }
         @Override
+        public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) { act.netReset(); super.onPageStarted(view, url, icon); }   // 换页：旧令牌作废
+        @Override
         public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
             Uri u = req.getUrl();
             if (u != null && ASSET_HOST.equals(u.getHost())) return act.serveAsset(u);
@@ -438,6 +544,27 @@ public class MainActivity extends Activity {
         public void openFarm(String url) { act.openFarm(url); }
         @JavascriptInterface
         public void backToGame(int sec) { act.backToGame(sec); }
+    }
+
+    // AI 助手的原生网络桥（js/ai-net.js）：每个方法都要带会话令牌
+    static final class Net {
+        private final MainActivity act;
+        Net(MainActivity a) { act = a; }
+        @JavascriptInterface
+        public String session() { return act.netSession(); }
+        @JavascriptInterface
+        public void storeKey(String tok, String pid, String host, String key) { if (act.netOk(tok)) act.keyStore(pid, host, key); }
+        @JavascriptInterface
+        public boolean hasKey(String tok, String pid) { return act.netOk(tok) && act.keyHas(pid); }
+        @JavascriptInterface
+        public void clearKey(String tok, String pid) { if (act.netOk(tok)) act.keyStore(pid, "", ""); }
+        @JavascriptInterface
+        public void request(String tok, String id, String method, String url, String headers, String body) {
+            if (!act.netOk(tok)) { act.netFail(id, "没有网络会话"); return; }
+            new Thread(new NetCall(act, id, method, url, headers, body)).start();
+        }
+        @JavascriptInterface
+        public void cancel(String id) { act.netCancel(id); }
     }
 
     // 英语田园原版安卓壳的接口（名字和用法保持一致，田园代码不用改）
