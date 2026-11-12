@@ -1,0 +1,20 @@
+<title>具身精灵</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Noto+Sans+SC:wght@400;500;700;900&family=ZCOOL+QingKe+HuangYou&display=swap">
+<style>/*CSS*/</style>
+<main id="app">
+  <canvas id="bg-meadow" class="layer"></canvas>
+  <canvas id="bg-hud" class="layer" hidden></canvas>
+  <canvas id="gl" class="layer" aria-label="精灵所在的 3D 场景"></canvas>
+  <div id="labels" class="layer"></div>
+  <div id="ui" class="layer"></div>
+  <div id="sheet" class="layer" hidden></div>
+  <div id="flash" class="layer" hidden></div>
+  <p id="boot">正在唤醒精灵…</p>
+</main>
+<script>
+  // if anything fails before the app is up, say so instead of leaving a blank screen
+  window.addEventListener('error', function (e) { var b = document.getElementById('boot'); if (b) b.textContent = '没能启动：' + (e.message || '这台设备可能不支持 WebGL') + '。请换一个浏览器再试。'; });
+</script>
+<script src="__THREE__"></script>
+<script>/*JS*/</script>
