@@ -7,7 +7,21 @@ export const U = {
   uTime: { value: 0 },
   uCloud: { value: 1 },
   uWind: { value: 1 },
+  uSunCol: { value: new THREE.Color(1, 1, 1) },
+  uCaustic: { value: 0.6 },
 };
+
+// 水下焦散：两层脊状噪声叠出的光网，随时间流动；越深越淡
+export const GLSL_CAUSTIC = /* glsl */`
+float caustics(vec3 p, float t){
+  if (p.y > 0.03) return 0.0;
+  vec2 q = p.xz * 3.4;
+  float a = 1.0 - abs(snoise2(q + vec2(t * 0.33, t * 0.21)));
+  float b = 1.0 - abs(snoise2(q * 1.37 + vec2(-t * 0.26, t * 0.31) + 5.3));
+  float c = pow(a, 8.0) + pow(b, 8.0) + pow(a * b, 4.0) * 0.6;
+  return c * (1.0 - smoothstep(0.0, 2.4, -p.y)) * smoothstep(0.03, -0.04, p.y);
+}
+`;
 
 const VERT_HEAD = /* glsl */`
 attribute vec3 surf;
@@ -16,10 +30,11 @@ varying vec3 vWP;
 varying vec3 vWN;
 `;
 const FRAG_HEAD = /* glsl */`
-uniform float uTime; uniform float uCloud;
+uniform float uTime; uniform float uCloud; uniform vec3 uSunCol; uniform float uCaustic;
 varying vec3 vSurf; varying vec3 vWP; varying vec3 vWN;
 ${GLSL_NOISE}
 ${GLSL_CLOUD}
+${GLSL_CAUSTIC}
 float gTerrainH;
 `;
 
@@ -75,7 +90,9 @@ export function terrainMaterial({ flat = false, env = 0.75 } = {}) {
           float det = dot(sx, r1) * faceDirection;
           vec3 grad = sign(det) * (dh.x * r1 + dh.y * r2);
           normal = normalize(abs(det) * normal - grad);
-        }`);
+        }`)
+      .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
+        reflectedLight.directDiffuse += diffuseColor.rgb * uSunCol * caustics(vWP, uTime) * uCaustic * max(vWN.y, 0.25);`);
   };
   m.customProgramCacheKey = () => 'hq-terrain-' + flat;
   return m;

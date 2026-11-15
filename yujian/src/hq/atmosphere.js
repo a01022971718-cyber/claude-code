@@ -54,6 +54,7 @@ export class Atmosphere {
     this.scene.environment = this.envRT.texture;
     this.scene.environmentIntensity = night ? 0.35 : 1.0;
     U.uCloud.value = night ? 0 : 1;
+    U.uSunCol.value.set(p.sun).multiplyScalar(p.sunI * 0.35); U.uCaustic.value = night ? 0.15 : 0.9;
     if (ocean) {
       const o = ocean.uniforms;
       o.uSunDir.value.copy(this.dir); o.uSunColor.value.set(p.sun).multiplyScalar(p.sunI * 0.32);

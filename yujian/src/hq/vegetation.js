@@ -5,6 +5,8 @@ import * as THREE from 'three';
 import { makeNoise, rng } from './noise.js';
 import { foliageMaterial, U } from './materials.js';
 import { GLSL_NOISE, GLSL_CLOUD } from './noise.js';
+import { GLSL_WAVES } from './waves.js';
+import { GLSL_CAUSTIC } from './materials.js';
 
 const NZ = makeNoise(77);
 const C = (h) => new THREE.Color(h);
@@ -212,7 +214,8 @@ function bladeMaterial(kind) {
         attribute vec3 uvh; attribute vec4 iPos; attribute vec4 iShape; attribute vec3 iTint; attribute vec3 iTint2;
         uniform float uTime; uniform float uWind;
         varying vec3 vTint; varying float vH; varying float vPart; varying vec3 vWP2;
-        ${GLSL_NOISE}`)
+        ${GLSL_NOISE}
+        ${kind === 'seagrass' ? GLSL_WAVES : ''}`)
       .replace('#include <beginnormal_vertex>', `vec3 objectNormal = normalize(vec3(sin(iPos.w) * 0.25, 1.0, cos(iPos.w) * 0.25));`)
       .replace('#include <begin_vertex>', /* glsl */`
         float hgt = iShape.x, wid = iShape.y, lean = iShape.z, ph = iShape.w;
@@ -222,27 +225,32 @@ function bladeMaterial(kind) {
         float t = uvh.x;
         // 风：大尺度阵风噪声 + 小幅高频抖动，越靠近顶端弯得越多
         float gust = snoise2(iPos.xz * 0.35 + vec2(uTime * 0.35, uTime * 0.12)) * 0.5 + 0.5;
+        ${kind === 'seagrass' ? `
+        // 水下：跟着波浪的水质点轨道运动来回摆
+        vec3 orb = waveOrbit(iPos.xz, iPos.y + t * hgt, uTime);
+        transformed.xz += orb.xz * 2.4 * t * t + vec2(sin(uTime * 1.3 + ph), cos(uTime * 1.1 + ph)) * 0.006 * t;` : `
         float bend = (lean + gust * 0.9 * uWind + sin(uTime * 2.2 + ph) * 0.12) * t * t;
         vec2 dir = normalize(vec2(1.0, 0.45) + vec2(sin(ph), cos(ph)) * 0.35);
         transformed.xz += dir * bend * hgt * 0.55;
-        transformed.y *= 1.0 - bend * bend * 0.12;
+        transformed.y *= 1.0 - bend * bend * 0.12;`}
         transformed += iPos.xyz;
         vTint = mix(iTint2, iTint, uvh.y > 0.5 ? 1.0 : 0.0);
         vTint = uvh.y > 1.5 ? vec3(0.95, 0.75, 0.2) : vTint;
         vH = t; vPart = uvh.y; vWP2 = transformed;`);
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
-        uniform float uTime; uniform float uCloud; varying vec3 vTint; varying float vH; varying float vPart; varying vec3 vWP2;
-        ${GLSL_NOISE}${GLSL_CLOUD}`)
+        uniform float uTime; uniform float uCloud; uniform vec3 uSunCol; uniform float uCaustic; varying vec3 vTint; varying float vH; varying float vPart; varying vec3 vWP2;
+        ${GLSL_NOISE}${GLSL_CLOUD}${GLSL_CAUSTIC}`)
       .replace('#include <color_fragment>', `#include <color_fragment>
-        ${kind === 'grass' ? 'diffuseColor.rgb = vTint * mix(0.5, 1.18, vH);' : kind === 'wheat' ? 'diffuseColor.rgb = vTint * (vPart > 0.5 ? 1.0 : mix(0.55, 0.95, vH));' : 'diffuseColor.rgb = vPart > 0.5 ? vTint : vec3(0.18, 0.36, 0.1) * mix(0.6, 1.0, vH);'}
+        ${kind === 'grass' || kind === 'seagrass' ? 'diffuseColor.rgb = vTint * mix(0.5, 1.18, vH);' : kind === 'wheat' ? 'diffuseColor.rgb = vTint * (vPart > 0.5 ? 1.0 : mix(0.55, 0.95, vH));' : 'diffuseColor.rgb = vPart > 0.5 ? vTint : vec3(0.18, 0.36, 0.1) * mix(0.6, 1.0, vH);'}
         diffuseColor.rgb *= 1.0 - cloudShadow(vWP2.xz, uTime) * 0.22 * uCloud;`)
       .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
         #if NUM_DIR_LIGHTS > 0
         { vec3 L = directionalLights[0].direction; vec3 V = normalize(vViewPosition);
           float back = pow(clamp(dot(V, L), 0.0, 1.0), 2.0) * vH;
           reflectedLight.indirectDiffuse += diffuseColor.rgb * directionalLights[0].color * back * 0.45; }
-        #endif`);
+        #endif
+        reflectedLight.directDiffuse += diffuseColor.rgb * uSunCol * caustics(vWP2, uTime) * uCaustic;`);
   };
   m.customProgramCacheKey = () => 'hq-blade-' + kind;
   return m;
@@ -250,7 +258,7 @@ function bladeMaterial(kind) {
 
 /** list: [{x,y,z, h, w, lean, rot, tint:[r,g,b], tint2:[r,g,b]}] */
 export function bladeField(kind, list) {
-  const g = kind === 'grass' ? bladeGeometry() : kind === 'flower' ? flowerGeometry() : wheatGeometry();
+  const g = kind === 'grass' || kind === 'seagrass' ? bladeGeometry() : kind === 'flower' ? flowerGeometry() : wheatGeometry();
   const n = list.length, P = new Float32Array(n * 4), S = new Float32Array(n * 4), T = new Float32Array(n * 3), T2 = new Float32Array(n * 3);
   list.forEach((b, i) => {
     P.set([b.x, b.y, b.z, b.rot], i * 4); S.set([b.h, b.w, b.lean || 0, b.ph ?? i * 0.37], i * 4);

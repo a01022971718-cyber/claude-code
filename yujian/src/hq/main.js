@@ -12,6 +12,9 @@ import { Atmosphere, PRESETS } from './atmosphere.js';
 import { HQPipeline, LAYER_FX } from './pipeline.js';
 import { makeNoise, rng } from './noise.js';
 import * as P from './props.js';
+import * as L from './models-land.js';
+import { Marine } from './marine.js';
+import { Fauna } from './fauna.js';
 
 const NZ = makeNoise(9);
 const INR = Math.sqrt(3) / 2;
@@ -22,8 +25,8 @@ const LAYOUT = [
   [0, -2, 'forest'], [1, -2, 'mountain'], [2, -2, 'mountain'], [3, -2, 'forest'],
   [-1, -1, 'forest'], [0, -1, 'camp'], [1, -1, 'field'], [2, -1, 'mountain'], [3, -1, 'meadow'],
   [-2, 0, 'forest'], [-1, 0, 'meadow'], [0, 0, 'flowers'], [1, 0, 'meadow'], [2, 0, 'wheat'],
-  [-2, 1, 'quarry'], [-1, 1, 'flowers'], [0, 1, 'meadow'], [1, 1, 'flowers'], [2, 1, 'meadow'],
-  [-2, 2, 'quarry'], [-1, 2, 'meadow'], [0, 2, 'meadow'],
+  [-2, 1, 'quarry'], [-1, 1, 'flowers'], [0, 1, 'meadow'], [1, 1, 'flowers'], [2, 1, 'beach'],
+  [-2, 2, 'quarry'], [-1, 2, 'pond'], [0, 2, 'meadow'],
   [5, -3, 'islet'], [6, -3, 'islet'],
 ];
 const RIVER = [[2.25, -1.25], [1.95, -0.55], [1.62, 0.25], [1.32, 1.05], [1.72, 2.3], [2.06, 3.3], [2.2, 3.78]];
@@ -52,6 +55,10 @@ class Showcase {
       falls: { pos: [5.8, 1.9, 7.4], tgt: [2.0, 0.35, 3.2] },
       horizon: { pos: [-9.5, 2.6, 9.5], tgt: [1.5, 0.8, -1.0] },
       top: { pos: [0.9, 24, 6], tgt: [0.9, 0, 0] },
+      reef: { pos: [0.4, 2.3, 7.6], tgt: [1.3, -0.7, 4.8] },
+      pond: { pos: [-1.5, 1.45, 4.7], tgt: [0.05, 0.38, 2.95] },
+      beach: { pos: [7.4, 1.5, 4.2], tgt: [4.6, 0.25, 1.8] },
+      ocean: { pos: [-6, 3, -6], tgt: [-8, -0.2, -16] },
     };
     this.setShot(qs.get('shot') || 'hero', true);
     this.setTime(qs.get('time') || 'afternoon');
@@ -66,7 +73,8 @@ class Showcase {
 
   build() {
     const scene = this.scene, tiles = LAYOUT.map(([q, r, t]) => ({ q, r, t }));
-    this.terrain = new Terrain(tiles, { river: RIVER, riverWidth: 0.16 });
+    this.pond = { x: 0, z: 3, r: 0.42, depth: 0.11 };
+    this.terrain = new Terrain(tiles, { river: RIVER, riverWidth: 0.16, ponds: [this.pond] });
     const T = this.terrain, tm = terrainMaterial();
     scene.add(T.build(tm, tm));
     scene.add(T.buildSeabed(tm));
@@ -79,7 +87,7 @@ class Showcase {
 
     const R = rng(31);
     const inHex = (t, pad = 0.12) => { for (let k = 0; k < 40; k++) { const x = (R() * 2 - 1) * (INR - pad), z = (R() * 2 - 1) * (1 - pad); if (Math.abs(z) <= (1 - pad) - Math.abs(x) / Math.sqrt(3) && Math.abs(x) <= INR - pad) return [t.x + x, t.z + z]; } return [t.x, t.z]; };
-    const riverD = (x, z) => T.river(x, z)[0];
+    const riverD = (x, z) => Math.min(T.river(x, z)[0], Math.hypot(x - this.pond.x, z - this.pond.z) - this.pond.r * 0.75 + 0.2);
     const H = (t, x, z) => T.heightIn(t, x, z);
 
     // ---- 树 ----
@@ -115,6 +123,12 @@ class Showcase {
         for (let i = 0; i < 20; i++) { const [x, z] = inHex(t, 0.05); plant(rocks, { v: 4 + Math.floor(R() * 2), x, y: H(t, x, z) - 0.01, z, s: 0.025 + R() * 0.035, ry: R() * 6.28 }, 0.03); }
         for (let i = 0; i < 3; i++) { const [x, z] = inHex(t, 0.1); plant(bushes, { v: Math.floor(R() * 3), x, y: H(t, x, z), z, s: 0.8 + R() * 0.5, ry: R() * 6.28 }, 0.08); }
       }
+      if (t.t === 'beach') {
+        for (let i = 0; i < 4; i++) { const [x, z] = inHex(t, 0.2); plant(this.palms = this.palms || [], { x, y: H(t, x, z) - 0.01, z, ry: R() * 6.28, s: 0.85 + R() * 0.3, tilt: 0.12 }, 0.22); }
+      }
+      if (t.t === 'pond') {
+        for (let i = 0; i < 2; i++) { const [x, z] = inHex(t, 0.12); if (riverD(x, z) < 0.35) continue; plant(bushes, { v: Math.floor(R() * 3), x, y: H(t, x, z), z, s: 0.8 + R() * 0.4, ry: R() * 6.28 }, 0.08); }
+      }
       if (['meadow', 'flowers', 'camp', 'islet'].includes(t.t)) {
         const nTree = t.t === 'meadow' ? (R() < 0.6 ? 1 : 0) + (R() < 0.3 ? 1 : 0) : t.t === 'camp' ? 2 : 0;
         for (let i = 0; i < nTree; i++) { const [x, z] = inHex(t, 0.15); if (riverD(x, z) < 0.35) continue; plant(broads, { v: [0, 1, 2, 3, 4][Math.floor(R() * 5)], x, y: H(t, x, z) - 0.02, z, s: 0.8 + R() * 0.35, ry: R() * 6.28 }, 0.24); }
@@ -136,23 +150,27 @@ class Showcase {
     const rockV = [boulder(1), boulder(2, 1), boulder(3), boulder(4, 1), boulder(5), boulder(6, 1), boulder(7, 0, 0), boulder(8, 1, 0)];
     scene.add(instanced(rockV, rocks, propMaterial({ rough: 0.8 })));
     const peakMat = terrainMaterial({ flat: true, env: 0.5 });
-    for (const p of this.peaks) { const m = new THREE.Mesh(p.g, peakMat); m.position.set(p.x, p.y, p.z); m.rotation.y = p.ry; m.castShadow = m.receiveShadow = true; scene.add(m); }
+    this.peakMeshes = [];
+    for (const p of this.peaks) { const m = new THREE.Mesh(p.g, peakMat); m.position.set(p.x, p.y, p.z); m.rotation.y = p.ry; m.castShadow = m.receiveShadow = true; scene.add(m); this.peakMeshes.push(m); }
+    this.perches = trees.map((it) => ({ x: it.x, y: it.y, z: it.z, h: 1.0 * it.s })).concat(broads.map((it) => ({ x: it.x, y: it.y, z: it.z, h: 0.85 * it.s })));
+    this.taken = taken;
 
     // ---- 草、花、麦子、菜地 ----
-    const grass = [], flowers = [], wheat = [];
+    const grass = [], flowers = [], wheat = []; this.flowerSpots = [];
     const FC = [[1.0, 0.82, 0.18], [0.98, 0.96, 0.9], [0.98, 0.5, 0.68], [0.62, 0.48, 0.9], [1.0, 0.58, 0.2]].map((c) => c.map((v) => Math.pow(v, 2.2)));
     const density = Number(qs.get('grass')) || 1;
     for (const t of tiles) {
-      const grassy = { meadow: 4200, flowers: 3800, camp: 3000, islet: 2200, forest: 900, quarry: 1500, mountain: 1400, field: 0, wheat: 0 }[t.t] * density;
+      const grassy = ({ meadow: 4200, flowers: 3800, camp: 3000, islet: 2200, forest: 900, quarry: 1500, mountain: 1400, pond: 3600, beach: 260 }[t.t] || 0) * density;
       for (let i = 0; i < grassy; i++) {
         const [x, z] = inHex(t, 0.0);
         if (T.river && riverD(x, z) < 0.2) continue;
         if (t.t === 'camp' && Math.hypot(x - t.x - 0.05, z - t.z + 0.05) < 0.42) continue;
         if (t.t === 'mountain' && Math.hypot(x - t.x, z - t.z) < 0.5) continue;
+        if (t.t === 'beach' && Math.hypot(x - t.x, z - t.z) < 0.55) continue;
         const h = H(t, x, z), c = T._topColor(t, x, z, h), v = 0.88 + R() * 0.3;
         grass.push({ x, y: h - 0.004, z, h: (0.035 + R() * 0.045) * (t.t === 'forest' ? 0.8 : 1), w: 0.008 + R() * 0.006, lean: R() * 0.3, rot: R() * 6.28, tint: [c.r * v * 1.12, c.g * v * 1.08, c.b * v * 0.95], tint2: [c.r * 0.55, c.g * 0.6, c.b * 0.5] });
       }
-      const nFlower = { flowers: 3200, meadow: 380, camp: 160, islet: 260 }[t.t] || 0;
+      const nFlower = { flowers: 3200, meadow: 380, camp: 160, islet: 260, pond: 220 }[t.t] || 0;
       for (let i = 0; i < nFlower * density; i++) {
         const [x, z] = inHex(t, 0.03);
         if (riverD(x, z) < 0.22) continue;
@@ -160,6 +178,7 @@ class Showcase {
         if (t.t === 'flowers' ? patch < -0.15 : patch < 0.25) continue;
         const h = H(t, x, z), s = 0.022 + R() * 0.02;
         flowers.push({ x, y: h - 0.003, z, h: s * 2.2, w: s * 0.45, lean: R() * 0.15, rot: R() * 6.28, tint: FC[kind], tint2: [0.08, 0.2, 0.05] });
+        if (i % 7 === 0) this.flowerSpots.push({ x, y: h + s * 2.2, z });
       }
       if (t.t === 'wheat') {
         for (let i = 0; i < 8000 * density; i++) {
@@ -206,7 +225,7 @@ class Showcase {
     put(P.fence, field.x + 0.62, field.z + 0.45, -0.5); put(P.signpost, camp.x + 0.55, camp.z - 0.42, 0.6);
     const lhT = tiles.find((t) => t.t === 'islet' && t.q === 5);
     const lhp = put(P.lighthouse, lhT.x - 0.05, lhT.z + 0.05, -0.5, 1.0, lhT);
-    put(P.rowBoat, 3.6, 3.15, 0.8, 1.2, null);
+    this.boat = put(P.rowBoat, 5.75, 2.45, 0.8, 1.2, null);
     this.fireAt = fire ? new THREE.Vector3().fromArray(fire.anchors.fire || [0, 0.04, 0]).add(fire.m.position) : new THREE.Vector3(camp.x + 0.12, camp.base + 0.05, camp.z + 0.1);
     this.fireLight = new THREE.PointLight(0xff8a3a, 1.2, 3.2, 2); this.fireLight.position.copy(this.fireAt).add(new THREE.Vector3(0, 0.12, 0)); scene.add(this.fireLight);
     if (lhp) {
@@ -253,15 +272,62 @@ class Showcase {
       const g = new THREE.Group(), body = new THREE.Mesh(new THREE.CapsuleGeometry(0.025, 0.07, 3, 6).rotateX(Math.PI / 2), bm);
       setColor(body.geometry, 0xf4f4f0); g.add(body);
       const wingG = new THREE.BufferGeometry(); wingG.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0.03, 0.17, 0.02, -0.01, 0, 0, -0.03, 0.17, 0.02, -0.01, 0.2, 0.01, -0.05, 0.12, 0.02, 0.01], 3)); wingG.computeVertexNormals(); setColor(wingG, 0xe8e8e4, [0.2, 0.01, -0.05], 0x30343a);
-      const L = new THREE.Mesh(wingG, bm), Rw = new THREE.Mesh(wingG, bm); Rw.scale.x = -1;
-      g.add(L, Rw); g.userData = { L, R: Rw, r: 4 + i * 0.9, h: 2.4 + (i % 3) * 0.5, sp: (0.18 + (i % 4) * 0.03) * (i % 2 ? 1 : -1), ph: i * 1.3 };
+      const Lw = new THREE.Mesh(wingG, bm), Rw = new THREE.Mesh(wingG, bm); Rw.scale.x = -1;
+      g.add(Lw, Rw); g.userData = { L: Lw, R: Rw, r: 4 + i * 0.9, h: 2.4 + (i % 3) * 0.5, sp: (0.18 + (i % 4) * 0.03) * (i % 2 ? 1 : -1), ph: i * 1.3 };
       g.traverse((o) => { o.castShadow = true; });
       scene.add(g); this.birds.push(g);
     }
+    this._ecosystems(tiles, treeMat, rpts);
+  }
+
+  /** 海里和岛上的生态 */
+  _ecosystems(tiles, treeMat, rpts) {
+    const scene = this.scene, T = this.terrain, R = rng(808);
+    // 沙滩：椰子树
+    if (this.palms?.length) scene.add(instanced([L.palm(1, 0.95).geometry, L.palm(2, 1.1).geometry], this.palms.map((p, i) => ({ ...p, v: i % 2 })), treeMat));
+    // 湿地池塘：静水、睡莲、芦苇和香蒲
+    const pt = tiles.find((t) => t.t === 'pond'), pd = this.pond; pd.y = pt.base - 0.05;
+    {
+      const g = new THREE.CircleGeometry(pd.r * 1.15, 48); g.rotateX(-Math.PI / 2); g.translate(pd.x, pd.y, pd.z);
+      const p = g.attributes.position, flow = new Float32Array(p.count * 2), fall = new Float32Array(p.count);
+      for (let i = 0; i < p.count; i++) { const dx = p.getX(i) - pd.x, dz = p.getZ(i) - pd.z; flow[i * 2] = Math.atan2(dz, dx) * pd.r; flow[i * 2 + 1] = Math.hypot(dx, dz) / pd.r * 0.55; }
+      g.setAttribute('flow', new THREE.BufferAttribute(flow, 2)); g.setAttribute('fall', new THREE.BufferAttribute(fall, 1));
+      this.pondMat = streamMaterial(this.pipe.sceneColor, this.pipe.sceneDepth, 0.04); this.pondMat.uniforms.uTint.value.set(0x2f6b4a);
+      const m = new THREE.Mesh(g, this.pondMat); m.layers.set(LAYER_FX); m.renderOrder = 5; scene.add(m);
+    }
+    this.lilyPads = [];
+    const pads = [];
+    for (let k = 0; k < 40 && pads.length < 13; k++) { const a = R() * 6.28, r = Math.sqrt(R()) * pd.r * 0.8, x = pd.x + Math.cos(a) * r, z = pd.z + Math.sin(a) * r; if (pads.every((q) => Math.hypot(q.x - x, q.z - z) > 0.07)) pads.push({ x, y: pd.y + 0.002, z, ry: R() * 6.28, s: 1.2 + R() * 0.6, v: R() < 0.3 ? 1 : 0 }); }
+    this.lilyPads = pads;
+    this.padMesh = instanced([L.lilyPad(1, false).geometry, L.lilyPad(2, true).geometry], pads, propMaterial({ rough: 0.55 }));
+    scene.add(this.padMesh);
+    const reedItems = [];
+    for (let k = 0; k < 26; k++) { const a = R() * 6.28, r = pd.r * (0.95 + R() * 0.3), x = pd.x + Math.cos(a) * r, z = pd.z + Math.sin(a) * r, y = T.heightAt(x, z); if (y != null) reedItems.push({ v: R() < 0.6 ? 0 : 1, x, y: y - 0.01, z, ry: R() * 6.28, s: 1.1 + R() * 0.5 }); }
+    for (let k = 0; k < 18; k++) { const p = rpts[4 + Math.floor(R() * (rpts.length - 12))], side = R() < 0.5 ? -1 : 1, x = p[0] + side * (0.17 + R() * 0.05), z = p[2] + (R() - 0.5) * 0.1, y = T.heightAt(x, z); if (y != null) reedItems.push({ v: 0, x, y: y - 0.01, z, ry: R() * 6.28, s: 0.9 + R() * 0.4 }); }
+    scene.add(instanced([L.reeds(1).geometry, L.cattail(2).geometry], reedItems, treeMat));
+    // 海洋生态
+    this.marine = new Marine({ scene, terrain: T, ocean: this.ocean, sceneDepth: this.pipe.sceneDepth, center: this.center });
+    scene.add(bladeField('seagrass', this.marine.seagrassBlades()));
+    // 漂浮物：小船、浮标、歇在水面上的海鸥
+    if (this.boat) this.marine.addFloater(this.boat.m, { draft: 0.005 });
+    const buoyMat = propMaterial({ rough: 0.4 });
+    for (const [x, z] of [[5.2, 3.6], [-3.4, 4.2]]) {
+      const g = new THREE.CylinderGeometry(0.035, 0.05, 0.12, 14), cap = new THREE.SphereGeometry(0.036, 14, 8); cap.translate(0, 0.06, 0);
+      const geo = mergeGeoms([g, cap].map((x) => { const p = x.attributes.position, c = new Float32Array(p.count * 3); for (let i = 0; i < p.count; i++) { const col = new THREE.Color(Math.floor((p.getY(i) + 0.06) * 22) % 2 ? 0xd8392b : 0xf2efe8); c.set([col.r, col.g, col.b], i * 3); } x.setAttribute('color', new THREE.BufferAttribute(c, 3)); return x; }));
+      const m = new THREE.Mesh(geo, buoyMat); m.position.set(x, 0, z); m.castShadow = true; scene.add(m); this.marine.addFloater(m, { draft: 0.03, stiff: 14 });
+    }
+    for (const [x, z] of [[-3.5, 2.9], [-3.15, 3.15], [4.6, -3.9]]) {
+      const g = this.birds[0].clone(); g.userData = {}; g.children[1].rotation.z = 1.2; g.children[2].rotation.z = -1.2; g.scale.setScalar(1); g.position.set(x, 0, z); g.rotation.y = R() * 6.28; scene.add(g);
+      this.marine.addFloater(g, { draft: -0.012, stiff: 16, yawRate: 0.2 });
+    }
+    // 陆地生态
+    this.fauna = new Fauna({ scene, terrain: T, tiles, taken: this.taken, trees: this.perches, flowers: this.flowerSpots, pond: pd, river: (x, z) => T.river(x, z)[0], riverPts: rpts, peaks: this.peakMeshes, splash: this.marine.splash, lilyPads: pads, center: this.center });
+    const sc = this.marine.schools.reduce((a, s) => a + s.n, 0);
+    this.eco = { fish: sc, corals: this.marine.counts.corals, kelp: this.marine.counts.kelp, ...this.fauna.counts };
   }
 
   setShot(name, instant = false) {
-    const s = this.shots[name] || this.shots.hero;
+    const s = name === 'ocean' && this.marine ? (() => { const w = this.marine.whale; return { pos: [w.x - 3.2, 1.9, w.z + 4.2], tgt: [w.x + 0.8, -0.1, w.z] }; })() : (this.shots[name] || this.shots.hero);
     this.anim = { from: { p: this.camera.position.clone(), t: this.controls ? this.controls.target.clone() : this.center.clone() }, to: { p: new THREE.Vector3(...s.pos), t: new THREE.Vector3(...s.tgt) }, k: instant ? 1 : 0 };
     if (instant) { this.camera.position.copy(this.anim.to.p); this.controls?.target.copy(this.anim.to.t); this.camera.lookAt(this.anim.to.t); }
     this.shot = name; this._sync?.();
@@ -270,6 +336,7 @@ class Showcase {
     const p = PRESETS[name] || PRESETS.afternoon; this.time = name;
     this.atmo.apply(p, this.ocean, this.pipe);
     const sm = this.streamMat.uniforms; sm.uSunDir.value.copy(this.atmo.dir); sm.uSunColor.value.set(p.sun).multiplyScalar(p.sunI * 0.3); sm.uSky.value.set(p.zen).lerp(new THREE.Color(p.hor), 0.35); sm.uFogColor.value.set(p.fog); sm.uFogDensity.value = p.fogD;
+    if (this.pondMat) { const pm = this.pondMat.uniforms; pm.uSunDir.value.copy(sm.uSunDir.value); pm.uSunColor.value.copy(sm.uSunColor.value); pm.uSky.value.copy(sm.uSky.value); pm.uFogColor.value.copy(sm.uFogColor.value); pm.uFogDensity.value = p.fogD; }
     const night = name === 'night';
     if (this.beam) this.beam.visible = night;
     if (this.lampLight) this.lampLight.intensity = night ? 2.5 : name === 'golden' ? 0.8 : 0;
@@ -283,8 +350,10 @@ class Showcase {
     this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
     this.pipe.setSize(w, h);
     const W = this.pipe.W, H = this.pipe.H;
-    for (const u of [this.ocean.uniforms, this.streamMat.uniforms, this.fx.uniforms]) u.uResolution.value.set(W, H);
-    this.fx.uniforms.uPR.value = H / (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)));
+    for (const u of this.fxUniforms()) u.uResolution.value.set(W, H);
+    this.fx.uniforms.uPR.value = this.marine.splash.uniforms.uPR.value = H / (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)));
+  }
+  fxUniforms() { return [this.ocean.uniforms, this.streamMat.uniforms, this.fx.uniforms, this.pondMat.uniforms, this.marine.splash.uniforms];
   }
   loop() {
     requestAnimationFrame(() => this.loop());
@@ -296,10 +365,12 @@ class Showcase {
       this.camera.position.lerpVectors(this.anim.from.p, this.anim.to.p, e); this.controls.target.lerpVectors(this.anim.from.t, this.anim.to.t, e);
     }
     this.controls.update();
-    for (const u of [this.ocean.uniforms, this.streamMat.uniforms, this.fx.uniforms]) { u.cameraNear.value = this.camera.near; u.cameraFar.value = this.camera.far; }
+    for (const u of this.fxUniforms()) { u.cameraNear.value = this.camera.near; u.cameraFar.value = this.camera.far; }
+    this.marine.update(dt, t); this.fauna.update(dt, t);
     this.fireLight.intensity = this.fireBase * (0.85 + Math.sin(t * 13) * 0.08 + Math.sin(t * 7.3) * 0.07 + Math.sin(t * 23.1) * 0.05);
     if (this.beam) this.beam.rotation.y = t * 0.6;
     for (const b of this.birds) {
+      if (!b.userData.L) continue;
       const d = b.userData, a = t * d.sp + d.ph, c = this.center;
       b.position.set(c.x + Math.cos(a) * d.r, d.h + Math.sin(t * 0.7 + d.ph) * 0.3, c.z + Math.sin(a) * d.r);
       b.rotation.set(0, -a + (d.sp > 0 ? Math.PI : 0), Math.sin(t * 0.8 + d.ph) * 0.2);
@@ -310,7 +381,7 @@ class Showcase {
   }
   ui() {
     const bar = document.getElementById('bar'); if (!bar) return;
-    const shots = { hero: '全景', camp: '营地', falls: '瀑布', horizon: '海平线', top: '俯视' };
+    const shots = { hero: '全景', camp: '营地', falls: '瀑布', reef: '珊瑚礁', pond: '池塘', beach: '沙滩', ocean: '鲸', horizon: '海平线', top: '俯视' };
     const times = { morning: '清晨', noon: '正午', afternoon: '午后', golden: '黄昏', night: '夜晚' };
     bar.innerHTML = `<div class="grp"><span>镜头</span>${Object.entries(shots).map(([k, v]) => `<button data-shot="${k}">${v}</button>`).join('')}</div>
       <div class="grp"><span>时段</span>${Object.entries(times).map(([k, v]) => `<button data-time="${k}">${v}</button>`).join('')}</div>
@@ -325,7 +396,7 @@ class Showcase {
       sync();
     });
     sync();
-    const info = document.getElementById('info'); if (info) info.textContent = `${this.counts.grass.toLocaleString()} 草叶 · ${this.counts.flowers.toLocaleString()} 花 · ${this.counts.wheat.toLocaleString()} 麦穗 · ${this.counts.trees} 棵树`;
+    const info = document.getElementById('info'), e = this.eco; if (info) info.innerHTML = `${this.counts.grass.toLocaleString()} 草叶 · ${this.counts.flowers.toLocaleString()} 花 · ${this.counts.trees} 棵树<br>${e.fish} 条鱼 · ${e.corals} 株珊瑚 · ${e.kelp} 株巨藻 · 海龟 · 海豚 · 鲸 · 水母<br>鹿 ${e.deer} · 羊 ${e.sheep} · 山羊 ${e.goats} · 兔 ${e.rabbits} · 蝴蝶 ${e.butterflies} · 鸟 ${e.songbirds} · 鸭 ${e.ducks} · 蛙 ${e.frogs} · 蟹 ${e.crabs}`;
   }
 }
 

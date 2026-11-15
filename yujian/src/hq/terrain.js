@@ -18,6 +18,8 @@ export const TYPES = {
   wheat: { h: 0.430, c: [0xb38b4c, 0x9a7440, 0xc9a35c], surf: [0.2, 0, 1] },
   quarry: { h: 0.470, c: [0x8f9c58, 0x7a8650, 0xa09468], surf: [0.7, 0.3, 0.3] },
   mountain: { h: 0.485, c: [0x7fa843, 0x6a9539, 0x9cb653], surf: [1, 0.15, 0] },
+  beach: { h: 0.34, c: [0xe8d6a6, 0xd9c08c, 0xf2e6c4], surf: [0, 0, 0.12] },
+  pond: { h: 0.45, c: [0x84b046, 0x678f3a, 0xa3bd5c], surf: [1, 0, 0] },
   islet: { h: 0.415, c: [0x9cb85a, 0x84a24c, 0xbac469], surf: [1, 0.1, 0] },
 };
 const col = (hex) => new THREE.Color(hex); // three 默认开启色彩管理，得到的是线性值
@@ -43,6 +45,7 @@ export class Terrain {
     this.map = new Map(tiles.map((t) => [key(t.q, t.r), t]));
     this.riverPts = opts.river || null;
     this.riverW = opts.riverWidth || 0.17;
+    this.ponds = opts.ponds || [];
     this.river = this.riverPts ? riverField(this.riverPts) : null;
     for (const t of tiles) {
       const [x, z] = toWorld(t.q, t.r);
@@ -71,6 +74,8 @@ export class Terrain {
       const w = coast ? 0.16 : 0.07, dep = coast ? 0.055 : 0.014;
       if (d < w) { const f = 1 - Math.max(0, d) / w; h -= dep * f * f; }
     }
+    // 池塘：碗状下凹
+    for (const pd of this.ponds) { const d = Math.hypot(x - pd.x, z - pd.z); if (d < pd.r * 1.3) { const f = THREE.MathUtils.smoothstep(d, pd.r * 1.3, pd.r * 0.45); h -= pd.depth * f; } }
     // 河道
     if (this.river) {
       const [d] = this.river(x, z), w = this.riverW;
@@ -95,6 +100,8 @@ export class Terrain {
       let dm = 9; for (let k = 0; k < 6; k++) { const a = (Math.PI / 3) * k; dm = Math.min(dm, INR - ((x - t.x) * Math.cos(a) + (z - t.z) * Math.sin(a))); }
       c.lerp(col(0x86b244), 1 - THREE.MathUtils.smoothstep(dm, 0.05, 0.13 + NZ.n2(x * 9, z * 9) * 0.03));
     }
+    // 池塘边的湿泥和池底
+    for (const pd of this.ponds) { const d = Math.hypot(x - pd.x, z - pd.z); if (d < pd.r * 1.45) { c.lerp(col(0x5f6a3a), (1 - THREE.MathUtils.smoothstep(d, pd.r * 0.95, pd.r * 1.45)) * 0.7); c.lerp(col(0x4a4630), 1 - THREE.MathUtils.smoothstep(d, pd.r * 0.6, pd.r * 1.0)); } }
     // 河岸湿土
     if (this.river) { const [d] = this.river(x, z); const f = 1 - THREE.MathUtils.smoothstep(d, this.riverW * 0.8, this.riverW * 2.0); c.lerp(col(0x6f7a46), f * 0.6); }
     // 凹槽处略暗（接缝读得出来）
@@ -214,12 +221,14 @@ export class Terrain {
       ROWS.forEach((v, j) => {
         const y = yTop + (SEA_FLOOR - yTop) * v;
         // 剖面：顶部圆角外凸一点，中段近乎垂直，水下往外铺开成碎石坡
+        const beach = p.t.t === 'beach';
         let off = (j === 0 ? 0 : 0.012 + 0.03 * Math.sin(Math.min(1, v * 4) * Math.PI * 0.5)) + Math.max(0, v - 0.55) ** 2 * 1.4;
-        if (j >= 2) {
+        if (beach) off = Math.min(yTop - y, 0.9) * 1.75 + Math.max(0, yTop - y - 0.9) * 0.6 + NZ.n2(p.x * 3, p.z * 3) * 0.04 * Math.min(1, v * 6);
+        if (j >= 2 && !beach) {
           const s = NZ.fbm3(p.x * 1.8, y * 2.6, p.z * 1.8, 4);
           off += s * 0.11 + Math.round(NZ.n3(p.x * 0.7, y * 7.0, p.z * 0.7) * 2) * 0.022;
         }
-        const wx = j >= 2 ? NZ.n3(p.x * 2.3 + 40, y * 2.3, p.z * 2.3) * 0.04 : 0, wz = j >= 2 ? NZ.n3(p.x * 2.3, y * 2.3, p.z * 2.3 - 40) * 0.04 : 0;
+        const wx = j >= 2 && !beach ? NZ.n3(p.x * 2.3 + 40, y * 2.3, p.z * 2.3) * 0.04 : 0, wz = j >= 2 && !beach ? NZ.n3(p.x * 2.3, y * 2.3, p.z * 2.3 - 40) * 0.04 : 0;
         const o = (i * ROWS.length + j) * 3;
         pos[o] = p.x + p.nx * off + wx; pos[o + 1] = y + (j >= 2 ? NZ.n3(p.x * 3, y * 3, p.z * 3) * 0.02 : 0); pos[o + 2] = p.z + p.nz * off + wz;
         // 颜色：顶上一圈草皮垂边，往下是分层岩，水线附近变湿变暗
@@ -228,9 +237,10 @@ export class Terrain {
         if (j <= 1) band.copy(grassC);
         else if (j === 2) band.lerp(grassC, 0.35 + NZ.n2(p.x * 9, p.z * 9) * 0.3);
         const wetF = 1 - THREE.MathUtils.smoothstep(y, -0.05, 0.12);
-        band.lerp(wet, wetF * 0.55);
+        if (beach) { band.copy(col(0xe6d3a2)).lerp(col(0xc9b07c), THREE.MathUtils.clamp(0.2 - y * 2, 0, 1) * 0.6).multiplyScalar(0.93 + NZ.n2(p.x * 20, y * 20) * 0.07); band.lerp(col(0xb59a6a), wetF * 0.6); }
+        else band.lerp(wet, wetF * 0.55);
         colr[o] = band.r; colr[o + 1] = band.g; colr[o + 2] = band.b;
-        surf[o] = j <= 1 ? 1 : 0; surf[o + 1] = j <= 1 ? 0 : 1; surf[o + 2] = wetF;
+        surf[o] = j <= 1 && !beach ? 1 : 0; surf[o + 1] = j <= 1 || beach ? 0 : 1; surf[o + 2] = beach ? 0.1 : wetF;
       });
     });
     const idx = [], R = ROWS.length;
@@ -243,19 +253,23 @@ export class Terrain {
     return g;
   }
 
-  /** 海底：岛周围浅、远处深 */
+  /** 离最近陆地中心的距离（减去地块半径） */
+  landDist(x, z) { let dl = 1e9; for (const t of this.tiles) dl = Math.min(dl, Math.hypot(x - t.x, z - t.z)); return Math.max(0, dl - 0.95); }
+  /** 海底高度：岛周围浅、远处深 */
+  seabedAt(x, z) {
+    const dl = this.landDist(x, z);
+    let y = -0.42 - 1.0 * THREE.MathUtils.smoothstep(dl, 0, 2.2) - 2.8 * THREE.MathUtils.smoothstep(dl, 2.2, 14);
+    y += NZ.fbm2(x * 0.35, z * 0.35, 4) * 0.35 * THREE.MathUtils.smoothstep(dl, 0.5, 4) + NZ.n2(x * 2.2, z * 2.2) * 0.04;
+    y += Math.sin(x * 2.4 + NZ.n2(x * 0.3, z * 0.3) * 4) * 0.015;
+    return y;
+  }
+  /** 海底网格 */
   buildSeabed(material, radius = 60, seg = 240) {
     const g = new THREE.PlaneGeometry(radius * 2, radius * 2, seg, seg); g.rotateX(-Math.PI / 2);
     const p = g.attributes.position, colr = new Float32Array(p.count * 3), sand = col(0xcdb88e), mid = col(0x7f8c6e), deep = col(0x3b5560), rockC = col(0x7a7468);
-    const centers = this.tiles.map((t) => [t.x, t.z]);
     for (let i = 0; i < p.count; i++) {
       const x = p.getX(i), z = p.getZ(i);
-      let dl = 1e9; for (const c of centers) dl = Math.min(dl, Math.hypot(x - c[0], z - c[1]));
-      dl = Math.max(0, dl - 0.95);
-      let y = -0.42 - 1.0 * THREE.MathUtils.smoothstep(dl, 0, 2.2) - 2.8 * THREE.MathUtils.smoothstep(dl, 2.2, 14);
-      y += NZ.fbm2(x * 0.35, z * 0.35, 4) * 0.35 * THREE.MathUtils.smoothstep(dl, 0.5, 4) + NZ.n2(x * 2.2, z * 2.2) * 0.04;
-      // 海底的沙纹
-      y += Math.sin(x * 2.4 + NZ.n2(x * 0.3, z * 0.3) * 4) * 0.015;
+      const dl = this.landDist(x, z), y = this.seabedAt(x, z);
       p.setY(i, y);
       const c = sand.clone().lerp(mid, THREE.MathUtils.smoothstep(dl, 1.2, 5)).lerp(deep, THREE.MathUtils.smoothstep(dl, 5, 16));
       c.lerp(rockC, THREE.MathUtils.clamp(NZ.fbm2(x * 0.8 + 50, z * 0.8, 3) * 2 - 0.4, 0, 0.6) * (1 - THREE.MathUtils.smoothstep(dl, 3, 8)));

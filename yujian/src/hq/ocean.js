@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { GLSL_NOISE, GLSL_CLOUD } from './noise.js';
 import { U } from './materials.js';
+import { GLSL_WAVES, waveAt } from './waves.js';
 
 /** 生成可平铺的细节法线贴图：一组整数波矢的正弦叠加，天然无缝 */
 export function makeRippleNormalMap(size = 256, seed = 7) {
@@ -50,7 +51,7 @@ export function makeShoreField(terrain, size = 384, span = 72) {
   }
   const t = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
   t.magFilter = t.minFilter = THREE.LinearFilter; t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; t.needsUpdate = true;
-  return { texture: t, span };
+  return { texture: t, span, data, size };
 }
 
 /** 径向网格：中心密、远处稀，一直铺到地平线 */
@@ -78,16 +79,7 @@ function radialGrid(rings = 230, segs = 300, r0 = 0.25, grow = 1.034) {
 const VERT = /* glsl */`
 uniform float uTime; uniform sampler2D uShore; uniform float uShoreSpan;
 varying vec3 vWP; varying vec3 vWN; varying float vCrest; varying float vShore; varying float vLand; varying vec4 vClip; varying float vViewZ;
-// Gerstner 波：方向、波长、陡度、振幅
-vec3 gerstner(vec2 p, vec2 dir, float L, float steep, float amp, float speed, inout vec3 T, inout vec3 B, inout float crest){
-  float k = 6.28318 / L; float c = sqrt(9.8 / k) * speed; vec2 d = normalize(dir);
-  float f = k * (dot(d, p) - c * uTime); float a = amp;
-  float Q = steep / (k * a * 5.0);
-  T += vec3(-Q * d.x * d.x * (a * k * sin(f)), d.x * (a * k * cos(f)), -Q * d.x * d.y * (a * k * sin(f)));
-  B += vec3(-Q * d.x * d.y * (a * k * sin(f)), d.y * (a * k * cos(f)), -Q * d.y * d.y * (a * k * sin(f)));
-  crest += sin(f) * a;
-  return vec3(Q * a * d.x * cos(f), a * sin(f), Q * a * d.y * cos(f));
-}
+${GLSL_WAVES}
 void main(){
   vec3 p = position;
   vec2 suv = p.xz / uShoreSpan + 0.5;
@@ -96,11 +88,7 @@ void main(){
   float att = 1.0 - smoothstep(0.55, 0.98, shore);
   vec3 T = vec3(1.0, 0.0, 0.0), B = vec3(0.0, 0.0, 1.0); float crest = 0.0;
   vec3 disp = vec3(0.0);
-  disp += gerstner(p.xz, vec2(1.0, 0.35), 9.0, 0.5, 0.075, 1.0, T, B, crest);
-  disp += gerstner(p.xz, vec2(0.6, 1.0), 5.3, 0.45, 0.045, 1.0, T, B, crest);
-  disp += gerstner(p.xz, vec2(-0.4, 1.0), 3.1, 0.4, 0.026, 1.0, T, B, crest);
-  disp += gerstner(p.xz, vec2(1.0, -0.7), 2.2, 0.35, 0.015, 1.0, T, B, crest);
-  disp += gerstner(p.xz, vec2(-1.0, -0.2), 1.6, 0.3, 0.009, 1.0, T, B, crest);
+  disp = gerstnerSum(p.xz, uTime, T, B, crest);
   float fade = 1.0 - smoothstep(60.0, 220.0, length(p.xz));
   p += disp * att * fade;
   vec3 n = normalize(cross(B, T));
@@ -120,6 +108,7 @@ uniform vec3 uSunDir; uniform vec3 uSunColor; uniform vec3 uZenith; uniform vec3
 uniform vec3 uDeep; uniform vec3 uShallow; uniform vec3 uAbsorb; uniform vec3 uSSS;
 uniform vec3 uFogColor; uniform float uFogDensity;
 uniform vec4 uFalls[4];
+uniform vec4 uRipples[10];
 varying vec3 vWP; varying vec3 vWN; varying float vCrest; varying float vShore; varying float vLand; varying vec4 vClip; varying float vViewZ;
 ${GLSL_NOISE}
 ${GLSL_CLOUD}
@@ -144,7 +133,19 @@ void main(){
   vec3 n3 = texture2D(uNormalMap, q * 0.085 + vec2(-uTime * 0.008, uTime * 0.012)).xyz * 2.0 - 1.0;
   vec3 dn = n1 + n2 * 0.7 + n3 * 0.35;
   float detail = mix(1.0, 0.25, smoothstep(10.0, 90.0, dist)) * mix(1.0, 0.35, smoothstep(0.75, 1.0, vShore));
-  vec3 N = normalize(vWN + vec3(dn.x, 0.0, dn.y) * 0.38 * detail);
+  // 涟漪：从入水点向外扩散的圆环波，振幅随时间和距离衰减
+  vec2 rip = vec2(0.0); float ripFoam = 0.0;
+  for (int i = 0; i < 10; i++) {
+    vec4 r = uRipples[i]; float age = uTime - r.z;
+    if (r.w <= 0.0 || age < 0.0 || age > 4.0) continue;
+    vec2 d = vWP.xz - r.xy; float dist = length(d) + 1e-4;
+    float front = age * 0.45;                         // 毛细-重力波的传播速度
+    float env = exp(-age * 1.1) * exp(-abs(dist - front) * 9.0) * r.w;
+    float ph = (dist - front) * 38.0;
+    rip += d / dist * cos(ph) * env * 0.9;
+    ripFoam = max(ripFoam, env * smoothstep(0.4, 1.0, sin(ph)) * smoothstep(0.6, 0.0, age));
+  }
+  vec3 N = normalize(vWN + vec3(dn.x + rip.x, 0.0, dn.y + rip.y) * 0.38 * detail + vec3(rip.x, 0.0, rip.y) * 0.6);
   // 折射
   vec2 ruv = uv + N.xz * 0.045 * clamp(thick * 1.2, 0.0, 1.0) / max(1.0, dist * 0.04);
   float rz = sceneViewZ(ruv);
@@ -186,7 +187,7 @@ void main(){
   // 5. 瀑布落水处
   float falls = 0.0;
   for (int i = 0; i < 4; i++) { if (uFalls[i].w > 0.0) { float d = length(vWP.xz - uFalls[i].xy); falls = max(falls, (1.0 - smoothstep(0.0, uFalls[i].z, d))); } }
-  float mask = clamp(edge * 0.95 + lines * 0.7 + surf * 0.9 + caps * 0.5 + falls, 0.0, 1.0);
+  float mask = clamp(edge * 0.95 + lines * 0.7 + surf * 0.9 + caps * 0.5 + falls + ripFoam * 1.4, 0.0, 1.0);
   // 泡沫的“消融”：遮罩强的地方是整片白，边缘被流动的纹理吃成蕾丝状
   float streak = fbm2(vec2(q.x * 2.6, q.y * 2.6) + vec2(tFlow * 0.18, -tFlow * 0.11)) * 0.5 + 0.5;
   float lace = streak * 0.6 + foamTex * 0.4;
@@ -218,10 +219,21 @@ export class Ocean {
       uAbsorb: { value: new THREE.Vector3(2.4, 0.75, 0.48) }, uSSS: { value: new THREE.Color(0x2fd6b0) },
       uFogColor: { value: new THREE.Color(0xbfdcea) }, uFogDensity: { value: 0.012 },
       uFalls: { value: [new THREE.Vector4(), new THREE.Vector4(), new THREE.Vector4(), new THREE.Vector4()] },
+      uRipples: { value: Array.from({ length: 10 }, () => new THREE.Vector4()) },
     };
     this.material = new THREE.ShaderMaterial({ uniforms: this.uniforms, vertexShader: VERT, fragmentShader: FRAG, depthWrite: true });
     this.mesh = new THREE.Mesh(radialGrid(), this.material);
     this.mesh.frustumCulled = false; this.mesh.name = 'ocean';
   }
+  /** 在 (x,z) 激起一圈涟漪 */
+  ripple(x, z, strength = 1) { const r = this.uniforms.uRipples.value[this._ri = ((this._ri || 0) + 1) % 10]; r.set(x, z, U.uTime.value, strength); }
+  /** 离岸距离场在 (x,z) 的值：1 = 贴着陆地，0 = 外海 */
+  shoreAt(x, z) {
+    const { data, size, span } = this.shore, i = Math.floor((x / span + 0.5) * size), j = Math.floor((z / span + 0.5) * size);
+    if (i < 0 || j < 0 || i >= size || j >= size) return 0;
+    return data[(j * size + i) * 4] / 255;
+  }
+  /** 浮力：海面在 (x,z) 的高度和法线（含近岸衰减） */
+  surfaceAt(x, z) { const s = this.shoreAt(x, z); return waveAt(x, z, U.uTime.value, 1 - THREE.MathUtils.smoothstep(s, 0.55, 0.98)); }
   setFalls(list) { list.slice(0, 4).forEach((f, i) => this.uniforms.uFalls.value[i].set(f[0], f[1], f[2] || 0.35, 1)); }
 }

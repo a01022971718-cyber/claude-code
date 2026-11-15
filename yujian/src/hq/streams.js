@@ -18,7 +18,7 @@ const FRAG = /* glsl */`
 #include <packing>
 uniform float uTime; uniform sampler2D uSceneColor; uniform sampler2D uSceneDepth; uniform vec2 uResolution;
 uniform float cameraNear; uniform float cameraFar; uniform vec3 uSunDir; uniform vec3 uSunColor; uniform vec3 uSky; uniform vec3 uTint;
-uniform vec3 uFogColor; uniform float uFogDensity;
+uniform vec3 uFogColor; uniform float uFogDensity; uniform float uSpeedScale;
 varying vec2 vFlow; varying float vFall; varying vec3 vWP; varying float vViewZ;
 ${GLSL_NOISE}
 void main(){
@@ -26,7 +26,7 @@ void main(){
   float sz = perspectiveDepthToViewZ(texture2D(uSceneDepth, uv).r, cameraNear, cameraFar);
   if (sz > vViewZ + 0.004) discard;
   float thick = max(0.0, vViewZ - sz);
-  float speed = mix(0.55, 2.6, vFall);
+  float speed = mix(0.55, 2.6, vFall) * uSpeedScale;
   vec2 f = vec2(vFlow.x - uTime * speed, vFlow.y);
   float n1 = snoise2(vec2(f.x * 3.0, f.y * 1.6)), n2 = snoise2(vec2(f.x * 7.0 + 3.0, f.y * 3.0 - uTime * 0.2));
   vec3 N = normalize(vec3(n1 * 0.25, 1.0, n2 * 0.25));
@@ -71,13 +71,13 @@ export function ribbon(points, width, fall = 0, up = new THREE.Vector3(0, 1, 0))
   return g;
 }
 
-export function streamMaterial(sceneColor, sceneDepth) {
+export function streamMaterial(sceneColor, sceneDepth, speedScale = 1) {
   return new THREE.ShaderMaterial({
     vertexShader: VERT, fragmentShader: FRAG, transparent: true, depthWrite: false, side: THREE.DoubleSide,
     uniforms: {
       uTime: U.uTime, uSceneColor: { value: sceneColor }, uSceneDepth: { value: sceneDepth }, uResolution: { value: new THREE.Vector2(1, 1) },
       cameraNear: { value: 0.1 }, cameraFar: { value: 100 }, uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uSunColor: { value: new THREE.Color(1, 1, 1) },
-      uSky: { value: new THREE.Color(0x9cc7e0) }, uTint: { value: new THREE.Color(0x1d8f9a) }, uFogColor: { value: new THREE.Color(0xcfe2ec) }, uFogDensity: { value: 0.01 },
+      uSky: { value: new THREE.Color(0x9cc7e0) }, uTint: { value: new THREE.Color(0x1d8f9a) }, uFogColor: { value: new THREE.Color(0xcfe2ec) }, uFogDensity: { value: 0.01 }, uSpeedScale: { value: speedScale },
     },
   });
 }
