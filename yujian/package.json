@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
+    "build:hq": "node build-hq.mjs",
     "sheet": "node tools/sheet.cjs"
   },
   "dependencies": {

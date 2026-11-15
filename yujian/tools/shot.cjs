@@ -11,16 +11,16 @@ const { chromium } = require('playwright');
   const errors = [];
   page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
-  await page.exposeFunction('__shot', async (name) => { await page.screenshot({ path: out.replace(/\.png$/, '-' + name + '.png') }); });
+  await page.exposeFunction('__shot', async (name) => { await page.screenshot({ path: out.replace(/\.png$/, '-' + name + '.png'), timeout: 240000 }); });
   await page.goto('file://' + path.resolve(__dirname, '../dist/' + (process.env.PAGE || 'index.html')) + (query ? '?' + query : ''));
-  await page.waitForFunction('window.__game && window.__game.ready', null, { timeout: 60000 });
+  await page.waitForFunction(`window.${process.env.READY || '__game'} && window.${process.env.READY || '__game'}.ready`, null, { timeout: 180000 });
   if (script && fs.existsSync(script)) {
     const code = fs.readFileSync(script, 'utf8');
     const res = await page.evaluate(`(async () => { ${code} })()`);
     if (res !== undefined) console.log('脚本返回:', JSON.stringify(res));
   }
   await page.waitForTimeout(600);
-  await page.screenshot({ path: out });
+  await page.screenshot({ path: out, timeout: 240000 });
   if (errors.length) console.log('错误:\n' + errors.slice(0, 12).join('\n'));
   else console.log('无报错');
   await browser.close();

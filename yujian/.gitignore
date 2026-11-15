@@ -2,3 +2,5 @@ node_modules/
 tools/.tmp/
 dist/game.js
 dist/artifact.html
+dist/hq.js
+dist/hq-artifact.html
