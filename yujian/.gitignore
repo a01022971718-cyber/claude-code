@@ -1,0 +1,4 @@
+node_modules/
+tools/.tmp/
+dist/game.js
+dist/artifact.html
