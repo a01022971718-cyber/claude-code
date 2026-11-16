@@ -266,5 +266,5 @@ body { background: var(--haze); color: var(--ink); font-family: var(--font); fon
 .hud .card.sel { transform: translateY(-10px); box-shadow: 0 10px 20px rgba(10, 44, 56, .32), inset 0 0 0 3px #f2c45a; }
 /* #ui button 的 color: inherit 优先级更高：经营界面整体用白字，牌面单独用深色 */
 .hud { color: #fff; }
-.hud .card { color: var(--ink); }
+#ui .hud .card { color: var(--ink); }
 #ui .hud .tr button svg { width: 20px; height: 20px; }
