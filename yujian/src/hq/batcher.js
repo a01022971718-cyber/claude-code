@@ -6,8 +6,11 @@ import * as THREE from 'three';
 export class Batcher {
   constructor(scene) { this.scene = scene; this.batches = new Map(); this.count = 0; }
   /** roots：要合批的子树（只收里面的普通网格，实例化网格原样保留） */
-  sync(roots) {
+  /** cam / maxD（可选）：只画在镜头视野内、离镜头 maxD 以内的（远处的小动物只有几个像素，画了也看不清，却很费三角面） */
+  sync(roots, cam = null, maxD = Infinity) {
     const by = new Map();
+    if (cam) { this._pv ||= new THREE.Matrix4(); this._fr ||= new THREE.Frustum(); this._sp ||= new THREE.Sphere(new THREE.Vector3(), 0.35); this._pv.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); this._fr.setFromProjectionMatrix(this._pv); }
+    const cp = cam?.position, fr = this._fr, sp = this._sp, md2 = maxD * maxD;
     for (const root of roots) {
       if (!root) continue;
       root.updateMatrixWorld(true);
@@ -31,6 +34,7 @@ export class Batcher {
         let vis = o.userData.batchVis ?? true, p = o.parent; while (p && vis) { if (!p.visible) vis = false; p = p.parent; }
         if (o.visible) { o.userData.batchVis = true; o.visible = false; }
         if (!vis) continue;
+        if (cam) { const e = o.matrixWorld.elements, dx = e[12] - cp.x, dy = e[13] - cp.y, dz = e[14] - cp.z; if (dx * dx + dy * dy + dz * dz > md2) continue; sp.center.set(e[12], e[13], e[14]); if (!fr.intersectsSphere(sp)) continue; }
         im.setMatrixAt(c++, o.matrixWorld);
       }
       im.count = c; im.instanceMatrix.needsUpdate = true; n++;

@@ -97,6 +97,8 @@ export class Fauna {
     if (kind === 'bird') return night ? 99 : dawn || dusk ? 0.4 : midday ? 1.6 : 1;
     return 1;
   }
+  /** 会飞的小东西（蝴蝶、蜜蜂、蜻蜓、林鸟）每只两三千个三角面，离镜头远时只有一两个像素：远了就不画 */
+  setFlyers(on) { if (this._fly === on) return; this._fly = on; for (const L of [this.bflyMeshes, this.birdMeshes, this.dflyMeshes, this.beeMeshes]) for (const b of L || []) b.m.visible = on; }
   /** 物种数量：env.counts 里有就用它 */
   n(name, def) { const c = this.env.counts; return c && c[name] != null ? c[name] : def; }
   dispose() {

@@ -486,8 +486,9 @@ export class HQView {
       if (!ch.group) continue;
       const [q, r] = ch.ck.split(',').map(Number), [x, z] = toWorld((q + 0.5) * CH, (r + 0.5) * CH), far = Math.hypot(x - focus.x, z - focus.z) > bladeRange;
       if (ch.far !== far) { ch.far = far; for (const o of ch.group.children) if (o.name?.endsWith('-field')) o.visible = !far; }
-      // 树：离焦点近的区块用完整的树，远的换简化版；距离跟镜头远近和细节系数走（帧时间超标时更早换）
-      const treeNear = Math.hypot(x - focus.x, z - focus.z) < (9 + dist * 0.45) * (this.q.viewK ?? 1) * (0.55 + 0.45 * this.lodK);
+      // 树：离镜头近的区块用完整的树，远的换简化版；切换距离跟细节系数走（帧时间超标时更早换）
+      // 按到镜头的真实距离算（全岛俯瞰时远处的树在屏幕上只有十几个像素，用简化版看不出差别）
+      const cp = this.camera.position, treeNear = Math.hypot(x - cp.x, z - cp.z, cp.y * 0.6) < (11 + 9 * this.lodK) * (this.q.viewK ?? 1);
       if (ch.treeNear !== treeNear) { ch.treeNear = treeNear; for (const o of ch.group.children) { if (o.name === 'tree-hi') o.visible = treeNear; else if (o.name === 'tree-lo') o.visible = !treeNear; } }
       // 草叶分级：近处全画，越远画得越少（实例顺序是打乱的，所以是均匀变稀）；镜头拉远时整体再减；
       // 再乘上“细节调节”系数 lodK——帧时间超标时自动减草、有余量时加回来，分辨率和清晰度不动
@@ -505,6 +506,7 @@ export class HQView {
       if (!ch.fauna) continue;
       const c = ch.fauna.env.center, near = Math.hypot(c.x - focus.x, c.z - focus.z) < (FAUNA_RANGE + dist * 0.3) * (this.q.viewK ?? 1);
       ch.fauna.group.visible = near;
+      const cp = this.camera.position; ch.fauna.setFlyers(Math.hypot(c.x - cp.x, c.z - cp.z, cp.y * 0.7) < (8 + 8 * this.lodK) * (this.q.viewK ?? 1));
       // 降频：离镜头 14 单位以外的动物隔一帧更新一次（时间步加倍，动作速度不变）
       ch.fauna.env.hour = this.hour;   // 各物种按钟点作息
       if (near) { const mid = Math.hypot(c.x - focus.x, c.z - focus.z) > 14; if (!mid) ch.fauna.update(dt, t); else if ((ch.tick = !ch.tick)) ch.fauna.update(dt * 2, t); }
@@ -540,7 +542,7 @@ export class HQView {
     this.skyLayer.update(dt, focus, this.gulls.center, Math.max(3, this.gulls.radius - 1.5));   // 地平线的云、清晨海雾
     if (this.q.ao && !this.chunksDirty) { this.macro ||= new MacroLayer(this); this.macro.update(focus, dist); this.pipe.opts.macro = Math.max(0, Math.min(1, (4.2 - dist) / 2.8)); }   // 特写的微距草地和浅景深（极致、高清档）
     // 动物、海龟、海鸥、村民、岸边的鸟：全岛合批（同一部件一次绘制）
-    this.batcher.sync([this.faunaRoot, this.marine?.group, this.gulls.group, this.villagers.group, this.wild.group]);
+    this.batcher.sync([this.faunaRoot, this.marine?.group, this.gulls.group, this.villagers.group, this.wild.group], this.camera, (11 + 10 * this.lodK) * (this.q.viewK ?? 1));
     // 营火：离镜头最近的那一处冒火苗和炊烟
     let bestF = null, bd = 1e9; for (const f of this.fires.values()) { const d = Math.hypot(f[0] - focus.x, f[2] - focus.z); if (d < bd) { bd = d; bestF = f; } }
     this.fireAt = bestF;
