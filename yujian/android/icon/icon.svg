@@ -21,10 +21,11 @@
       <rect x="208" y="146" width="40" height="36" rx="6" fill="#3f7530"/>
     </g>
     <rect x="280" y="112" width="14" height="14" rx="3" fill="#d9452e"/>
-    <!-- 小村民（方块） -->
-    <rect x="320" y="214" width="20" height="18" rx="4" fill="#c8432f"/>
-    <rect x="318" y="194" width="24" height="22" rx="5" fill="#e8b896"/>
-    <rect x="312" y="188" width="36" height="7" rx="3" fill="#d8b56a"/>
+    <!-- 屿灵：糯米色的六边形团子，头顶一片草皮和嫩芽 -->
+    <rect x="312" y="196" width="40" height="34" rx="11" fill="#f5e9d3"/>
+    <path d="M312 207a11 11 0 0 1 11-11h18a11 11 0 0 1 11 11v3q-7 5-13 0t-14 0t-13 0z" fill="#8cc043"/>
+    <circle cx="325" cy="216" r="2.6" fill="#2a2320"/><circle cx="339" cy="216" r="2.6" fill="#2a2320"/>
+    <path d="M332 196v-9m0 2q-7-6-10 0q5 4 10 0m0-2q7-6 10 0q-5 4-10 0" stroke="#5f9d3a" stroke-width="2.4" fill="#8fd04a" stroke-linecap="round"/>
     <!-- 太阳 -->
     <circle cx="410" cy="96" r="34" fill="#ffe7a0"/>
   </g>

@@ -130,14 +130,22 @@ export class HQView {
     o.ao = !!q.ao; o.dof = q.dof || 'off'; o.bloom = !!q.bloom; o.smaa = !!q.aa;
     this.pipe.grade.uniforms.uSharp.value = q.sharpen || 0;
     this.pipe.grade.uniforms.uCA.value = 0;            // 色差在手机小屏上会让边缘发糊，游戏里不用
-    r.setPixelRatio(Math.min(window.devicePixelRatio || 1, q.pixelRatio) * (this.resScale ?? 1));
+    r.setPixelRatio(this._pr());
     // 阴影：0 = 关（换开关要让材质重新编译）
     const on = q.shadow > 0, s = this.atmo.sun.shadow;
     if (r.shadowMap.enabled !== on) { r.shadowMap.enabled = on; this.atmo.sun.castShadow = on; this.scene.traverse((m) => { if (m.material) [].concat(m.material).forEach((x) => { x.needsUpdate = true; }); }); }
     if (on && s.mapSize.x !== q.shadow) { s.mapSize.set(q.shadow, q.shadow); s.map?.dispose(); s.map = null; }
   }
   /** 动态分辨率：在渲染精度上再乘一个 0.85–1 的系数（调用方随后要 resize） */
-  setResScale(k) { this.resScale = k; this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.q.pixelRatio) * k); }
+  setResScale(k) { this.resScale = k; this.renderer.setPixelRatio(this._pr()); }
+  /** 渲染精度：设置值、屏幕像素比取小，再受“像素预算”限制——高分屏上原生渲染的像素数是 2 倍渲染的两三倍，肉眼几乎分不出，
+   *  帧率却差一大截。预算内的画面再经过自适应锐化，观感接近原生 */
+  _pr() {
+    const w = this.w || innerWidth, h = this.h || innerHeight, budget = { 4096: 2.4e6, 2048: 2.0e6, 1024: 1.3e6 }[this.q.shadow] || 1.6e6;
+    let pr = Math.min(window.devicePixelRatio || 1, this.q.pixelRatio);
+    pr = Math.min(pr, Math.sqrt(budget / (w * h)));
+    return Math.max(1, pr) * (this.resScale ?? 1);
+  }
   /** 换画面配置。返回 true 表示植被或生物数量变了，需要重新生成（调用方走加载页） */
   setConfig(cfg) {
     const old = this.q; this.q = cfg; this.resScale = 1;
@@ -410,6 +418,7 @@ export class HQView {
   // ---------------- 每帧 ----------------
   resize(w, h) {
     this.w = w; this.h = h;
+    this.renderer.setPixelRatio(this._pr());
     this.renderer.setSize(w, h, false);
     if (!this.pipe) return;
     this.pipe.setSize(w, h);
@@ -468,10 +477,19 @@ export class HQView {
     if (dirty.length && !this.chunksDirty) this.waterDirty = true;
     // 远处区块的草叶、花、麦穗不画（它们只有几个像素，却占了大部分顶点）
     const bladeRange = (34 + dist * 0.9) * (this.q.viewK ?? 1);
+    // 细节调节：按最近的平均帧时间慢慢调 lodK（0.3–1）。目标是稳在 30 帧以上：超过 36ms 就减，低于 24ms 就加
+    this.lodK ??= 1; this._ft = (this._ft ?? 0.02) * 0.95 + dt * 0.05;
+    if (!this.loading) { if (this._ft > 0.036) this.lodK = Math.max(0.3, this.lodK - dt * 0.25); else if (this._ft < 0.024) this.lodK = Math.min(1, this.lodK + dt * 0.06); }
     for (const ch of this.chunks.values()) {
       if (!ch.group) continue;
       const [q, r] = ch.ck.split(',').map(Number), [x, z] = toWorld((q + 0.5) * CH, (r + 0.5) * CH), far = Math.hypot(x - focus.x, z - focus.z) > bladeRange;
       if (ch.far !== far) { ch.far = far; for (const o of ch.group.children) if (o.name?.endsWith('-field')) o.visible = !far; }
+      // 草叶分级：近处全画，越远画得越少（实例顺序是打乱的，所以是均匀变稀）；镜头拉远时整体再减；
+      // 再乘上“细节调节”系数 lodK——帧时间超标时自动减草、有余量时加回来，分辨率和清晰度不动
+      if (!far) {
+        const d = Math.hypot(x - focus.x, z - focus.z), f = THREE.MathUtils.clamp(1.15 - (d - 5) / (bladeRange - 5), 0.22, 1) * THREE.MathUtils.clamp(13 / dist, 0.4, 1) * this.lodK;
+        for (const o of ch.group.children) if (o.name?.endsWith('-field') && o.geometry.userData.n) o.geometry.instanceCount = Math.max(1, Math.ceil(o.geometry.userData.n * Math.min(1, f)));
+      }
     }
     // 着色器预热：第一批区块和海洋生态就绪后，把所有材质编译一遍，避免第一次转镜头时卡顿
     if (!this.prewarmed && this.marine && !this.chunksDirty && this.stats.builds > 0) { this.prewarmed = true; try { this.renderer.compile(this.scene, this.camera); } catch { /* 不支持就算了 */ } }
@@ -502,6 +520,9 @@ export class HQView {
     }
     // 镜头相关
     this.atmo.follow(focus.x, focus.z, THREE.MathUtils.clamp(dist * 0.62, 8, 26));
+    // 阴影缓存：阴影贴图不用每帧重画——每 3 帧一次；镜头挪动（阴影范围变了）、时间变了、地块在重建时立即重画
+    { const s = this.atmo.sun, key = s.position.x * 31 + s.position.y * 17 + s.position.z + s.shadow.camera.right * 7; s.shadow.autoUpdate = false;
+      if (key !== this._shKey || this.chunksDirty || this.rising.length || (this._shN = (this._shN || 0) + 1) % 3 === 0) { s.shadow.needsUpdate = true; this._shKey = key; } }
     if (this.waterDirty && !this.chunksDirty) { this.waterDirty = false; this._falls(); }
     const mist = this.fallMist || [];
     this.fx.setEmitters({ falls: mist.length ? mist : [[0, -50, 0]], fire: this.fireAt || [0, -50, 0], night: this.nightK > 0.4 ? this.nightK : 0, dark: this.nightK, pollen: [focus.x - 1, 0, focus.z + 0.3], flies: [focus.x - 0.6, 0, focus.z - 0.1] });

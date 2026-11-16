@@ -124,7 +124,7 @@ export class CanvasMode {
   _villagerHit(cx, cy) {
     const V = this.view.villagers; if (!V || cx == null) return null;
     const rig = this.app.rig, b = this.app.canvas.getBoundingClientRect(); let best = null, bd = 40;
-    for (const p of V.people) { if (p.state === 'sleep') continue; const m = p.m.position, [sx, sy, vis] = rig.project(m.x, m.y + 0.13, m.z); if (!vis) continue; const d = Math.hypot(sx + b.left - cx, sy + b.top - cy); if (d < bd) { bd = d; best = p; } }
+    for (const p of V.people) { if (p.state === 'sleep') continue; const m = p.m.position, [sx, sy, vis] = rig.project(m.x, m.y + 0.08, m.z); if (!vis) continue; const d = Math.hypot(sx + b.left - cx, sy + b.top - cy); if (d < bd) { bd = d; best = p; } }
     return best;
   }
   /** 点到村民：他说一句话（配置了 AI 就让模型说，否则用内置台词） */

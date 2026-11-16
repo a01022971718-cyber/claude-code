@@ -260,6 +260,8 @@ const BLADE_MATS = {};
 /** list: [{x,y,z, h, w, lean, rot, tint:[r,g,b], tint2:[r,g,b]}]；cull: 按实例范围做视锥剔除（游戏里分区块用） */
 export function bladeField(kind, list, { cull = false } = {}) {
   const g = kind === 'grass' || kind === 'seagrass' ? bladeGeometry() : kind === 'flower' ? flowerGeometry() : wheatGeometry();
+  // 打乱顺序（固定种子）：远处只画前一部分实例时，草是均匀变稀，而不是整块消失
+  if (list.length > 64) { list = list.slice(); let sd = (list.length * 2654435761) >>> 0; for (let i = list.length - 1; i > 0; i--) { sd = (sd * 1664525 + 1013904223) >>> 0; const j = sd % (i + 1), t = list[i]; list[i] = list[j]; list[j] = t; } }
   const n = list.length, P = new Float32Array(n * 4), S = new Float32Array(n * 4), T = new Float32Array(n * 3), T2 = new Float32Array(n * 3);
   list.forEach((b, i) => {
     P.set([b.x, b.y, b.z, b.rot], i * 4); S.set([b.h, b.w, b.lean || 0, b.ph ?? i * 0.37], i * 4);
@@ -267,7 +269,7 @@ export function bladeField(kind, list, { cull = false } = {}) {
   });
   g.setAttribute('iPos', new THREE.InstancedBufferAttribute(P, 4)); g.setAttribute('iShape', new THREE.InstancedBufferAttribute(S, 4));
   g.setAttribute('iTint', new THREE.InstancedBufferAttribute(T, 3)); g.setAttribute('iTint2', new THREE.InstancedBufferAttribute(T2, 3));
-  g.instanceCount = n;
+  g.instanceCount = n; g.userData.n = n;
   if (cull && n) {
     // 按实例位置算包围球，区块不在画面里时整块跳过
     const bb = new THREE.Box3(); const v = new THREE.Vector3();

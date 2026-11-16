@@ -1,4 +1,4 @@
-// 岛上的人：住在营地的村民按一天的作息生活，渔夫划船出海。
+// 岛上的居民（屿灵，造型见 sprite.js）：住在营地的岛民按一天的作息生活，渔夫划船出海。
 // 作息（按岛上的时间）：
 //   5:30–7    起床，在屋前活动
 //   7–11:30   去田里、林边、海边或水边干活（顺着小路走过去，到了弯腰干活）
@@ -11,6 +11,7 @@
 import * as THREE from 'three';
 import * as P from './props.js';
 import * as BK from './blocky.js';
+import { sprite } from './sprite.js';
 import { propMaterial } from './materials.js';
 
 const SHIRTS = [0xc8432f, 0x3f6fb5, 0x5e8f3a, 0xd9a13b, 0x8a5aa8, 0x2f8f8a];
@@ -18,7 +19,7 @@ const HATS = ['straw', 'none', 'cap', 'straw'];
 const VARIANTS = new Map();
 function villagerGeo(i) {
   const k = i % 6; let g = VARIANTS.get(k);
-  if (!g) { g = (BK.STYLE.blocky ? BK.villager : P.villager)(k + 1, { shirt: SHIRTS[k], hat: BK.STYLE.blocky ? ['straw', 'none', 'cap', 'band', 'straw', 'none'][k] : HATS[k % HATS.length], hatColor: k % 2 ? 0x30343a : 0xd8b56a }).geometry; g.userData.shared = true; VARIANTS.set(k, g); }
+  if (!g) { g = sprite(k).geometry; g.userData.shared = true; VARIANTS.set(k, g); }   // 岛民是屿灵（hq/sprite.js），不是人
   return g;
 }
 const NAMES = ['阿禾', '小满', '石头', '海生', '阿篱', '青禾', '大树', '小渔'];
@@ -52,7 +53,7 @@ export class Villagers {
     }
   }
   /** 方块风格用偏哑光的黏土材质 */
-  _mat() { return BK.STYLE.blocky ? (this.view.mats.clay ||= propMaterial({ rough: 0.58, env: 1 })) : this.view.mats.prop; }
+  _mat() { return (this.view.mats.clay ||= propMaterial({ rough: 0.6, env: 1 })); }
   _boat(beach, seed) {
     const T = this.view.terrain;
     // 停船点：沙滩外侧的浅水；渔场：再往外 3–5 个单位、离岸够远的地方
@@ -63,7 +64,7 @@ export class Villagers {
     for (let d = 3; d < 7; d += 0.5) { const x = hx + Math.cos(a) * d, z = hz + Math.sin(a) * d; if (T.landDist(x, z) > 2.5) { fish = [x, z]; break; } }
     if (!fish) return;
     const g = new THREE.Group(), hull = new THREE.Mesh(P.rowBoat(seed).geometry, this.view.mats.prop); hull.castShadow = true; g.add(hull);
-    const man = new THREE.Mesh(villagerGeo(seed + 3), this.view.mats.prop); man.scale.set(1, 0.72, 1); man.position.set(0, -0.02, -0.04); g.add(man);
+    const man = new THREE.Mesh(villagerGeo(4), this._mat());   // 渔夫是“海”屿灵 man.scale.setScalar(0.8); man.position.set(0, 0.012, -0.04); g.add(man);
     g.scale.setScalar(1.2); g.position.set(hx, 0, hz); g.rotation.y = a + Math.PI / 2; this.group.add(g);
     const b = { g, home: [hx, hz], fish, x: hx, z: hz, yaw: a + Math.PI / 2, man, float: null };
     this.boats.push(b);
@@ -111,7 +112,7 @@ export class Villagers {
       if (p.state === 'walk' && p.route) {
         const tg = p.route[p.ri], dx = tg[0] - m.position.x, dz = tg[1] - m.position.z, d = Math.hypot(dx, dz), sp = 0.11;
         if (d < 0.02) { p.ri++; if (p.ri >= p.route.length) { p.state = p.task === 'sleep' ? 'sleep' : p.task === 'sit' ? 'sit' : p.task === 'idle' ? 'idle' : 'work'; p.t = 0; } }
-        else { const k = Math.min(d, sp * dt) / d; m.position.x += dx * k; m.position.z += dz * k; const yaw = Math.atan2(dx, dz); let dy = yaw - p.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); p.yaw += dy * Math.min(1, dt * 8); bob = Math.abs(Math.sin(t * 9 + p.seed)) * 0.012; }
+        else { const k = Math.min(d, sp * dt) / d; m.position.x += dx * k; m.position.z += dz * k; const yaw = Math.atan2(dx, dz); let dy = yaw - p.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); p.yaw += dy * Math.min(1, dt * 8); bob = Math.abs(Math.sin(t * 9 + p.seed)) * 0.016; sx = 1 + Math.sin(t * 18 + p.seed * 2) * 0.07; }   // 一蹦一蹦地走：落地压扁、腾空拉长
       } else if (p.state === 'work') {
         // 干活：种地弯腰、砍柴挥手、海边低头捡东西、水边弯腰打水
         const ph = t * (p.task === 'wood' ? 2.6 : 1.4) + p.seed;

@@ -1,7 +1,7 @@
 // 界面层：资源栏、目标、手牌、委托、设置、模拟广告、提示。全部是 DOM，叠在 3D 画布上面。
 import { TILE, RES, RES_NAME, DAILY, QUALITY, gfx } from './config.js';
 import { CAM_ICON } from './camdock.js';
-import { aiError } from './ai.js';
+import { aiError, PROVIDERS } from './ai.js';
 import { audio } from './audio.js';
 import { ads, analytics, inFrame } from './services.js';
 import { tileThumb } from './thumbs.js';
@@ -181,7 +181,7 @@ export class UI {
     else body = `
       <div class="rowb"><button class="btn ghost" id="setBench">性能测试</button><button class="btn ghost" id="setExport">查看埋点数据</button>${app.canvasMode ? '' : '<button class="btn ghost danger" id="setReset">重新开始</button>'}</div>
       ${app.debug ? `<div class="dbg"><b>调试</b><button data-d="give">+10 资源</button><button data-d="skip">快进 4 小时</button><button data-d="day">进入下一天</button><button data-d="coupon">+2 卡券</button></div>` : ''}
-      <p class="ver">屿见 v0.10 · 存档只保存在这台设备的浏览器里</p>`;
+      <p class="ver">屿见 v0.11 · 存档只保存在这台设备的浏览器里</p>`;
     const tabs = [['basic', '基础'], ['gfx', '画面'], ['cam', '镜头'], ['ai', 'AI'], ['other', '其他']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('');
     const sh = this.modal(`<header><h2>设置</h2><button class="x" data-close>关闭</button></header><nav class="stabs">${tabs}</nav><div class="set">${body}</div>`, tab === 'gfx' || tab === 'cam' ? 'wide gfxsheet' : '');
     sh.addEventListener('click', (e) => e.stopPropagation());
@@ -208,7 +208,9 @@ export class UI {
     on('#setLegacy', 'onclick', () => app.setQuality(app.view.kind === 'hq' ? 'low' : 'ultra'));
     // 镜头页
     // AI 页：保存配置、测试连接
-    const aiSave = () => { st.ai = { key: sh.querySelector('#aiKey').value.trim(), baseURL: sh.querySelector('#aiBase').value.trim(), model: sh.querySelector('#aiModel').value.trim() }; this.g.save(); };
+    const aiSave = () => { st.ai = { provider: sh.querySelector('#aiProv').value, key: sh.querySelector('#aiKey').value.trim(), baseURL: sh.querySelector('#aiBase').value.trim(), model: sh.querySelector('#aiModel').value.trim() }; this.g.save(); };
+    on('#aiProv', 'onchange', (e) => { const p = PROVIDERS.find((x) => x.id === e.target.value); sh.querySelector('#aiBase').value = ''; sh.querySelector('#aiModel').value = ''; sh.querySelector('#aiBase').placeholder = p.base || '填接口地址，如 https://api.example.com/v1'; sh.querySelector('#aiModel').placeholder = p.model || '填模型名称'; });
+    { const p = PROVIDERS.find((x) => x.id === (st.ai?.provider || 'anthropic')), b = sh.querySelector('#aiBase'), m = sh.querySelector('#aiModel'); if (b && p) { b.placeholder = p.base || '填接口地址，如 https://api.example.com/v1'; m.placeholder = p.model || '填模型名称'; } }
     on('#aiSave', 'onclick', () => { aiSave(); this.toast('已保存（只存在这台设备上）'); });
     on('#aiTest', 'onclick', async () => {
       aiSave(); const out = sh.querySelector('#aiOut');
@@ -222,10 +224,11 @@ export class UI {
   _aiPanel() {
     const c = this.g.s.settings.ai || {}, esc = (v) => String(v || '').replace(/[&"<>]/g, (m) => ({ '&': '&amp;', '"': '&quot;', '<': '&lt;', '>': '&gt;' }[m]));
     return `<div class="aiform">
-      <p class="note">接入 Claude 大模型后可以用一句话生成一座岛（岛屿菜单 → AI 造岛），点村民时他们会根据此刻在做的事说话。</p>
-      <label>API 密钥<input id="aiKey" type="password" autocomplete="off" placeholder="sk-ant-…" value="${esc(c.key)}"></label>
-      <label>代理地址（可选）<input id="aiBase" type="url" placeholder="https://你的服务器/anthropic" value="${esc(c.baseURL)}"></label>
-      <label>模型<input id="aiModel" type="text" placeholder="claude-opus-5-5" value="${esc(c.model)}"></label>
+      <p class="note">接入大模型后可以用一句话生成一座岛（岛屿菜单 → AI 造岛），点村民时他们会根据此刻在做的事说话。</p>
+      <label>服务商<select id="aiProv">${PROVIDERS.map((p) => `<option value="${p.id}" ${p.id === (c.provider || 'anthropic') ? 'selected' : ''}>${p.name}</option>`).join('')}</select></label>
+      <label>API 密钥<input id="aiKey" type="password" autocomplete="off" placeholder="sk-…" value="${esc(c.key)}"></label>
+      <label>接口地址<input id="aiBase" type="url" placeholder="留空用服务商默认地址" value="${esc(c.baseURL)}"></label>
+      <label>模型<input id="aiModel" type="text" placeholder="留空用默认模型" value="${esc(c.model)}"></label>
       <div class="rowb"><button class="btn" id="aiSave">保存</button><button class="btn ghost" id="aiTest">测试连接</button></div>
       <p class="note" id="aiOut"></p>
       <p class="note">密钥只保存在这台设备的浏览器里。正式上线给玩家用时，请在自己的服务器上转发请求（填“代理地址”、不填密钥），不要把密钥放进客户端。</p></div>`;
@@ -233,7 +236,7 @@ export class UI {
   /** AI 造岛：输入一句话描述 → 生成一座新岛 */
   openAIIsland() {
     const app = this.app;
-    if (!app.ai.ready) { this.toast('先在 设置 → AI 里填 API 密钥'); return this.openSettings('ai'); }
+    if (!app.ai.ready) { this.toast('先在 设置 → AI 里选服务商、填 API 密钥'); return this.openSettings('ai'); }
     const sh = this.modal(`<header><h2>AI 造岛</h2><button class="x" data-close>关闭</button></header>
       <div class="aiform"><label>想要一座什么样的岛？<textarea id="aiPrompt" rows="3" placeholder="比如：一座有瀑布和渔村的小岛，北边是松林，南边是长长的沙滩"></textarea></label>
       <div class="rowb"><button class="btn" id="aiGo">生成</button></div><p class="note" id="aiMsg">生成会替换现在这座岛，需要等十几秒到一分钟。</p></div>`, 'small');
@@ -270,7 +273,7 @@ export class UI {
     const st = this.g.s.settings, app = this.app, hq = app.view.kind === 'hq';
     if (!hq) return `<p class="note">现在是低多边形画面（最省电）。画质细调只在高画质画面里有。</p><button class="btn" id="setLegacy">回到高画质画面</button>`;
     const cfg = gfx(st), custom = Object.keys(st.gfx || {}).length > 0;
-    const dpr = window.devicePixelRatio || 1, pr = Math.min(dpr, cfg.res) * (app.view.resScale ?? 1);
+    const dpr = window.devicePixelRatio || 1, pr = app.view.renderer.getPixelRatio();
     const near = (opts, v) => { let b = 0, bd = Infinity; opts.forEach(([x], i) => { const d = typeof x === 'number' ? Math.abs(x - v) : x === v ? 0 : Infinity; if (d < bd) { bd = d; b = i; } }); return bd === Infinity ? -1 : b; };
     const row = (k, name, desc, opts) => { const cur = near(opts, cfg[k]); return `<div class="grow"><div class="gl"><b>${name}</b><small>${desc}</small></div><div class="gseg">${opts.map(([v, l], i) => `<button data-g="${k}" data-v='${JSON.stringify(v)}' class="${i === cur ? 'on' : ''}">${l}</button>`).join('')}</div></div>`; };
     const presets = ['smooth', 'mid', 'high', 'ultra'].map((k) => `<button data-preset="${k}" class="${st.quality === k && !custom ? 'on' : ''}">${QUALITY[k].label}</button>`).join('');
@@ -279,7 +282,7 @@ export class UI {
       <div class="grow gpre"><div class="gl"><b>画质预设${custom ? '<em>自定义</em>' : ''}</b><small>每一档都是清晰画面，区别在阴影、光影、植被和生物的细节</small></div><div class="gseg">${presets}</div></div>
       <div class="grow"><div class="gl"><b>帧率</b><small>自动：撑不住 60 帧时稳定在 30 帧；高刷只对 90/120Hz 屏幕有用</small></div><div class="gseg">${[['auto', '自动'], ['30', '30'], ['60', '60'], ['120', '高刷']].map(([k, l]) => `<button data-fps="${k}" class="${fps === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
       <h3>清晰度</h3>
-      ${row('res', '渲染精度', `越高越清晰、越耗电 · 现在 ${Math.round(innerWidth * pr)}×${Math.round(innerHeight * pr)}`, [[1.5, '标准'], [2, '高'], [2.5, '超高'], [4, '原生']])}
+      ${row('res', '渲染精度', `越高越清晰、越耗电；总像素有上限，超出的部分靠锐化补 · 现在 ${Math.round(innerWidth * pr)}×${Math.round(innerHeight * pr)}`, [[1.5, '标准'], [2, '高'], [2.5, '超高'], [4, '最高']])}
       ${row('aa', '抗锯齿', '让边缘更平滑', [[false, '关'], [true, '开']])}
       ${row('sharpen', '锐化', '让细节更清楚', [[0, '关'], [0.35, '标准'], [0.6, '强']])}
       <label class="sw"><span>动态分辨率<small>帧率不够时自动把渲染精度降一点（最低 85%），够了再升回去</small></span><input type="checkbox" id="set_dynres" ${st.dynres ? 'checked' : ''}><i></i></label>
