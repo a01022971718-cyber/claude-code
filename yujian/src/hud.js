@@ -42,7 +42,8 @@ export class CanvasHUD {
       <div class="c-br"><div class="c-wheel">${CATEGORIES.map((c, i) => `<button class="c-cat" data-cat="${c.id}" style="--i:${i}" aria-label="${c.name}">${CAT_ICON[c.id]}<i>${c.name}</i></button>`).join('')}</div>
         <button class="c-fab" data-a="build" aria-label="建造">${I.build}<i>建造</i></button></div>
       <div class="c-strip" hidden><div class="c-strip-head"><b></b><span></span></div><div class="c-items"></div></div>
-      <div class="c-hint" hidden></div>`;
+      <div class="c-hint" hidden></div>
+      <div class="c-tut" hidden><span></span><button data-a="tutSkip">跳过</button></div>`;
     document.getElementById('ui').appendChild(root);
     this.root = root; this.el = { strip: root.querySelector('.c-strip'), items: root.querySelector('.c-items'), head: root.querySelector('.c-strip-head'), hint: root.querySelector('.c-hint'), chip: root.querySelector('.c-chip') };
     root.addEventListener('click', (e) => this._click(e));
@@ -78,6 +79,7 @@ export class CanvasHUD {
     if (a === 'set') return this.app.ui.openSettings();
     if (a === 'menu') return this.openMenu();
     if (a === 'closeStrip') return this.setCat(null);
+    if (a === 'tutSkip') return this.endTutorial();
   }
   setOpen(on) {
     this.open = on; this.root.classList.toggle('building', on);
@@ -131,6 +133,33 @@ export class CanvasHUD {
     return url;
   }
   refresh() { if (this.cat) this.renderItems(); }
+  /** 第一次进画布的引导：拖动 → 转动 → 建造，做到一步就换下一步；提示是一条小胶囊，不挡画面 */
+  startTutorial() {
+    const cv = this.cv; if (cv.s.tut >= 3) return;
+    const rig = this.app.rig, el = this.root.querySelector('.c-tut'), txt = el.querySelector('span');
+    const touch = matchMedia('(pointer: coarse)').matches;
+    const steps = [
+      { t: touch ? '单指拖动，看看整座岛' : '按住鼠标拖动，看看整座岛', pos: 'top', done: (b) => Math.hypot(rig.focus.x - b.x, rig.focus.z - b.z) > 1.2 },
+      { t: touch ? '双指转动，换个角度看' : '按住右键拖动，换个角度看', pos: 'top', done: (b) => Math.abs(rig.target.yaw - b.yaw) > 0.45 || Math.abs(rig.target.pitch - b.pitch) > 0.25 },
+      { t: '点右下角「建造」→「岛屿」，在海面上加一块地', pos: 'br', done: (b) => cv.s.tiles.length > b.tiles },
+    ];
+    let k = cv.s.tut || 0, base = null;
+    const show = () => { const st = steps[k]; txt.textContent = st.t; el.dataset.pos = st.pos; el.hidden = false; el.classList.remove('in'); void el.offsetWidth; el.classList.add('in'); base = { x: rig.focus.x, z: rig.focus.z, yaw: rig.target.yaw, pitch: rig.target.pitch, tiles: cv.s.tiles.length }; if (st.pos === 'br') this.root.querySelector('.c-fab').classList.add('flash'); };
+    show();
+    clearInterval(this._tut);
+    this._tut = setInterval(() => {
+      if (this.app.mode !== 'play') return;
+      if (!steps[k].done(base)) return;
+      k++; cv.s.tut = k; cv.save(); audio.sfx('goal');
+      if (k >= steps.length) { this.endTutorial(true); return; }
+      show();
+    }, 250);
+  }
+  endTutorial(done = false) {
+    clearInterval(this._tut); this.cv.s.tut = 3; this.cv.save();
+    this.root.querySelector('.c-tut').hidden = true; this.root.querySelector('.c-fab').classList.remove('flash');
+    if (done) this.hint('都会了。慢慢搭你的岛吧', 2200);
+  }
   flash(cat) { const b = this.root.querySelector(`[data-cat="${cat}"]`); if (b) { b.classList.remove('flash'); void b.offsetWidth; b.classList.add('flash'); } this.root.querySelector('.c-fab').classList.add('flash'); setTimeout(() => this.root.querySelector('.c-fab').classList.remove('flash'), 2400); }
   hint(text, ms = 1600) {
     const h = this.el.hint; if (!text) { h.hidden = true; return; }

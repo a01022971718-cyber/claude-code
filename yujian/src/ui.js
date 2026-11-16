@@ -169,14 +169,17 @@ export class UI {
     const sh = this.modal(`<header><h2>设置</h2><button class="x" data-close>关闭</button></header><div class="set">
       <label class="sw"><span>经营玩法<small>${st.gameplay ? '打开：资源、目标、地块卡、委托' : '关闭：自由画布，随意摆放，没有资源限制'}</small></span><input type="checkbox" id="set_gameplay" ${st.gameplay ? 'checked' : ''}><i></i></label>
       ${sw('sound', '声音')}${sw('music', '背景音乐')}
+      <label class="sw"><span>省电模式<small>不操作 8 秒后降到 30 帧，省电、少发热</small></span><input type="checkbox" id="set_powerSave" ${st.powerSave ? 'checked' : ''}><i></i></label>
       <div class="seg"><span>画质${st.autoQuality ? '<small>自动</small>' : ''}</span>${Object.keys(QUALITY).map((k) => `<button data-q="${k}" class="${st.quality === k ? 'on' : ''}">${QUALITY[k].label}</button>`).join('')}</div>
       <button class="btn ghost" id="setTime">岛上的时间：${st.timeMode === 'real' ? '跟随现实' : '固定 ' + this.app.view.sky.label()}</button>
-      <div class="rowb"><button class="btn ghost" id="setExport">查看埋点数据</button>${app.canvasMode ? '' : '<button class="btn ghost danger" id="setReset">重新开始</button>'}</div>
+      <div class="rowb"><button class="btn ghost" id="setBench">性能测试</button><button class="btn ghost" id="setExport">查看埋点数据</button>${app.canvasMode ? '' : '<button class="btn ghost danger" id="setReset">重新开始</button>'}</div>
       ${app.debug ? `<div class="dbg"><b>调试</b><button data-d="give">+10 资源</button><button data-d="skip">快进 4 小时</button><button data-d="day">进入下一天</button><button data-d="coupon">+2 卡券</button></div>` : ''}
-      <p class="ver">屿见 v0.4 · 存档只保存在这台设备的浏览器里</p></div>`);
+      <p class="ver">屿见 v0.5 · 存档只保存在这台设备的浏览器里</p></div>`);
     sh.addEventListener('click', (e) => e.stopPropagation());
     sh.querySelector('[data-close]').onclick = () => this.closeModal();
     sh.querySelector('#set_gameplay').onchange = (e) => { st.gameplay = e.target.checked; this.g.save(true); this.toast(st.gameplay ? '正在打开经营玩法…' : '正在回到自由画布…'); setTimeout(() => location.reload(), 350); };
+    sh.querySelector('#set_powerSave').onchange = (e) => { st.powerSave = e.target.checked; this.g.save(); };
+    sh.querySelector('#setBench').onclick = () => this.runBench();
     sh.querySelector('#set_sound').onchange = (e) => { st.sound = e.target.checked; audio.setEnabled(st.sound); this.g.save(); };
     sh.querySelector('#set_music').onchange = (e) => { st.music = e.target.checked; audio.setMusic(st.music); this.g.save(); };
     sh.querySelectorAll('[data-q]').forEach((b) => { b.onclick = () => { app.setQuality(b.dataset.q); sh.querySelectorAll('[data-q]').forEach((x) => x.classList.toggle('on', x === b)); }; });
@@ -184,6 +187,23 @@ export class UI {
     sh.querySelector('#setExport').onclick = () => this.showEvents();
     sh.querySelector('#setTime').onclick = () => this.openTime();
     sh.querySelectorAll('[data-d]').forEach((b) => { b.onclick = () => app.dbg[b.dataset.d](); });
+  }
+  /** 真机测速：镜头绕岛转 20 秒，出一份可以复制发给开发的结果 */
+  async runBench() {
+    this.closeModal(); this.toast('性能测试开始，大约 20 秒，请不要操作');
+    await new Promise((r) => setTimeout(r, 900));
+    const res = await this.app.perfMon.benchmark(20);
+    analytics.track('bench', { fps: res.平均帧率, low: res.低帧1, q: res.档位, gpu: String(res.gpu).slice(0, 60) });
+    const verdict = res.平均帧率 >= 50 ? '很流畅' : res.平均帧率 >= 30 ? '流畅' : res.平均帧率 >= 24 ? '勉强流畅' : '偏卡';
+    const sh = this.modal(`<header><h2>性能测试结果</h2><button class="x" data-close>关闭</button></header>
+      <p class="bench-big"><b>${res.平均帧率}</b> 帧/秒 · ${verdict}</p>
+      <p class="note">1% 低帧 ${res.低帧1} · 帧时间中位 ${res.帧时间中位} ms · 95% ${res.帧时间95} ms<br>${res.画面} · 档位 ${res.档位} · 像素比 ${res.pr} · 最多 ${res.绘制调用峰值} 次绘制 · ${Math.round(res.三角面峰值 / 1000)}k 三角面<br>${res.gpu}</p>
+      <textarea id="benchJson" readonly rows="5">${JSON.stringify(res)}</textarea>
+      <div class="acts"><button class="btn" id="benchCopy">复制结果</button></div>`, 'wide');
+    sh.addEventListener('click', (e) => e.stopPropagation());
+    sh.querySelector('[data-close]').onclick = () => this.closeModal();
+    sh.querySelector('#benchCopy').onclick = () => { const ta = sh.querySelector('#benchJson'); ta.select(); navigator.clipboard?.writeText(ta.value).then(() => this.toast('已复制'), () => this.toast('已选中，请手动复制')); };
+    return res;
   }
   showEvents() {
     const ev = analytics.all(), count = {};

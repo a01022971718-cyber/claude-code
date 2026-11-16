@@ -9,6 +9,7 @@ import { DecorMode } from './decor.js';
 import { CanvasMode } from './canvas.js';
 import { CanvasHUD } from './hud.js';
 import { RARE, newDiscovery, roll } from './discovery.js';
+import { PerfMonitor } from './perf.js';
 import { audio } from './audio.js';
 import { analytics, ads } from './services.js';
 import { TILE, QUALITY, QUALITY_DOWN, RES, RES_NAME, DAILY, HOUR } from './config.js';
@@ -44,7 +45,12 @@ class App {
     if (this.view.kind === 'hq') { this.rig.lookY = 0.45; this.rig.setView({ pitch: 0.62, yaw: -0.45 }); }
     this.view.onSky = () => { this.ui?.refreshTime(); this.hud?.refreshTime(); };
     this.updateTime();
-    this.perf = { t: 0, n: 0, armed: false, checks: 0 };
+    this.perf = { t: 0, n: 0, armed: false, low: 0, settle: 0, warned: false };
+    this.perfMon = new PerfMonitor(this);
+    // 省电：触屏设备上，不操作 8 秒后降到 30 帧（设置里可以关）
+    this.lastInput = performance.now();
+    for (const ev of ['pointerdown', 'pointermove', 'wheel', 'keydown']) addEventListener(ev, () => { this.lastInput = performance.now(); }, { passive: true });
+    if (s.settings.powerSave == null) s.settings.powerSave = matchMedia('(pointer: coarse)').matches;
     this.actors = new Actors(this.view.scene, this.view.mat);
     this.actors.noChimney = this.view.kind === 'hq';
     this.actors.setHQ(this.view.kind === 'hq');
@@ -167,6 +173,7 @@ class App {
     audio.init(); audio.setEnabled(this.game.s.settings.sound); audio.setMusic(this.game.s.settings.music);
     this.game.s.started = true; this.game.save();
     this.rig.locked = false; this.hud.show(true); this.hud.wake();
+    setTimeout(() => this.hud.startTutorial(), 1200);
     analytics.track('canvas_start', { tiles: this.canvasMode.s.tiles.length });
     this.perf.armed = true;
   }
@@ -184,16 +191,22 @@ class App {
     analytics.track('time_mode', { mode, hour: Math.round(st.fixedHour) });
   }
   /** 自动画质：开局后测 4 秒帧率，太低就降一档 */
+  /** 自动画质：一直在测。每 5 秒一个窗口，连续两个窗口平均低于 24 帧才降一档（极高 → 高 → 中）；
+   *  降档后等 6 秒再测；加载中、演出中、测速中、省电降帧时不算。到了“中”还卡，只提示一次手动换“低”。 */
   autoQuality(dt) {
     const p = this.perf, st = this.game.s.settings;
-    if (!p.armed || !st.autoQuality || this.forceQ || p.checks >= 2 || this.mode === 'cut') return;
+    if (!p.armed || !st.autoQuality || this.forceQ || this.mode === 'cut' || this.perfMon.benching || this.saving || this.view.loading || document.hidden) { p.t = 0; p.n = 0; return; }
+    if (p.settle > 0) { p.settle -= dt; return; }
     p.t += dt; p.n++;
-    if (p.t < 4) return;
-    const fps = p.n / p.t; p.t = 0; p.n = 0; p.checks++;
+    if (p.t < 5) return;
+    const fps = p.n / p.t; p.t = 0; p.n = 0;
     analytics.track('fps', { fps: Math.round(fps), q: st.quality });
-    const next = fps < 24 ? QUALITY_DOWN[st.quality] : null;
-    if (next) { this.setQuality(next, true); this.ui.toast(`已自动调成${QUALITY[next].label}画质，保证流畅`); }
-    else { if (fps < 20 && this.view.kind === 'hq') this.ui.toast('画面有点卡，可以在设置里换成「低」画质'); p.checks = 2; }
+    p.low = fps < 24 ? p.low + 1 : 0;
+    if (p.low < 2) return;
+    p.low = 0;
+    const next = QUALITY_DOWN[st.quality];
+    if (next) { this.setQuality(next, true); p.settle = 6; this.ui.toast(`已自动调成${QUALITY[next].label}画质，保证流畅`); }
+    else if (fps < 20 && this.view.kind === 'hq' && !p.warned) { p.warned = true; this.ui.toast('画面有点卡，可以在设置里换成「低」画质'); }
   }
 
   // ---------- 选牌 / 放置 ----------
@@ -368,7 +381,13 @@ class App {
   snapshot() { this.view.render(); return this.canvas.toDataURL('image/jpeg', 0.92); }
 
   loop(now) {
-    const dt = Math.min(0.1, (now - this.last) / 1000); this.last = now;
+    // 省电降帧：隔一帧跳过一次（时间照常累计，动画速度不变）
+    const idle = this.game.s.settings.powerSave && now - this.lastInput > 8000 && this.mode === 'play' && !this.hud?.open && !this.perfMon.benching;
+    this.saving = idle;
+    if (idle && (this._skip = !this._skip)) { requestAnimationFrame((t) => this.loop(t)); return; }
+    this.perfMon.begin();
+    const raw = now - this.last, dt = Math.min(0.1, raw / 1000); this.last = now;
+    this.perfMon.frame(raw);
     FX.uTime.value += dt;
     this.autoQuality(dt);
     this.rig.update(dt); this.actors.update(dt); this.decor.update(dt);

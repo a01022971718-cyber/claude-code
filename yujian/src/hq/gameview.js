@@ -29,9 +29,10 @@ import { FX, landMaterial } from '../fx.js';
 import { QUALITY } from '../config.js';
 
 const CH = 4;                  // 区块边长（格）
-const SB = 16, SB_SEG = 40;    // 海底方块边长（世界单位）和细分
+const SB = 16, SB_SEG = 28;    // 海底方块边长（世界单位）和细分（0.57 单位一格，和样张的 0.5 接近，生成快一倍）
 const SB_RANGE = 44;           // 镜头周围多大范围内铺海底
 const FAUNA_RANGE = 26;        // 离镜头多远以内的区块，动物才更新
+const RECLAIM = 70;            // 离镜头多远以外的区块释放显存（再加上镜头距离）
 const easeOutBack = (t) => { const c = 1.7; return 1 + (c + 1) * (t - 1) ** 3 + c * (t - 1) ** 2; };
 const now = () => performance.now();
 
@@ -390,7 +391,14 @@ export class HQView {
     }
     // 区块重建：先逐块地算缓存（每块地十几毫秒），全部就绪再合并；有升完的地块的区块优先，其余按离镜头远近。
     // 每帧最多花 budget 毫秒；旧网格和升起的那块一直显示到新网格建好，中途不会出现缺口
-    const dirty = [...this.chunks.values()].filter((c) => c.dirty);
+    // 远处区块回收：离镜头很远的区块释放显存里的网格和动物（每块地的计算缓存留着，回来时直接合并）；
+    // 回收掉的区块标成待重建，但要等镜头回到附近才真正重建
+    const reclaim = RECLAIM + dist, cdist = (c) => { const [q, r] = c.ck.split(',').map(Number), [x, z] = toWorld((q + 0.5) * CH, (r + 0.5) * CH); return Math.hypot(x - focus.x, z - focus.z); };
+    if ((this._reclaimT = (this._reclaimT || 0) + dt) > 1) {
+      this._reclaimT = 0;
+      for (const c of this.chunks.values()) if (c.group && cdist(c) > reclaim + 10) { this._disposeChunk(c, true); c.dirty = true; this.stats.reclaimed = (this.stats.reclaimed || 0) + 1; }
+    }
+    const dirty = [...this.chunks.values()].filter((c) => c.dirty && cdist(c) < reclaim);
     if (dirty.length) {
       const pri = (c) => { const [q, r] = c.ck.split(',').map(Number), [x, z] = toWorld((q + 0.5) * CH, (r + 0.5) * CH); return Math.hypot(x - focus.x, z - focus.z) - (this.rising.some((a) => a.done && a.rec.ck === c.ck) ? 1e4 : 0); };
       dirty.sort((a, b) => pri(a) - pri(b));
@@ -402,7 +410,7 @@ export class HQView {
       }
     }
     this.loading = dirty.length > 0 && this.stats.builds < this.chunks.size;
-    this.chunksDirty = dirty.length > 0 && [...this.chunks.values()].some((c) => c.dirty);
+    this.chunksDirty = dirty.length > 0 && dirty.some((c) => c.dirty);
     if (dirty.length && !this.chunksDirty) this.waterDirty = true;
     // 远处区块的草叶、花、麦穗不画（它们只有几个像素，却占了大部分顶点）
     const bladeRange = 34 + dist * 0.9;

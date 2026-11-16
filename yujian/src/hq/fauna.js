@@ -69,6 +69,9 @@ export class Fauna {
     this.env = env; this.R = rng(env.seed ?? 515);
     this.group = new THREE.Group(); (env.parent || env.scene).add(this.group);
     const M = mats(); this.mat = M.mat; this.flapMat = M.flap; this.flapAlphaMat = M.flapAlpha;
+    // 障碍按 0.6 单位的格子索引：每次只查周围 3×3 格，不用逐个比对区块里的几百棵树
+    this.grid = new Map();
+    for (const o of env.taken || []) { const k = Math.floor(o[0] / 0.6) + ',' + Math.floor(o[1] / 0.6); let L = this.grid.get(k); if (!L) this.grid.set(k, L = []); L.push(o); }
     this.ray = new THREE.Raycaster();
     this._deer(); this._sheep(); this._goats(); this._rabbits(); this._butterflies(); this._dragonflies(); this._songbirds(); this._ducks(); this._frogs(); this._crabs();
   }
@@ -84,7 +87,8 @@ export class Fauna {
     if (!t || !types.includes(t.t)) return false;
     if (this.env.river && this.env.river(x, z) < 0.22) return false;
     const pd = this.env.pond; if (pd && Math.hypot(x - pd.x, z - pd.z) < pd.r * 1.05) return false;
-    for (const [a, b, r] of this.env.taken) if ((a - x) ** 2 + (b - z) ** 2 < (r * 0.8 + pad) ** 2) return false;
+    const gx = Math.floor(x / 0.6), gz = Math.floor(z / 0.6);
+    for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) { const L = this.grid.get((gx + i) + ',' + (gz + j)); if (L) for (const [a, b, r] of L) if ((a - x) ** 2 + (b - z) ** 2 < (r * 0.8 + pad) ** 2) return false; }
     return true;
   }
   randomSpot(types, near = null, rad = 1.2) {
