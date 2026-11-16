@@ -25,7 +25,7 @@ export class MacroLayer {
   constructor(view) {
     this.view = view; this.group = new THREE.Group(); this.group.visible = false; view.scene.add(this.group);
     this.at = null; this.grass = null;
-    this.dewMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.04, metalness: 0, envMapIntensity: 2.6, transparent: true, opacity: 0.62 });
+    this.dewMat = new THREE.MeshStandardMaterial({ color: 0xdfeee8, roughness: 0.03, metalness: 0, envMapIntensity: 3, transparent: true, opacity: 0.35 });   // 露珠：几乎透明，只留高光
     this.dew = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 2), this.dewMat, 900); this.dew.count = 0; this.dew.frustumCulled = false; this.group.add(this.dew);
     this.daisy = new THREE.InstancedMesh(daisyGeometry(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.65, side: THREE.DoubleSide }), 90); this.daisy.count = 0; this.daisy.frustumCulled = false; this.daisy.castShadow = false; this.group.add(this.daisy);
   }
@@ -48,7 +48,7 @@ export class MacroLayer {
       const h = T.heightIn(t, x, z), c = T._topColor(t, x, z, h), v = 0.95 + R() * 0.3, tall = 0.05 + R() * R() * 0.08;
       list.push({ x, y: h - 0.004, z, h: tall * (t.t === 'forest' ? 0.8 : 1), w: 0.004 + R() * 0.004, lean: R() * 0.45, rot: R() * 6.28, tint: [c.r * v * 1.18, c.g * v * 1.12, c.b * v * 0.9], tint2: [c.r * 0.5, c.g * 0.58, c.b * 0.45] });
       // 露珠：挂在一部分草叶的中上部
-      if (R() < 0.09 && nd < this.dew.instanceMatrix.count) { const f = 0.45 + R() * 0.45, rr = 0.0016 + R() * 0.0018; this.dew.setMatrixAt(nd++, m4.compose(p.set(x + Math.cos(a) * 0.002, h + tall * f, z), q.identity(), s.set(rr, rr * 1.12, rr))); }
+      if (R() < 0.09 && nd < this.dew.instanceMatrix.count) { const f = 0.45 + R() * 0.45, rr = 0.0010 + R() * 0.0011; this.dew.setMatrixAt(nd++, m4.compose(p.set(x + Math.cos(a) * 0.002, h + tall * f, z), q.identity(), s.set(rr, rr * 1.12, rr))); }
       // 雏菊：零星几朵，比草高一点
       if (R() < 0.006 && nf < 90) { const k = 0.8 + R() * 0.5; this.daisy.setMatrixAt(nf++, m4.compose(p.set(x, h - 0.003, z), q.setFromAxisAngle(s.set(R() - 0.5, 0, R() - 0.5).normalize(), R() * 0.2), s.set(k, k * (0.9 + R() * 0.3), k))); }
     }
