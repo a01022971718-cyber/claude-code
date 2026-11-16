@@ -1,5 +1,6 @@
 // 界面层：资源栏、目标、手牌、委托、设置、模拟广告、提示。全部是 DOM，叠在 3D 画布上面。
 import { TILE, RES, RES_NAME, DAILY, QUALITY, gfx } from './config.js';
+import { CAM_ICON } from './camdock.js';
 import { audio } from './audio.js';
 import { ads, analytics, inFrame } from './services.js';
 import { tileThumb } from './thumbs.js';
@@ -41,7 +42,7 @@ export class UI {
     ads.ui = (slot) => this.adMock(slot);
     this.el.hand.addEventListener('click', (e) => { const b = e.target.closest('.card'); if (b) app.selectCard(+b.dataset.i); });
     this.el.tools.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; audio.sfx('tap'); ({ refresh: () => app.refreshHand(), coupon: () => app.toggleCoupon(), regrow: () => app.regrowAll() })[b.dataset.a]?.(); });
-    this.el.side.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; audio.sfx('tap'); ({ orders: () => this.openOrders(), decor: () => app.decor.enter(), photo: () => this.photoMode(true), set: () => this.openSettings() })[b.dataset.a]?.(); });
+    this.el.side.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; audio.sfx('tap'); ({ orders: () => this.openOrders(), decor: () => app.decor.enter(), photo: () => this.photoMode(true), cam: () => app.camDock.toggle(), set: () => this.openSettings() })[b.dataset.a]?.(); });
     this.el.goals.classList.add('fold');   // 目标默认折叠成一行，点一下展开
     this.el.goals.addEventListener('click', () => { this.el.goals.classList.toggle('fold'); });
     this.el.clock.addEventListener('click', () => { audio.sfx('tap'); this.openTime(); });
@@ -78,7 +79,7 @@ export class UI {
     // 右侧按钮
     const todo = d.orders.filter((o) => !o.done).length;
     this.el.side.innerHTML = (s.companions.length ? `<button data-a="orders">${ICON.orders}<span>委托</span>${todo ? `<i class="badge">${todo}</i>` : ''}</button>` : '')
-      + `<button data-a="decor">${ICON.decor}<span>装饰</span></button><button data-a="photo">${ICON.photo}<span>拍照</span></button><button data-a="set">${ICON.gear}<span>设置</span></button>`;
+      + `<button data-a="decor">${ICON.decor}<span>装饰</span></button>${this.app.view.kind === 'hq' ? `<button data-a="cam">${CAM_ICON}<span>镜头</span></button>` : ''}<button data-a="photo">${ICON.photo}<span>拍照</span></button><button data-a="set">${ICON.gear}<span>设置</span></button>`;
   }
   refreshTime() {
     const sk = this.app.view.sky, st = this.g.s.settings;

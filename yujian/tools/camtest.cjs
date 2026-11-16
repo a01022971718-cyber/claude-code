@@ -5,10 +5,11 @@ const { chromium } = require('playwright');
 (async () => {
   const out = process.argv[2] || '.';
   const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 640 }, hasTouch: true, deviceScaleFactor: 1 });
+  const W = Number(process.env.W || 800), H = Number(process.env.H || 400);
+  const ctx = await browser.newContext({ viewport: { width: W, height: H }, hasTouch: true, deviceScaleFactor: 1 });
   const page = await ctx.newPage(), errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('file://' + path.resolve(__dirname, '../dist/index.html') + '?debug=1');
+  await page.goto('file://' + path.resolve(__dirname, '../dist/index.html') + '?debug=1&q=' + (process.env.Q || 'smooth'));
   await page.waitForFunction('window.__game && window.__game.ready', null, { timeout: 180000 });
   await page.evaluate(async () => {
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms)), app = window.__game;
@@ -35,13 +36,14 @@ const { chromium } = require('playwright');
   };
   const res = {};
   res.start = await state();
-  await two([560, 320], [720, 320], [180, 0], [180, 0]); res.twoRight = await state();          // 双指一起往右：转视角
-  await two([560, 300], [720, 300], [0, -120], [0, -120]); res.twoUp = await state();           // 双指一起往上：俯角变小
-  await two([600, 320], [680, 320], [-120, 0], [120, 0]); res.pinchOut = await state();         // 张开：拉近
-  await two([600, 320], [680, 320], [0, 0], [160, 40]); res.oneFingerPinch = await state();    // 一指不动另一指移动：缩放
+  const cx = W / 2, cy = H / 2;
+  await two([cx - 80, cy], [cx + 80, cy], [160, 0], [160, 0], 8); res.twoRight = await state();          // 双指一起往右：转视角
+  await two([cx - 80, cy], [cx + 80, cy], [0, -100], [0, -100], 8); res.twoUp = await state();           // 双指一起往上：俯角变小
+  await two([cx - 40, cy], [cx + 40, cy], [-100, 0], [100, 0], 8); res.pinchOut = await state();         // 张开：拉近
+  await two([cx - 40, cy], [cx + 40, cy], [0, 0], [140, 30], 8); res.oneFingerPinch = await state();    // 一指不动另一指移动：缩放
   await page.evaluate(() => window.__game.rig.setView({ pitch: 0.08, dist: 5 })); await settle();
   res.lowBefore = await state();
-  await one([640, 120], [0, 200]); res.lowPanNearHorizon = await state();                      // 镜头很平，从天边往下拖
+  await one([cx, H * 0.15], [0, 160], 8); res.lowPanNearHorizon = await state();                      // 镜头很平，从天边往下拖
   await page.evaluate(() => { const r = window.__game.rig; r.target.dist = 0.2; r.target.pitch = 0.0; }); await page.waitForTimeout(1500);
   res.closeClamp = await page.evaluate(() => { const r = window.__game.rig, v = window.__game.view, p = r.cam.position; return { dist: +r.dist.toFixed(2), camY: +p.y.toFixed(3), ground: +((v.terrain.heightAt(p.x, p.z) ?? 0)).toFixed(3), near: +r.cam.near.toFixed(3) }; });
   // 预设机位截图
