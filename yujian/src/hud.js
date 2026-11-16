@@ -133,6 +133,8 @@ export class CanvasHUD {
     return url;
   }
   refresh() { if (this.cat) this.renderItems(); }
+  /** 加载页里先把所有物件的缩略图渲染好，第一次打开建造栏不卡 */
+  prewarm() { for (const list of Object.values(ITEMS)) for (const it of list) if (!it.tile && !it.sea && it.hour === undefined && !it.event) this._thumb(it); }
   /** 第一次进画布的引导：拖动 → 转动 → 建造，做到一步就换下一步；提示是一条小胶囊，不挡画面 */
   startTutorial() {
     const cv = this.cv; if (cv.s.tut >= 3) return;

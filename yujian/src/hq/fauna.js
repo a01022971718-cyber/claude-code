@@ -37,13 +37,16 @@ export function faunaMaterial({ mode = 'none', rough = 0.7, alpha = false } = {}
   return m;
 }
 
-/** 分部件的四足动物 */
+// 部件几何（已按关节点平移）每种模型只做一份，所有同种动物共用
+const PART_GEO = new WeakMap();
+function partGeo(p) { let g = PART_GEO.get(p); if (!g) { const pv = p.pivot || [0, 0, 0]; g = p.geometry.clone(); g.translate(-pv[0], -pv[1], -pv[2]); g.userData.shared = true; PART_GEO.set(p, g); } return g; }
+
+/** 分部件的四足动物。部件只是“占位”（不直接画），由 Fauna 把同种动物的同一部件合成一次实例化绘制；只有身体投影 */
 class Quadruped {
   constructor(model, mat, scale = 1) {
     this.grp = new THREE.Group(); this.parts = {};
     if (model.parts) for (const [k, p] of Object.entries(model.parts)) {
-      const geo = p.geometry.clone(), pv = p.pivot || [0, 0, 0]; geo.translate(-pv[0], -pv[1], -pv[2]);
-      const m = new THREE.Mesh(geo, mat); m.position.fromArray(pv); m.castShadow = m.receiveShadow = true; this.grp.add(m); this.parts[k] = m;
+      const m = new THREE.Mesh(partGeo(p), mat); m.position.fromArray(p.pivot || [0, 0, 0]); m.castShadow = k === 'body'; this.grp.add(m); this.parts[k] = m;
     } else { const m = new THREE.Mesh(geoOf(model), mat); m.castShadow = true; this.grp.add(m); }
     this.grp.scale.setScalar(scale);
     this.gait = Math.random() * 6; this.headPitch = 0;
@@ -107,7 +110,7 @@ export class Fauna {
   _herd(model, n, types, scale, speed, near, name = 'herd') {
     const list = [];
     for (let i = 0; i < n; i++) {
-      const s = (i % 3) + 1, q = new Quadruped(memo(name + s, () => model(s)), this.mat, scale), p = this.randomSpot(types, near, 0.7) || this.randomSpot(types);
+      const s = this.env.variants === 1 ? 1 : (i % 3) + 1, q = new Quadruped(memo(name + s, () => model(s)), this.mat, scale), p = this.randomSpot(types, near, 0.7) || this.randomSpot(types);
       if (!p) continue;
       q.grp.position.copy(p); q.grp.rotation.y = this.R() * 6.28; this.group.add(q.grp);
       list.push({ q, types, state: 'graze', timer: 2 + this.R() * 6, target: null, speed: 0, maxSpeed: speed, yaw: q.grp.rotation.y });
@@ -170,7 +173,7 @@ export class Fauna {
     this.ledgePts = this.env.peaks ? this._ledges() : [];
     this.goats = [];
     for (let i = 0; i < Math.min(this.n('goats', 3), this.ledgePts.length); i++) {
-      const q = new Quadruped(memo('goat' + ((i % 3) + 1), () => L.goat((i % 3) + 1)), this.mat, 1.5), p = this.ledgePts[Math.floor(this.R() * this.ledgePts.length)];
+      const gs = this.env.variants === 1 ? 1 : (i % 3) + 1, q = new Quadruped(memo('goat' + gs, () => L.goat(gs)), this.mat, 1.5), p = this.ledgePts[Math.floor(this.R() * this.ledgePts.length)];
       q.grp.position.copy(p); this.group.add(q.grp);
       this.goats.push({ q, p0: p.clone(), p1: null, t: 0, T: 0.6, wait: 3 + this.R() * 6, yaw: this.R() * 6.28 });
     }
@@ -203,7 +206,7 @@ export class Fauna {
     const geo = geoOf(memo('rabbit', () => L.rabbit(1)));
     for (let i = 0; i < this.n('rabbits', 7); i++) {
       const p = this.randomSpot(['flowers', 'meadow', 'camp']); if (!p) continue;
-      const m = new THREE.Mesh(geo, this.mat); m.castShadow = true; m.scale.setScalar(1.8); m.position.copy(p); this.group.add(m);
+      const m = new THREE.Mesh(geo, this.mat); m.scale.setScalar(1.8); m.position.copy(p); this.group.add(m);
       this.rabbits.push({ m, base: p.clone(), from: p.clone(), to: null, t: 0, T: 0.4, hops: 0, wait: this.R() * 4, yaw: this.R() * 6.28 });
     }
   }
@@ -237,7 +240,7 @@ export class Fauna {
     for (const geo of geos) {
       const g = geoOf(geo).clone(); if (!g.attributes.wing) g.setAttribute('wing', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count), 1));
       const anim = new Float32Array(per * 4); g.setAttribute('iAnim', new THREE.InstancedBufferAttribute(anim, 4));
-      const m = new THREE.InstancedMesh(g, mat, per); m.frustumCulled = false; m.castShadow = true; this.group.add(m);
+      const m = new THREE.InstancedMesh(g, mat, per); m.frustumCulled = false; this.group.add(m);
       meshes.push({ m, anim, attr: g.attributes.iAnim });
     }
     return meshes;
@@ -340,7 +343,7 @@ export class Fauna {
     this.ducks = [];
     const pd = this.env.pond; if (!pd) return;
     const geo = geoOf(memo('duck', () => L.duck(1)));
-    for (let i = 0; i < 3; i++) { const m = new THREE.Mesh(geo, this.mat); m.castShadow = true; m.scale.setScalar(1.7); this.group.add(m); const a = this.R() * 6.28; this.ducks.push({ m, a, r: pd.r * (0.3 + this.R() * 0.45), w: (this.R() < 0.5 ? 1 : -1) * (0.06 + this.R() * 0.06), dab: 0, ph: this.R() * 6 }); }
+    for (let i = 0; i < 3; i++) { const m = new THREE.Mesh(geo, this.mat); m.scale.setScalar(1.7); this.group.add(m); const a = this.R() * 6.28; this.ducks.push({ m, a, r: pd.r * (0.3 + this.R() * 0.45), w: (this.R() < 0.5 ? 1 : -1) * (0.06 + this.R() * 0.06), dab: 0, ph: this.R() * 6 }); }
   }
   _updDucks(dt, t) {
     const pd = this.env.pond; if (!pd) return;
@@ -360,7 +363,7 @@ export class Fauna {
     this.frogSpots = [];
     for (let k = 0; k < 10; k++) { const a = k / 10 * 6.28 + this.R() * 0.3, r = pd.r * (1.02 + this.R() * 0.15); const x = pd.x + Math.cos(a) * r, z = pd.z + Math.sin(a) * r, y = this.ground(x, z); if (y != null) this.frogSpots.push(new V3(x, y, z)); }
     for (const lp of this.env.lilyPads || []) this.frogSpots.push(new V3(lp.x, pd.y + 0.004, lp.z));
-    for (let i = 0; i < 4 && this.frogSpots.length; i++) { const m = new THREE.Mesh(geo, this.mat); m.castShadow = true; m.scale.setScalar(1.8); const p = this.frogSpots[Math.floor(this.R() * this.frogSpots.length)]; m.position.copy(p); this.group.add(m); this.frogs.push({ m, from: p.clone(), to: null, t: 0, T: 0.5, wait: 2 + this.R() * 8 }); }
+    for (let i = 0; i < 4 && this.frogSpots.length; i++) { const m = new THREE.Mesh(geo, this.mat); m.scale.setScalar(1.8); const p = this.frogSpots[Math.floor(this.R() * this.frogSpots.length)]; m.position.copy(p); this.group.add(m); this.frogs.push({ m, from: p.clone(), to: null, t: 0, T: 0.5, wait: 2 + this.R() * 8 }); }
   }
   _updFrogs(dt) {
     for (const f of this.frogs) {
@@ -379,7 +382,7 @@ export class Fauna {
   _crabs() {
     this.crabs = [];
     const geo = geoOf(memo('crab', () => L.crab(1)));
-    for (let i = 0; i < this.n('crabs', 6); i++) { const p = this.randomSpot(['beach']); if (!p) continue; const m = new THREE.Mesh(geo, this.mat); m.castShadow = true; m.scale.setScalar(2.0); m.position.copy(p); this.group.add(m); this.crabs.push({ m, yaw: this.R() * 6.28, dir: 1, speed: 0, wait: this.R() * 3, run: 0 }); }
+    for (let i = 0; i < this.n('crabs', 6); i++) { const p = this.randomSpot(['beach']); if (!p) continue; const m = new THREE.Mesh(geo, this.mat); m.scale.setScalar(2.0); m.position.copy(p); this.group.add(m); this.crabs.push({ m, yaw: this.R() * 6.28, dir: 1, speed: 0, wait: this.R() * 3, run: 0 }); }
   }
   _updCrabs(dt, t) {
     for (const c of this.crabs) {
@@ -405,19 +408,42 @@ export class Fauna {
     }
     if (kind === 'rabbit') {
       const p = this.randomSpot(['flowers', 'meadow', 'camp'], near, 0.3); if (!p) return false;
-      const m = new THREE.Mesh(geoOf(memo('rabbit', () => L.rabbit(1))), this.mat); m.castShadow = true; m.scale.setScalar(1.8); m.position.copy(p); this.group.add(m);
+      const m = new THREE.Mesh(geoOf(memo('rabbit', () => L.rabbit(1))), this.mat); m.scale.setScalar(1.8); m.position.copy(p); this.group.add(m);
       this.rabbits.push({ m, base: p.clone(), from: p.clone(), to: null, t: 0, T: 0.4, hops: 0, wait: R() * 2, yaw: R() * 6.28 }); return true;
     }
     if (kind === 'crab') {
       const p = this.randomSpot(['beach'], near, 0.3); if (!p) return false;
-      const m = new THREE.Mesh(geoOf(memo('crab', () => L.crab(1))), this.mat); m.castShadow = true; m.scale.setScalar(2.0); m.position.copy(p); this.group.add(m);
+      const m = new THREE.Mesh(geoOf(memo('crab', () => L.crab(1))), this.mat); m.scale.setScalar(2.0); m.position.copy(p); this.group.add(m);
       this.crabs.push({ m, yaw: R() * 6.28, dir: 1, speed: 0, wait: R() * 2, run: 0 }); return true;
     }
     return false;
   }
+  /** 合批：同一份几何（同种动物的同一部件）的所有占位合成一个实例化网格，一次绘制。
+   *  占位本身隐藏，只用来算位置；每帧把它们的世界矩阵抄进实例矩阵 */
+  _batch() {
+    this.group.updateMatrixWorld(true);
+    const by = new Map();
+    this.group.traverse((o) => { if (o.isMesh && !o.isInstancedMesh) { let L = by.get(o.geometry); if (!L) by.set(o.geometry, L = []); L.push(o); } });
+    this.batches ||= new Map();
+    for (const [geo, L] of by) {
+      let b = this.batches.get(geo);
+      if (!b || b.cap < L.length) {
+        if (b) { this.group.remove(b.im); b.im.dispose(); }
+        const cap = Math.max(4, L.length * 2), im = new THREE.InstancedMesh(geo, L[0].material, cap);
+        im.frustumCulled = false; im.castShadow = !!L[0].castShadow; im.receiveShadow = true; im.userData.batch = true;
+        this.group.add(im); b = { im, cap }; this.batches.set(geo, b);
+      }
+      const im = b.im; im.count = L.length;
+      for (let i = 0; i < L.length; i++) { const o = L[i]; if (o.visible) o.visible = false; im.setMatrixAt(i, o.matrixWorld); }
+      im.instanceMatrix.needsUpdate = true;
+    }
+    for (const [geo, b] of this.batches) if (!by.has(geo)) b.im.count = 0;
+  }
   update(dt, t) {
+    this._batchAfter = true;
     this._updHerd(this.deer, dt, 0); this._updHerd(this.sheep, dt, 1); this._updGoats(dt); this._updRabbits(dt);
     this._updButterflies(dt, t); this._updDragonflies(dt, t); this._updSongbirds(dt, t); this._updDucks(dt, t); this._updFrogs(dt); this._updCrabs(dt, t);
+    if (!this.env.extBatch) this._batch();   // 游戏里由画面统一合批（hq/batcher.js）
   }
   get counts() { return { deer: this.deer.length, sheep: this.sheep.length, goats: this.goats.length, rabbits: this.rabbits.length, butterflies: this.bflies.length, dragonflies: this.dflies.length, songbirds: this.sbirds.length, ducks: this.ducks.length, frogs: this.frogs.length, crabs: this.crabs.length }; }
 }

@@ -34,7 +34,7 @@ export class ItemLayer {
   }
   _fauna() {
     const v = this.view;
-    if (!this.fauna) this.fauna = new Fauna({ scene: v.scene, parent: v.faunaRoot, terrain: v.terrain, tiles: v.terrain.tiles, taken: [], trees: [], flowers: [], peaks: [], center: new THREE.Vector3(), seed: 4242, counts: { deer: 0, sheep: 0, goats: 0, rabbits: 0, butterflies: 0, dragonflies: 0, songbirds: 0, crabs: 0 }, river: (x, z) => v.terrain.riverD(x, z) });
+    if (!this.fauna) this.fauna = new Fauna({ extBatch: true, variants: 1, scene: v.scene, parent: v.faunaRoot, terrain: v.terrain, tiles: v.terrain.tiles, taken: [], trees: [], flowers: [], peaks: [], center: new THREE.Vector3(), seed: 4242, counts: { deer: 0, sheep: 0, goats: 0, rabbits: 0, butterflies: 0, dragonflies: 0, songbirds: 0, crabs: 0 }, river: (x, z) => v.terrain.riverD(x, z) });
     this.fauna.env.terrain = v.terrain; this.fauna.env.tiles = v.terrain.tiles;
     return this.fauna;
   }

@@ -398,13 +398,13 @@ export class Marine {
       anim.set([i * 1.3, 7.5, 0.025, 0], i * 4);
       this.dolphins.list.push({ x: 0, y: -0.14, z: 0, vy: 0, mode: 'cruise', next: 4 + i * 2.5 + this.R() * 4, offs: [(i % 2 ? 1 : -1) * 0.35 * Math.ceil(i / 2), -0.4 * i], pitch: 0, yaw: 0, wasAbove: false });
     }
-    mesh.castShadow = true; this.group.add(mesh);
+    mesh.castShadow = false; this.group.add(mesh);
   }
   _whale() {
     const g = M.whale(1), { mesh, anim } = swarm(g, this.mats.swimV, 1);
     anim.set([0, 1.6, 0.06, 0], 0);
     this.whale = { mesh, t: 12, x: this.center.x - 14, z: this.center.z - this.radius - 15.5, spouts: 0 };
-    mesh.castShadow = true; this.group.add(mesh);
+    mesh.castShadow = false; this.group.add(mesh);
   }
   _jellies() {
     const n = 26, { mesh, anim } = swarm(M.jelly(1), this.mats.jelly, n), R = this.R;

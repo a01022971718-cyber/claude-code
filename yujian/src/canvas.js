@@ -50,7 +50,12 @@ export class CanvasMode {
     if (a > b) { a = c = -5; b = d = 5; }
     return { minX: a - 14, maxX: b + 14, minZ: c - 14, maxZ: d + 14 };
   }
-  newWorld(kind) { this.s = newCanvas(kind); this.undo = []; this.save(); this.syncAll(); analytics.track('canvas_new', { kind }); }
+  async newWorld(kind) {
+    this.s = newCanvas(kind); this.undo = []; this.save(); this.syncAll();
+    const app = this.app, v = this.view;
+    if (v.preload) { app.booting = true; app.ui.loading(0, '正在生成海岛'); await v.preload((p, t) => app.ui.loading(p, t), app.rig.focus, app.rig.target.dist); app.ui.loading(null); app.booting = false; }
+    analytics.track('canvas_new', { kind });
+  }
   tileAt(q, r) { return this.s.tiles.find((t) => t[0] === q && t[1] === r) || null; }
   unlocked(id) { const d = findItem(id); return !d?.rare || this.s.unlocked.includes(id); }
 
@@ -89,6 +94,12 @@ export class CanvasMode {
     const def = findItem(this.sel); if (!def) return;
     if (def.tile) return this.placeTile(p, def);
     return this.placeItem(p, def);
+  }
+  /** 双击：没拿着工具时，镜头飞过去对准那一点（枢轴平滑切换） */
+  focusAt(cx, cy) {
+    if (this.sel) return false;
+    const p = this.pick(cx, cy); if (!p) return false;
+    const rig = this.app.rig; rig.flyTo(p.x, p.z, Math.min(rig.target.dist, 10), 0.8); return true;
   }
   inspect(p) {
     // 没有选东西时点一下：显示这块地的名字（轻提示，不打断）

@@ -64,6 +64,7 @@ class App {
     this.resize();
     addEventListener('resize', () => this.resize());
     this.rig.onTap = (x, y) => this.tap(x, y);
+    this.rig.onDoubleTap = (x, y) => this.mode === 'play' && !!this.canvasMode?.focusAt(x, y);
     this.game.on('change', () => this.ui.refresh());
     this.game.on('gift', () => { this.ui.toast('资源用完了，潮水送来一张免费地块', 'gift'); audio.sfx('coupon'); });
     document.addEventListener('visibilitychange', () => { if (document.hidden) { audio.suspend(); this.game.save(true); } else { audio.resume(); this.tick(); } });
@@ -76,6 +77,24 @@ class App {
       skip: () => { s.skew += 4 * HOUR; this.tick(); this.ui.toast('时间快进了 4 小时'); },
       day: () => { s.skew += 24 * HOUR; this.tick(); this.ui.toast('到了新的一天'); },
     };
+    this.boot();
+  }
+  /** 开局：先显示加载页，把整座岛（地形、植被、海底、海洋生态、动物、着色器）一次性生成并预热，再进标题页。
+   *  这样进入画面以后不会再边玩边生成，帧率稳定。 */
+  async boot() {
+    this.booting = true;
+    const t0 = performance.now();
+    if (this.view.preload) {
+      this.ui.loading(0, '正在生成海岛');
+      if (!this.canvasMode) { const g = this.game, lm = g.s.landmarks[0], [cx, cz] = g.s.started ? g.centroid() : toWorld(lm.q, lm.r); this.rig.focus.set(cx, 0, cz); this.rig.update(0); }
+      await this.view.preload((p, text) => this.ui.loading(p, text), this.rig.focus, this.rig.target.dist);
+      if (this.hud) { this.ui.loading(0.97, '准备界面'); await new Promise((r) => setTimeout(r, 0)); this.hud.prewarm(); }
+      this.ui.loading(1, '完成'); await new Promise((r) => setTimeout(r, 200));
+      this.ui.loading(null);
+    }
+    this.loadMs = Math.round(performance.now() - t0);
+    analytics.track('load', { ms: this.loadMs, q: this.game.s.settings.quality });
+    this.booting = false;
     this.intro();
     this.ready = true;
   }
@@ -191,16 +210,32 @@ class App {
     analytics.track('time_mode', { mode, hour: Math.round(st.fixedHour) });
   }
   /** 自动画质：开局后测 4 秒帧率，太低就降一档 */
+  /** 当前帧率上限：设置里的 30 / 60；“自动”时默认 60，测出来撑不住就锁 30 */
+  fpsCap(idle) {
+    const f = this.game.s.settings.fps ?? 'auto';
+    if (idle) return 30;
+    if (f === 30 || f === '30') return 30;
+    if (f === 60 || f === '60') return 60;
+    return this.pace?.lock30 ? 30 : 60;
+  }
   /** 自动画质：一直在测。每 5 秒一个窗口，连续两个窗口平均低于 24 帧才降一档（极高 → 高 → 中）；
    *  降档后等 6 秒再测；加载中、演出中、测速中、省电降帧时不算。到了“中”还卡，只提示一次手动换“低”。 */
   autoQuality(dt) {
     const p = this.perf, st = this.game.s.settings;
-    if (!p.armed || !st.autoQuality || this.forceQ || this.mode === 'cut' || this.perfMon.benching || this.saving || this.view.loading || document.hidden) { p.t = 0; p.n = 0; return; }
+    if (!p.armed || this.mode === 'cut' || this.perfMon.benching || this.saving || this.view.loading || document.hidden) { p.t = 0; p.n = 0; return; }
     if (p.settle > 0) { p.settle -= dt; return; }
     p.t += dt; p.n++;
     if (p.t < 5) return;
     const fps = p.n / p.t; p.t = 0; p.n = 0;
     analytics.track('fps', { fps: Math.round(fps), q: st.quality });
+    // 帧节奏：不锁帧时平均不到 50，就稳定锁在 30
+    this.pace ||= { lock30: false };
+    if (!this.pace.lock30 && fps < 50 && (st.fps ?? 'auto') === 'auto') { this.pace.lock30 = true; p.low = 0; p.settle = 3; return; }
+    // 动态分辨率：锁 30 还撑不住时，先降渲染分辨率（最多到 75%），再考虑降画质档位；很宽裕时再升回去
+    const v = this.view;
+    if (v.setResScale && fps < 27) { const r = v.resScale ?? 1; if (r > 0.76) { v.setResScale(Math.max(0.75, r - 0.125)); this.resize(); p.low = 0; p.settle = 4; return; } }
+    if (v.setResScale && (v.resScale ?? 1) < 1 && fps >= this.fpsCap(false) * 0.97) { p.good = (p.good || 0) + 1; if (p.good >= 3) { p.good = 0; v.setResScale(Math.min(1, v.resScale + 0.125)); this.resize(); p.settle = 4; return; } } else p.good = 0;
+    if (!st.autoQuality || this.forceQ) return;   // 手动选了档位：帧节奏和分辨率照常自动，档位不动
     p.low = fps < 24 ? p.low + 1 : 0;
     if (p.low < 2) return;
     p.low = 0;
@@ -381,10 +416,14 @@ class App {
   snapshot() { this.view.render(); return this.canvas.toDataURL('image/jpeg', 0.92); }
 
   loop(now) {
-    // 省电降帧：隔一帧跳过一次（时间照常累计，动画速度不变）
+    // 帧节奏（Frame Pacing）：按时间间隔决定这一帧画不画，60/90/120Hz 的屏幕都一样。
+    // 撑不住 60 帧的设备稳定锁在 30 帧（每帧间隔一致，比 25–50ms 来回跳顺）；省电模式空闲时也是 30
     const idle = this.game.s.settings.powerSave && now - this.lastInput > 8000 && this.mode === 'play' && !this.hud?.open && !this.perfMon.benching;
     this.saving = idle;
-    if (idle && (this._skip = !this._skip)) { requestAnimationFrame((t) => this.loop(t)); return; }
+    const cap = this.fpsCap(idle);
+    if (!this.booting && cap && now - (this.lastDraw || 0) < 1000 / cap - 2.5) { requestAnimationFrame((t) => this.loop(t)); return; }
+    this.lastDraw = now;
+    if (this.booting) { this.last = now; requestAnimationFrame((t) => this.loop(t)); return; }   // 加载页期间不跑主循环（预加载自己控制节奏）
     this.perfMon.begin();
     const raw = now - this.last, dt = Math.min(0.1, raw / 1000); this.last = now;
     this.perfMon.frame(raw);

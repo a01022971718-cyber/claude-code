@@ -10,15 +10,19 @@ function setColor(g, hex, tipAt, tipHex) {
 }
 
 /** 一只海鸥（Group：身体 + 左右翅膀，翅膀绕身体中轴转） */
+let GEO = null;
 export function gullModel(mat) {
-  const g = new THREE.Group(), body = new THREE.Mesh(new THREE.CapsuleGeometry(0.025, 0.07, 3, 6).rotateX(Math.PI / 2), mat);
-  setColor(body.geometry, 0xf4f4f0); g.add(body);
-  const wingG = new THREE.BufferGeometry();
-  wingG.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0.03, 0.17, 0.02, -0.01, 0, 0, -0.03, 0.17, 0.02, -0.01, 0.2, 0.01, -0.05, 0.12, 0.02, 0.01], 3));
-  wingG.computeVertexNormals(); setColor(wingG, 0xe8e8e4, [0.2, 0.01, -0.05], 0x30343a);
+  if (!GEO) {
+    const body = new THREE.CapsuleGeometry(0.025, 0.07, 3, 6).rotateX(Math.PI / 2); setColor(body, 0xf4f4f0);
+    const wingG = new THREE.BufferGeometry();
+    wingG.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0.03, 0.17, 0.02, -0.01, 0, 0, -0.03, 0.17, 0.02, -0.01, 0.2, 0.01, -0.05, 0.12, 0.02, 0.01], 3));
+    wingG.computeVertexNormals(); setColor(wingG, 0xe8e8e4, [0.2, 0.01, -0.05], 0x30343a);
+    GEO = { body, wingG };
+  }
+  const { wingG } = GEO, g = new THREE.Group(), body = new THREE.Mesh(GEO.body, mat); g.add(body);
   const L = new THREE.Mesh(wingG, mat), R = new THREE.Mesh(wingG, mat); R.scale.x = -1;
   g.add(L, R); g.userData = { L, R };
-  g.traverse((o) => { o.castShadow = true; });
+  g.traverse((o) => { o.castShadow = false; });   // 太小，投影几乎看不见，省掉阴影绘制
   return g;
 }
 
@@ -26,11 +30,11 @@ export class Gulls {
   constructor(scene, n = 7) {
     this.mat = propMaterial({ rough: 0.6 });
     this.center = new THREE.Vector3(); this.radius = 4;
-    this.list = [];
+    this.list = []; this.group = new THREE.Group(); scene.add(this.group);
     for (let i = 0; i < n; i++) {
       const g = gullModel(this.mat);
       g.userData.f = { r: i * 0.9, h: 2.4 + (i % 3) * 0.5, sp: (0.18 + (i % 4) * 0.03) * (i % 2 ? 1 : -1), ph: i * 1.3 };
-      scene.add(g); this.list.push(g);
+      this.group.add(g); this.list.push(g);
     }
   }
   /** 歇在海面上的一只（返回 Group，调用方把它交给浮力计算） */

@@ -278,3 +278,13 @@ body { background: var(--haze); color: var(--ink); font-family: var(--font); fon
 .chud.idle > div.c-tut { opacity: 1; pointer-events: auto; }
 .chud.idle > .c-tut * { pointer-events: auto; }
 @media (orientation: portrait) { .c-tut[data-pos="br"] { right: var(--sr); bottom: calc(var(--sb) + 84px); } }
+/* 加载页：标志 + 进度条 + 步骤 + 轮换小贴士 */
+#loading { position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; pointer-events: auto; color: #fff; text-align: center; padding: 16px;
+  background: radial-gradient(ellipse at 50% 35%, #2a8aa0 0%, #145466 55%, #0b2f3b 100%); transition: opacity .45s ease; }
+#loading.out { opacity: 0; pointer-events: none; }
+#loading .ld-logo { display: flex; gap: 10px; font-size: clamp(42px, 9vw, 72px); font-weight: 900; letter-spacing: .08em; text-shadow: 0 4px 18px rgba(0, 0, 0, .35); }
+#loading .ld-logo span:last-child { color: #ffe4a0; }
+#loading .ld-bar { width: min(70vw, 360px); height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .18); overflow: hidden; }
+#loading .ld-bar i { display: block; height: 100%; width: 0; border-radius: 3px; background: linear-gradient(90deg, #f2c45a, #ffe4a0); transition: width .25s ease; }
+#loading .ld-text { margin: 0; font-size: 13px; font-weight: 700; opacity: .9; font-variant-numeric: tabular-nums; }
+#loading .ld-tip { margin: 6px 0 0; font-size: 12.5px; opacity: .75; max-width: 30em; min-height: 2.6em; }

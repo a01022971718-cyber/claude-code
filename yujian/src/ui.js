@@ -29,7 +29,7 @@ const TEMPLATE = `
 </div>
 <div id="tray" hidden></div>
 <div id="bubble" hidden></div><div id="floats"></div><div id="toasts"></div>
-<div id="banner" hidden></div><div id="modal" hidden></div><div id="title" hidden></div><div id="photoBar" hidden></div>`;
+<div id="banner" hidden></div><div id="modal" hidden></div><div id="title" hidden></div><div id="photoBar" hidden></div><div id="loading" hidden></div>`;
 
 export class UI {
   constructor(app) {
@@ -170,14 +170,16 @@ export class UI {
       <label class="sw"><span>经营玩法<small>${st.gameplay ? '打开：资源、目标、地块卡、委托' : '关闭：自由画布，随意摆放，没有资源限制'}</small></span><input type="checkbox" id="set_gameplay" ${st.gameplay ? 'checked' : ''}><i></i></label>
       ${sw('sound', '声音')}${sw('music', '背景音乐')}
       <label class="sw"><span>省电模式<small>不操作 8 秒后降到 30 帧，省电、少发热</small></span><input type="checkbox" id="set_powerSave" ${st.powerSave ? 'checked' : ''}><i></i></label>
+      <div class="seg"><span>帧率</span>${[['auto', '自动'], ['30', '30 稳定'], ['60', '60']].map(([k, l]) => `<button data-fps="${k}" class="${String(st.fps ?? 'auto') === k ? 'on' : ''}">${l}</button>`).join('')}</div>
       <div class="seg"><span>画质${st.autoQuality ? '<small>自动</small>' : ''}</span>${Object.keys(QUALITY).map((k) => `<button data-q="${k}" class="${st.quality === k ? 'on' : ''}">${QUALITY[k].label}</button>`).join('')}</div>
       <button class="btn ghost" id="setTime">岛上的时间：${st.timeMode === 'real' ? '跟随现实' : '固定 ' + this.app.view.sky.label()}</button>
       <div class="rowb"><button class="btn ghost" id="setBench">性能测试</button><button class="btn ghost" id="setExport">查看埋点数据</button>${app.canvasMode ? '' : '<button class="btn ghost danger" id="setReset">重新开始</button>'}</div>
       ${app.debug ? `<div class="dbg"><b>调试</b><button data-d="give">+10 资源</button><button data-d="skip">快进 4 小时</button><button data-d="day">进入下一天</button><button data-d="coupon">+2 卡券</button></div>` : ''}
-      <p class="ver">屿见 v0.5 · 存档只保存在这台设备的浏览器里</p></div>`);
+      <p class="ver">屿见 v0.6 · 存档只保存在这台设备的浏览器里</p></div>`);
     sh.addEventListener('click', (e) => e.stopPropagation());
     sh.querySelector('[data-close]').onclick = () => this.closeModal();
     sh.querySelector('#set_gameplay').onchange = (e) => { st.gameplay = e.target.checked; this.g.save(true); this.toast(st.gameplay ? '正在打开经营玩法…' : '正在回到自由画布…'); setTimeout(() => location.reload(), 350); };
+    sh.querySelectorAll('[data-fps]').forEach((b) => { b.onclick = () => { st.fps = b.dataset.fps; if (app.pace) app.pace.lock30 = false; this.g.save(); sh.querySelectorAll('[data-fps]').forEach((x) => x.classList.toggle('on', x === b)); }; });
     sh.querySelector('#set_powerSave').onchange = (e) => { st.powerSave = e.target.checked; this.g.save(); };
     sh.querySelector('#setBench').onclick = () => this.runBench();
     sh.querySelector('#set_sound').onchange = (e) => { st.sound = e.target.checked; audio.setEnabled(st.sound); this.g.save(); };
@@ -237,6 +239,22 @@ export class UI {
       t.hidden = false;
       t.querySelector('#startBtn').onclick = () => { t.classList.add('out'); setTimeout(() => { t.hidden = true; t.classList.remove('out'); }, 500); res(); };
     });
+  }
+
+  // ---------- 加载页 ----------
+  /** p: 0–1 的进度，null 关闭。像成熟手游一样：标志、进度条、当前步骤、轮换的小贴士 */
+  loading(p, text = '') {
+    const el = document.getElementById('loading');
+    if (p == null) { el.classList.add('out'); clearInterval(this._tipT); setTimeout(() => { el.hidden = true; el.classList.remove('out'); }, 450); return; }
+    if (el.hidden) {
+      const tips = ['在草地上多放几块地，可能会冒出泉水，发现溪流和池塘', '黄昏和清晨发现稀有生态的机会翻倍', '双指转动可以绕着岛看，双指一起上下推可以改变俯角', '海面上可以放小船和浮标，它们会跟着浪起伏', '在「海洋」里试试唤来一头鲸', '不操作一会儿，界面会自己淡出，只留下画面'];
+      el.innerHTML = `<div class="ld-logo"><span>屿</span><span>见</span></div><div class="ld-bar"><i></i></div><p class="ld-text"></p><p class="ld-tip"></p>`;
+      el.hidden = false; let k = Math.floor(Math.random() * tips.length);
+      const tip = el.querySelector('.ld-tip'); tip.textContent = '小贴士：' + tips[k];
+      this._tipT = setInterval(() => { k = (k + 1) % tips.length; tip.textContent = '小贴士：' + tips[k]; }, 3200);
+    }
+    el.querySelector('.ld-bar i').style.width = Math.round(p * 100) + '%';
+    el.querySelector('.ld-text').textContent = `${text}　${Math.round(p * 100)}%`;
   }
 
   // ---------- 拍照 ----------

@@ -6,6 +6,7 @@
 //  - 海面、岸边浪花、阴影、花粉和萤火虫都跟着镜头走；海洋生态在岛变大后（延迟合并）重建栖息地。
 //  - 陆地动物按区块生成，数量由区块里的地块类型决定，离镜头远的区块暂停更新。
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { Terrain, mergeColored } from './terrain.js';
 import { terrainMaterial, propMaterial, foliageMaterial, U } from './materials.js';
 import { instanced, bladeField } from './vegetation.js';
@@ -13,6 +14,7 @@ import { ribbon, streamMaterial } from './streams.js';
 import { Gulls } from './seabirds.js';
 import { boulder } from './rocks.js';
 import { ItemLayer } from './items.js';
+import { Batcher } from './batcher.js';
 import { Ocean } from './ocean.js';
 import { Particles } from './particles.js';
 import { Atmosphere, presetAt } from './atmosphere.js';
@@ -29,10 +31,26 @@ import { FX, landMaterial } from '../fx.js';
 import { QUALITY } from '../config.js';
 
 const CH = 4;                  // 区块边长（格）
-const SB = 16, SB_SEG = 28;    // 海底方块边长（世界单位）和细分（0.57 单位一格，和样张的 0.5 接近，生成快一倍）
+const SB = 32, SB_SEG = 56;    // 海底方块边长（世界单位）和细分（0.57 单位一格）；大块 = 少绘制次数
 const SB_RANGE = 44;           // 镜头周围多大范围内铺海底
 const FAUNA_RANGE = 26;        // 离镜头多远以内的区块，动物才更新
 const RECLAIM = 70;            // 离镜头多远以外的区块释放显存（再加上镜头距离）
+const SHADOW_KITS = new Set(['con', 'broad', 'palm']);
+/** 把若干几何按各自的位置/朝向/缩放烘进世界坐标再合并。属性组合不同的分组合并；返回的几何都标成“自有”，区块销毁时释放 */
+function mergeTransformed(list, keep = null) {
+  if (!list.length) return [];
+  const groups = new Map(), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), sc = new THREE.Vector3();
+  for (const it of list) {
+    const g = it.geo.index ? it.geo.toNonIndexed() : it.geo.clone();
+    for (const n of Object.keys(g.attributes)) if ((keep && !keep.includes(n)) || n === 'uv' && !keep) g.deleteAttribute(n);
+    const s = it.s || 1; m4.compose(p.fromArray(it.pos || [0, 0, 0]), q.setFromEuler(e.set(0, it.ry || 0, 0)), sc.set(s, s, s)); g.applyMatrix4(m4);
+    const sig = Object.entries(g.attributes).map(([n, a]) => n + a.itemSize + (a.normalized ? 'n' : '') + a.array.constructor.name).sort().join('|');
+    let L = groups.get(sig); if (!L) groups.set(sig, L = []); L.push(g);
+  }
+  const out = [];
+  for (const L of groups.values()) { const g = L.length === 1 ? L[0] : mergeGeometries(L, false); for (const x of L) if (x !== g) x.dispose(); if (g) { g.userData.owned = true; g.computeBoundingSphere(); out.push(g); } }
+  return out;
+}
 const easeOutBack = (t) => { const c = 1.7; return 1 + (c + 1) * (t - 1) ** 3 + c * (t - 1) ** 2; };
 const now = () => performance.now();
 
@@ -89,6 +107,7 @@ export class HQView {
     this.mats.stream = streamMaterial(this.pipe.sceneColor, this.pipe.sceneDepth);
     this.mats.pond = streamMaterial(this.pipe.sceneColor, this.pipe.sceneDepth, 0.04); this.mats.pond.uniforms.uTint.value.set(0x2f6b4a);
     this.gulls = new Gulls(this.scene);
+    this.batcher = new Batcher(this.scene);
     this.fires = new Map();
     this.items = new ItemLayer(this);
     this.fx.points.layers.set(LAYER_FX); this.fx.smoke.layers.set(LAYER_FX); this.scene.add(this.fx.points);
@@ -99,10 +118,12 @@ export class HQView {
   applyQuality() {
     const q = this.q, o = this.pipe.opts;
     o.ao = !!q.ao; o.dof = !!q.dof; o.bloom = !!q.bloom; o.smaa = true;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, q.pixelRatio));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, q.pixelRatio) * (this.resScale ?? 1));
     const s = this.atmo.sun.shadow;
     if (s.mapSize.x !== q.shadow) { s.mapSize.set(q.shadow, q.shadow); s.map?.dispose(); s.map = null; }
   }
+  /** 动态分辨率：在当前档位的像素比上再乘一个 0.75–1 的系数（调用方随后要 resize） */
+  setResScale(k) { this.resScale = k; this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.q.pixelRatio) * k); }
   setQuality(k) {
     const old = this.q; this.qk = k; this.q = QUALITY[k];
     this.applyQuality();
@@ -251,17 +272,26 @@ export class HQView {
     for (const [name, items] of Object.entries(inst)) {
       const mat = name === 'rock' || name === 'stump' || name === 'lily' ? M.prop : name === 'bush' || name === 'crop' ? M.bush : M.tree;
       const g = instanced(K[name], items, mat); g.userData.inst = true; grp.add(g);
+      // 只有树投影：灌木、石头、菜苗、芦苇、睡莲的影子几乎看不见，却要再画一遍
+      if (!SHADOW_KITS.has(name)) g.traverse((o) => { o.castShadow = false; });
     }
     for (const [b, list] of Object.entries(blades)) if (list.length) { const m = bladeField(b, list, { cull: true }); m.geometry.userData.owned = true; grp.add(m); }
     const peaks = [];
-    for (const r of recs) for (const w of r.dress.water || []) {
-      const m = new THREE.Mesh(w.geo, w.mat === 'pond' ? M.pond : M.stream); m.layers.set(LAYER_FX); m.renderOrder = 5; m.frustumCulled = false; grp.add(m);
+    // 水面：同一种材质的河面、瀑布、池塘合成一个网格
+    const water = { stream: [], pond: [] };
+    for (const r of recs) for (const w of r.dress.water || []) water[w.mat === 'pond' ? 'pond' : 'stream'].push({ geo: w.geo, pos: [0, 0, 0] });
+    for (const [k, list] of Object.entries(water)) for (const geo of mergeTransformed(list, ['position', 'flow', 'fall'])) {
+      const m = new THREE.Mesh(geo, k === 'pond' ? M.pond : M.stream); m.layers.set(LAYER_FX); m.renderOrder = 5; m.frustumCulled = false; grp.add(m);
     }
+    // 山峰、道具、菜垄、旧模型部件：按材质合并成一个网格（一次绘制）。山峰另留不进场景的占位，给山羊找落脚点用
+    const byMat = {};
     for (const it of meshes) {
-      const mat = it.mat === 'peak' ? M.peak : it.mat === 'soil' ? M.soil : it.mat === 'legacy' ? this.mat : M.prop;
-      const m = new THREE.Mesh(it.geo, mat); m.position.fromArray(it.pos); m.rotation.y = it.ry || 0; if (it.s) m.scale.setScalar(it.s);
-      m.castShadow = m.receiveShadow = true; grp.add(m);
-      if (it.peak) peaks.push(m);
+      (byMat[it.mat] ||= []).push(it);
+      if (it.peak) { const m = new THREE.Mesh(it.geo); m.position.fromArray(it.pos); m.rotation.y = it.ry || 0; if (it.s) m.scale.setScalar(it.s); m.updateMatrixWorld(); peaks.push(m); }
+    }
+    for (const [k, list] of Object.entries(byMat)) {
+      const mat = k === 'peak' ? M.peak : k === 'soil' ? M.soil : k === 'legacy' ? this.mat : M.prop;
+      for (const geo of mergeTransformed(list)) { const m = new THREE.Mesh(geo, mat); m.castShadow = m.receiveShadow = true; grp.add(m); }
     }
     grp.userData.peaks = peaks;
     return grp;
@@ -315,7 +345,7 @@ export class HQView {
     const pr = ponds[0], pond = pr ? { ...pr.dress.pond } : null;
     const riverPts = []; for (const r of streams) for (const pl of T.lines.get(r.k)) for (let i = 0; i < pl.length; i += 2) riverPts.push([pl[i][0], T.heightIn(r.tt, pl[i][0], pl[i][1]) + 0.045, pl[i][1]]);
     ch.fauna = new Fauna({ scene: this.scene, parent: this.faunaRoot, terrain: T, tiles, taken, trees, flowers, peaks: ch.group.userData.peaks, splash: this.marine?.splash, center: new THREE.Vector3(tiles[0].x, 0, tiles[0].z), seed: (cq * 92821 + cr * 68917) >>> 0, counts,
-      pond, lilyPads: pr?.dress.lilyPads || [], river: streams.length ? (x, z) => T.riverD(x, z) : null, riverPts });
+      pond, lilyPads: pr?.dress.lilyPads || [], river: streams.length ? (x, z) => T.riverD(x, z) : null, riverPts, extBatch: true, variants: 1 });
   }
 
   // ---------------- 海底 ----------------
@@ -428,7 +458,8 @@ export class HQView {
       if (!ch.fauna) continue;
       const c = ch.fauna.env.center, near = Math.hypot(c.x - focus.x, c.z - focus.z) < FAUNA_RANGE + dist * 0.3;
       ch.fauna.group.visible = near;
-      if (near) ch.fauna.update(dt, t);
+      // 降频：离镜头 14 单位以外的动物隔一帧更新一次（时间步加倍，动作速度不变）
+      if (near) { const mid = Math.hypot(c.x - focus.x, c.z - focus.z) > 14; if (!mid) ch.fauna.update(dt, t); else if ((ch.tick = !ch.tick)) ch.fauna.update(dt * 2, t); }
     }
     // 海底
     this._seabedTick(this.seabed.size ? 4 : 40);
@@ -451,6 +482,8 @@ export class HQView {
     this.fx.setEmitters({ falls: mist.length ? mist : [[0, -50, 0]], fire: this.fireAt || [0, -50, 0], night: this.nightK > 0.4 ? this.nightK : 0, dark: this.nightK, pollen: [focus.x - 1, 0, focus.z + 0.3], flies: [focus.x - 0.6, 0, focus.z - 0.1] });
     this.gulls.update(t);
     this.items.update(dt, t);
+    // 动物、海龟、海鸥：全岛合批（同一部件一次绘制）
+    this.batcher.sync([this.faunaRoot, this.marine?.group, this.gulls.group]);
     // 营火：离镜头最近的那一处冒火苗和炊烟
     let bestF = null, bd = 1e9; for (const f of this.fires.values()) { const d = Math.hypot(f[0] - focus.x, f[2] - focus.z); if (d < bd) { bd = d; bestF = f; } }
     this.fireAt = bestF;
@@ -458,6 +491,43 @@ export class HQView {
     this.markers.update(dt);
     const cam = this.camera;
     for (const u of this._fxUniforms()) { if (u.cameraNear) { u.cameraNear.value = cam.near; u.cameraFar.value = cam.far; } }
+  }
+  /** 加载页用：把镜头附近需要的一切一次性做完。cb(进度 0–1, 步骤文字)；每 40ms 让出一次主线程，好让进度条动起来 */
+  async preload(cb, focus, dist = 20) {
+    const pause = () => new Promise((r) => setTimeout(r, 0));
+    let last = now();
+    const tick = async (p, text) => { if (now() - last > 40) { cb(p, text); await pause(); last = now(); } };
+    const T0 = now(), steps = this.loadSteps = {}; let ts = T0; const mark = (k) => { const t = now(); steps[k] = Math.round(t - ts); ts = t; };
+    this.focus.copy(focus); this.dist = dist;
+    // 1. 地形和植被：所有区块
+    const recs = [...this.rec.values()].filter((r) => !r.hidden);
+    for (let i = 0; i < recs.length; i++) { this._ensure(recs[i]); await tick(0.05 + 0.45 * i / recs.length, '生成地形和植被'); }
+    mark('tiles');
+    for (const ch of this.chunks.values()) if (ch.dirty) { this._buildChunk(ch); await tick(0.52, '合并网格'); }
+    mark('chunks');
+    // 2. 海底、海岸浪花场
+    cb(0.55, '铺设海底'); await pause();
+    let guard = 0; while (guard++ < 200) { const before = this.seabed.size; this._seabedTick(60); await tick(0.55 + Math.min(0.15, this.seabed.size / 200), '铺设海底'); if (this.seabed.size === before && !this.sbDirty.size) break; }
+    this.ocean.recenter(Math.round(focus.x), Math.round(focus.z)); this.shoreAt = this.landChanged;
+    mark('seabed');
+    // 3. 海洋生态
+    cb(0.72, '放出鱼群和海洋生物'); await pause();
+    if (this.terrain.tiles.length && !this.marine) this._makeMarine();
+    this.marineAt = this.landChanged;
+    mark('marine');
+    // 4. 陆地动物
+    const chs = [...this.chunks.values()];
+    for (let i = 0; i < chs.length; i++) { if (chs[i].faunaAt) { chs[i].faunaAt = 0; this._buildFauna(chs[i]); } await tick(0.75 + 0.1 * i / chs.length, '唤醒动物'); }
+    this._falls(); this.waterDirty = false;
+    mark('fauna');
+    // 5. 着色器：编译所有材质，再在幕后完整渲染两帧（后期管线的每个通道也一起编译好）
+    cb(0.88, '编译着色器'); await pause();
+    try { this.renderer.compile(this.scene, this.camera); } catch { /* 不支持就算了 */ }
+    this.prewarmed = true; mark('compile');
+    this.update(0.016, focus, dist); this.render(); await pause();   // 幕后完整渲染一帧：后期管线各通道的着色器也在这里编译
+    mark('render');
+    cb(0.96, '编译着色器'); await pause();
+    this.loaded = true;
   }
   _islandShape() {
     let cx = 0, cz = 0, n = 0;
