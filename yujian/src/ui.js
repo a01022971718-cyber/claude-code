@@ -181,7 +181,7 @@ export class UI {
     else body = `
       <div class="rowb"><button class="btn ghost" id="setBench">性能测试</button><button class="btn ghost" id="setExport">查看埋点数据</button>${app.canvasMode ? '' : '<button class="btn ghost danger" id="setReset">重新开始</button>'}</div>
       ${app.debug ? `<div class="dbg"><b>调试</b><button data-d="give">+10 资源</button><button data-d="skip">快进 4 小时</button><button data-d="day">进入下一天</button><button data-d="coupon">+2 卡券</button></div>` : ''}
-      <p class="ver">屿见 v0.11 · 存档只保存在这台设备的浏览器里</p>`;
+      <p class="ver">屿见 v0.12 · 存档只保存在这台设备的浏览器里</p>`;
     const tabs = [['basic', '基础'], ['gfx', '画面'], ['cam', '镜头'], ['ai', 'AI'], ['other', '其他']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('');
     const sh = this.modal(`<header><h2>设置</h2><button class="x" data-close>关闭</button></header><nav class="stabs">${tabs}</nav><div class="set">${body}</div>`, tab === 'gfx' || tab === 'cam' ? 'wide gfxsheet' : '');
     sh.addEventListener('click', (e) => e.stopPropagation());
@@ -237,21 +237,35 @@ export class UI {
   openAIIsland() {
     const app = this.app;
     if (!app.ai.ready) { this.toast('先在 设置 → AI 里选服务商、填 API 密钥'); return this.openSettings('ai'); }
+    const EX = { new: ['有瀑布和渔村的小岛，北边松林，南边长沙滩', '一座樱花和麦田环绕的宁静农庄岛', '三座小岛连成的群岛，中间是潟湖', '高高的岩山，山脚下有溪流和池塘'],
+      edit: ['在东边加一片沙滩和一条小船', '把森林扩大一倍，加几只鹿', '加一个营地，旁边种菜地和麦田', '在岛中间开一条流向大海的溪流'] };
+    let mode = 'new';
     const sh = this.modal(`<header><h2>AI 造岛</h2><button class="x" data-close>关闭</button></header>
-      <div class="aiform"><label>想要一座什么样的岛？<textarea id="aiPrompt" rows="3" placeholder="比如：一座有瀑布和渔村的小岛，北边是松林，南边是长长的沙滩"></textarea></label>
-      <div class="rowb"><button class="btn" id="aiGo">生成</button></div><p class="note" id="aiMsg">生成会替换现在这座岛，需要等十几秒到一分钟。</p></div>`, 'small');
-    sh.addEventListener('click', (e) => e.stopPropagation());
+      <div class="aiform"><div class="aimode"><button data-m="new" class="on">生成一座新岛</button><button data-m="edit">改造现在的岛</button></div>
+      <label><span id="aiQ">想要一座什么样的岛？</span><textarea id="aiPrompt" rows="3"></textarea></label>
+      <div class="aichips"></div>
+      <div class="rowb"><button class="btn" id="aiGo">生成</button></div><p class="note" id="aiMsg"></p>
+      <p class="note">AI 会安排地形（草地、森林、岩山、沙滩、溪流、池塘……）、植物、动物、建筑、海水颜色和时段。用的是「设置 → AI」里选的服务商（${app.ai.prov.name}）。</p></div>`, 'small');
+    const setMode = (m) => {
+      mode = m; sh.querySelectorAll('[data-m]').forEach((b) => b.classList.toggle('on', b.dataset.m === m));
+      sh.querySelector('#aiQ').textContent = m === 'new' ? '想要一座什么样的岛？' : '想怎么改现在的岛？';
+      sh.querySelector('#aiPrompt').placeholder = '比如：' + EX[m][0];
+      sh.querySelector('.aichips').innerHTML = EX[m].map((t) => `<button data-ex="${t}">${t}</button>`).join('');
+      sh.querySelector('#aiMsg').textContent = m === 'new' ? '生成会替换现在这座岛（可以先在岛屿菜单里换岛前想好），需要等十几秒到一分钟。' : 'AI 会在现在的岛上按你说的改，没提到的地方尽量保留。';
+    };
+    setMode('new');
+    sh.addEventListener('click', (e) => { e.stopPropagation(); const m = e.target.closest('[data-m]'); if (m) setMode(m.dataset.m); const ex = e.target.closest('[data-ex]'); if (ex) sh.querySelector('#aiPrompt').value = ex.dataset.ex; });
     sh.querySelector('[data-close]').onclick = () => this.closeModal();
     sh.querySelector('#aiGo').onclick = async () => {
       const text = sh.querySelector('#aiPrompt').value.trim(), msg = sh.querySelector('#aiMsg'), btn = sh.querySelector('#aiGo');
-      if (!text) { msg.textContent = '先写一句描述'; return; }
-      btn.disabled = true; msg.textContent = 'AI 正在设计这座岛……';
+      if (!text) { msg.textContent = '先写一句描述，或点一个例子'; return; }
+      btn.disabled = true; msg.textContent = mode === 'new' ? 'AI 正在设计这座岛……' : 'AI 正在改造这座岛……';
       try {
-        const L = await app.ai.island(text);
-        msg.textContent = `「${L.name}」：${L.note}（${L.tiles.length} 块地）`;
-        if (!(await this.confirm(`生成「${L.name}」会替换现在这座岛，确定吗？`, '换成这座岛'))) { btn.disabled = false; return; }
+        const L = await app.ai.island(text, mode === 'edit' ? app.canvasMode.layout() : null);
+        msg.textContent = `「${L.name}」：${L.note}（${L.tiles.length} 块地、${L.items.length} 个物件）`;
+        if (!(await this.confirm(mode === 'new' ? `生成「${L.name}」会替换现在这座岛，确定吗？` : `按 AI 的方案改造这座岛？这一步不能撤销。`, mode === 'new' ? '换成这座岛' : '开始改造'))) { btn.disabled = false; return; }
         this.closeModal(); app.hud?.setOpen(false);
-        await app.canvasMode.loadLayout(L); this.toast(`「${L.name}」：${L.note}`);
+        await app.canvasMode.loadLayout(L, mode === 'edit'); this.toast(`「${L.name}」：${L.note}`);
       } catch (e) { msg.textContent = '没生成出来：' + aiError(e); btn.disabled = false; }
     };
   }

@@ -53,7 +53,7 @@ const ISLAND_SCHEMA = {
 };
 const ISLAND_SYSTEM = `你是一款治愈系六边形海岛游戏的关卡设计师。根据玩家的一句话描述，设计一座岛的布局。
 规则：
-- 地块 12–40 块，连成一片（可以另有 1–2 个小离岛），用六边形轴坐标 (q, r)，岛的中心在 (0,0) 附近。
+- 新岛的地块 12–40 块（改造现有的岛时按需要增减），连成一片（可以另有 1–2 个小离岛），用六边形轴坐标 (q, r)，岛的中心在 (0,0) 附近。
 - 地块类型：meadow 草地、flowers 花田、forest 森林、mountain 岩山、quarry 采石场、field 菜地、wheat 麦田、beach 沙滩、camp 营地、stream 溪流、pond 池塘、islet 小离岛的草地。
 - 要像真实的地方：森林和岩山成片，沙滩在岸边，营地附近有菜地、麦田和水，溪流连成一条线流向海边，池塘挨着溪流或草地。
 - 物件不要太多（8–20 个），每块地最多 2 个；营地上可以有 hut、campfire、woodpile；灯塔放在岸边或离岛上。
@@ -113,12 +113,13 @@ export class AIService {
     return { text: text.trim(), model: res.model };
   }
   /** AI 造岛：返回 { name, note, tiles:[[q,r,t]], items:[{k,q,r}], sea, hour } */
-  async island(prompt) {
+  async island(prompt, base = null) {
+    const content = base ? `现在的岛（JSON）：${JSON.stringify(base)}\n\n玩家的要求：${prompt}\n\n请在现在这座岛的基础上按要求修改：没提到的地块和物件尽量原样保留，坐标不要整体平移。返回改完后的完整布局（全部地块和物件）。` : prompt;
     const { text } = await this._ask({
       max_tokens: 16000,
       system: ISLAND_SYSTEM,
       output_config: { effort: 'medium', format: { type: 'json_schema', schema: ISLAND_SCHEMA } },
-      messages: [{ role: 'user', content: prompt }],
+      messages: [{ role: 'user', content }],
     });
     let data; try { data = JSON.parse(text.replace(/^\s*```(?:json)?/i, '').replace(/```\s*$/, '')); } catch { throw new Error('模型返回的布局读不出来，再试一次'); }
     return sanitizeIsland(data);
@@ -151,7 +152,7 @@ export function aiError(e) {
 /** 模型的布局做一遍清洗：去重、限量、地块必须连在岛上（离岛除外）、物件必须落在地块上 */
 export function sanitizeIsland(d) {
   const seen = new Set(), tiles = [];
-  for (const t of d.tiles || []) { const k = t.q + ',' + t.r; if (seen.has(k) || !TILE_IDS.includes(t.t) || Math.abs(t.q) > 12 || Math.abs(t.r) > 12) continue; seen.add(k); tiles.push([t.q, t.r, t.t]); if (tiles.length >= 60) break; }
+  for (const t of d.tiles || []) { const k = t.q + ',' + t.r; if (seen.has(k) || !TILE_IDS.includes(t.t) || Math.abs(t.q) > 30 || Math.abs(t.r) > 30) continue; seen.add(k); tiles.push([t.q, t.r, t.t]); if (tiles.length >= 220) break; }
   if (tiles.length < 3) throw new Error('模型给的地块太少，再试一次');
   const land = new Set(tiles.map(([q, r]) => q + ',' + r)), water = new Set(['boat', 'buoy']), count = new Map(), items = [];
   const nearLand = (q, r) => [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]].some(([a, b]) => land.has((q + a) + ',' + (r + b)));
@@ -160,7 +161,7 @@ export function sanitizeIsland(d) {
     const k = it.q + ',' + it.r, onLand = land.has(k);
     if (water.has(it.k) ? onLand || !nearLand(it.q, it.r) : !onLand) continue;
     if ((count.get(k) || 0) >= 2) continue; count.set(k, (count.get(k) || 0) + 1);
-    items.push({ k: it.k, q: it.q, r: it.r }); if (items.length >= 30) break;
+    items.push({ k: it.k, q: it.q, r: it.r }); if (items.length >= 120) break;
   }
   return { name: String(d.name || 'AI 小岛').slice(0, 12), note: String(d.note || '').slice(0, 60), tiles, items, sea: ['clear', 'jade', 'deep'].includes(d.sea) ? d.sea : 'clear', hour: Math.max(0, Math.min(23.9, Number(d.hour) || 15)) };
 }

@@ -187,7 +187,13 @@ body { background: var(--haze); color: var(--ink); font-family: var(--font); fon
 .c-ico svg { width: 20px !important; height: 20px !important; }
 .c-ico i { position: absolute; top: calc(100% + 3px); left: 50%; transform: translateX(-50%); font-style: normal; font-size: 10.5px; font-weight: 700; white-space: nowrap; text-shadow: 0 1px 3px rgba(0, 0, 0, .7); }
 .c-ico.on { background: rgba(242, 196, 90, .9); color: #2a1d05; border-color: var(--gold2); }
-.c-tl { position: absolute; top: var(--st); left: var(--sl); }
+.c-tl { position: absolute; top: var(--st); left: var(--sl); display: flex; gap: 10px; align-items: center; }
+.c-ai { background: linear-gradient(135deg, rgba(120, 90, 220, .75), rgba(40, 160, 180, .75)) !important; }
+.aichips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.aichips button { padding: 5px 10px; border-radius: 999px; background: var(--paper2); font-size: 12px; color: var(--ink); }
+.aimode { display: flex; gap: 6px; margin-bottom: 6px; }
+.aimode button { flex: 1; padding: 8px; border-radius: 10px; background: var(--paper2); font-weight: 700; font-size: 13px; color: var(--ink); }
+.aiform .aimode button.on { background: var(--ink); color: #fff !important; }
 .c-menu b { font-size: 17px; font-weight: 900; letter-spacing: 0; color: var(--gold2); }
 .c-tr { position: absolute; top: var(--st); right: var(--sr); display: flex; gap: 8px; align-items: center; }
 .c-chip { height: 32px; padding: 0 12px 0 9px; border-radius: 999px; gap: 5px; font-variant-numeric: tabular-nums; }

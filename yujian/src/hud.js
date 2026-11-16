@@ -24,6 +24,7 @@ const I = {
   erase: '<svg viewBox="0 0 24 24"><path d="M14.2 3.8l6 6-9.6 9.6H6.4l-3-3a1.6 1.6 0 010-2.3z" fill="currentColor"/><path d="M8.5 9.5l6 6M11 19.4h9.5" stroke="#0d1d24" stroke-width="1.6" stroke-linecap="round" opacity=".55"/></svg>',
   photo: '<svg viewBox="0 0 24 24"><path d="M8.5 5l1.2-2h4.6l1.2 2H19a2 2 0 012 2v11a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" fill="currentColor"/><circle cx="12" cy="12.5" r="3.8" fill="#0d1d24" opacity=".5"/></svg>',
   gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.4" fill="none" stroke="currentColor" stroke-width="4.4" stroke-dasharray="3.3 2.51"/><circle cx="12" cy="12" r="5.8" fill="currentColor"/><circle cx="12" cy="12" r="2.4" fill="#0d1d24" opacity=".6"/></svg>',
+  ai: '<svg viewBox="0 0 24 24"><path d="M10 3l1.7 4.6L16.3 9.3l-4.6 1.7L10 15.6 8.3 11 3.7 9.3l4.6-1.7z" fill="currentColor"/><path d="M17.5 13l.9 2.4 2.4.9-2.4.9-.9 2.4-.9-2.4-2.4-.9 2.4-.9z" fill="currentColor" opacity=".8"/></svg>',
   close: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
   lock: '<svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.2" fill="currentColor"/><path d="M8 10.5V8a4 4 0 018 0v2.5" stroke="currentColor" stroke-width="2" fill="none"/></svg>',
   sun: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.6" fill="#f7c948"/><g stroke="#f7c948" stroke-width="2.2" stroke-linecap="round"><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></g></svg>',
@@ -37,7 +38,7 @@ export class CanvasHUD {
     this.app = app; this.cv = app.canvasMode; this.cat = null; this.open = false; this.thumbs = new Map();
     const root = document.createElement('div'); root.className = 'chud'; root.id = 'chud';
     root.innerHTML = `
-      <div class="c-tl"><button class="c-ico c-menu" data-a="menu" aria-label="岛屿菜单"><b>屿</b></button></div>
+      <div class="c-tl"><button class="c-ico c-menu" data-a="menu" aria-label="岛屿菜单"><b>屿</b></button><button class="c-ico c-ai" data-a="ai" aria-label="AI 造岛">${I.ai}<i>AI造岛</i></button></div>
       <div class="c-tr"><button class="c-chip" data-a="time" aria-label="时间"></button><button class="c-ico" data-a="cam" aria-label="镜头">${CAM_ICON}</button><button class="c-ico" data-a="photo" aria-label="拍照">${I.photo}</button><button class="c-ico" data-a="set" aria-label="设置">${I.gear}</button></div>
       <div class="c-bl"><button class="c-ico" data-a="undo" aria-label="撤销">${I.undo}<i>撤销</i></button><button class="c-ico" data-a="erase" aria-label="橡皮擦">${I.erase}<i>擦除</i></button></div>
       <div class="c-br"><div class="c-wheel">${CATEGORIES.map((c, i) => `<button class="c-cat" data-cat="${c.id}" style="--i:${i}" aria-label="${c.name}">${CAT_ICON[c.id]}<i>${c.name}</i></button>`).join('')}</div>
@@ -80,6 +81,7 @@ export class CanvasHUD {
     if (a === 'cam') return this.app.camDock.toggle();
     if (a === 'set') return this.app.ui.openSettings();
     if (a === 'menu') return this.openMenu();
+    if (a === 'ai') return this.app.ui.openAIIsland();
     if (a === 'closeStrip') return this.setCat(null);
     if (a === 'tutSkip') return this.endTutorial();
   }

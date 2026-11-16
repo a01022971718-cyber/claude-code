@@ -103,7 +103,12 @@ export class CanvasMode {
     const rig = this.app.rig; rig.flyTo(p.x, p.z, Math.min(rig.target.dist, 10), 0.8); return true;
   }
   /** 用 AI 生成的布局建一座新岛（AI 造岛） */
-  async loadLayout(L) {
+  /** 现在这座岛的布局（给 AI 改造用）：地块 + 物件所在的地块坐标 */
+  layout() {
+    return { tiles: this.s.tiles.map(([q, r, t]) => ({ q, r, t })), items: this.s.items.map((it) => { const [q, r] = fromWorld(it.x, it.z); return { k: it.k, q, r }; }), sea: this.s.sea || 'clear' };
+  }
+  async loadLayout(L, keepCam = false) {
+    const oldCam = keepCam ? { ...this.s.cam } : null, oldDisc = keepCam ? this.s.disc : null;
     const s = newCanvas('blank'); s.tiles = L.tiles.map(([q, r, t]) => [q, r, t]); s.items = []; s.sea = L.sea;
     s.unlocked = ['stream', 'pond'].filter((k) => s.tiles.some((t) => t[2] === k));
     for (const it of L.items) {
@@ -113,7 +118,8 @@ export class CanvasMode {
     }
     let cx = 0, cz = 0; for (const [q, r] of s.tiles) { const [x, z] = toWorld(q, r); cx += x; cz += z; } cx /= s.tiles.length; cz /= s.tiles.length;
     let rad = 1; for (const [q, r] of s.tiles) { const [x, z] = toWorld(q, r); rad = Math.max(rad, Math.hypot(x - cx, z - cz)); }
-    s.cam = { x: +cx.toFixed(2), z: +cz.toFixed(2), yaw: -0.45, pitch: 0.6, dist: Math.min(40, Math.max(12, rad * 2.2 + 8)) };
+    s.cam = oldCam || { x: +cx.toFixed(2), z: +cz.toFixed(2), yaw: -0.45, pitch: 0.6, dist: Math.min(40, Math.max(12, rad * 2.2 + 8)) };
+    if (oldDisc) s.disc = oldDisc;
     this.s = s; this.undo = []; this.save(); this.syncAll();
     const app = this.app, v = this.view;
     app.setTimeMode('fixed', L.hour);
