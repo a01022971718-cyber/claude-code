@@ -2,6 +2,7 @@
 import { LegacyView } from './legacyview.js';
 import { HQView } from './hq/gameview.js';
 import { CameraRig } from './camera.js';
+import { CamDock } from './camdock.js';
 import { Actors } from './actors.js';
 import { Game, landmarkDef } from './state.js';
 import { UI, ICON, fmtWait } from './ui.js';
@@ -42,7 +43,12 @@ class App {
     this.rig = new CameraRig(this.canvas, 1);
     this.view = this.makeView(qk);
     this.rig.free = this.view.kind === 'hq' || !this.gameplay;
-    if (this.view.kind === 'hq') { this.rig.lookY = 0.45; this.rig.setView({ pitch: 0.62, yaw: -0.45 }); }
+    if (this.view.kind === 'hq') {
+      this.rig.lookY = 0.45; this.rig.setView({ pitch: 0.62, yaw: -0.45 });
+      this.rig.heightAt = (x, z) => this.view.terrain.heightAt(x, z);   // 枢轴贴地、镜头不钻地
+      this.rig.onFov = () => this.view.fovChanged?.();
+    }
+    this.applyCam();
     this.view.onSky = () => { this.ui?.refreshTime(); this.hud?.refreshTime(); };
     this.updateTime();
     this.perf = { t: 0, n: 0, armed: false, low: 0, settle: 0, warned: false };
@@ -58,6 +64,8 @@ class App {
     this.sel = { slot: -1, cell: null, coupon: false };
     this.mode = 'play'; // play | decor | photo | cut
     this.ui = new UI(this);
+    this.camDock = new CamDock(this);
+    this.camDock.onToggle = (on) => this.hud?.root.querySelector('[data-a="cam"]')?.classList.toggle('on', on);
     this.decor = new DecorMode(this);
     if (!this.gameplay) { this.canvasMode = new CanvasMode(this); this.hud = new CanvasHUD(this); this.hud.show(false); }
     this.syncAll();
@@ -145,9 +153,9 @@ class App {
   resize() {
     const w = this.canvas.clientWidth || innerWidth, h = this.canvas.clientHeight || innerHeight;
     // 底部有手牌，把画面整体往上挪一点，让岛的中心落在手牌上方
-    this.rig.cam.aspect = w / h; this.rig.cam.fov = w < h ? 44 : 30;
+    this.rig.cam.aspect = w / h; this.rig.portrait = w < h;
     this.rig.cam.setViewOffset(w, h, 0, this.canvasMode ? 0 : Math.round(h * (w < h ? 0.07 : h < 500 ? 0.12 : 0.06)), w, h);
-    this.rig.cam.updateProjectionMatrix();
+    this.rig.updateFov(true);
     this.view.resize(w, h);
   }
   /** 选画质预设：清掉自定义项。auto=true 是自动降档（保留“自动”） */
@@ -159,6 +167,20 @@ class App {
     this.game.save();
     if (this.view.kind === 'legacy') { this.view.setQuality(k); this.view.rebuildAll(this.game.s.tiles.map((t) => this.tileView(t))); this.resize(); return; }
     this.applyGfx();
+  }
+  /** 镜头设置：视野（窄/标准/广）、缩放联动俯角、转动灵敏度 */
+  applyCam() {
+    const c = (this.game.s.settings.cam ||= { fov: 'std', autoTilt: true, sens: 1 }), r = this.rig;
+    r.fovKey = c.fov; r.autoTilt = c.autoTilt !== false; r.sens = c.sens || 1; r.updateFov(true);
+  }
+  setCam(k, v) { this.game.s.settings.cam = { ...(this.game.s.settings.cam || {}), [k]: v }; this.game.save(); this.applyCam(); }
+  /** 岛的中心和半径（预设机位用） */
+  islandHome() {
+    const tiles = this.canvasMode ? this.canvasMode.s.tiles.map(([q, r]) => toWorld(q, r)) : this.game.s.tiles.filter((t) => t.own).map((t) => toWorld(t.q, t.r));
+    if (!tiles.length) return { x: this.rig.focus.x, z: this.rig.focus.z, r: 4 };
+    let x = 0, z = 0; for (const [a, b] of tiles) { x += a; z += b; } x /= tiles.length; z /= tiles.length;
+    let r = 1; for (const [a, b] of tiles) r = Math.max(r, Math.hypot(a - x, b - z) + 1);
+    return { x, z, r };
   }
   /** 改单项画面设置（变成“自定义”） */
   setGfx(key, val) {
@@ -454,6 +476,7 @@ class App {
     this.autoQuality(dt);
     this.rig.update(dt); this.actors.update(dt); this.decor.update(dt);
     const f = this.rig.focus;
+    this.view.focusY = this.rig.lookY;
     this.view.update(dt, f, this.rig.dist);
     if (this.sel.cell && this.mode === 'play' && !this.canvasMode) { const [x, z] = toWorld(this.sel.cell[0], this.sel.cell[1]), [sx, sy] = this.rig.project(x, 1.5, z); this.ui.bubble(undefined, sx, sy); }
     this.acc += dt; if (this.acc >= 1) { this.acc = 0; this.tick(); }

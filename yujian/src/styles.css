@@ -305,3 +305,27 @@ body { background: var(--haze); color: var(--ink); font-family: var(--font); fon
 @media (max-width: 520px) { .grow { flex-direction: column; align-items: stretch; gap: 6px; } .gseg { align-self: flex-start; } }
 /* 层级：弹窗和加载页在画布界面之上 */
 .chud { z-index: 5; } #modal { z-index: 12; } #toasts, #banner { z-index: 13; }
+
+/* ================= 镜头面板（v0.9）=================
+   右边缘中间一小块毛玻璃：预设机位、环绕、复位、俯角、视野。不操作 5 秒变淡，不挡画面中间。 */
+.camdock { --g: rgba(10, 26, 32, .5); --gl: rgba(255, 255, 255, .2); --gold: #f2c45a; --gold2: #ffe4a0;
+  position: absolute; right: max(14px, env(safe-area-inset-right, 0px)); top: 50%; transform: translateY(-50%); z-index: 6; width: 132px;
+  padding: 8px; border-radius: 16px; background: var(--g); border: 1px solid var(--gl); -webkit-backdrop-filter: blur(10px) saturate(1.2); backdrop-filter: blur(10px) saturate(1.2);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .2); color: #fff; font-family: var(--font); pointer-events: auto; transition: opacity .45s ease; }
+.camdock.idle { opacity: .45; }
+.camdock button { color: #fff; display: inline-flex; align-items: center; justify-content: center; }
+.cd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.cd-grid button { flex-direction: column; gap: 1px; height: 44px; border-radius: 11px; background: rgba(255, 255, 255, .08); }
+.cd-grid button svg { width: 19px; height: 19px; }
+.cd-grid button i { font-style: normal; font-size: 10.5px; font-weight: 700; }
+.cd-grid button.on { background: rgba(242, 196, 90, .9); color: #2a1d05; }
+.cd-row { display: flex; flex-direction: column; gap: 3px; margin-top: 8px; font-size: 11px; font-weight: 700; }
+.cd-row span { display: flex; justify-content: space-between; } .cd-row span b { color: var(--gold2); font-variant-numeric: tabular-nums; }
+.cd-row input[type=range] { width: 100%; accent-color: var(--gold); height: 22px; margin: 0; }
+.cd-fov > div { display: flex; border-radius: 9px; background: rgba(255, 255, 255, .08); padding: 2px; }
+.cd-fov button { flex: 1; height: 26px; border-radius: 7px; font-size: 11px; font-weight: 700; }
+.cd-fov button.on { background: rgba(242, 196, 90, .9); color: #2a1d05; }
+@media (max-height: 420px) { .camdock { width: 124px; padding: 6px; } .cd-grid { gap: 4px; } .cd-grid button { height: 38px; } .cd-row { margin-top: 5px; } }
+@media (orientation: portrait) { .camdock { top: auto; bottom: calc(max(12px, env(safe-area-inset-bottom, 0px)) + 84px); transform: none; } }
+.camhelp { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--paper2); font-size: 12.5px; line-height: 1.6; }
+.camhelp p { margin: 2px 0; color: var(--ink2); }

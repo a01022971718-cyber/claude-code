@@ -174,12 +174,13 @@ export class UI {
       ${sw('sound', '声音')}${sw('music', '背景音乐')}
       <button class="btn ghost" id="setTime">岛上的时间：${st.timeMode === 'real' ? '跟随现实' : '固定 ' + app.view.sky.label()}</button>`;
     else if (tab === 'gfx') body = this._gfxPanel();
+    else if (tab === 'cam') body = this._camPanel();
     else body = `
       <div class="rowb"><button class="btn ghost" id="setBench">性能测试</button><button class="btn ghost" id="setExport">查看埋点数据</button>${app.canvasMode ? '' : '<button class="btn ghost danger" id="setReset">重新开始</button>'}</div>
       ${app.debug ? `<div class="dbg"><b>调试</b><button data-d="give">+10 资源</button><button data-d="skip">快进 4 小时</button><button data-d="day">进入下一天</button><button data-d="coupon">+2 卡券</button></div>` : ''}
-      <p class="ver">屿见 v0.8 · 存档只保存在这台设备的浏览器里</p>`;
-    const tabs = [['basic', '基础'], ['gfx', '画面'], ['other', '其他']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('');
-    const sh = this.modal(`<header><h2>设置</h2><button class="x" data-close>关闭</button></header><nav class="stabs">${tabs}</nav><div class="set">${body}</div>`, tab === 'gfx' ? 'wide gfxsheet' : '');
+      <p class="ver">屿见 v0.9 · 存档只保存在这台设备的浏览器里</p>`;
+    const tabs = [['basic', '基础'], ['gfx', '画面'], ['cam', '镜头'], ['other', '其他']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('');
+    const sh = this.modal(`<header><h2>设置</h2><button class="x" data-close>关闭</button></header><nav class="stabs">${tabs}</nav><div class="set">${body}</div>`, tab === 'gfx' || tab === 'cam' ? 'wide gfxsheet' : '');
     sh.addEventListener('click', (e) => e.stopPropagation());
     sh.querySelector('[data-close]').onclick = () => this.closeModal();
     sh.querySelectorAll('[data-tab]').forEach((b) => { b.onclick = () => this.openSettings(b.dataset.tab); });
@@ -202,6 +203,21 @@ export class UI {
     on('#set_showFps', 'onchange', (e) => { st.showFps = e.target.checked; app.perfMon.setOverlay(st.showFps); this.g.save(); });
     on('#set_auto', 'onchange', (e) => { st.autoQuality = e.target.checked; this.g.save(); });
     on('#setLegacy', 'onclick', () => app.setQuality(app.view.kind === 'hq' ? 'low' : 'ultra'));
+    // 镜头页
+    sh.querySelectorAll('[data-cam]').forEach((b) => { b.onclick = () => { app.setCam(b.dataset.cam, JSON.parse(b.dataset.v)); setTimeout(() => { if (!this.el.modal.hidden) this.openSettings('cam'); }, 30); }; });
+  }
+  /** 镜头设置页 */
+  _camPanel() {
+    const c = this.g.s.settings.cam || {}, touch = matchMedia('(pointer: coarse)').matches;
+    const row = (k, name, desc, opts, cur) => `<div class="grow"><div class="gl"><b>${name}</b><small>${desc}</small></div><div class="gseg">${opts.map(([v, l]) => `<button data-cam="${k}" data-v='${JSON.stringify(v)}' class="${v === cur ? 'on' : ''}">${l}</button>`).join('')}</div></div>`;
+    return `<div class="gfx">
+      ${row('fov', '视野', '画面能装下多大范围；拉近时会自动再放宽一点', [['narrow', '窄'], ['std', '标准'], ['wide', '广']], c.fov || 'std')}
+      ${row('autoTilt', '缩放时自动调俯角', '拉近时镜头慢慢放低成侧视，拉远时抬高成俯瞰；手动调的角度会保留', [[true, '开'], [false, '关']], c.autoTilt !== false)}
+      ${row('sens', '转动灵敏度', '双指拖动、右键拖动转视角的快慢', [[0.7, '慢'], [1, '中'], [1.4, '快']], c.sens || 1)}
+      <div class="camhelp"><b>操作</b>${touch
+        ? '<p>单指拖动：移动</p><p>双指一起左右拖：转视角　上下拖：改俯角</p><p>双指张开 / 捏合：拉近 / 拉远（同时扭转可旋转）</p><p>双击：飞到那里</p>'
+        : '<p>左键拖动：移动　右键拖动：转视角、改俯角　滚轮：缩放</p><p>键盘：WASD 移动　Q/E 旋转　R/F 抬高/放低　+/- 缩放</p><p>双击：飞到那里</p>'}
+        <p>右上角的镜头按钮里有预设机位（俯瞰、斜看、平视、特写）、环绕和复位。</p></div></div>`;
   }
   /** 画面设置页：预设 + 逐项 */
   _gfxPanel() {
@@ -308,6 +324,7 @@ export class UI {
     const app = this.app, bar = this.el.photoBar;
     app.mode = on ? 'photo' : 'play'; if (!app.canvasMode) app.selectCard(-1);
     this.hud(!on); bar.hidden = !on;
+    if (app.view.kind === 'hq') { if (on) { this._dockWas = app.camDock.open; app.camDock.show(true); } else app.camDock.show(!!this._dockWas); }
     if (!on) return;
     bar.innerHTML = `<button class="btn ghost" id="phExit">返回</button><button class="shutter" id="phShot" aria-label="拍照"></button><label class="phTime"><span id="phHourLabel">${app.view.sky.label()}</span><input type="range" id="phHour" min="0" max="23.9" step="0.1" value="${app.view.sky.hour}" aria-label="拍照时间"></label>`;
     bar.querySelector('#phExit').onclick = () => { app.forceHour = null; app.updateTime(); this.photoMode(false); };

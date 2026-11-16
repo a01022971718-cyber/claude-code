@@ -1,5 +1,5 @@
 // 自由画布的界面。原则：画面优先——
-//  - 只占四个角：左上岛屿菜单，右上时间/拍照/设置，右下（右手拇指）建造按钮，左下撤销/橡皮擦（只在建造时出现）。
+//  - 只占四个角：左上岛屿菜单，右上时间/镜头/拍照/设置（镜头面板从右边缘伸出），右下（右手拇指）建造按钮，左下撤销/橡皮擦（只在建造时出现）。
 //  - 选了分类才从底边伸出一条物件栏；摆放时界面不挡住点到的位置（物件栏只占底边一条）。
 //  - 不操作 4 秒后界面自动淡出，只留一个半透明的建造按钮；碰一下屏幕就回来。
 import { CATEGORIES, ITEMS } from './catalog.js';
@@ -9,6 +9,7 @@ import { kit, propOf } from './hq/dressing.js';
 import * as P from './hq/props.js';
 import * as L from './hq/models-land.js';
 import { audio } from './audio.js';
+import { CAM_ICON } from './camdock.js';
 import * as THREE from 'three';
 
 const I = {
@@ -37,7 +38,7 @@ export class CanvasHUD {
     const root = document.createElement('div'); root.className = 'chud'; root.id = 'chud';
     root.innerHTML = `
       <div class="c-tl"><button class="c-ico c-menu" data-a="menu" aria-label="岛屿菜单"><b>屿</b></button></div>
-      <div class="c-tr"><button class="c-chip" data-a="time" aria-label="时间"></button><button class="c-ico" data-a="photo" aria-label="拍照">${I.photo}</button><button class="c-ico" data-a="set" aria-label="设置">${I.gear}</button></div>
+      <div class="c-tr"><button class="c-chip" data-a="time" aria-label="时间"></button><button class="c-ico" data-a="cam" aria-label="镜头">${CAM_ICON}</button><button class="c-ico" data-a="photo" aria-label="拍照">${I.photo}</button><button class="c-ico" data-a="set" aria-label="设置">${I.gear}</button></div>
       <div class="c-bl"><button class="c-ico" data-a="undo" aria-label="撤销">${I.undo}<i>撤销</i></button><button class="c-ico" data-a="erase" aria-label="橡皮擦">${I.erase}<i>擦除</i></button></div>
       <div class="c-br"><div class="c-wheel">${CATEGORIES.map((c, i) => `<button class="c-cat" data-cat="${c.id}" style="--i:${i}" aria-label="${c.name}">${CAT_ICON[c.id]}<i>${c.name}</i></button>`).join('')}</div>
         <button class="c-fab" data-a="build" aria-label="建造">${I.build}<i>建造</i></button></div>
@@ -76,6 +77,7 @@ export class CanvasHUD {
     if (a === 'erase') { cv.select(cv.sel === 'erase' ? null : 'erase'); this.renderItems(); this._syncErase(); if (cv.sel === 'erase') this.hint('点地块或物件把它擦掉', 1600); return; }
     if (a === 'time') return this.app.ui.openTime();
     if (a === 'photo') return this.app.ui.photoMode(true);
+    if (a === 'cam') return this.app.camDock.toggle();
     if (a === 'set') return this.app.ui.openSettings();
     if (a === 'menu') return this.openMenu();
     if (a === 'closeStrip') return this.setCat(null);
@@ -142,7 +144,7 @@ export class CanvasHUD {
     const touch = matchMedia('(pointer: coarse)').matches;
     const steps = [
       { t: touch ? '单指拖动，看看整座岛' : '按住鼠标拖动，看看整座岛', pos: 'top', done: (b) => Math.hypot(rig.focus.x - b.x, rig.focus.z - b.z) > 1.2 },
-      { t: touch ? '双指转动，换个角度看' : '按住右键拖动，换个角度看', pos: 'top', done: (b) => Math.abs(rig.target.yaw - b.yaw) > 0.45 || Math.abs(rig.target.pitch - b.pitch) > 0.25 },
+      { t: touch ? '两指一起左右拖动转视角，上下拖动改俯角' : '按住右键拖动，换个角度看', pos: 'top', done: (b) => Math.abs(rig.target.yaw - b.yaw) > 0.45 || Math.abs(rig.target.pitch - b.pitch) > 0.25 },
       { t: '点右下角「建造」→「岛屿」，在海面上加一块地', pos: 'br', done: (b) => cv.s.tiles.length > b.tiles },
     ];
     let k = cv.s.tut || 0, base = null;

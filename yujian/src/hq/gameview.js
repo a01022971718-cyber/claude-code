@@ -411,8 +411,13 @@ export class HQView {
     this.renderer.setSize(w, h, false);
     if (!this.pipe) return;
     this.pipe.setSize(w, h);
-    const W = this.pipe.W, H = this.pipe.H, pr = H / (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)));
-    for (const u of this._fxUniforms()) u.uResolution?.value.set(W, H);
+    for (const u of this._fxUniforms()) u.uResolution?.value.set(this.pipe.W, this.pipe.H);
+    this.fovChanged();
+  }
+  /** 视野变了：粒子按屏幕像素算大小，要跟着换算 */
+  fovChanged() {
+    if (!this.pipe) return;
+    const pr = this.pipe.H / (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)));
     this.fx.uniforms.uPR.value = pr; if (this.marine) this.marine.splash.uniforms.uPR.value = pr;
   }
   _fxUniforms() { return [this.ocean.uniforms, this.fx.uniforms, this.mats.stream.uniforms, this.mats.pond.uniforms, ...(this.marine ? [this.marine.splash.uniforms] : [])]; }
@@ -594,7 +599,7 @@ export class HQView {
       this.marine.addFloater(b, { draft: -0.012, stiff: 16, yawRate: 0.2 });
     }
   }
-  render() { this.pipe.render(this.dt, this.camera.position.distanceTo(this.focus)); }
+  render() { const f = this.focus; this.pipe.render(this.dt, Math.hypot(this.camera.position.x - f.x, this.camera.position.y - (this.focusY ?? 0.45), this.camera.position.z - f.z)); }   // 景深对准枢轴
   /** 海水风格：在当前时段的光照上叠一层色调（清澈浅滩 / 碧玉海湾 / 深蓝外海） */
   setSea(name) { this.sea = name || 'clear'; this.setHour(this.hour, false); }
   _seaTint() {
