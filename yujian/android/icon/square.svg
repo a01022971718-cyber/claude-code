@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4fd1c5"/><stop offset="1" stop-color="#1b6f8a"/></linearGradient>
+    <linearGradient id="grass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9ed05a"/><stop offset="1" stop-color="#6aa83a"/></linearGradient>
+    <clipPath id="shape"><rect x="0" y="0" width="512" height="512" rx="112"/></clipPath>
+  </defs>
+  <g clip-path="url(#shape)">
+    <rect width="512" height="512" fill="url(#sea)"/>
+    <ellipse cx="256" cy="372" rx="190" ry="58" fill="#bff2ea" opacity=".55"/>
+    <!-- 六边形小岛：侧面土层 + 顶面草地 + 一条沙滩 -->
+    <polygon points="256,196 400,260 400,330 256,394 112,330 112,260" fill="#8a5a3a"/>
+    <polygon points="256,196 400,260 400,286 256,350 112,286 112,260" fill="#6f4a30"/>
+    <polygon points="256,170 400,234 256,298 112,234" fill="url(#grass)"/>
+    <polygon points="330,267 400,234 400,262 330,295" fill="#e8d6a6"/>
+    <polygon points="112,234 256,298 256,350 112,286" fill="#7d5434" opacity=".0"/>
+    <!-- 体素树：方块树干 + 方块树冠 -->
+    <rect x="236" y="168" width="24" height="64" rx="4" fill="#6b5644"/>
+    <g fill="#4f8a3a">
+      <rect x="196" y="112" width="44" height="44" rx="6"/><rect x="240" y="98" width="44" height="44" rx="6" fill="#5f9d40"/>
+      <rect x="216" y="70" width="44" height="44" rx="6" fill="#6fa846"/><rect x="262" y="134" width="40" height="40" rx="6"/>
+      <rect x="208" y="146" width="40" height="36" rx="6" fill="#3f7530"/>
+    </g>
+    <rect x="280" y="112" width="14" height="14" rx="3" fill="#d9452e"/>
+    <!-- 小村民（方块） -->
+    <rect x="320" y="214" width="20" height="18" rx="4" fill="#c8432f"/>
+    <rect x="318" y="194" width="24" height="22" rx="5" fill="#e8b896"/>
+    <rect x="312" y="188" width="36" height="7" rx="3" fill="#d8b56a"/>
+    <!-- 太阳 -->
+    <circle cx="410" cy="96" r="34" fill="#ffe7a0"/>
+  </g>
+</svg>

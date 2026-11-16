@@ -61,6 +61,15 @@ npm run build          # 生成 dist/index.html（单文件，脚本已内联）
 - **拍照**：隐藏界面，拖动构图，可以调时间拍黄昏和夜景。
 - **存档与埋点**：自动存在本机浏览器；关键事件记录在本机，设置里可以查看和复制。
 
+## Android 安装包
+
+`android/` 是一个原生 Android 壳：全屏 WebView 加载打包好的单文件游戏（`dist/index.html` 放进 APK 的 assets），存档保存在手机本地，AI 功能可以联网。
+
+- 打包：`android/build-apk.sh`（需要 Node、JDK 17+、Gradle 8.13+、Android SDK 的 `platforms;android-35` 和 `build-tools;35.0.0`），输出 `dist/yujian-<版本>.apk`。
+- 包名 `com.yujian.island`，最低 Android 7.0；全屏沉浸、屏幕常亮、横竖屏跟随系统旋转设置；返回键把游戏切到后台，不丢进度。
+- 签名用的是仓库里的测试密钥（`android/keystore/yujian-dev.jks`，密码 `android`），每次打的包都能覆盖安装。正式上架应用商店要换成自己的签名，且不要提交进仓库。
+- 图标是原创的六边形小岛（`android/icon/icon.svg`）。
+
 ## 实时渲染
 
 游戏默认用高画质画面，“极高”档和下面的“高画质样张”参数一致（草和花的密度、阴影、后期都相同）；“低”画质保留原来的低多边形画面（低画质下自由画布摆的植物、动物、建筑不显示）。
