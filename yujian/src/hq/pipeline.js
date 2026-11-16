@@ -106,17 +106,24 @@ const DOF = {
 
 const GRADE = {
   uniforms: { tDiffuse: { value: null }, uRes: { value: new THREE.Vector2() }, uTime: { value: 0 }, uSat: { value: 1.1 }, uContrast: { value: 1.06 },
-    uShadowTint: { value: new THREE.Vector3(0.96, 1.0, 1.06) }, uHighTint: { value: new THREE.Vector3(1.05, 1.0, 0.94) }, uVig: { value: 0.32 }, uCA: { value: 0.45 }, uGrain: { value: 0.018 } },
+    uShadowTint: { value: new THREE.Vector3(0.96, 1.0, 1.06) }, uHighTint: { value: new THREE.Vector3(1.05, 1.0, 0.94) }, uVig: { value: 0.32 }, uCA: { value: 0.45 }, uGrain: { value: 0.018 }, uSharp: { value: 0 } },
   vertexShader: VS,
   fragmentShader: /* glsl */`
   uniform sampler2D tDiffuse; uniform vec2 uRes; uniform float uTime; uniform float uSat; uniform float uContrast;
-  uniform vec3 uShadowTint; uniform vec3 uHighTint; uniform float uVig; uniform float uCA; uniform float uGrain;
+  uniform vec3 uShadowTint; uniform vec3 uHighTint; uniform float uVig; uniform float uCA; uniform float uGrain; uniform float uSharp;
   varying vec2 vUv;
   float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
   void main(){
     vec2 d = vUv - 0.5; float r2 = dot(d, d);
-    vec2 ca = d * r2 * uCA * 0.02;
-    vec3 c = vec3(texture2D(tDiffuse, vUv + ca).r, texture2D(tDiffuse, vUv).g, texture2D(tDiffuse, vUv - ca).b);
+    vec3 c = texture2D(tDiffuse, vUv).rgb;
+    if (uCA > 0.0) { vec2 ca = d * r2 * uCA * 0.02; c = vec3(texture2D(tDiffuse, vUv + ca).r, c.g, texture2D(tDiffuse, vUv - ca).b); }
+    // 自适应锐化：按上下左右四个邻点加强细节，结果夹在邻域最亮和最暗之间，不出白边黑边
+    if (uSharp > 0.0) {
+      vec2 px = 1.0 / uRes;
+      vec3 n = texture2D(tDiffuse, vUv + vec2(0.0, px.y)).rgb, s2 = texture2D(tDiffuse, vUv - vec2(0.0, px.y)).rgb, e = texture2D(tDiffuse, vUv + vec2(px.x, 0.0)).rgb, w = texture2D(tDiffuse, vUv - vec2(px.x, 0.0)).rgb;
+      vec3 mn = min(c, min(min(n, s2), min(e, w))), mx = max(c, max(max(n, s2), max(e, w)));
+      c = clamp(c + (4.0 * c - n - s2 - e - w) * uSharp * 0.25, mn, mx);
+    }
     float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
     c = mix(vec3(l), c, uSat);
     // 对数空间里加一点对比度，围绕中灰
@@ -206,8 +213,12 @@ export class HQPipeline {
   }
   render(dt, focusDist) {
     const cam = this.camera, o = this.opts;
-    this.dof.enabled = o.dof; this.bloom.enabled = o.bloom; this.smaa.enabled = o.smaa;
+    this.dof.enabled = !!o.dof && o.dof !== 'off'; this.bloom.enabled = o.bloom; this.smaa.enabled = o.smaa;
     const d = this.dof.uniforms; d.cameraNear.value = cam.near; d.cameraFar.value = cam.far; d.uFocus.value = focusDist;
+    // 景深两种：柔和 = 焦点前后很大一段都清楚，只虚化远处和很近的前景；移轴 = 微缩模型感（样张的效果）
+    const pr = this.renderer.getPixelRatio();
+    if (o.dof === 'soft') { d.uAperture.value = 9; d.uFocusRange.value = 0.32; d.uMaxCoc.value = 5 * pr; }
+    else { d.uAperture.value = 18; d.uFocusRange.value = 0.08; d.uMaxCoc.value = 9 * pr; }
     this.grade.uniforms.uTime.value += dt;
     this.composer.render(dt);
   }

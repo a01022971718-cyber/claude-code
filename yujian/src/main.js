@@ -12,7 +12,7 @@ import { RARE, newDiscovery, roll } from './discovery.js';
 import { PerfMonitor } from './perf.js';
 import { audio } from './audio.js';
 import { analytics, ads } from './services.js';
-import { TILE, QUALITY, QUALITY_DOWN, RES, RES_NAME, DAILY, HOUR } from './config.js';
+import { TILE, QUALITY, QUALITY_DOWN, RES, RES_NAME, DAILY, HOUR, gfx } from './config.js';
 import { GROUND } from './ground.js';
 import { MARK_Y } from './tiles.js';
 import { toWorld, fromWorld, key } from './hex.js';
@@ -102,7 +102,7 @@ class App {
   /** 高画质画面需要 WebGL2 的浮点深度等能力；建不起来就退回低多边形画面 */
   makeView(qk) {
     if (QUALITY[qk].hq) {
-      try { const v = new HQView(this.canvas, qk); v.attach(this.rig.cam); return v; }
+      try { const v = new HQView(this.canvas, gfx(this.game.s.settings, qk)); v.attach(this.rig.cam); return v; }
       catch (e) { console.warn('高画质画面不可用，改用低画质', e); qk = 'low'; this.game.s.settings.quality = 'low'; }
     }
     const v = new LegacyView(this.canvas, qk); v.attach(this.rig.cam); return v;
@@ -150,14 +150,34 @@ class App {
     this.rig.cam.updateProjectionMatrix();
     this.view.resize(w, h);
   }
+  /** 选画质预设：清掉自定义项。auto=true 是自动降档（保留“自动”） */
   setQuality(k, auto = false) {
-    this.game.s.settings.quality = k; if (!auto) this.game.s.settings.autoQuality = false;
+    const st = this.game.s.settings;
+    st.quality = k; if (!auto) { st.autoQuality = false; st.gfx = {}; }
     // 高画质和低多边形是两套画面，切换时保存后重新载入
     if (!!QUALITY[k].hq !== (this.view.kind === 'hq')) { this.game.save(true); this.ui.toast('正在切换画面…'); setTimeout(() => location.reload(), 300); return; }
     this.game.save();
-    this.view.setQuality(k);
-    if (this.view.kind === 'legacy') this.view.rebuildAll(this.game.s.tiles.map((t) => this.tileView(t)));
+    if (this.view.kind === 'legacy') { this.view.setQuality(k); this.view.rebuildAll(this.game.s.tiles.map((t) => this.tileView(t))); this.resize(); return; }
+    this.applyGfx();
+  }
+  /** 改单项画面设置（变成“自定义”） */
+  setGfx(key, val) {
+    const st = this.game.s.settings; st.gfx = { ...(st.gfx || {}), [key]: val }; st.autoQuality = false;
+    if (QUALITY[st.quality]?.[key] === val) delete st.gfx[key];
+    this.game.save(); this.applyGfx();
+  }
+  /** 把当前设置应用到画面；植被或生物数量变了就走加载页重新生成 */
+  async applyGfx() {
+    if (this.view.kind !== 'hq') return;
+    if (this.pace) this.pace.lock30 = false;
+    this.perf.settle = 4;
+    const regen = this.view.setConfig(gfx(this.game.s.settings));
     this.resize();
+    if (regen && !this.booting) {
+      this.booting = true; this.ui.loading(0, '按新设置重新生成');
+      await this.view.preload((p, t) => this.ui.loading(p, t), this.rig.focus, this.rig.target.dist);
+      this.ui.loading(null); this.booting = false;
+    }
   }
   async restart() { this.game.reset(); analytics.track('restart'); location.reload(); }
 
@@ -216,6 +236,7 @@ class App {
     if (idle) return 30;
     if (f === 30 || f === '30') return 30;
     if (f === 60 || f === '60') return 60;
+    if (f === '120') return 120;
     return this.pace?.lock30 ? 30 : 60;
   }
   /** 自动画质：一直在测。每 5 秒一个窗口，连续两个窗口平均低于 24 帧才降一档（极高 → 高 → 中）；
@@ -231,10 +252,12 @@ class App {
     // 帧节奏：不锁帧时平均不到 50，就稳定锁在 30
     this.pace ||= { lock30: false };
     if (!this.pace.lock30 && fps < 50 && (st.fps ?? 'auto') === 'auto') { this.pace.lock30 = true; p.low = 0; p.settle = 3; return; }
-    // 动态分辨率：锁 30 还撑不住时，先降渲染分辨率（最多到 75%），再考虑降画质档位；很宽裕时再升回去
-    const v = this.view;
-    if (v.setResScale && fps < 27) { const r = v.resScale ?? 1; if (r > 0.76) { v.setResScale(Math.max(0.75, r - 0.125)); this.resize(); p.low = 0; p.settle = 4; return; } }
-    if (v.setResScale && (v.resScale ?? 1) < 1 && fps >= this.fpsCap(false) * 0.97) { p.good = (p.good || 0) + 1; if (p.good >= 3) { p.good = 0; v.setResScale(Math.min(1, v.resScale + 0.125)); this.resize(); p.settle = 4; return; } } else p.good = 0;
+    // 动态分辨率（设置里打开才用，默认关，保证清晰）：达不到目标帧率时把渲染精度降一点（最低 85%），宽裕时升回去
+    const v = this.view, cap = this.fpsCap(false);
+    if (st.dynres && v.setResScale) {
+      if (fps < cap * 0.9) { const r = v.resScale ?? 1; if (r > 0.86) { v.setResScale(Math.max(0.85, r - 0.075)); this.resize(); p.settle = 4; return; } }
+      else if ((v.resScale ?? 1) < 1 && fps >= cap * 0.98) { p.good = (p.good || 0) + 1; if (p.good >= 2) { p.good = 0; v.setResScale(Math.min(1, v.resScale + 0.075)); this.resize(); p.settle = 4; return; } } else p.good = 0;
+    }
     if (!st.autoQuality || this.forceQ) return;   // 手动选了档位：帧节奏和分辨率照常自动，档位不动
     p.low = fps < 24 ? p.low + 1 : 0;
     if (p.low < 2) return;

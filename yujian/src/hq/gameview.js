@@ -61,16 +61,18 @@ export function hqType(t, q, r) { if (t === 'meadow' && tileSeed(q, r) % 100 < 3
 const MARK_DY = { forest: 1.3, garden: 0.42, wheat: 0.5, harbor: 0.55 };
 
 export class HQView {
-  constructor(canvas, qk) {
+  /** cfg：最终画面配置（config.js 的 gfx() 算出来的：预设 + 自定义） */
+  constructor(canvas, cfg) {
     this.kind = 'hq';
-    this.qk = qk; this.q = QUALITY[qk];
+    this.q = cfg;
     const r = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
     r.toneMapping = THREE.ACESFilmicToneMapping;
     r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
     r.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.q.pixelRatio));
+    this.resScale = 1;
     this.scene = new THREE.Scene();
     this.atmo = new Atmosphere(r, this.scene);
-    this.atmo.sun.shadow.mapSize.set(this.q.shadow, this.q.shadow);
+    if (this.q.shadow) this.atmo.sun.shadow.mapSize.set(this.q.shadow, this.q.shadow);
     this.sky = new Sky();                 // 只用来给界面提供小时和时间文字
     this.mats = {
       terrain: terrainMaterial(), peak: terrainMaterial({ flat: true, env: 0.5 }),
@@ -116,21 +118,29 @@ export class HQView {
     this.setHour(this.hour, true);
   }
   applyQuality() {
-    const q = this.q, o = this.pipe.opts;
-    o.ao = !!q.ao; o.dof = !!q.dof; o.bloom = !!q.bloom; o.smaa = true;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, q.pixelRatio) * (this.resScale ?? 1));
-    const s = this.atmo.sun.shadow;
-    if (s.mapSize.x !== q.shadow) { s.mapSize.set(q.shadow, q.shadow); s.map?.dispose(); s.map = null; }
+    const q = this.q, o = this.pipe.opts, r = this.renderer;
+    o.ao = !!q.ao; o.dof = q.dof || 'off'; o.bloom = !!q.bloom; o.smaa = !!q.aa;
+    this.pipe.grade.uniforms.uSharp.value = q.sharpen || 0;
+    this.pipe.grade.uniforms.uCA.value = 0;            // 色差在手机小屏上会让边缘发糊，游戏里不用
+    r.setPixelRatio(Math.min(window.devicePixelRatio || 1, q.pixelRatio) * (this.resScale ?? 1));
+    // 阴影：0 = 关（换开关要让材质重新编译）
+    const on = q.shadow > 0, s = this.atmo.sun.shadow;
+    if (r.shadowMap.enabled !== on) { r.shadowMap.enabled = on; this.atmo.sun.castShadow = on; this.scene.traverse((m) => { if (m.material) [].concat(m.material).forEach((x) => { x.needsUpdate = true; }); }); }
+    if (on && s.mapSize.x !== q.shadow) { s.mapSize.set(q.shadow, q.shadow); s.map?.dispose(); s.map = null; }
   }
-  /** 动态分辨率：在当前档位的像素比上再乘一个 0.75–1 的系数（调用方随后要 resize） */
+  /** 动态分辨率：在渲染精度上再乘一个 0.85–1 的系数（调用方随后要 resize） */
   setResScale(k) { this.resScale = k; this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.q.pixelRatio) * k); }
-  setQuality(k) {
-    const old = this.q; this.qk = k; this.q = QUALITY[k];
+  /** 换画面配置。返回 true 表示植被或生物数量变了，需要重新生成（调用方走加载页） */
+  setConfig(cfg) {
+    const old = this.q; this.q = cfg; this.resScale = 1;
     this.applyQuality();
-    // 草的密度变了：所有地块的装点重算
-    if (old.grass !== this.q.grass || old.life !== this.q.life) { for (const r of this.rec.values()) this._invalidate(r, { dress: true }); for (const ch of this.chunks.values()) ch.faunaSig = null; }
+    const regen = old.grass !== cfg.grass || old.flowers !== cfg.flowers || old.trees !== cfg.trees || old.life !== cfg.life;
+    if (regen) { for (const r of this.rec.values()) this._invalidate(r, { dress: true }); for (const ch of this.chunks.values()) { if (ch.fauna) { ch.fauna.dispose(); ch.fauna = null; } ch.faunaSig = null; } }
+    for (const ch of this.chunks.values()) ch.far = null;   // 视距变了：草叶的远近开关重新判断
     if (this.w) this.resize(this.w, this.h);
+    return regen;
   }
+  setQuality() { /* 由 setConfig 代替 */ }
 
   // ---------------- 地块 ----------------
   _ck(q, r) { return Math.floor(q / CH) + ',' + Math.floor(r / CH); }
@@ -208,7 +218,7 @@ export class HQView {
     if (!rec.top) rec.top = T.tileTop(tt);
     if (!rec.rockDone) { rec.rock = T.tileRock(tt); rec.rockDone = true; }
     if (!rec.dress) {
-      rec.dress = dressTile(T, tt, { grass: this.q.grass ?? 0.4, flowers: this.q.flowers ?? 0.5 });
+      rec.dress = dressTile(T, tt, { grass: this.q.grass ?? 0.4, flowers: this.q.flowers ?? 0.5, trees: this.q.trees ?? 1 });
       this._extras(rec);
       this._water(rec);
     }
@@ -443,7 +453,7 @@ export class HQView {
     this.chunksDirty = dirty.length > 0 && dirty.some((c) => c.dirty);
     if (dirty.length && !this.chunksDirty) this.waterDirty = true;
     // 远处区块的草叶、花、麦穗不画（它们只有几个像素，却占了大部分顶点）
-    const bladeRange = 34 + dist * 0.9;
+    const bladeRange = (34 + dist * 0.9) * (this.q.viewK ?? 1);
     for (const ch of this.chunks.values()) {
       if (!ch.group) continue;
       const [q, r] = ch.ck.split(',').map(Number), [x, z] = toWorld((q + 0.5) * CH, (r + 0.5) * CH), far = Math.hypot(x - focus.x, z - focus.z) > bladeRange;
@@ -456,7 +466,7 @@ export class HQView {
     for (const ch of this.chunks.values()) {
       if (ch.faunaAt && now() > ch.faunaAt && !faunaBuilt && !ch.dirty) { ch.faunaAt = 0; this._buildFauna(ch); faunaBuilt = true; }
       if (!ch.fauna) continue;
-      const c = ch.fauna.env.center, near = Math.hypot(c.x - focus.x, c.z - focus.z) < FAUNA_RANGE + dist * 0.3;
+      const c = ch.fauna.env.center, near = Math.hypot(c.x - focus.x, c.z - focus.z) < (FAUNA_RANGE + dist * 0.3) * (this.q.viewK ?? 1);
       ch.fauna.group.visible = near;
       // 降频：离镜头 14 单位以外的动物隔一帧更新一次（时间步加倍，动作速度不变）
       if (near) { const mid = Math.hypot(c.x - focus.x, c.z - focus.z) > 14; if (!mid) ch.fauna.update(dt, t); else if ((ch.tick = !ch.tick)) ch.fauna.update(dt * 2, t); }
@@ -601,7 +611,7 @@ export class HQView {
     const rec = { tt, k: 'ghost', ck: null, top: null, rock: null, dress: null };
     const T = this.terrain;
     rec.top = T.tileTop(tt); rec.rock = T.tileRock(tt); rec.rockDone = true;
-    rec.dress = dressTile(T, tt, { grass: (this.q.grass ?? 0.4) * 0.6, flowers: 0.4, props: true });
+    rec.dress = dressTile(T, tt, { grass: (this.q.grass ?? 0.4) * 0.6, flowers: 0.4, props: true, trees: this.q.trees ?? 1 });
     this._extras(rec);
     const g = new THREE.Group(); this._fill(g, [rec], true);
     g.userData.rec = rec;

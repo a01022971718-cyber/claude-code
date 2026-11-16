@@ -1,5 +1,5 @@
 // 界面层：资源栏、目标、手牌、委托、设置、模拟广告、提示。全部是 DOM，叠在 3D 画布上面。
-import { TILE, RES, RES_NAME, DAILY, QUALITY } from './config.js';
+import { TILE, RES, RES_NAME, DAILY, QUALITY, gfx } from './config.js';
 import { audio } from './audio.js';
 import { ads, analytics, inFrame } from './services.js';
 import { tileThumb } from './thumbs.js';
@@ -163,32 +163,78 @@ export class UI {
       e.stopPropagation(); this.app.deliver(+(b.dataset.deliver ?? b.dataset.double), b.dataset.double != null);
     });
   }
-  openSettings() {
+  /** 设置：分“基础 / 画面 / 其他”三页。画面页每一项都能单独调（参考大世界手游的画面设置：预设 + 逐项细调） */
+  openSettings(tab = this._setTab || 'basic') {
+    this._setTab = tab;
     const s = this.g.s, st = s.settings, app = this.app;
-    const sw = (k, label) => `<label class="sw"><span>${label}</span><input type="checkbox" id="set_${k}" ${st[k] ? 'checked' : ''}><i></i></label>`;
-    const sh = this.modal(`<header><h2>设置</h2><button class="x" data-close>关闭</button></header><div class="set">
+    const sw = (k, label, sub = '') => `<label class="sw"><span>${label}${sub ? `<small>${sub}</small>` : ''}</span><input type="checkbox" id="set_${k}" ${st[k] ? 'checked' : ''}><i></i></label>`;
+    let body = '';
+    if (tab === 'basic') body = `
       <label class="sw"><span>经营玩法<small>${st.gameplay ? '打开：资源、目标、地块卡、委托' : '关闭：自由画布，随意摆放，没有资源限制'}</small></span><input type="checkbox" id="set_gameplay" ${st.gameplay ? 'checked' : ''}><i></i></label>
       ${sw('sound', '声音')}${sw('music', '背景音乐')}
-      <label class="sw"><span>省电模式<small>不操作 8 秒后降到 30 帧，省电、少发热</small></span><input type="checkbox" id="set_powerSave" ${st.powerSave ? 'checked' : ''}><i></i></label>
-      <div class="seg"><span>帧率</span>${[['auto', '自动'], ['30', '30 稳定'], ['60', '60']].map(([k, l]) => `<button data-fps="${k}" class="${String(st.fps ?? 'auto') === k ? 'on' : ''}">${l}</button>`).join('')}</div>
-      <div class="seg"><span>画质${st.autoQuality ? '<small>自动</small>' : ''}</span>${Object.keys(QUALITY).map((k) => `<button data-q="${k}" class="${st.quality === k ? 'on' : ''}">${QUALITY[k].label}</button>`).join('')}</div>
-      <button class="btn ghost" id="setTime">岛上的时间：${st.timeMode === 'real' ? '跟随现实' : '固定 ' + this.app.view.sky.label()}</button>
+      <button class="btn ghost" id="setTime">岛上的时间：${st.timeMode === 'real' ? '跟随现实' : '固定 ' + app.view.sky.label()}</button>`;
+    else if (tab === 'gfx') body = this._gfxPanel();
+    else body = `
       <div class="rowb"><button class="btn ghost" id="setBench">性能测试</button><button class="btn ghost" id="setExport">查看埋点数据</button>${app.canvasMode ? '' : '<button class="btn ghost danger" id="setReset">重新开始</button>'}</div>
       ${app.debug ? `<div class="dbg"><b>调试</b><button data-d="give">+10 资源</button><button data-d="skip">快进 4 小时</button><button data-d="day">进入下一天</button><button data-d="coupon">+2 卡券</button></div>` : ''}
-      <p class="ver">屿见 v0.6 · 存档只保存在这台设备的浏览器里</p></div>`);
+      <p class="ver">屿见 v0.7 · 存档只保存在这台设备的浏览器里</p>`;
+    const tabs = [['basic', '基础'], ['gfx', '画面'], ['other', '其他']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('');
+    const sh = this.modal(`<header><h2>设置</h2><button class="x" data-close>关闭</button></header><nav class="stabs">${tabs}</nav><div class="set">${body}</div>`, tab === 'gfx' ? 'wide gfxsheet' : '');
     sh.addEventListener('click', (e) => e.stopPropagation());
     sh.querySelector('[data-close]').onclick = () => this.closeModal();
-    sh.querySelector('#set_gameplay').onchange = (e) => { st.gameplay = e.target.checked; this.g.save(true); this.toast(st.gameplay ? '正在打开经营玩法…' : '正在回到自由画布…'); setTimeout(() => location.reload(), 350); };
-    sh.querySelectorAll('[data-fps]').forEach((b) => { b.onclick = () => { st.fps = b.dataset.fps; if (app.pace) app.pace.lock30 = false; this.g.save(); sh.querySelectorAll('[data-fps]').forEach((x) => x.classList.toggle('on', x === b)); }; });
-    sh.querySelector('#set_powerSave').onchange = (e) => { st.powerSave = e.target.checked; this.g.save(); };
-    sh.querySelector('#setBench').onclick = () => this.runBench();
-    sh.querySelector('#set_sound').onchange = (e) => { st.sound = e.target.checked; audio.setEnabled(st.sound); this.g.save(); };
-    sh.querySelector('#set_music').onchange = (e) => { st.music = e.target.checked; audio.setMusic(st.music); this.g.save(); };
-    sh.querySelectorAll('[data-q]').forEach((b) => { b.onclick = () => { app.setQuality(b.dataset.q); sh.querySelectorAll('[data-q]').forEach((x) => x.classList.toggle('on', x === b)); }; });
-    if (sh.querySelector('#setReset')) sh.querySelector('#setReset').onclick = async () => { if (await this.confirm('重新开始会清空这座岛和所有进度，确定吗？', '清空重来')) app.restart(); };
-    sh.querySelector('#setExport').onclick = () => this.showEvents();
-    sh.querySelector('#setTime').onclick = () => this.openTime();
+    sh.querySelectorAll('[data-tab]').forEach((b) => { b.onclick = () => this.openSettings(b.dataset.tab); });
+    const on = (sel, ev, fn) => { const el = sh.querySelector(sel); if (el) el[ev] = fn; };
+    on('#set_gameplay', 'onchange', (e) => { st.gameplay = e.target.checked; this.g.save(true); this.toast(st.gameplay ? '正在打开经营玩法…' : '正在回到自由画布…'); setTimeout(() => location.reload(), 350); });
+    on('#set_sound', 'onchange', (e) => { st.sound = e.target.checked; audio.setEnabled(st.sound); this.g.save(); });
+    on('#set_music', 'onchange', (e) => { st.music = e.target.checked; audio.setMusic(st.music); this.g.save(); });
+    on('#setTime', 'onclick', () => this.openTime());
+    on('#setBench', 'onclick', () => this.runBench());
+    on('#setExport', 'onclick', () => this.showEvents());
+    on('#setReset', 'onclick', async () => { if (await this.confirm('重新开始会清空这座岛和所有进度，确定吗？', '清空重来')) app.restart(); });
     sh.querySelectorAll('[data-d]').forEach((b) => { b.onclick = () => app.dbg[b.dataset.d](); });
+    // 画面页
+    const again = () => setTimeout(() => { if (!this.el.modal.hidden) this.openSettings('gfx'); }, 30);
+    sh.querySelectorAll('[data-preset]').forEach((b) => { b.onclick = () => { app.setQuality(b.dataset.preset); again(); }; });
+    sh.querySelectorAll('[data-g]').forEach((b) => { b.onclick = () => { app.setGfx(b.dataset.g, JSON.parse(b.dataset.v)); again(); }; });
+    sh.querySelectorAll('[data-fps]').forEach((b) => { b.onclick = () => { st.fps = b.dataset.fps; if (app.pace) app.pace.lock30 = false; this.g.save(); again(); }; });
+    on('#set_powerSave', 'onchange', (e) => { st.powerSave = e.target.checked; this.g.save(); });
+    on('#set_dynres', 'onchange', (e) => { st.dynres = e.target.checked; if (!st.dynres && app.view.setResScale) { app.view.setResScale(1); app.resize(); } this.g.save(); again(); });
+    on('#set_showFps', 'onchange', (e) => { st.showFps = e.target.checked; app.perfMon.setOverlay(st.showFps); this.g.save(); });
+    on('#set_auto', 'onchange', (e) => { st.autoQuality = e.target.checked; this.g.save(); });
+    on('#setLegacy', 'onclick', () => app.setQuality(app.view.kind === 'hq' ? 'low' : 'ultra'));
+  }
+  /** 画面设置页：预设 + 逐项 */
+  _gfxPanel() {
+    const st = this.g.s.settings, app = this.app, hq = app.view.kind === 'hq';
+    if (!hq) return `<p class="note">现在是低多边形画面（最省电）。画质细调只在高画质画面里有。</p><button class="btn" id="setLegacy">回到高画质画面</button>`;
+    const cfg = gfx(st), custom = Object.keys(st.gfx || {}).length > 0;
+    const dpr = window.devicePixelRatio || 1, pr = Math.min(dpr, cfg.res) * (app.view.resScale ?? 1);
+    const near = (opts, v) => { let b = 0, bd = Infinity; opts.forEach(([x], i) => { const d = typeof x === 'number' ? Math.abs(x - v) : x === v ? 0 : Infinity; if (d < bd) { bd = d; b = i; } }); return bd === Infinity ? -1 : b; };
+    const row = (k, name, desc, opts) => { const cur = near(opts, cfg[k]); return `<div class="grow"><div class="gl"><b>${name}</b><small>${desc}</small></div><div class="gseg">${opts.map(([v, l], i) => `<button data-g="${k}" data-v='${JSON.stringify(v)}' class="${i === cur ? 'on' : ''}">${l}</button>`).join('')}</div></div>`; };
+    const presets = ['smooth', 'mid', 'high', 'ultra'].map((k) => `<button data-preset="${k}" class="${st.quality === k && !custom ? 'on' : ''}">${QUALITY[k].label}</button>`).join('');
+    const fps = String(st.fps ?? 'auto');
+    return `
+      <div class="grow gpre"><div class="gl"><b>画质预设${custom ? '<em>自定义</em>' : ''}</b><small>每一档都是清晰画面，区别在阴影、光影、植被和生物的细节</small></div><div class="gseg">${presets}</div></div>
+      <div class="grow"><div class="gl"><b>帧率</b><small>自动：撑不住 60 帧时稳定在 30 帧；高刷只对 90/120Hz 屏幕有用</small></div><div class="gseg">${[['auto', '自动'], ['30', '30'], ['60', '60'], ['120', '高刷']].map(([k, l]) => `<button data-fps="${k}" class="${fps === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+      <h3>清晰度</h3>
+      ${row('res', '渲染精度', `越高越清晰、越耗电 · 现在 ${Math.round(innerWidth * pr)}×${Math.round(innerHeight * pr)}`, [[1.5, '标准'], [2, '高'], [2.5, '超高'], [4, '原生']])}
+      ${row('aa', '抗锯齿', '让边缘更平滑', [[false, '关'], [true, '开']])}
+      ${row('sharpen', '锐化', '让细节更清楚', [[0, '关'], [0.35, '标准'], [0.6, '强']])}
+      <label class="sw"><span>动态分辨率<small>帧率不够时自动把渲染精度降一点（最低 85%），够了再升回去</small></span><input type="checkbox" id="set_dynres" ${st.dynres ? 'checked' : ''}><i></i></label>
+      <h3>光影</h3>
+      ${row('shadow', '阴影', '影子的清晰度', [[0, '关'], [1024, '低'], [2048, '中'], [4096, '高']])}
+      ${row('ao', '环境光遮蔽', '树下、岩缝、墙角的柔和暗部', [[false, '关'], [true, '开']])}
+      ${row('bloom', '泛光', '阳光、灯火、水面高光的光晕', [[false, '关'], [true, '开']])}
+      ${row('dof', '景深', '柔和：只虚化远处；移轴：微缩模型的感觉', [['off', '关'], ['soft', '柔和'], ['tilt', '移轴']])}
+      <h3>场景细节</h3>
+      ${row('veg', '植被密度', '草、花、树的数量（改了会重新生成）', [['low', '低'], ['mid', '中'], ['high', '高'], ['ultra', '极高']])}
+      ${row('life', '生物数量', '岛上动物的多少（改了会重新生成）', [[0.5, '少'], [0.7, '中'], [1, '多']])}
+      ${row('view', '视距', '多远以外不画草叶和动物', [['near', '近'], ['mid', '中'], ['far', '远']])}
+      <h3>其他</h3>
+      <label class="sw"><span>自动调整画质<small>持续卡顿时自动降一档预设</small></span><input type="checkbox" id="set_auto" ${st.autoQuality ? 'checked' : ''}><i></i></label>
+      <label class="sw"><span>省电模式<small>不操作 8 秒后降到 30 帧</small></span><input type="checkbox" id="set_powerSave" ${st.powerSave ? 'checked' : ''}><i></i></label>
+      <label class="sw"><span>显示帧率<small>屏幕顶部显示帧率、帧时间、绘制次数</small></span><input type="checkbox" id="set_showFps" ${st.showFps ? 'checked' : ''}><i></i></label>
+      <button class="btn ghost" id="setLegacy">切换到低多边形画面（最省电，会重新载入）</button>`;
   }
   /** 真机测速：镜头绕岛转 20 秒，出一份可以复制发给开发的结果 */
   async runBench() {

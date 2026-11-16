@@ -7,7 +7,7 @@ export class PerfMonitor {
     this.buf = new Float32Array(1200); this.n = 0; this.i = 0;   // 最近 1200 帧的帧时间（毫秒）
     this.calls = 0; this.tris = 0;
     const r = app.view.renderer; if (r) r.info.autoReset = false;
-    if (new URLSearchParams(location.search).get('perf') === '1') this._overlay();
+    if (new URLSearchParams(location.search).get('perf') === '1' || app.game.s.settings.showFps) this._overlay();
   }
   /** 每帧开始时调用（先把上一帧的绘制统计取出来再清零） */
   begin() {
@@ -48,12 +48,14 @@ export class PerfMonitor {
     rig.focus.set(saved.x, 0, saved.z); rig.setView(saved); rig.locked = false; this.benching = false; app.ui.hud(true);
     const s = app.game.s.settings, v = app.view;
     return {
-      版本: 'v0.6', 画面: v.kind === 'hq' ? '高画质' : '低多边形', 档位: s.quality, 模式: app.canvasMode ? '自由画布' : '经营',
+      版本: 'v0.7', 画面: v.kind === 'hq' ? '高画质' : '低多边形', 档位: s.quality, 自定义: JSON.stringify(s.gfx || {}), 模式: app.canvasMode ? '自由画布' : '经营',
       平均帧率: +st.fps.toFixed(1), 低帧1: +st.low1.toFixed(1), 帧时间中位: +st.ms50.toFixed(1), 帧时间95: +st.ms95.toFixed(1), 帧时间99: +st.ms99.toFixed(1),
       绘制调用峰值: maxCalls, 三角面峰值: maxTris, 帧率上限: app.fpsCap(false), 分辨率系数: v.resScale ?? 1, 加载毫秒: app.loadMs ?? 0, 地块: v.terrain?.tiles?.length ?? 0, 区块: v.chunks?.size ?? 0,
       ...this.device(),
     };
   }
+  /** 设置里的“显示帧率” */
+  setOverlay(on) { if (on && !this.el) this._overlay(); else if (!on && this.el) { this.el.remove(); this.el = null; } }
   _overlay() {
     const d = document.createElement('div');
     d.style.cssText = 'position:absolute;left:50%;top:6px;transform:translateX(-50%);padding:3px 10px;border-radius:999px;background:rgba(0,0,0,.45);color:#fff;font:11px/1.4 ui-monospace,monospace;pointer-events:none;z-index:9;white-space:nowrap';

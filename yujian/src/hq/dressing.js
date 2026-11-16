@@ -43,7 +43,7 @@ export function propOf(fn, sd) { let m = PROPS.get(fn); if (!m) PROPS.set(fn, m 
 
 /** 生成一块地的装点。opts: { grass: 草的密度系数, flowers: 花的密度系数, props: 是否放道具, clear: [[x,z,r]] 额外要空出来的圆 } */
 export function dressTile(T, t, opts = {}) {
-  const R = rng(tileSeed(t.q, t.r)), dens = opts.grass ?? 1, fdens = opts.flowers ?? dens;
+  const R = rng(tileSeed(t.q, t.r)), dens = opts.grass ?? 1, fdens = opts.flowers ?? dens, tf = opts.trees ?? 1;
   const out = { inst: {}, blades: { grass: [], flower: [], wheat: [] }, meshes: [], obstacles: [], perches: [], flowers: [], fire: null };
   const push = (k, it) => { (out.inst[k] ||= []).push(it); };
   const H = (x, z) => T.heightIn(t, x, z);
@@ -59,6 +59,7 @@ export function dressTile(T, t, opts = {}) {
     const keep = harvested ? 0.3 : 1;
     for (let i = 0; i < 46; i++) {
       const [x, z] = inHex(0.05), s = 0.85 + R() * 0.55, v = Math.floor(R() * 5), cut = R() > keep;
+      if (tf < 1 && ((i * 0.618) % 1) > tf) continue;   // 植被密度低时少种几棵（按序号挑，不打乱其余随机数）
       if (cut) { if (free(x, z, 0.05)) { taken.push([x, z, 0.05]); push('stump:0', { x, y: H(x, z) - 0.01, z, s: 1 + R() * 0.4, ry: R() * 6.28 }); } continue; }
       if (plant('con', v, { x, y: H(x, z) - 0.02, z, s, ry: R() * 6.28, tilt: 0.04, tint: [0.9 + R() * 0.2, 0.92 + R() * 0.16, 0.9 + R() * 0.2] }, 0.13 * s)) out.perches.push({ x, y: H(x, z), z, h: s });
     }
@@ -70,7 +71,7 @@ export function dressTile(T, t, opts = {}) {
     out.meshes.push({ geo: peak(tileSeed(t.q, t.r) % 997, big[1], big[0]), mat: 'peak', pos: [t.x + (R() - 0.5) * 0.2, t.base - 0.03, t.z + (R() - 0.5) * 0.2], ry: R() * 6.28, peak: true });
     for (let k = 0; k < 2; k++) { const a = R() * 6.28, d = 0.45 + R() * 0.15; out.meshes.push({ geo: peak((tileSeed(t.q, t.r) + k * 131) % 997, 0.32 + R() * 0.12, 0.55 + R() * 0.5), mat: 'peak', pos: [t.x + Math.cos(a) * d, t.base - 0.02, t.z + Math.sin(a) * d], ry: R() * 6.28, peak: true }); }
     taken.push([t.x, t.z, 0.6]);
-    for (let i = 0; i < 9; i++) { const [x, z] = inHex(0.06), s = 0.7 + R() * 0.4; if (plant('con', Math.floor(R() * 5), { x, y: H(x, z) - 0.02, z, s, ry: R() * 6.28, tilt: 0.05 }, 0.11)) out.perches.push({ x, y: H(x, z), z, h: s }); }
+    for (let i = 0; i < 9; i++) { const [x, z] = inHex(0.06), s = 0.7 + R() * 0.4; if (tf < 1 && ((i * 0.618) % 1) > tf) continue; if (plant('con', Math.floor(R() * 5), { x, y: H(x, z) - 0.02, z, s, ry: R() * 6.28, tilt: 0.05 }, 0.11)) out.perches.push({ x, y: H(x, z), z, h: s }); }
     for (let i = 0; i < 5; i++) { const [x, z] = inHex(0.08); plant('rock', Math.floor(R() * 4), { x, y: H(x, z) - 0.02, z, s: 0.05 + R() * 0.08, ry: R() * 6.28 }, 0.08); }
   }
   if (ty === 'quarry') {

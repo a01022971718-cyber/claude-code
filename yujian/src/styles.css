@@ -288,3 +288,20 @@ body { background: var(--haze); color: var(--ink); font-family: var(--font); fon
 #loading .ld-bar i { display: block; height: 100%; width: 0; border-radius: 3px; background: linear-gradient(90deg, #f2c45a, #ffe4a0); transition: width .25s ease; }
 #loading .ld-text { margin: 0; font-size: 13px; font-weight: 700; opacity: .9; font-variant-numeric: tabular-nums; }
 #loading .ld-tip { margin: 6px 0 0; font-size: 12.5px; opacity: .75; max-width: 30em; min-height: 2.6em; }
+/* 设置：分页 + 画面细调 */
+.stabs { display: flex; gap: 6px; margin: -2px 0 10px; }
+.stabs button { flex: 1; padding: 7px 0; border-radius: 10px; background: var(--paper2); font-weight: 800; font-size: 13px; }
+.stabs button.on { background: var(--ink); color: #fff !important; }
+.sheet.gfxsheet { width: min(100%, 680px); }
+.gfxsheet .set h3 { margin: 12px 0 2px; font-size: 12px; letter-spacing: .1em; color: var(--ink2); font-weight: 800; }
+.grow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.grow .gl { display: flex; flex-direction: column; min-width: 0; }
+.grow .gl b { font-size: 14px; } .grow .gl small { font-size: 11.5px; color: var(--ink2); line-height: 1.35; }
+.grow .gl em { margin-left: 6px; font-style: normal; font-size: 11px; padding: 1px 6px; border-radius: 6px; background: #fff3c4; color: #8a6a10; }
+.gseg { display: flex; flex: none; border-radius: 10px; background: var(--paper2); padding: 2px; }
+.gseg button { min-width: 44px; padding: 6px 9px; border-radius: 8px; font-size: 12.5px; font-weight: 700; }
+.gseg button.on { background: var(--ink); color: #fff !important; }
+.gpre { border-bottom: 0; } .gpre .gseg button { min-width: 52px; }
+@media (max-width: 520px) { .grow { flex-direction: column; align-items: stretch; gap: 6px; } .gseg { align-self: flex-start; } }
+/* 层级：弹窗和加载页在画布界面之上 */
+.chud { z-index: 5; } #modal { z-index: 12; } #toasts, #banner { z-index: 13; }

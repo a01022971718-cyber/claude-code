@@ -74,15 +74,27 @@ export const GOALS = [
   { id: 'wheat', title: '种下第一块麦田', desc: '麦田是阿穗带来的新地块', max: 1, reward: { coupon: 1 } },
 ];
 
-// 画质档位。hq=true 用高画质画面（细分地形、真实海洋、生态、后期管线），false 用低多边形画面。
-// grass/flowers：草和花的密度系数；life：动物数量系数；detail：低多边形画面的装饰密度
+// 画质预设。原则：每一档都清晰（渲染精度不低于 1.5 倍，再加锐化），档位之间区别在渲染细节——阴影、环境光遮蔽、景深、泛光、抗锯齿、植被和生物数量、视距。
+// 设置里每一项都能单独改（存在 settings.gfx 里，叫“自定义”）；gfx() 把预设和自定义合成最终配置。
+// res：渲染精度上限（设备像素比再高也不超过它）；shadow：阴影贴图边长，0 为关；dof：'off' | 'soft' 柔和 | 'tilt' 移轴微缩；
+// sharpen：锐化强度；veg：植被密度档；life：动物数量系数；view：视距档。hq=false 的“低多边形”是另一套画面。
 export const QUALITY = {
-  ultra: { label: '极高', hq: true, pixelRatio: 2, shadow: 4096, ao: true, dof: true, bloom: true, grass: 1, flowers: 1, life: 1 },
-  high: { label: '高', hq: true, pixelRatio: 1.5, shadow: 2048, ao: true, dof: true, bloom: true, grass: 0.4, flowers: 0.5, life: 1 },
-  mid: { label: '中', hq: true, pixelRatio: 1, shadow: 2048, ao: false, dof: true, bloom: true, grass: 0.22, flowers: 0.35, life: 0.6 },
-  low: { label: '低', hq: false, pixelRatio: 1.5, shadow: 1024, detail: 0.75, post: true, bloom: false, samples: 2 },
+  ultra: { label: '极致', hq: true, res: 2, shadow: 4096, ao: true, dof: 'soft', bloom: true, aa: true, sharpen: 0.3, veg: 'ultra', life: 1, view: 'far' },
+  high: { label: '高清', hq: true, res: 2, shadow: 2048, ao: true, dof: 'soft', bloom: true, aa: true, sharpen: 0.35, veg: 'high', life: 1, view: 'far' },
+  mid: { label: '均衡', hq: true, res: 1.75, shadow: 2048, ao: false, dof: 'off', bloom: true, aa: false, sharpen: 0.4, veg: 'mid', life: 0.7, view: 'mid' },
+  smooth: { label: '流畅', hq: true, res: 1.5, shadow: 1024, ao: false, dof: 'off', bloom: false, aa: false, sharpen: 0.45, veg: 'low', life: 0.5, view: 'near' },
+  low: { label: '低多边形', hq: false, pixelRatio: 1.5, shadow: 1024, detail: 0.75, post: true, bloom: false, samples: 2 },
 };
+export const VEG = { low: { grass: 0.2, flowers: 0.3, trees: 0.6 }, mid: { grass: 0.35, flowers: 0.45, trees: 0.8 }, high: { grass: 0.6, flowers: 0.7, trees: 1 }, ultra: { grass: 1, flowers: 1, trees: 1 } };
+export const VIEW = { near: 0.6, mid: 0.8, far: 1 };
 // 自动降档的顺序（只在高画质画面内部降，不会自动切到低多边形画面，避免重新加载）
-export const QUALITY_DOWN = { ultra: 'high', high: 'mid' };
+export const QUALITY_DOWN = { ultra: 'high', high: 'mid', mid: 'smooth' };
+/** 预设 + 自定义 → 最终画面配置 */
+export function gfx(st, preset = null) {
+  const base = QUALITY[preset || st.quality] || QUALITY.high;
+  if (!base.hq) return base;
+  const o = { ...base, ...(st.gfx || {}) };
+  return { ...o, pixelRatio: o.res, ...(VEG[o.veg] || VEG.high), viewK: VIEW[o.view] ?? 1 };
+}
 
 export const SAVE_KEY = 'yujian_save_v1';
