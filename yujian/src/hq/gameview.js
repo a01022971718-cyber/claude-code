@@ -411,10 +411,11 @@ class HQMarkers {
     const ring = [], idx = [];
     CORNERS.forEach((c, i) => { ring.push(c[0] * 0.93, 0, c[1] * 0.93, c[0] * 0.76, 0, c[1] * 0.76); const a = i * 2, b = ((i + 1) % 6) * 2; idx.push(a, b, a + 1, b, b + 1, a + 1); });
     const rg = new THREE.BufferGeometry(); rg.setAttribute('position', new THREE.Float32BufferAttribute(ring, 3)); rg.setIndex(idx);
-    this.ringMat = new THREE.MeshBasicMaterial({ color: 0xfff3d6, transparent: true, opacity: 0.6, depthWrite: false, side: THREE.DoubleSide, fog: false });
+    // 光圈是界面提示：不做深度测试，浪尖和近处的山都挡不住它
+    this.ringMat = new THREE.MeshBasicMaterial({ color: 0xfff3d6, transparent: true, opacity: 0.6, depthWrite: false, depthTest: false, side: THREE.DoubleSide, fog: false });
     this.frontier = new THREE.InstancedMesh(rg, this.ringMat, 256); this.frontier.count = 0; this.frontier.frustumCulled = false;
     this.frontier.layers.set(LAYER_FX); this.frontier.renderOrder = 20; scene.add(this.frontier);
-    this.pick = new THREE.Mesh(rg, new THREE.MeshBasicMaterial({ color: 0xffc94a, transparent: true, opacity: 0.95, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+    this.pick = new THREE.Mesh(rg, new THREE.MeshBasicMaterial({ color: 0xffc94a, transparent: true, opacity: 0.95, depthWrite: false, depthTest: false, side: THREE.DoubleSide, fog: false }));
     this.pick.layers.set(LAYER_FX); this.pick.renderOrder = 21; this.pick.visible = false; scene.add(this.pick);
     this.readyMat = new THREE.MeshStandardMaterial({ color: 0xffd45e, emissive: 0xffa514, emissiveIntensity: 1.6, roughness: 0.35, metalness: 0.2, flatShading: true });
     this.ready = new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.12, 0), this.readyMat, 128); this.ready.count = 0; this.ready.frustumCulled = false; scene.add(this.ready);
