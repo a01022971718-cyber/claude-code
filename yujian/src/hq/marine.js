@@ -7,7 +7,10 @@ import { GLSL_NOISE } from './noise.js';
 import { GLSL_WAVES, currentAt, G } from './waves.js';
 import { U, GLSL_CAUSTIC } from './materials.js';
 import { LAYER_FX } from './pipeline.js';
-import { rng } from './noise.js';
+import { rng, makeNoise } from './noise.js';
+import { DIRS } from '../hex.js';
+
+const NZB = makeNoise(4242);
 
 const V3 = THREE.Vector3;
 const geoOf = (r) => (r && r.geometry) || r;
@@ -73,6 +76,9 @@ export function marineMaterial({ mode = 'none', rough = 0.6, transparent = false
 }
 
 /** 实例化网格 + 每个实例的动画参数 */
+// 珊瑚、巨藻、鱼的模型只生成一次（岛变大后重建栖息地时直接复用）；swarm 会复制一份再加实例属性
+const MEMO = new Map();
+const memo = (k, make) => { let r = MEMO.get(k); if (!r) MEMO.set(k, r = make()); return r; };
 function swarm(geo, mat, n) {
   const g = geoOf(geo).clone();
   for (const a of ['bend', 'sway', 'rim', 'tent']) if (!g.attributes[a]) g.setAttribute(a, new THREE.BufferAttribute(new Float32Array(g.attributes.position.count), 1));
@@ -214,9 +220,11 @@ class School {
 // 整个海洋生态
 // ------------------------------------------------------------------
 export class Marine {
-  constructor({ scene, terrain, ocean, sceneDepth, center }) {
-    this.scene = scene; this.terrain = terrain; this.ocean = ocean; this.center = center;
+  /** zones: 'angle' 按离岛方位分区（样张）；'noise' 沿海岸采样、按世界噪声分区（游戏，岛会变大）。radius: 岛的大致半径 */
+  constructor({ scene, terrain, ocean, sceneDepth, center, zones = 'angle', radius = 4.5 }) {
+    this.scene = scene; this.terrain = terrain; this.ocean = ocean; this.center = center.clone(); this.zoneMode = zones; this.radius = radius;
     this.group = new THREE.Group(); scene.add(this.group);
+    this.habitat = new THREE.Group(); this.group.add(this.habitat);
     this.mats = { swim: marineMaterial({ mode: 'swim', rough: 0.45 }), swimV: marineMaterial({ mode: 'swimv', rough: 0.35 }), orbit: marineMaterial({ mode: 'orbit', rough: 0.75 }), still: marineMaterial({ mode: 'none', rough: 0.8 }),
       jelly: marineMaterial({ mode: 'jelly', rough: 0.2, transparent: true, opacity: 0.72, emissive: 0.05 }) };
     this.splash = new Splashes(sceneDepth); scene.add(this.splash.points);
@@ -235,11 +243,26 @@ export class Marine {
   _zones() {
     const T = this.terrain, c = this.center, R = this.R;
     this.spots = { reef: [], grass: [], kelp: [], rocky: [] };
-    for (let k = 0; k < 9000; k++) {
-      const a = R() * Math.PI * 2, r = 2 + R() * 9, x = c.x + Math.cos(a) * r, z = c.z + Math.sin(a) * r;
+    const coast = this.zoneMode === 'noise' ? T.tiles.filter((t) => DIRS.some((d) => !T.has(t.q + d[0], t.r + d[1]))) : null;
+    this.coastN = coast ? coast.length : 12;
+    const N = coast ? Math.min(16000, Math.max(3000, coast.length * 420)) : 9000;
+    for (let k = 0; k < N; k++) {
+      let x, z;
+      if (coast) { const t = coast[Math.floor(R() * coast.length)], a = R() * Math.PI * 2, r = 0.9 + R() * 3.4; x = t.x + Math.cos(a) * r; z = t.z + Math.sin(a) * r; }
+      else { const a = R() * Math.PI * 2, r = 2 + R() * 9; x = c.x + Math.cos(a) * r; z = c.z + Math.sin(a) * r; }
       if (T.tileAt(x, z)) continue;
       const dl = T.landDist(x, z), y = T.seabedAt(x, z), s = this.ocean.shoreAt(x, z);
       if (s > 0.97 || dl > 3.2) continue;
+      if (coast) {
+        // 世界噪声决定这一段海岸是礁岩、珊瑚、海草还是巨藻；同一片海每次生成都一样
+        const b = NZB.fbm2(x * 0.13 + 7, z * 0.13 - 3, 2), p = [x, y, z, dl];
+        if (b > 0.3 && y > -1.6) this.spots.rocky.push(p);
+        else if (b > 0.0 && y > -1.5 && y < -0.42) this.spots.reef.push(p);
+        else if (b > -0.22 && y > -1.3 && y < -0.42) this.spots.grass.push(p);
+        else if (y < -0.8) this.spots.kelp.push(p);
+        else if (y > -1.3 && y < -0.42) this.spots.grass.push(p);
+        continue;
+      }
       const ang = ((Math.atan2(z - c.z, x - c.x) * 180 / Math.PI) + 360) % 360;   // 0=东, 90=南, 180=西, 270=北
       const p = [x, y, z, dl];
       if (ang > 35 && ang < 150 && y > -1.5 && y < -0.42) this.spots.reef.push(p);
@@ -265,13 +288,14 @@ export class Marine {
       anim.set([i * 1.7, 2 + (i % 5) * 0.2, 0, 0], i * 4);
       if (it.tint) mesh.setColorAt(i, new THREE.Color(...it.tint));
     });
-    mesh.castShadow = castShadow; mesh.computeBoundingSphere(); this.group.add(mesh);
+    mesh.castShadow = castShadow; mesh.computeBoundingSphere(); this.habitat.add(mesh);
     return mesh;
   }
   _reef() {
     const R = this.R, sp = this.spots;
     // 珊瑚：成簇分布
-    const clusters = this._place(sp.reef, 22, 0.5), corals = { branch: [[], [], []], brain: [], table: [], fan: [], anem: [], star: [], urchin: [] };
+    const cn = this.coastN, k3 = (a, lo, hi) => (this.zoneMode === 'noise' ? Math.round(Math.min(hi, Math.max(lo, cn * a))) : null);
+    const clusters = this._place(sp.reef, k3(0.9, 6, 40) ?? 22, 0.5), corals = { branch: [[], [], []], brain: [], table: [], fan: [], anem: [], star: [], urchin: [] };
     for (const c of clusters) {
       const n = 10 + Math.floor(R() * 8);
       for (let k = 0; k < n; k++) {
@@ -288,19 +312,19 @@ export class Marine {
       }
     }
     // 礁岩带：海葵、海胆、海星
-    for (const p of this._place(sp.rocky, 70, 0.08)) {
+    for (const p of this._place(sp.rocky, k3(3, 24, 140) ?? 70, 0.08)) {
       const it = { x: p[0], y: p[1] - 0.005, z: p[2], ry: R() * 6.28, s: 1.2 + R() * 0.8 }, pick = R();
       (pick < 0.45 ? corals.anem : pick < 0.75 ? corals.urchin : corals.star).push(it);
     }
     this.anemones = corals.anem.slice(0, 6);
     const S = this.mats.still, O = this.mats.orbit;
-    ['pink', 'purple', 'orange'].forEach((cName, i) => this._inst(M.branchCoral(i + 3, cName), S, corals.branch[i]));
-    this._inst(M.brainCoral(5), S, corals.brain); this._inst(M.tableCoral(6), S, corals.table);
-    this._inst(M.seaFan(7), O, corals.fan); this._inst(M.anemone(8), O, corals.anem);
-    this._inst(M.starfish(9), S, corals.star); this._inst(M.seaUrchin(10), S, corals.urchin);
+    ['pink', 'purple', 'orange'].forEach((cName, i) => this._inst(memo('br' + i, () => M.branchCoral(i + 3, cName)), S, corals.branch[i]));
+    this._inst(memo('brain', () => M.brainCoral(5)), S, corals.brain); this._inst(memo('table', () => M.tableCoral(6)), S, corals.table);
+    this._inst(memo('fan', () => M.seaFan(7)), O, corals.fan); this._inst(memo('anem', () => M.anemone(8)), O, corals.anem);
+    this._inst(memo('star', () => M.starfish(9)), S, corals.star); this._inst(memo('urchin', () => M.seaUrchin(10)), S, corals.urchin);
     // 巨藻林：从海底一直长到快到海面
-    const kelpV = [M.kelp(11, 1.0), M.kelp(12, 1.3), M.kelp(13, 1.6)], kelpItems = [[], [], []];
-    for (const p of this._place(sp.kelp, 90, 0.18)) {
+    const kelpV = memo('kelp', () => [M.kelp(11, 1.0), M.kelp(12, 1.3), M.kelp(13, 1.6)]), kelpItems = [[], [], []];
+    for (const p of this._place(sp.kelp, k3(2.2, 20, 110) ?? 90, 0.18)) {
       const top = -0.14 - R() * 0.14, hh = top - p[1], v = hh > 1.3 ? 2 : hh > 1.0 ? 1 : 0, base = [1.0, 1.3, 1.6][v];
       kelpItems[v].push({ x: p[0], y: p[1] - 0.01, z: p[2], ry: R() * 6.28, s: 1, sy: hh / base });
     }
@@ -311,7 +335,7 @@ export class Marine {
   }
   seagrassBlades() {
     const R = this.R, out = [];
-    for (const p of this._place(this.spots.grass, 400, 0.02)) {
+    for (const p of this._place(this.spots.grass, this.zoneMode === 'noise' ? Math.min(900, Math.max(150, this.coastN * 18)) : 400, 0.02)) {
       for (let k = 0; k < 18; k++) {
         const x = p[0] + (R() - 0.5) * 0.3, z = p[2] + (R() - 0.5) * 0.3; if (this.terrain.tileAt(x, z)) continue;
         const y = this.terrain.seabedAt(x, z), g = 0.8 + R() * 0.3;
@@ -325,12 +349,31 @@ export class Marine {
     this.schools = [
       new School(this, { geo: M.fish(1, 'tang'), count: 70, center: pickC(sp.reef, 0.3), radius: 1.6, depth: [-1.2, -0.18], speed: [0.05, 0.12], scale: 2.1, seed: 3 }),
       new School(this, { geo: M.fish(2, 'blue'), count: 45, center: pickC(sp.reef, 0.75), radius: 1.4, depth: [-1.2, -0.2], speed: [0.05, 0.13], scale: 2.1, seed: 4 }),
-      new School(this, { geo: M.fish(3, 'sardine'), count: 200, center: [this.center.x - 7.5, 0, this.center.z - 1], radius: 2.4, depth: [-0.9, -0.12], speed: [0.14, 0.28], nr: 0.1, sep: 0.03, w: { coh: 1.6, ali: 1.6, home: 0.9 }, scale: 1.9, swim: [16, 0.004], seed: 5,
-        home: (t) => new V3(this.center.x - 7.5 + Math.cos(t * 0.05) * 2.5, 0, this.center.z - 1 + Math.sin(t * 0.07) * 2.5) }),
+      new School(this, { geo: M.fish(3, 'sardine'), count: 200, center: [this.center.x - this.radius - 3, 0, this.center.z - 1], radius: 2.4, depth: [-0.9, -0.12], speed: [0.14, 0.28], nr: 0.1, sep: 0.03, w: { coh: 1.6, ali: 1.6, home: 0.9 }, scale: 1.9, swim: [16, 0.004], seed: 5,
+        home: (t) => new V3(this.center.x - this.radius - 3 + Math.cos(t * 0.05) * 2.5, 0, this.center.z - 1 + Math.sin(t * 0.07) * 2.5) }),
     ];
-    // 小丑鱼：守在海葵旁边
-    for (const [i, a] of this.anemones.entries()) this.schools.push(new School(this, { geo: M.fish(20 + i, 'clown'), count: 3, center: [a.x, 0, a.z], radius: 0.18, depth: [a.y + 0.03, a.y + 0.12], speed: [0.015, 0.04], nr: 0.08, sep: 0.03, w: { home: 3 }, scale: 2.0, seed: 30 + i }));
     for (const s of this.schools) this.group.add(s.mesh);
+    this._clowns();
+  }
+  /** 小丑鱼：守在海葵旁边 */
+  _clowns() {
+    this.clowns = this.anemones.map((a, i) => new School(this, { geo: memo('clown' + i, () => M.fish(20 + i, 'clown')), count: 3, center: [a.x, 0, a.z], radius: 0.18, depth: [a.y + 0.03, a.y + 0.12], speed: [0.015, 0.04], nr: 0.08, sep: 0.03, w: { home: 3 }, scale: 2.0, seed: 30 + i }));
+    for (const s of this.clowns) { this.schools.push(s); this.group.add(s.mesh); }
+  }
+  /** 游戏里岛变大以后：按新的海岸重建珊瑚、巨藻、海草（返回新的海草叶片列表），鱼群、海龟、海豚、鲸换到新的活动范围 */
+  rebuild(center, radius) {
+    this.center.copy(center); this.radius = radius; this.R = rng(2027);
+    for (const m of [...this.habitat.children]) { this.habitat.remove(m); m.geometry.dispose(); m.dispose?.(); }
+    for (const s of this.clowns) { this.group.remove(s.mesh); s.mesh.geometry.dispose(); s.mesh.dispose?.(); }
+    this.schools = this.schools.filter((s) => !this.clowns.includes(s));
+    this._zones(); this._reef();
+    const sp = this.spots, pick = (list, f, fb) => { const p = list[Math.floor(list.length * f)] || list[0]; return p ? [p[0], 0, p[2]] : fb; };
+    const fb = [this.center.x + radius + 1, 0, this.center.z];
+    this.schools[0].center.set(...pick(sp.reef, 0.3, fb)); this.schools[1].center.set(...pick(sp.reef.length ? sp.reef : sp.grass, 0.75, fb));
+    this._clowns();
+    this.turtles.forEach((tu, i) => { const h = (i === 0 ? sp.grass : sp.reef)[Math.floor(this.R() * 50)]; if (h) tu.home = h; });
+    this.whale.z = this.center.z - this.radius - 15.5;
+    return this.seagrassBlades();
   }
   _turtles() {
     this.turtles = [];
@@ -360,14 +403,14 @@ export class Marine {
   _whale() {
     const g = M.whale(1), { mesh, anim } = swarm(g, this.mats.swimV, 1);
     anim.set([0, 1.6, 0.06, 0], 0);
-    this.whale = { mesh, t: 12, x: this.center.x - 14, z: this.center.z - 20, spouts: 0 };
+    this.whale = { mesh, t: 12, x: this.center.x - 14, z: this.center.z - this.radius - 15.5, spouts: 0 };
     mesh.castShadow = true; this.group.add(mesh);
   }
   _jellies() {
     const n = 26, { mesh, anim } = swarm(M.jelly(1), this.mats.jelly, n), R = this.R;
     this.jellies = { mesh, anim, list: [] };
     for (let i = 0; i < n; i++) {
-      const a = R() * Math.PI * 2, r = 6 + R() * 5, f = 2.6 + R() * 1.2;
+      const a = R() * Math.PI * 2, r = this.radius + 1.5 + R() * 5, f = 2.6 + R() * 1.2;
       anim.set([R() * 6.28, f, 0, 0], i * 4);
       this.jellies.list.push({ p: new V3(this.center.x + Math.cos(a) * r, -0.15 - R() * 0.45, this.center.z + Math.sin(a) * r), v: new V3(), ph: anim[i * 4], f, s: 1.3 + R() * 0.9 });
     }
@@ -410,7 +453,7 @@ export class Marine {
   _updDolphins(dt, t) {
     const D = this.dolphins, c = this.center, m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(0, 0, 0, 'YXZ'), sc = new V3(1.6, 1.6, 1.6);
     // 头领沿一条绕岛的路线游，经过沙丁鱼群（追猎）
-    const R0 = 10.5, w = 0.045, a = t * w;
+    const R0 = this.radius + 6, w = 0.045 * 10.5 / R0, a = t * w;
     const lx = c.x + Math.cos(a) * R0 + Math.sin(t * 0.13) * 1.2, lz = c.z + Math.sin(a) * R0 * 0.85 + Math.cos(t * 0.11) * 1.2;
     const tx = -Math.sin(a) * R0 * w, tz = Math.cos(a) * R0 * 0.85 * w, tl = Math.hypot(tx, tz), fx = tx / tl, fz = tz / tl, sx = -fz, sz = fx;
     D.list.forEach((d, i) => {
@@ -443,7 +486,7 @@ export class Marine {
   _updWhale(dt, t) {
     const W = this.whale; W.t = (W.t + dt) % 70;
     const k = W.t, sp = 0.18;
-    W.x += sp * dt; if (W.x > this.center.x + 16) W.x = this.center.x - 16;
+    const lane = this.radius + 11.5; W.x += sp * dt; if (W.x > this.center.x + lane || W.x < this.center.x - lane - 2) W.x = this.center.x - lane;
     let y, pitch = 0;
     if (k < 8) { y = THREE.MathUtils.lerp(-0.8, -0.1, THREE.MathUtils.smoothstep(k, 0, 8)); pitch = 0.08; }
     else if (k < 22) { y = -0.085 + Math.sin(k * 0.8) * 0.01; pitch = 0; }
@@ -474,6 +517,9 @@ export class Marine {
       const cur = currentAt(j.p.x, j.p.y, j.p.z, t);
       j.p.x += (j.v.x + cur[0] * 0.9 + 0.006) * dt; j.p.y += (j.v.y + cur[1] * 0.5) * dt; j.p.z += (j.v.z + cur[2] * 0.9 + 0.003) * dt;
       if (j.p.y > -0.06) j.v.y -= 0.05 * dt; if (j.p.y < -0.75) j.v.y += 0.05 * dt;
+      // 漂得太远（或漂进浅滩）就从岛的另一侧重新出现，水母群一直留在岛周围
+      const dx = j.p.x - this.center.x, dz = j.p.z - this.center.z, dd = Math.hypot(dx, dz);
+      if (dd > this.radius + 9 || (i % 7 === (Math.floor(t) % 7) && this.ocean.shoreAt(j.p.x, j.p.z) > 0.9)) { const a = Math.atan2(dz, dx) + Math.PI + (Math.random() - 0.5); const r = this.radius + 2 + Math.random() * 4; j.p.set(this.center.x + Math.cos(a) * r, -0.2 - Math.random() * 0.4, this.center.z + Math.sin(a) * r); j.v.set(0, 0, 0); }
       e.set(Math.sin(t * 0.3 + i) * 0.15, i, Math.cos(t * 0.27 + i) * 0.15); q.setFromEuler(e);
       J.mesh.setMatrixAt(i, m4.compose(j.p, q, sc.setScalar(j.s)));
     });

@@ -256,8 +256,9 @@ function bladeMaterial(kind) {
   return m;
 }
 
-/** list: [{x,y,z, h, w, lean, rot, tint:[r,g,b], tint2:[r,g,b]}] */
-export function bladeField(kind, list) {
+const BLADE_MATS = {};
+/** list: [{x,y,z, h, w, lean, rot, tint:[r,g,b], tint2:[r,g,b]}]；cull: 按实例范围做视锥剔除（游戏里分区块用） */
+export function bladeField(kind, list, { cull = false } = {}) {
   const g = kind === 'grass' || kind === 'seagrass' ? bladeGeometry() : kind === 'flower' ? flowerGeometry() : wheatGeometry();
   const n = list.length, P = new Float32Array(n * 4), S = new Float32Array(n * 4), T = new Float32Array(n * 3), T2 = new Float32Array(n * 3);
   list.forEach((b, i) => {
@@ -267,9 +268,14 @@ export function bladeField(kind, list) {
   g.setAttribute('iPos', new THREE.InstancedBufferAttribute(P, 4)); g.setAttribute('iShape', new THREE.InstancedBufferAttribute(S, 4));
   g.setAttribute('iTint', new THREE.InstancedBufferAttribute(T, 3)); g.setAttribute('iTint2', new THREE.InstancedBufferAttribute(T2, 3));
   g.instanceCount = n;
-  g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 200);
-  const mesh = new THREE.Mesh(g, bladeMaterial(kind));
-  mesh.frustumCulled = false; mesh.receiveShadow = true; mesh.castShadow = false; mesh.name = kind + '-field';
+  if (cull && n) {
+    // 按实例位置算包围球，区块不在画面里时整块跳过
+    const bb = new THREE.Box3(); const v = new THREE.Vector3();
+    for (let i = 0; i < n; i++) bb.expandByPoint(v.set(P[i * 4], P[i * 4 + 1], P[i * 4 + 2]));
+    g.boundingSphere = bb.getBoundingSphere(new THREE.Sphere()); g.boundingSphere.radius += 0.4;
+  } else g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 200);
+  const mesh = new THREE.Mesh(g, BLADE_MATS[kind] ||= bladeMaterial(kind));
+  mesh.frustumCulled = cull; mesh.receiveShadow = true; mesh.castShadow = false; mesh.name = kind + '-field';
   return mesh;
 }
 

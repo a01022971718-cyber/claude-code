@@ -74,11 +74,15 @@ export const GOALS = [
   { id: 'wheat', title: '种下第一块麦田', desc: '麦田是阿穗带来的新地块', max: 1, reward: { coupon: 1 } },
 ];
 
-// 画质档位：detail 控制地块上的装饰密度
+// 画质档位。hq=true 用高画质画面（细分地形、真实海洋、生态、后期管线），false 用低多边形画面。
+// grass/flowers：草和花的密度系数；life：动物数量系数；detail：低多边形画面的装饰密度
 export const QUALITY = {
-  high: { label: '高', pixelRatio: 2, shadow: 2048, detail: 1, post: true, bloom: true, samples: 4 },
-  mid: { label: '中', pixelRatio: 1.5, shadow: 1024, detail: 0.75, post: true, bloom: false, samples: 2 },
-  low: { label: '低', pixelRatio: 1, shadow: 0, detail: 0.5, post: false, bloom: false, samples: 0 },
+  ultra: { label: '极高', hq: true, pixelRatio: 2, shadow: 4096, ao: true, dof: true, bloom: true, grass: 0.6, flowers: 0.7, life: 1 },
+  high: { label: '高', hq: true, pixelRatio: 1.5, shadow: 2048, ao: true, dof: true, bloom: true, grass: 0.4, flowers: 0.5, life: 1 },
+  mid: { label: '中', hq: true, pixelRatio: 1, shadow: 2048, ao: false, dof: true, bloom: true, grass: 0.22, flowers: 0.35, life: 0.6 },
+  low: { label: '低', hq: false, pixelRatio: 1.5, shadow: 1024, detail: 0.75, post: true, bloom: false, samples: 2 },
 };
+// 自动降档的顺序（只在高画质画面内部降，不会自动切到低多边形画面，避免重新加载）
+export const QUALITY_DOWN = { ultra: 'high', high: 'mid' };
 
 export const SAVE_KEY = 'yujian_save_v1';

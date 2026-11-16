@@ -34,24 +34,31 @@ export function makeRippleNormalMap(size = 256, seed = 7) {
   return t;
 }
 
-/** 离岸距离场（CPU 计算）：R = 1 在陆地边缘，向外 3 个单位衰减到 0 */
-export function makeShoreField(terrain, size = 384, span = 72) {
-  const data = new Uint8Array(size * size * 4), INR = Math.sqrt(3) / 2;
+/** 离岸距离场（CPU 计算）：R = 1 在陆地边缘，向外 3.2 个单位衰减到 0；G = 是否在陆地上。
+ *  以 (cx,cz) 为中心、边长 span。有陆地距离场（terrain.field）时直接查表，否则逐块计算。 */
+export function makeShoreField(terrain, size = 384, span = 72, cx = 0, cz = 0, out = null) {
+  const data = out ? out.data : new Uint8Array(size * size * 4), INR = Math.sqrt(3) / 2;
   const ns = Array.from({ length: 6 }, (_, k) => [Math.cos(k * Math.PI / 3), Math.sin(k * Math.PI / 3)]);
+  const F = terrain.field;
   for (let j = 0; j < size; j++) for (let i = 0; i < size; i++) {
-    const x = (i + 0.5) / size * span - span / 2, z = (j + 0.5) / size * span - span / 2;
-    let d = 1e9;
-    for (const t of terrain.tiles) {
-      const lx = x - t.x, lz = z - t.z; if (lx * lx + lz * lz > 49) continue;
-      let m = -1e9; for (const n of ns) m = Math.max(m, lx * n[0] + lz * n[1]);
-      d = Math.min(d, m - INR);
+    const x = cx + (i + 0.5) / size * span - span / 2, z = cz + (j + 0.5) / size * span - span / 2;
+    let d;
+    if (F) { d = F.dist(x, z); if (d < 0.6 && terrain.tileAt(x, z)) d = -1; }
+    else {
+      d = 1e9;
+      for (const t of terrain.tiles) {
+        const lx = x - t.x, lz = z - t.z; if (lx * lx + lz * lz > 49) continue;
+        let m = -1e9; for (const n of ns) m = Math.max(m, lx * n[0] + lz * n[1]);
+        d = Math.min(d, m - INR);
+      }
     }
     const s = 1 - Math.min(1, Math.max(0, d) / 3.2);
     const o = (j * size + i) * 4; data[o] = s * 255; data[o + 1] = d < 0 ? 255 : 0; data[o + 3] = 255;
   }
+  if (out) { out.cx = cx; out.cz = cz; out.texture.needsUpdate = true; return out; }
   const t = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
   t.magFilter = t.minFilter = THREE.LinearFilter; t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; t.needsUpdate = true;
-  return { texture: t, span, data, size };
+  return { texture: t, span, data, size, cx, cz };
 }
 
 /** 径向网格：中心密、远处稀，一直铺到地平线 */
@@ -77,18 +84,19 @@ function radialGrid(rings = 230, segs = 300, r0 = 0.25, grow = 1.034) {
 }
 
 const VERT = /* glsl */`
-uniform float uTime; uniform sampler2D uShore; uniform float uShoreSpan;
+uniform float uTime; uniform sampler2D uShore; uniform float uShoreSpan; uniform vec2 uShoreC;
 varying vec3 vWP; varying vec3 vWN; varying float vCrest; varying float vShore; varying float vLand; varying vec4 vClip; varying float vViewZ;
 ${GLSL_WAVES}
 void main(){
   vec3 p = position;
-  vec2 suv = p.xz / uShoreSpan + 0.5;
+  vec2 wxz = (modelMatrix * vec4(p, 1.0)).xz;
+  vec2 suv = (wxz - uShoreC) / uShoreSpan + 0.5;
   vec4 sh = texture2D(uShore, suv);
   float shore = (suv.x > 0.0 && suv.x < 1.0 && suv.y > 0.0 && suv.y < 1.0) ? sh.r : 0.0;
   float att = 1.0 - smoothstep(0.55, 0.98, shore);
   vec3 T = vec3(1.0, 0.0, 0.0), B = vec3(0.0, 0.0, 1.0); float crest = 0.0;
   vec3 disp = vec3(0.0);
-  disp = gerstnerSum(p.xz, uTime, T, B, crest);
+  disp = gerstnerSum(wxz, uTime, T, B, crest);
   float fade = 1.0 - smoothstep(60.0, 220.0, length(p.xz));
   p += disp * att * fade;
   vec3 n = normalize(cross(B, T));
@@ -106,7 +114,7 @@ uniform sampler2D uSceneColor; uniform sampler2D uSceneDepth; uniform sampler2D 
 uniform vec2 uResolution; uniform float cameraNear; uniform float cameraFar;
 uniform vec3 uSunDir; uniform vec3 uSunColor; uniform vec3 uZenith; uniform vec3 uHorizon; uniform vec3 uAmbient;
 uniform vec3 uDeep; uniform vec3 uShallow; uniform vec3 uAbsorb; uniform vec3 uSSS;
-uniform vec3 uFogColor; uniform float uFogDensity;
+uniform vec3 uFogColor; uniform float uFogDensity; uniform float uSpecK;
 uniform vec4 uFalls[4];
 uniform vec4 uRipples[10];
 varying vec3 vWP; varying vec3 vWN; varying float vCrest; varying float vShore; varying float vLand; varying vec4 vClip; varying float vViewZ;
@@ -167,7 +175,7 @@ void main(){
   float F = 0.02 + 0.98 * pow(1.0 - clamp(dot(N, V), 0.0, 1.0), 5.0);
   vec3 refl = skyColor(R);
   float spec = pow(max(dot(R, L), 0.0), 900.0) * 24.0 + pow(max(dot(R, L), 0.0), 120.0) * 0.9;
-  vec3 col = mix(body, refl, F * 0.85) + uSunColor * spec * (1.0 - uCloud * cloudShadow(vWP.xz, uTime) * 0.8);
+  vec3 col = mix(body, refl, F * 0.85) + uSunColor * spec * uSpecK * (1.0 - uCloud * cloudShadow(vWP.xz, uTime) * 0.8);
   // ---- 浪花 ----
   float tFlow = uTime;
   float bubbles = 1.0 - smoothstep(0.08, 0.42, worley2(q * 7.0 + vec2(tFlow * 0.3, tFlow * 0.2)));
@@ -205,19 +213,20 @@ void main(){
 }`;
 
 export class Ocean {
-  constructor({ terrain, sceneColor, sceneDepth }) {
-    this.shore = makeShoreField(terrain);
+  constructor({ terrain, sceneColor, sceneDepth, shoreSize = 384, shoreSpan = 72, cx = 0, cz = 0 }) {
+    this.terrain = terrain;
+    this.shore = makeShoreField(terrain, shoreSize, shoreSpan, cx, cz);
     this.normalMap = makeRippleNormalMap(256);
     this.uniforms = {
       uTime: U.uTime, uCloud: U.uCloud,
-      uShore: { value: this.shore.texture }, uShoreSpan: { value: this.shore.span },
+      uShore: { value: this.shore.texture }, uShoreSpan: { value: this.shore.span }, uShoreC: { value: new THREE.Vector2(this.shore.cx, this.shore.cz) },
       uSceneColor: { value: sceneColor }, uSceneDepth: { value: sceneDepth }, uNormalMap: { value: this.normalMap },
       uResolution: { value: new THREE.Vector2(1, 1) }, cameraNear: { value: 0.1 }, cameraFar: { value: 100 },
       uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uSunColor: { value: new THREE.Color(1, 1, 1) },
       uZenith: { value: new THREE.Color(0x3a7fc4) }, uHorizon: { value: new THREE.Color(0xbfdcea) }, uAmbient: { value: new THREE.Color(0x3a5a70) },
       uDeep: { value: new THREE.Color(0x06324f) }, uShallow: { value: new THREE.Color(0x1fa5a8) },
       uAbsorb: { value: new THREE.Vector3(2.4, 0.75, 0.48) }, uSSS: { value: new THREE.Color(0x2fd6b0) },
-      uFogColor: { value: new THREE.Color(0xbfdcea) }, uFogDensity: { value: 0.012 },
+      uFogColor: { value: new THREE.Color(0xbfdcea) }, uFogDensity: { value: 0.012 }, uSpecK: { value: 1 },
       uFalls: { value: [new THREE.Vector4(), new THREE.Vector4(), new THREE.Vector4(), new THREE.Vector4()] },
       uRipples: { value: Array.from({ length: 10 }, () => new THREE.Vector4()) },
     };
@@ -229,11 +238,17 @@ export class Ocean {
   ripple(x, z, strength = 1) { const r = this.uniforms.uRipples.value[this._ri = ((this._ri || 0) + 1) % 10]; r.set(x, z, U.uTime.value, strength); }
   /** 离岸距离场在 (x,z) 的值：1 = 贴着陆地，0 = 外海 */
   shoreAt(x, z) {
-    const { data, size, span } = this.shore, i = Math.floor((x / span + 0.5) * size), j = Math.floor((z / span + 0.5) * size);
+    const { data, size, span, cx, cz } = this.shore, i = Math.floor(((x - cx) / span + 0.5) * size), j = Math.floor(((z - cz) / span + 0.5) * size);
     if (i < 0 || j < 0 || i >= size || j >= size) return 0;
     return data[(j * size + i) * 4] / 255;
   }
   /** 浮力：海面在 (x,z) 的高度和法线（含近岸衰减） */
   surfaceAt(x, z) { const s = this.shoreAt(x, z); return waveAt(x, z, U.uTime.value, 1 - THREE.MathUtils.smoothstep(s, 0.55, 0.98)); }
+  /** 游戏里：岛变大或镜头移远后，重算离岸场（以 (cx,cz) 为中心），海面网格也挪过去 */
+  recenter(cx, cz) {
+    makeShoreField(this.terrain, this.shore.size, this.shore.span, cx, cz, this.shore);
+    this.uniforms.uShoreC.value.set(cx, cz);
+    this.mesh.position.set(cx, 0, cz);
+  }
   setFalls(list) { list.slice(0, 4).forEach((f, i) => this.uniforms.uFalls.value[i].set(f[0], f[1], f[2] || 0.35, 1)); }
 }

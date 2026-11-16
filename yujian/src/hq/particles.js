@@ -12,7 +12,7 @@ void main(){
   float kind = seed.w; vKind = kind;
   vec3 p; float size; vec4 col;
   if (kind < 0.5) {                     // 花粉：在岛上方缓慢漂浮
-    vec3 b = (seed.xyz - 0.5) * vec3(14.0, 1.6, 12.0) + vec3(1.0, 1.5, -0.3);
+    vec3 b = (seed.xyz - 0.5) * vec3(14.0, 1.6, 12.0) + vec3(1.0, 1.5, -0.3) + uEmit[3];
     float t = uTime * 0.08;
     p = b + vec3(sin(t * 3.0 + seed.x * 40.0) * 0.6, sin(t * 5.0 + seed.y * 30.0) * 0.25, cos(t * 2.0 + seed.z * 50.0) * 0.6);
     size = 0.016 * (0.6 + seed.z);
@@ -42,7 +42,7 @@ void main(){
     size = mix(0.06, 0.45, life);
     col = vec4(vec3(0.78, 0.77, 0.76), 0.16 * (1.0 - life) * smoothstep(0.0, 0.12, life));
   } else {                              // 萤火虫（只在夜里亮）
-    vec3 b = (seed.xyz - 0.5) * vec3(5.5, 0.4, 5.0) + vec3(0.6, 0.72, 0.1);
+    vec3 b = (seed.xyz - 0.5) * vec3(5.5, 0.4, 5.0) + vec3(0.6, 0.72, 0.1) + uEmit[4];
     float t = uTime * 0.3;
     p = b + vec3(sin(t * 2.0 + seed.x * 30.0) * 0.4, sin(t * 3.0 + seed.y * 20.0) * 0.12, cos(t * 2.5 + seed.z * 40.0) * 0.4);
     size = 0.03;
@@ -92,8 +92,10 @@ export class Particles {
     this.smoke = new THREE.Points(g2, this.matSmoke); this.smoke.frustumCulled = false; this.smoke.renderOrder = 9;
     this.points.add(this.smoke);
   }
-  setEmitters({ falls = [], fire, night = 0 }) {
+  /** pollen / flies：花粉和萤火虫活动范围的偏移（游戏里跟着镜头走） */
+  setEmitters({ falls = [], fire, night = 0, pollen, flies }) {
     const e = this.uniforms.uEmit.value;
+    if (pollen) e[3].set(...pollen); if (flies) e[4].set(...flies);
     if (falls[0]) e[0].set(...falls[0]); if (falls[1]) e[1].set(...falls[1]); else if (falls[0]) e[1].set(...falls[0]);
     if (fire) e[2].set(...fire);
     e[5].set(night, 0, 0);

@@ -80,7 +80,7 @@ export class UI {
       + `<button data-a="decor">${ICON.decor}<span>装饰</span></button><button data-a="photo">${ICON.photo}<span>拍照</span></button><button data-a="set">${ICON.gear}<span>设置</span></button>`;
   }
   refreshTime() {
-    const sk = this.app.stage.sky, st = this.g.s.settings;
+    const sk = this.app.view.sky, st = this.g.s.settings;
     this.el.clock.innerHTML = `${sk.isNight ? ICON.moon : ICON.sun}<b>${sk.label()}</b>${st.timeMode === 'fixed' && this.app.forceHour == null ? '<i>固定</i>' : ''}`;
     const sl = document.getElementById('phHour'); if (sl && document.activeElement !== sl) sl.value = sk.hour;
     const lb = document.getElementById('phHourLabel'); if (lb) lb.textContent = sk.label();
@@ -91,13 +91,13 @@ export class UI {
     const sh = this.modal(`<header><h2>岛上的时间</h2><button class="x" data-close>关闭</button></header><div class="set">
       <label class="sw"><span>跟随现实时间<small>早晚和你那边同步，夜里灯会亮起来</small></span><input type="checkbox" id="tmReal" ${st.timeMode === 'real' ? 'checked' : ''}><i></i></label>
       <div class="presets">${presets.map(([n, h]) => `<button data-h="${h}">${n}</button>`).join('')}</div>
-      <label class="slider"><span id="tmLabel">${app.stage.sky.label()}</span><input type="range" id="tmHour" min="0" max="23.9" step="0.1" value="${app.stage.sky.hour}"></label>
+      <label class="slider"><span id="tmLabel">${app.view.sky.label()}</span><input type="range" id="tmHour" min="0" max="23.9" step="0.1" value="${app.view.sky.hour}"></label>
       <p class="ver">拖动或点上面的时段，就会固定在那个时刻</p></div>`, 'small');
     sh.addEventListener('click', (e) => e.stopPropagation());
     sh.querySelector('[data-close]').onclick = () => this.closeModal();
     const real = sh.querySelector('#tmReal'), sl = sh.querySelector('#tmHour'), lb = sh.querySelector('#tmLabel');
-    const fixAt = (h) => { app.setTimeMode('fixed', h); real.checked = false; sl.value = h; lb.textContent = app.stage.sky.label(); };
-    real.onchange = () => { app.setTimeMode(real.checked ? 'real' : 'fixed', app.stage.sky.hour); sl.value = app.stage.sky.hour; lb.textContent = app.stage.sky.label(); };
+    const fixAt = (h) => { app.setTimeMode('fixed', h); real.checked = false; sl.value = h; lb.textContent = app.view.sky.label(); };
+    real.onchange = () => { app.setTimeMode(real.checked ? 'real' : 'fixed', app.view.sky.hour); sl.value = app.view.sky.hour; lb.textContent = app.view.sky.label(); };
     sl.oninput = () => fixAt(Number(sl.value));
     sh.querySelectorAll('[data-h]').forEach((b) => { b.onclick = () => fixAt(Number(b.dataset.h)); });
   }
@@ -167,7 +167,7 @@ export class UI {
     const sw = (k, label) => `<label class="sw"><span>${label}</span><input type="checkbox" id="set_${k}" ${st[k] ? 'checked' : ''}><i></i></label>`;
     const sh = this.modal(`<header><h2>设置</h2><button class="x" data-close>关闭</button></header><div class="set">${sw('sound', '声音')}${sw('music', '背景音乐')}
       <div class="seg"><span>画质${st.autoQuality ? '<small>自动</small>' : ''}</span>${Object.keys(QUALITY).map((k) => `<button data-q="${k}" class="${st.quality === k ? 'on' : ''}">${QUALITY[k].label}</button>`).join('')}</div>
-      <button class="btn ghost" id="setTime">岛上的时间：${st.timeMode === 'real' ? '跟随现实' : '固定 ' + this.app.stage.sky.label()}</button>
+      <button class="btn ghost" id="setTime">岛上的时间：${st.timeMode === 'real' ? '跟随现实' : '固定 ' + this.app.view.sky.label()}</button>
       <div class="rowb"><button class="btn ghost" id="setExport">查看埋点数据</button><button class="btn ghost danger" id="setReset">重新开始</button></div>
       ${app.debug ? `<div class="dbg"><b>调试</b><button data-d="give">+10 资源</button><button data-d="skip">快进 4 小时</button><button data-d="day">进入下一天</button><button data-d="coupon">+2 卡券</button></div>` : ''}
       <p class="ver">屿见 MVP v0.1 · 存档只保存在这台设备的浏览器里</p></div>`);
@@ -221,7 +221,7 @@ export class UI {
     app.mode = on ? 'photo' : 'play'; app.selectCard(-1);
     this.hud(!on); bar.hidden = !on;
     if (!on) return;
-    bar.innerHTML = `<button class="btn ghost" id="phExit">返回</button><button class="shutter" id="phShot" aria-label="拍照"></button><label class="phTime"><span id="phHourLabel">${app.stage.sky.label()}</span><input type="range" id="phHour" min="0" max="23.9" step="0.1" value="${app.stage.sky.hour}" aria-label="拍照时间"></label>`;
+    bar.innerHTML = `<button class="btn ghost" id="phExit">返回</button><button class="shutter" id="phShot" aria-label="拍照"></button><label class="phTime"><span id="phHourLabel">${app.view.sky.label()}</span><input type="range" id="phHour" min="0" max="23.9" step="0.1" value="${app.view.sky.hour}" aria-label="拍照时间"></label>`;
     bar.querySelector('#phExit').onclick = () => { app.forceHour = null; app.updateTime(); this.photoMode(false); };
     bar.querySelector('#phHour').oninput = (e) => { app.forceHour = Number(e.target.value); app.updateTime(); };
     bar.querySelector('#phShot').onclick = () => {

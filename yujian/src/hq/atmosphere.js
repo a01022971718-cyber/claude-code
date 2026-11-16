@@ -12,6 +12,26 @@ export const PRESETS = {
   night: { name: '夜晚', az: 120, el: 48, sun: 0x9db8ff, sunI: 0.75, turb: 2, ray: 0.4, mie: 0.002, mieG: 0.7, gain: 0.025, hemi: [0x5a6fa8, 0x262a3a, 0.5], fog: 0x1c2846, fogD: 0.013, exp: 1.5, zen: 0x0f1a36, hor: 0x2c3a62, amb: 0x2a3858, deep: 0x041a30, shallow: 0x0f5a6a, lamp: 1, bloom: 0.6 },
 };
 
+// 游戏里按小时连续变化：在这些关键时刻之间插值。太阳方位一路单调地从右前方移到左前方，镜头始终是逆光或侧逆光
+const DAY_KEYS = [[0, 'night'], [5.0, 'night'], [6.9, 'morning'], [11.5, 'noon'], [15.2, 'afternoon'], [18.3, 'golden'], [19.9, 'night'], [24, 'night']];
+const GAME_AZ = { morning: 25, noon: 100, afternoon: 150, golden: 172, night: 120 };
+const NUM = ['el', 'sunI', 'turb', 'ray', 'mie', 'mieG', 'gain', 'fogD', 'exp', 'lamp', 'bloom'], COL = ['sun', 'fog', 'zen', 'hor', 'amb', 'deep', 'shallow'];
+const ca = new THREE.Color(), cb = new THREE.Color();
+/** 任意小时（0–24，可带小数）对应的光照参数；nightK = 夜晚程度 0–1 */
+export function presetAt(h) {
+  h = ((h % 24) + 24) % 24;
+  let i = 0; while (i < DAY_KEYS.length - 2 && DAY_KEYS[i + 1][0] <= h) i++;
+  const [h0, n0] = DAY_KEYS[i], [h1, n1] = DAY_KEYS[i + 1], A = PRESETS[n0], B = PRESETS[n1];
+  const u = (h - h0) / (h1 - h0 || 1), k = u * u * (3 - 2 * u), out = { name: k < 0.5 ? A.name : B.name };
+  for (const f of NUM) out[f] = A[f] + (B[f] - A[f]) * k;
+  for (const f of COL) out[f] = ca.setHex(A[f]).lerp(cb.setHex(B[f]), k).getHex();
+  out.hemi = [ca.setHex(A.hemi[0]).lerp(cb.setHex(B.hemi[0]), k).getHex(), ca.setHex(A.hemi[1]).lerp(cb.setHex(B.hemi[1]), k).getHex(), A.hemi[2] + (B.hemi[2] - A.hemi[2]) * k];
+  out.az = GAME_AZ[n0] + (GAME_AZ[n1] - GAME_AZ[n0]) * k;
+  out.nightK = (n0 === 'night' ? 1 - k : 0) + (n1 === 'night' ? k : 0);
+  if (n0 === 'night' && n1 === 'night') out.nightK = 1;
+  return out;
+}
+
 export class Atmosphere {
   constructor(renderer, scene) {
     this.renderer = renderer; this.scene = scene;
@@ -35,32 +55,43 @@ export class Atmosphere {
     this.center = new THREE.Vector3(1.2, 0, -0.4);
     this.preset = null;
   }
-  apply(p, ocean, post) {
+  /** 阴影范围跟着镜头：以 (x,z) 为中心、半边长 half */
+  follow(x, z, half) {
+    this.center.set(Math.round(x * 4) / 4, 0, Math.round(z * 4) / 4);
+    const c = this.sun.shadow.camera;
+    if (Math.abs(c.right - half) > 0.01) { c.left = -half; c.right = half; c.top = half; c.bottom = -half; c.far = 60 + half * 2; c.updateProjectionMatrix(); }
+    this.sun.position.copy(this.center).addScaledVector(this.dir, 40); this.sun.target.position.copy(this.center);
+  }
+  /** bake=false 时不重烘环境光照（连续调时间时节流用） */
+  apply(p, ocean, post, bake = true) {
     this.preset = p;
     const az = THREE.MathUtils.degToRad(p.az), el = THREE.MathUtils.degToRad(p.el);
     this.dir.set(Math.cos(az) * Math.cos(el), Math.sin(el), -Math.sin(az) * Math.cos(el)).normalize();
     const u = this.sky.material.uniforms;
     u.turbidity.value = p.turb; u.rayleigh.value = p.ray; u.mieCoefficient.value = p.mie; u.mieDirectionalG.value = p.mieG; u.uGain.value = p.gain;
-    const night = p === PRESETS.night;
-    u.sunPosition.value.copy(night ? new THREE.Vector3(-0.3, -0.05, -1) : this.dir);
+    const nightK = p.nightK ?? (p === PRESETS.night ? 1 : 0), night = nightK > 0.5;
+    u.sunPosition.value.copy(this.dir).lerp(new THREE.Vector3(-0.3, -0.05, -1).normalize(), THREE.MathUtils.smoothstep(nightK, 0.25, 0.75)).normalize();
     this.sun.color.set(p.sun); this.sun.intensity = p.sunI;
     this.sun.position.copy(this.center).addScaledVector(this.dir, 40); this.sun.target.position.copy(this.center);
     this.hemi.color.set(p.hemi[0]); this.hemi.groundColor.set(p.hemi[1]); this.hemi.intensity = p.hemi[2];
     this.scene.fog.color.set(p.fog); this.scene.fog.density = p.fogD;
     this.renderer.toneMappingExposure = p.exp;
     // 环境光照：把当前天空烘成预过滤的环境贴图
-    if (this.envRT) this.envRT.dispose();
-    this.envRT = this.pmrem.fromScene(this.envScene, 0, 0.1, 5000);
-    this.scene.environment = this.envRT.texture;
-    this.scene.environmentIntensity = night ? 0.35 : 1.0;
-    U.uCloud.value = night ? 0 : 1;
-    U.uSunCol.value.set(p.sun).multiplyScalar(p.sunI * 0.35); U.uCaustic.value = night ? 0.15 : 0.9;
+    if (bake || !this.envRT) {
+      if (this.envRT) this.envRT.dispose();
+      this.envRT = this.pmrem.fromScene(this.envScene, 0, 0.1, 5000);
+      this.scene.environment = this.envRT.texture;
+    }
+    this.scene.environmentIntensity = 1 - nightK * 0.65;
+    U.uCloud.value = 1 - nightK;
+    U.uSunCol.value.set(p.sun).multiplyScalar(p.sunI * 0.35); U.uCaustic.value = 0.9 - nightK * 0.75;
     if (ocean) {
       const o = ocean.uniforms;
       o.uSunDir.value.copy(this.dir); o.uSunColor.value.set(p.sun).multiplyScalar(p.sunI * 0.32);
       o.uZenith.value.set(p.zen); o.uHorizon.value.set(p.hor); o.uAmbient.value.set(p.amb);
       o.uDeep.value.set(p.deep); o.uShallow.value.set(p.shallow);
       o.uFogColor.value.set(p.fog); o.uFogDensity.value = p.fogD;
+      if (o.uSpecK) o.uSpecK.value = 1 - nightK * 0.8;
     }
     if (post) post.bloom.strength = p.bloom;
   }

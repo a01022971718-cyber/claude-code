@@ -54,9 +54,11 @@ export class Terrain {
   _init(t) {
     const [x, z] = toWorld(t.q, t.r);
     t.x = x; t.z = z;
-    t.base = (TYPES[t.t] || TYPES.meadow).h + (NZ.n2(t.q * 3.1, t.r * 2.7)) * 0.012;
+    t.base = this.baseOf(t);
     this.field.add(x, z);
   }
+  /** 地块的基准高度（按类型 + 一点按位置固定的起伏） */
+  baseOf(t) { return (TYPES[t.t] || TYPES.meadow).h + (NZ.n2(t.q * 3.1, t.r * 2.7)) * 0.012; }
   /** 新增一块地（游戏里放地块时调用），返回受影响的地块键（自己 + 邻居） */
   addTile(t) {
     this.tiles.push(t); this.map.set(key(t.q, t.r), t); this._init(t);

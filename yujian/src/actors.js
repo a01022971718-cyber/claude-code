@@ -4,6 +4,7 @@ import { G, mulberry32 } from './geo.js';
 import * as B from './models/buildings.js';
 import { toWorld, fromWorld, DIRS, key } from './hex.js';
 import { TOP } from './config.js';
+import { GROUND } from './ground.js';
 import { HOME_POSE, rotY } from './tiles.js';
 import { FX } from './fx.js';
 
@@ -74,7 +75,7 @@ export class Actors {
   addLandmark(lm, def, active) {
     if (this.landmarks.has(lm.i)) return;
     const [x, z] = toWorld(lm.q, lm.r), grp = new THREE.Group(), rng = mulberry32(lm.i * 13 + 1);
-    grp.position.set(x, TOP, z); grp.rotation.y = LM_RY; this.scene.add(grp);
+    grp.position.set(x, GROUND.y(x, z) - 0.01, z); grp.rotation.y = LM_RY; this.scene.add(grp);
     const o = { lm, type: def.type, grp, active, pop: 0 };
     if (def.type === 'windmill') {
       const m = B.windmill(rng); this._mesh(m.static, grp);
@@ -104,7 +105,7 @@ export class Actors {
   // ---------- 小人 ----------
   addPerson(opts, x, z, seed = 1) {
     const m = this._mesh(asG(B.person(mulberry32(seed), opts)));
-    m.scale.setScalar(1.25); m.position.set(x, TOP, z);
+    m.scale.setScalar(1.25); m.position.set(x, GROUND.y(x, z), z);
     this.people.push({ m, x, z, tx: x, tz: z, wait: 1 + Math.random() * 2, walk: 0, seed });
   }
   clearPeople() { for (const p of this.people) { this.scene.remove(p.m); p.m.geometry.dispose(); } this.people = []; }
@@ -113,9 +114,9 @@ export class Actors {
       const dx = p.tx - p.x, dz = p.tz - p.z, d = Math.hypot(dx, dz), sp = 0.75;
       if (d < 0.03) { p.walk = 0; p.wait = 1.5 + Math.random() * 3.5; }
       else { p.x += (dx / d) * Math.min(d, sp * dt); p.z += (dz / d) * Math.min(d, sp * dt); p.m.rotation.y = Math.atan2(dx, dz); }
-      p.m.position.set(p.x, TOP + Math.abs(Math.sin(this.t * 11 + p.seed)) * 0.035, p.z);
+      p.m.position.set(p.x, GROUND.y(p.x, p.z) + Math.abs(Math.sin(this.t * 11 + p.seed)) * 0.035, p.z);
     } else {
-      p.wait -= dt; p.m.position.y = TOP;
+      p.wait -= dt; p.m.position.y = GROUND.y(p.x, p.z);
       if (p.wait <= 0) {
         // 走向相邻的可行走地块上的随机一点
         const [q0, r0] = fromWorld(p.x, p.z);
@@ -147,7 +148,7 @@ export class Actors {
   }
   showCrate(x, z) { this.cratePos = [x, z]; this.crate.visible = true; }
   hideCrate() { this.cratePos = null; this.crate.visible = false; }
-  setHome(q, r) { const [x, z] = toWorld(q, r), c = rotY(B.cabin(mulberry32(1)).anchors.chimney, HOME_POSE.ry); this.smokeAt = [x + HOME_POSE.x + c[0], TOP + c[1], z + HOME_POSE.z + c[2]]; }
+  setHome(q, r) { const [x, z] = toWorld(q, r), c = rotY(B.cabin(mulberry32(1)).anchors.chimney, HOME_POSE.ry); this.smokeAt = this.noChimney ? null : [x + HOME_POSE.x + c[0], TOP + c[1], z + HOME_POSE.z + c[2]]; }
 
   update(dt) {
     this.t += dt; const t = this.t;
@@ -158,8 +159,8 @@ export class Actors {
       if (o.bell) o.bell.rotation.x = o.active ? Math.sin(t * 2.6) * 0.32 : 0;
     }
     for (const p of this.people) this._stepPerson(p, dt);
-    for (const b of this.boats.values()) if (b.m.visible) { b.m.position.set(b.x, Math.sin(t * 1.6 + b.ph) * 0.03 + 0.02, b.z); b.m.rotation.z = Math.sin(t * 1.3 + b.ph) * 0.07; }
-    if (this.cratePos) { this.crate.position.set(this.cratePos[0], Math.sin(t * 1.8) * 0.05 - 0.07, this.cratePos[1]); this.crate.rotation.set(Math.sin(t * 1.1) * 0.12, t * 0.25, Math.sin(t * 1.4) * 0.1); }
+    for (const b of this.boats.values()) if (b.m.visible) { b.m.position.set(b.x, GROUND.water ? GROUND.water(b.x, b.z) + 0.01 : Math.sin(t * 1.6 + b.ph) * 0.03 + 0.02, b.z); b.m.rotation.z = Math.sin(t * 1.3 + b.ph) * 0.07; }
+    if (this.cratePos) { this.crate.position.set(this.cratePos[0], (GROUND.water ? GROUND.water(this.cratePos[0], this.cratePos[1]) : Math.sin(t * 1.8) * 0.05) - 0.07, this.cratePos[1]); this.crate.rotation.set(Math.sin(t * 1.1) * 0.12, t * 0.25, Math.sin(t * 1.4) * 0.1); }
     if (this.smokeAt) { this.smokeT -= dt; if (this.smokeT <= 0) { this.smokeT = 0.55; const s = this.smokeAt; this.fx.spawn(s[0], s[1], s[2], 0.12 + Math.random() * 0.1, 0.42, -0.05, 0xf3f0ea, 0.045, 2.6, -0.02, 2.2); } }
     for (const g of this.gulls) {
       const a = t * g.sp + g.ph, x = this.center[0] + Math.cos(a) * g.r, z = this.center[1] + Math.sin(a) * g.r;

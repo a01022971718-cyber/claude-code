@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { mulberry32 } from './geo.js';
 import { DECOR_LIST } from './models/decor.js';
 import { TOP } from './config.js';
+import { GROUND } from './ground.js';
 import { toWorld, fromWorld, CORNERS } from './hex.js';
 import { HOME_POSE } from './tiles.js';
 import { thumb } from './thumbs.js';
@@ -21,7 +22,7 @@ const LV = { pass: ['✓', '通过'], fixed: ['✓', '已修复'], info: ['i', '
 export class DecorMode {
   constructor(app) {
     this.app = app; this.g = app.game;
-    this.group = new THREE.Group(); app.stage.scene.add(this.group);
+    this.group = new THREE.Group(); app.view.scene.add(this.group);
     this.geoCache = new Map(); this.thumbCache = new Map();
     this.meshes = new Map();       // 装饰条目 → 网格
     this.pending = null;           // 托盘里选中的素材 id
@@ -31,7 +32,7 @@ export class DecorMode {
     // 选中标记
     const ring = new THREE.RingGeometry(0.34, 0.44, 24); ring.rotateX(-Math.PI / 2);
     this.ring = new THREE.Mesh(ring, new THREE.MeshBasicMaterial({ color: 0xf7c948, transparent: true, opacity: 0.95, depthWrite: false, fog: false }));
-    this.ring.visible = false; this.ring.renderOrder = 5; app.stage.scene.add(this.ring);
+    this.ring.visible = false; this.ring.renderOrder = 5; app.view.scene.add(this.ring);
     this.t = 0;
     for (const d of this.g.s.decor) this._spawn(d);
   }
@@ -64,9 +65,9 @@ export class DecorMode {
   _spawn(d) {
     const geo = this.geometry(d.a);
     if (!geo) return null;
-    const m = new THREE.Mesh(geo, this.app.world.mat);
+    const m = new THREE.Mesh(geo, this.app.view.mat);
     m.castShadow = m.receiveShadow = true;
-    m.position.set(d.x, TOP, d.z); m.rotation.y = d.ry || 0; m.userData.d = d;
+    m.position.set(d.x, GROUND.y(d.x, d.z), d.z); m.rotation.y = d.ry || 0; m.userData.d = d;
     this.group.add(m); this.meshes.set(d, m);
     return m;
   }
@@ -77,7 +78,7 @@ export class DecorMode {
     const app = this.app;
     app.selectCard(-1); app.mode = 'decor'; app.ui.hud(false);
     this.undo = []; this.pending = null; this.select(null);
-    app.markers.setFrontier(this.g.s.tiles.filter((t) => t.own && OK_TILES.includes(t.t)).map((t) => [t.q, t.r]));
+    app.view.markers.setFrontier(this.g.s.tiles.filter((t) => t.own && OK_TILES.includes(t.t)).map((t) => [t.q, t.r]));
     app.ui.el.tray.hidden = false;
     analytics.track('decor_open');
     this.renderTray();
@@ -85,7 +86,7 @@ export class DecorMode {
   }
   exit() {
     const app = this.app;
-    app.mode = 'play'; app.ui.el.tray.hidden = true; app.markers.setFrontier([]); this.select(null); this.pending = null;
+    app.mode = 'play'; app.ui.el.tray.hidden = true; app.view.markers.setFrontier([]); this.select(null); this.pending = null;
     app.ui.hud(true); app.ui.hint(''); app.ui.refresh();
   }
   renderTray() {
@@ -114,13 +115,13 @@ export class DecorMode {
   }
   select(d) {
     this.selected = d;
-    if (d) { this.ring.position.set(d.x, TOP + 0.02, d.z); this.ring.visible = true; this.app.ui.hint('点空地把它挪过去，或用上面的按钮旋转、收起'); }
+    if (d) { this.ring.position.set(d.x, GROUND.y(d.x, d.z) + 0.02, d.z); this.ring.visible = true; this.app.ui.hint('点空地把它挪过去，或用上面的按钮旋转、收起'); }
     else this.ring.visible = false;
   }
 
   // ---------- 操作 ----------
   _spot(cx, cy) {
-    const p = this.app.rig.ground(cx, cy, TOP), [q, r] = fromWorld(p.x, p.z), t = this.g.tile(q, r);
+    const p = this.app.rig.ground(cx, cy, GROUND.top), [q, r] = fromWorld(p.x, p.z), t = this.g.tile(q, r);
     if (!t || !t.own || !OK_TILES.includes(t.t)) return { err: t && t.own ? '装饰只能摆在草地、海边渔港和地标小岛上' : '只能摆在自己的岛上' };
     const [tx, tz] = toWorld(q, r), lx = p.x - tx, lz = p.z - tz;
     if (t.t === 'islet' && t.center && Math.hypot(lx, lz) < 0.62) return { err: '这里是地标建筑，换个位置' };
@@ -138,11 +139,11 @@ export class DecorMode {
     if (this.pending) {
       const d = { a: this.pending, x: spot.x, z: spot.z, ry: this.pendRot || 0 };
       const goals = this.g.addDecor(d); this._spawn(d); this.undo.push({ t: 'add', d });
-      this.app.actors.fx.burst(d.x, TOP + 0.1, d.z, 0xffffff, 10, 1.6, 0.04, 0.2);
+      this.app.actors.fx.burst(d.x, GROUND.y(d.x, d.z) + 0.1, d.z, 0xffffff, 10, 1.6, 0.04, 0.2);
       audio.sfx('preview'); this.select(d); this.app.afterGoals(goals); this.renderTray();
     } else if (this.selected) {
       const d = this.selected; this.undo.push({ t: 'move', d, x: d.x, z: d.z });
-      d.x = spot.x; d.z = spot.z; this.meshes.get(d)?.position.set(d.x, TOP, d.z); this.select(d); this.g.save(); audio.sfx('preview'); this.renderTray();
+      d.x = spot.x; d.z = spot.z; this.meshes.get(d)?.position.set(d.x, GROUND.y(d.x, d.z), d.z); this.select(d); this.g.save(); audio.sfx('preview'); this.renderTray();
     }
   }
   rotate() {
@@ -159,7 +160,7 @@ export class DecorMode {
     const u = this.undo.pop(); if (!u) return;
     if (u.t === 'add') { this.g.removeDecor(u.d); this._despawn(u.d); this.select(null); }
     if (u.t === 'del') { this.g.s.decor.push(u.d); this.g.save(); this._spawn(u.d); this.select(u.d); }
-    if (u.t === 'move') { u.d.x = u.x; u.d.z = u.z; this.meshes.get(u.d)?.position.set(u.x, TOP, u.z); this.g.save(); this.select(u.d); }
+    if (u.t === 'move') { u.d.x = u.x; u.d.z = u.z; this.meshes.get(u.d)?.position.set(u.x, GROUND.y(u.x, u.z), u.z); this.g.save(); this.select(u.d); }
     if (u.t === 'rot') { u.d.ry = u.ry; this.meshes.get(u.d).rotation.y = u.ry; this.g.save(); this.select(u.d); }
     this.renderTray();
   }

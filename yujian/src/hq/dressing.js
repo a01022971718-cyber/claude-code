@@ -35,6 +35,10 @@ export function kit() {
 
 const FC = [[1.0, 0.82, 0.18], [0.98, 0.96, 0.9], [0.98, 0.5, 0.68], [0.62, 0.48, 0.9], [1.0, 0.58, 0.2]].map((c) => c.map((v) => Math.pow(v, 2.2)));
 
+// 道具模型生成很慢（茅屋、营火各约 60ms），每种只生成几个变体，缓存起来共用
+const PROPS = new Map();
+function propOf(fn, sd) { let m = PROPS.get(fn); if (!m) PROPS.set(fn, m = new Map()); let r = m.get(sd); if (!r) { r = fn(sd * 97 + 11); m.set(sd, r); } return r; }
+
 /** 生成一块地的装点。opts: { grass: 草的密度系数, flowers: 花的密度系数, props: 是否放道具, clear: [[x,z,r]] 额外要空出来的圆 } */
 export function dressTile(T, t, opts = {}) {
   const R = rng(tileSeed(t.q, t.r)), dens = opts.grass ?? 1, fdens = opts.flowers ?? dens;
@@ -75,7 +79,7 @@ export function dressTile(T, t, opts = {}) {
   if (ty === 'camp' && opts.props !== false) {
     const hutX = t.x - 0.24, hutZ = t.z - 0.27, fx = t.x + 0.12, fz = t.z + 0.1;
     taken.push([hutX, hutZ, 0.36], [fx, fz, 0.3]); out.obstacles.push([hutX, hutZ, 0.34], [fx, fz, 0.18]);
-    const prop = (fn, x, z, ry, s = 1) => { if (typeof fn !== 'function') return null; const r = fn(Math.floor(R() * 1000)); out.meshes.push({ geo: r.geometry, mat: 'prop', pos: [x, H(x, z) - 0.01, z], ry, s, anchors: r.anchors }); return out.meshes[out.meshes.length - 1]; };
+    const prop = (fn, x, z, ry, s = 1) => { if (typeof fn !== 'function') return null; const sd = Math.floor(R() * 1000) % 3, r = propOf(fn, sd); out.meshes.push({ geo: r.geometry, mat: 'prop', pos: [x, H(x, z) - 0.01, z], ry, s, anchors: r.anchors, shared: true }); return out.meshes[out.meshes.length - 1]; };
     prop(P.strawHut, hutX, hutZ, 0.5, 1.05);
     const f = prop(P.campfire, fx, fz, 0, 1);
     if (f) { const a = f.anchors?.fire || [0, 0.02, 0]; out.fire = [fx + a[0], f.pos[1] + a[1], fz + a[2]]; }
