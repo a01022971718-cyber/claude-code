@@ -59,6 +59,7 @@ class Showcase {
       pond: { pos: [-1.5, 1.45, 4.7], tgt: [0.05, 0.38, 2.95] },
       beach: { pos: [7.4, 1.5, 4.2], tgt: [4.6, 0.25, 1.8] },
       ocean: { pos: [-6, 3, -6], tgt: [-8, -0.2, -16] },
+      wild: { pos: [6.3, 1.75, 0.9], tgt: [4.1, 0.45, -1.35] },
     };
     this.setShot(qs.get('shot') || 'hero', true);
     this.setTime(qs.get('time') || 'afternoon');
@@ -381,7 +382,7 @@ class Showcase {
   }
   ui() {
     const bar = document.getElementById('bar'); if (!bar) return;
-    const shots = { hero: '全景', camp: '营地', falls: '瀑布', reef: '珊瑚礁', pond: '池塘', beach: '沙滩', ocean: '鲸', horizon: '海平线', top: '俯视' };
+    const shots = { hero: '全景', camp: '营地', falls: '瀑布', wild: '牧场', reef: '珊瑚礁', pond: '池塘', beach: '沙滩', ocean: '鲸', horizon: '海平线', top: '俯视' };
     const times = { morning: '清晨', noon: '正午', afternoon: '午后', golden: '黄昏', night: '夜晚' };
     bar.innerHTML = `<div class="grp"><span>镜头</span>${Object.entries(shots).map(([k, v]) => `<button data-shot="${k}">${v}</button>`).join('')}</div>
       <div class="grp"><span>时段</span>${Object.entries(times).map(([k, v]) => `<button data-time="${k}">${v}</button>`).join('')}</div>

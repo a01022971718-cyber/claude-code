@@ -75,7 +75,7 @@ export class Terrain {
       if (d < w) { const f = 1 - Math.max(0, d) / w; h -= dep * f * f; }
     }
     // 池塘：碗状下凹
-    for (const pd of this.ponds) { const d = Math.hypot(x - pd.x, z - pd.z); if (d < pd.r * 1.3) { const f = THREE.MathUtils.smoothstep(d, pd.r * 1.3, pd.r * 0.45); h -= pd.depth * f; } }
+    for (const pd of this.ponds) { const d = Math.hypot(x - pd.x, z - pd.z); if (d < pd.r * 1.3) { const f = 1 - THREE.MathUtils.smoothstep(d, pd.r * 0.45, pd.r * 1.3); h -= pd.depth * f; } }
     // 河道
     if (this.river) {
       const [d] = this.river(x, z), w = this.riverW;

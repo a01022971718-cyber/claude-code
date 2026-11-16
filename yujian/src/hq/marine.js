@@ -279,7 +279,7 @@ export class Marine {
         const it = { x, y, z, ry: R() * 6.28, s: 1.3 + R() * 1.3 }, pick = R();
         if (pick < 0.36) corals.branch[Math.floor(R() * 3)].push(it);
         else if (pick < 0.5) corals.brain.push(it);
-        else if (pick < 0.62) corals.table.push({ ...it, s: it.s * 0.9 });
+        else if (pick < 0.62) corals.table.push({ ...it, s: 0.8 + R() * 0.6 });
         else if (pick < 0.75) corals.fan.push(it);
         else if (pick < 0.86) corals.anem.push(it);
         else if (pick < 0.94) corals.star.push({ ...it, y: y + 0.004, s: 1.4 });
@@ -300,7 +300,7 @@ export class Marine {
     // 巨藻林：从海底一直长到快到海面
     const kelpV = [M.kelp(11, 1.0), M.kelp(12, 1.3), M.kelp(13, 1.6)], kelpItems = [[], [], []];
     for (const p of this._place(sp.kelp, 90, 0.18)) {
-      const top = -0.06 - R() * 0.1, hh = top - p[1], v = hh > 1.3 ? 2 : hh > 1.0 ? 1 : 0, base = [1.0, 1.3, 1.6][v];
+      const top = -0.14 - R() * 0.14, hh = top - p[1], v = hh > 1.3 ? 2 : hh > 1.0 ? 1 : 0, base = [1.0, 1.3, 1.6][v];
       kelpItems[v].push({ x: p[0], y: p[1] - 0.01, z: p[2], ry: R() * 6.28, s: 1, sy: hh / base });
     }
     kelpV.forEach((g, i) => this._inst(g, O, kelpItems[i]));
@@ -322,13 +322,13 @@ export class Marine {
   _fish() {
     const sp = this.spots, pickC = (list, f) => { const p = list[Math.floor(list.length * f)] || list[0] || [this.center.x + 4, -0.7, this.center.z]; return [p[0], 0, p[2]]; };
     this.schools = [
-      new School(this, { geo: M.fish(1, 'tang'), count: 70, center: pickC(sp.reef, 0.3), radius: 1.6, depth: [-1.2, -0.18], speed: [0.05, 0.12], scale: 1.5, seed: 3 }),
-      new School(this, { geo: M.fish(2, 'blue'), count: 45, center: pickC(sp.reef, 0.75), radius: 1.4, depth: [-1.2, -0.2], speed: [0.05, 0.13], scale: 1.5, seed: 4 }),
-      new School(this, { geo: M.fish(3, 'sardine'), count: 200, center: [this.center.x - 7.5, 0, this.center.z - 1], radius: 2.4, depth: [-0.9, -0.12], speed: [0.14, 0.28], nr: 0.1, sep: 0.03, w: { coh: 1.6, ali: 1.6, home: 0.9 }, scale: 1.4, swim: [16, 0.004], seed: 5,
+      new School(this, { geo: M.fish(1, 'tang'), count: 70, center: pickC(sp.reef, 0.3), radius: 1.6, depth: [-1.2, -0.18], speed: [0.05, 0.12], scale: 2.1, seed: 3 }),
+      new School(this, { geo: M.fish(2, 'blue'), count: 45, center: pickC(sp.reef, 0.75), radius: 1.4, depth: [-1.2, -0.2], speed: [0.05, 0.13], scale: 2.1, seed: 4 }),
+      new School(this, { geo: M.fish(3, 'sardine'), count: 200, center: [this.center.x - 7.5, 0, this.center.z - 1], radius: 2.4, depth: [-0.9, -0.12], speed: [0.14, 0.28], nr: 0.1, sep: 0.03, w: { coh: 1.6, ali: 1.6, home: 0.9 }, scale: 1.9, swim: [16, 0.004], seed: 5,
         home: (t) => new V3(this.center.x - 7.5 + Math.cos(t * 0.05) * 2.5, 0, this.center.z - 1 + Math.sin(t * 0.07) * 2.5) }),
     ];
     // 小丑鱼：守在海葵旁边
-    for (const [i, a] of this.anemones.entries()) this.schools.push(new School(this, { geo: M.fish(20 + i, 'clown'), count: 3, center: [a.x, 0, a.z], radius: 0.18, depth: [a.y + 0.03, a.y + 0.12], speed: [0.015, 0.04], nr: 0.08, sep: 0.03, w: { home: 3 }, scale: 1.5, seed: 30 + i }));
+    for (const [i, a] of this.anemones.entries()) this.schools.push(new School(this, { geo: M.fish(20 + i, 'clown'), count: 3, center: [a.x, 0, a.z], radius: 0.18, depth: [a.y + 0.03, a.y + 0.12], speed: [0.015, 0.04], nr: 0.08, sep: 0.03, w: { home: 3 }, scale: 2.0, seed: 30 + i }));
     for (const s of this.schools) this.group.add(s.mesh);
   }
   _turtles() {
