@@ -2,6 +2,7 @@
 import { TILE, RES, RES_NAME, DAILY, QUALITY, gfx } from './config.js';
 import { CAM_ICON } from './camdock.js';
 import { aiError, PROVIDERS } from './ai.js';
+import { STYLE, THEME_KEY } from './hq/blocky.js';
 import { audio } from './audio.js';
 import { ads, analytics, inFrame } from './services.js';
 import { tileThumb } from './thumbs.js';
@@ -198,6 +199,7 @@ export class UI {
     sh.querySelectorAll('[data-d]').forEach((b) => { b.onclick = () => app.dbg[b.dataset.d](); });
     // 画面页
     const again = () => setTimeout(() => { if (!this.el.modal.hidden) this.openSettings('gfx'); }, 30);
+    sh.querySelectorAll('[data-theme]').forEach((b) => { b.onclick = () => { if (b.dataset.theme === STYLE.theme) return; try { localStorage.setItem(THEME_KEY, b.dataset.theme); } catch { /* 存不了就算了 */ } this.g.save(true); this.toast('正在切换主题…'); setTimeout(() => location.reload(), 300); }; });
     sh.querySelectorAll('[data-preset]').forEach((b) => { b.onclick = () => { app.setQuality(b.dataset.preset); again(); }; });
     sh.querySelectorAll('[data-g]').forEach((b) => { b.onclick = () => { app.setGfx(b.dataset.g, JSON.parse(b.dataset.v)); again(); }; });
     sh.querySelectorAll('[data-fps]').forEach((b) => { b.onclick = () => { st.fps = b.dataset.fps; if (app.pace) app.pace.lock30 = false; this.g.save(); again(); }; });
@@ -293,6 +295,7 @@ export class UI {
     const presets = ['smooth', 'mid', 'high', 'ultra'].map((k) => `<button data-preset="${k}" class="${st.quality === k && !custom ? 'on' : ''}">${QUALITY[k].label}</button>`).join('');
     const fps = String(st.fps ?? 'auto');
     return `
+      <div class="grow gpre"><div class="gl"><b>美术主题</b><small>经典：低多边形手作风；体素：一格一格的方块世界（树、动物、岩石、山都是方块）。切换后重新载入</small></div><div class="gseg">${[['classic', '经典'], ['voxel', '体素']].map(([k, l]) => `<button data-theme="${k}" class="${STYLE.theme === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
       <div class="grow gpre"><div class="gl"><b>画质预设${custom ? '<em>自定义</em>' : ''}</b><small>每一档都是清晰画面，区别在阴影、光影、植被和生物的细节</small></div><div class="gseg">${presets}</div></div>
       <div class="grow"><div class="gl"><b>帧率</b><small>自动：撑不住 60 帧时稳定在 30 帧；高刷只对 90/120Hz 屏幕有用</small></div><div class="gseg">${[['auto', '自动'], ['30', '30'], ['60', '60'], ['120', '高刷']].map(([k, l]) => `<button data-fps="${k}" class="${fps === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
       <h3>清晰度</h3>

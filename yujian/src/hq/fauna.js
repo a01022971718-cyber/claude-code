@@ -5,8 +5,8 @@
 import * as THREE from 'three';
 import * as L0 from './models-land.js';
 import * as BK from './blocky.js';
-// 方块风格原型：羊和兔子换成方块造型（其余物种暂不变）
-const L = BK.STYLE.blocky ? { ...L0, sheep: BK.sheep, rabbit: BK.rabbit } : L0;
+// 体素主题：陆地动物换成方块造型（蝴蝶、蜜蜂、蜻蜓、林鸟太小，两套主题共用）
+const L = BK.STYLE.blocky ? { ...L0, sheep: BK.sheep, rabbit: BK.rabbit, deer: BK.deer, goat: BK.goat, crab: BK.crab, duck: BK.duck, frog: BK.frog } : L0;
 import { GLSL_NOISE } from './noise.js';
 import { U } from './materials.js';
 import { G } from './waves.js';

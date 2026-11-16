@@ -36,7 +36,12 @@ export function kit() {
       con: [1, 2, 3, 4, 5].map((s) => BK.voxelConifer(s)),
       broad: [BK.voxelTree(3, 'green'), BK.voxelTree(7, 'lime'), BK.voxelTree(9, 'green'), BK.voxelTree(13, 'autumn'), BK.voxelTree(17, 'green')],
       bush: [BK.voxelBush(1, 'green'), BK.voxelBush(2, 'lime'), BK.voxelBush(3, 'green')],
+      rock: [1, 2, 3, 4, 5, 6, 7, 8].map((s) => BK.voxelRock(s, s % 4, s < 7 ? 1 : 0)),
+      palm: [BK.voxelPalm(1, 0.95), BK.voxelPalm(2, 1.1)],
     } : {}),
+    // 远处用的简化树：每个变体一份（和高精度树一一对应），远近切换由画面按区块决定
+    conLo: (() => { const g = BK.lowConifer(BK.STYLE.blocky); return [g, g, g, g, g]; })(),
+    broadLo: [BK.lowBroad('green', BK.STYLE.blocky), BK.lowBroad('lime', BK.STYLE.blocky), BK.lowBroad('green', BK.STYLE.blocky), BK.lowBroad('autumn', BK.STYLE.blocky), BK.lowBroad(BK.STYLE.blocky ? 'green' : 'blossom', BK.STYLE.blocky)],
     wrack: [L.wrack(1).geometry, L.wrack(2).geometry], drift: [L.driftwood(1).geometry, L.driftwood(2).geometry], shell: [L.shells(1).geometry, L.shells(2).geometry],
   };
   return KIT;
@@ -80,8 +85,9 @@ export function dressTile(T, t, opts = {}) {
   }
   if (ty === 'mountain') {
     const pick = R(), big = pick < 0.34 ? [2.5, 0.95] : pick < 0.67 ? [2.1, 0.88] : [1.5, 0.72];
-    out.meshes.push({ geo: peak(tileSeed(t.q, t.r) % 997, big[1], big[0]), mat: 'peak', pos: [t.x + (R() - 0.5) * 0.2, t.base - 0.03, t.z + (R() - 0.5) * 0.2], ry: R() * 6.28, peak: true });
-    for (let k = 0; k < 2; k++) { const a = R() * 6.28, d = 0.45 + R() * 0.15; out.meshes.push({ geo: peak((tileSeed(t.q, t.r) + k * 131) % 997, 0.32 + R() * 0.12, 0.55 + R() * 0.5), mat: 'peak', pos: [t.x + Math.cos(a) * d, t.base - 0.02, t.z + Math.sin(a) * d], ry: R() * 6.28, peak: true }); }
+    const pk = BK.STYLE.blocky ? BK.voxelPeak : peak;
+    out.meshes.push({ geo: pk(tileSeed(t.q, t.r) % 997, big[1], big[0]), mat: 'peak', pos: [t.x + (R() - 0.5) * 0.2, t.base - 0.03, t.z + (R() - 0.5) * 0.2], ry: R() * 6.28, peak: true });
+    for (let k = 0; k < 2; k++) { const a = R() * 6.28, d = 0.45 + R() * 0.15; out.meshes.push({ geo: pk((tileSeed(t.q, t.r) + k * 131) % 997, 0.32 + R() * 0.12, 0.55 + R() * 0.5), mat: 'peak', pos: [t.x + Math.cos(a) * d, t.base - 0.02, t.z + Math.sin(a) * d], ry: R() * 6.28, peak: true }); }
     taken.push([t.x, t.z, 0.6]);
     for (let i = 0; i < 9; i++) { const [x, z] = inHex(0.06), s = 0.7 + R() * 0.4; if (tf < 1 && ((i * 0.618) % 1) > tf) continue; if (plant('con', Math.floor(R() * 5), { x, y: H(x, z) - 0.02, z, s, ry: R() * 6.28, tilt: 0.05 }, 0.11)) out.perches.push({ x, y: H(x, z), z, h: s }); }
     for (let i = 0; i < 5; i++) { const [x, z] = inHex(0.08); plant('rock', Math.floor(R() * 4), { x, y: H(x, z) - 0.02, z, s: 0.05 + R() * 0.08, ry: R() * 6.28 }, 0.08); }

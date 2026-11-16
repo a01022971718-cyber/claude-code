@@ -10,7 +10,10 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { rng, makeNoise } from './noise.js';
 
-export const STYLE = { blocky: typeof location !== 'undefined' && new URLSearchParams(location.search).get('style') === 'blocky' };
+/** 美术主题：'voxel' 体素 / 'classic' 经典。设置里切换（存在本机，切换后重新载入）；地址加 ?style=blocky 也能临时打开 */
+export const THEME_KEY = 'yujian_theme';
+const themeNow = () => { try { if (typeof location !== 'undefined' && new URLSearchParams(location.search).get('style') === 'blocky') return 'voxel'; return (typeof localStorage !== 'undefined' && localStorage.getItem(THEME_KEY)) || 'classic'; } catch { return 'classic'; } };
+export const STYLE = { theme: themeNow(), get blocky() { return this.theme === 'voxel'; } };
 
 const NZ = makeNoise(31);
 const col = (c) => (c && c.isColor ? c : new THREE.Color(c));
@@ -176,4 +179,103 @@ export function voxelBush(seed = 1, kind = 'green') {
   const R = rng(seed * 13 + 9), C = [], pal = kind === 'lime' ? [0x7fb04a, 0x8fbe52, 0x6a9e40].map(col) : LEAF;
   voxelBlob(R, 0, 0.06, 0, 0.1, 0.07, 0.1, 0.03, C, { pal });
   const g = merge(C); windAttr(g, 0.3); return g;
+}
+
+// ================= 体素主题：其余动物、岩石、山峰、椰子树，以及远处用的简化树 =================
+const box = (w, h, d, x, y, z, c, o = {}) => rbox(w, h, d, x, y, z, c, { seg: 1, r: 0.2, ...o });
+/** 分部件的四足动物（和 fauna.js 的步态对得上：body / head / legFL / legFR / legBL / legBR） */
+function quad({ body, head, legs, legC, hip, legH, legW }) {
+  const parts = { body: { geometry: merge(body) }, head: { geometry: merge(head.parts), pivot: head.pivot } };
+  for (const [k, sx, sz] of [['legFL', 1, 1], ['legFR', -1, 1], ['legBL', 1, -1], ['legBR', -1, -1]]) {
+    const x = sx * legs[0], z = sz > 0 ? legs[1] : legs[2];
+    parts[k] = { geometry: box(legW, legH, legW, x, hip - legH / 2, z, legC, { ao: 0.12 }), pivot: [x, hip, z] };
+  }
+  const geometry = mergeGeometries(Object.values(parts).map((p) => p.geometry), false); geometry.computeBoundingSphere();
+  return { geometry, parts };
+}
+/** 鹿：浅棕方身子、白肚皮、白尾巴、小方鹿角（高约 0.17，和原来的鹿一样大） */
+export function deer(seed = 1) {
+  const fur = col(0xb0773f), light = col(0xf0e2c8), dark = col(0x3a2a20);
+  const body = [rbox(0.042, 0.042, 0.11, 0, 0.096, 0, fur, { seg: 2, r: 0.2, ao: 0.2 }), box(0.036, 0.012, 0.08, 0, 0.074, 0, light, { ao: 0 }), box(0.014, 0.016, 0.01, 0, 0.11, -0.058, light, { ao: 0 })];
+  for (const [x, z] of [[0.012, 0.03], [-0.012, -0.01], [0.006, -0.035]]) body.push(box(0.006, 0.006, 0.004, x, 0.118, z, light, { seg: 0, ao: 0 }));
+  const hp = [0, 0.118, 0.05], H = [box(0.022, 0.05, 0.022, 0, 0.13, 0.054, fur), rbox(0.03, 0.03, 0.04, 0, 0.158, 0.068, fur, { seg: 2, r: 0.25, ao: 0.08 }), box(0.018, 0.014, 0.016, 0, 0.152, 0.092, light, { ao: 0 }), box(0.008, 0.007, 0.004, 0, 0.156, 0.1, dark, { seg: 0, ao: 0 })];
+  for (const s of [-1, 1]) { H.push(box(0.014, 0.008, 0.006, s * 0.02, 0.17, 0.06, fur, { rz: s * -0.4, ao: 0 })); H.push(box(0.004, 0.006, 0.003, s * 0.009, 0.165, 0.088, dark, { seg: 0, ao: 0 })); H.push(box(0.005, 0.024, 0.005, s * 0.01, 0.184, 0.064, 0x8a6a48, { ao: 0 }), box(0.005, 0.012, 0.005, s * 0.016, 0.192, 0.072, 0x8a6a48, { ao: 0, rz: s * -0.6 })); }
+  return quad({ body, head: { parts: H, pivot: hp }, legs: [0.013, 0.04, -0.044], legC: 0x8a5a30, hip: 0.08, legH: 0.08, legW: 0.011 });
+}
+/** 山羊：灰白方身子、短方角、小胡子 */
+export function goat(seed = 1) {
+  const fur = col(seed % 2 ? 0xe8e2d6 : 0xcfc6b8), dark = col(0x4a4038);
+  const body = [rbox(0.04, 0.036, 0.08, 0, 0.068, 0, fur, { seg: 2, r: 0.22, ao: 0.2 }), box(0.012, 0.012, 0.01, 0, 0.084, -0.042, fur, { ao: 0 })];
+  const hp = [0, 0.074, 0.036], H = [rbox(0.026, 0.028, 0.034, 0, 0.088, 0.05, fur, { seg: 2, r: 0.25, ao: 0.08 }), box(0.008, 0.012, 0.006, 0, 0.07, 0.062, fur.clone().multiplyScalar(0.85), { ao: 0 })];
+  for (const s of [-1, 1]) { H.push(box(0.006, 0.02, 0.006, s * 0.008, 0.108, 0.044, dark, { rx: -0.5, ao: 0 })); H.push(box(0.004, 0.005, 0.003, s * 0.008, 0.094, 0.067, 0x1d1a1a, { seg: 0, ao: 0 })); H.push(box(0.012, 0.006, 0.006, s * 0.017, 0.094, 0.046, fur, { ao: 0, rz: s * -0.4 })); }
+  return quad({ body, head: { parts: H, pivot: hp }, legs: [0.012, 0.03, -0.03], legC: 0x5a5048, hip: 0.056, legH: 0.056, legW: 0.01 });
+}
+/** 螃蟹：红方壳、两只大钳子、竖起来的小眼睛 */
+export function crab(seed = 1) {
+  const sh = col(0xd2492e), P = [rbox(0.03, 0.012, 0.022, 0, 0.01, 0.012, sh, { seg: 2, r: 0.3, ao: 0.2 })];
+  for (const s of [-1, 1]) {
+    P.push(box(0.012, 0.009, 0.01, s * 0.022, 0.012, 0.03, sh), box(0.004, 0.008, 0.004, s * 0.006, 0.02, 0.022, sh, { seg: 0, ao: 0 }), box(0.005, 0.005, 0.005, s * 0.006, 0.026, 0.022, 0x1d1a1a, { seg: 0, ao: 0 }));
+    for (let i = 0; i < 3; i++) P.push(box(0.012, 0.003, 0.003, s * 0.02, 0.004, 0.006 + i * 0.008, sh.clone().multiplyScalar(0.8), { seg: 0, ao: 0, rz: s * 0.4 }));
+  }
+  return { geometry: merge(P) };
+}
+/** 野鸭：方身子、绿方头、黄嘴 */
+export function duck(seed = 1) {
+  const P = [rbox(0.02, 0.014, 0.034, 0, 0.002, -0.002, 0x8a7a68, { seg: 2, r: 0.3, ao: 0.15 }), box(0.016, 0.008, 0.012, 0, 0.008, -0.018, 0xe8e2d6, { ao: 0 }), rbox(0.014, 0.014, 0.014, 0, 0.016, 0.014, 0x2f6a3a, { seg: 1, r: 0.3, ao: 0.05 }), box(0.008, 0.004, 0.01, 0, 0.013, 0.025, 0xe8a83a, { seg: 0, ao: 0 }), box(0.016, 0.003, 0.003, 0, 0.009, 0.008, 0xf2efe6, { seg: 0, ao: 0 })];
+  return { geometry: merge(P) };
+}
+/** 青蛙：扁方身子、凸出来的方眼睛 */
+export function frog(seed = 1) {
+  const g = col(0x5f9a3a), P = [rbox(0.026, 0.012, 0.024, 0, 0.007, 0, g, { seg: 2, r: 0.3, ao: 0.2 }), box(0.022, 0.003, 0.016, 0, 0.002, 0.004, 0xd8d4a0, { seg: 0, ao: 0 })];
+  for (const s of [-1, 1]) { P.push(box(0.008, 0.008, 0.008, s * 0.007, 0.015, 0.008, g), box(0.004, 0.004, 0.002, s * 0.007, 0.016, 0.0125, 0x1d1a1a, { seg: 0, ao: 0 }), box(0.008, 0.006, 0.016, s * 0.016, 0.004, -0.006, g.clone().multiplyScalar(0.85))); }
+  return { geometry: merge(P) };
+}
+// ---- 岩石与山峰 ----
+const ROCK = [0x8a8a8e, 0x9a9ba0, 0x7d7c80, 0xa7a5a0].map(col), MOSS = [0x6f8f3a, 0x7fa043].map(col), SNOW = col(0xf2f4f6);
+function cube(s, x, y, z, c) { const g = new THREE.BoxGeometry(s, s, s).toNonIndexed(); g.deleteAttribute('uv'); paint(g, c, { ao: 0.1 }); g.translate(x, y, z); return g; }
+/** 体素岩石（和原来的 boulder 同一尺度：宽约 2.4、高约 0.8，摆放时再缩放） */
+export function voxelRock(seed = 1, tone = 0, mossy = 1) {
+  const R = rng(seed * 41 + 3), P = [], v = 0.4;
+  for (let i = -3; i <= 3; i++) for (let k = -3; k <= 3; k++) {
+    const d = Math.hypot(i * 0.9, k) + (R() - 0.5) * 0.8; if (d > 2.9) continue;
+    const hgt = Math.max(1, Math.round((2.2 - d * 0.7) + R() * 0.8));
+    for (let j = 0; j < hgt; j++) { const top = j === hgt - 1, c = top && mossy && R() < 0.5 ? MOSS[Math.floor(R() * 2)] : ROCK[(Math.floor(R() * 4) + tone) % 4]; P.push(cube(v * 0.98, i * v, j * v * 0.8 + v * 0.4, k * v, c.clone().multiplyScalar(0.92 + R() * 0.12))); }
+  }
+  const g = merge(P); g.scale(1, 0.85, 1); return g;
+}
+/** 体素山峰：一层层收小的岩石环，山腰有草，山顶积雪；顶面是平的，山羊能站 */
+export function voxelPeak(seed = 1, r = 0.7, h = 1.5) {
+  const R = rng(seed * 17 + 5), v = Math.max(0.09, Math.min(0.15, r / 6.5)), P = [], layers = Math.ceil(h / v);
+  for (let L = 0; L < layers; L++) {
+    const f = L / layers, rr = r * Math.pow(1 - f, 0.85) * (1 + Math.sin(L * 0.9 + seed) * 0.06), n = Math.ceil(rr / v);
+    for (let i = -n; i <= n; i++) for (let k = -n; k <= n; k++) {
+      const d = Math.hypot(i, k) * v, edge = rr + (R() - 0.5) * v * 0.8;
+      if (d > edge || (d < edge - v * 1.6 && L < layers - 1)) continue;   // 只留外壳
+      const c = f > 0.78 ? SNOW : f < 0.25 && R() < 0.4 ? MOSS[Math.floor(R() * 2)] : ROCK[Math.floor(R() * 4)];
+      P.push(cube(v * 0.99, i * v, L * v + v / 2, k * v, c.clone().multiplyScalar(0.9 + R() * 0.14)));
+    }
+  }
+  return merge(P);
+}
+/** 体素椰子树：弯弯的方块树干 + 一圈下垂的方块叶子 */
+export function voxelPalm(seed = 1, s = 1) {
+  const R = rng(seed * 29 + 1), T = [], C = [], H = 0.9 * s; let x = 0, y = 0;
+  for (let i = 0; i < 12; i++) { const w = 0.045 - i * 0.0015; T.push(rbox(w, 0.07, w, x, y + 0.035, 0, BARK[i % 2 ? 0 : 2].clone().multiplyScalar(1.1), { seg: 1, r: 0.15, ao: 0.04 })); y += 0.068 * s; x += 0.006 * i * s; }
+  for (let a = 0; a < 7; a++) { const ang = (a / 7) * Math.PI * 2 + R() * 0.3; for (let j = 1; j <= 4; j++) { const d = j * 0.055, yy = y - j * j * 0.012; C.push(cube(0.05, x + Math.cos(ang) * d, yy, Math.sin(ang) * d, LEAF[(a + j) % 5])); } }
+  C.push(cube(0.05, x, y + 0.02, 0, LEAF[1]));
+  const trunk = merge(T), crown = merge(C); windAttr(trunk, 0); windAttr(crown, H);
+  const g = mergeGeometries([trunk, crown], false); g.computeBoundingSphere(); return g;
+}
+// ---- 远处用的简化树（两套主题都有）：几十个三角面，远看轮廓和颜色一样 ----
+function lowPaint(g, c, H) { g = g.index ? g.toNonIndexed() : g; g.deleteAttribute('uv'); paint(g, c, { ao: 0.25 }); windAttr(g, H); return g; }
+export function lowConifer(voxel = false) {
+  const P = [lowPaint(new THREE.CylinderGeometry(0.03, 0.04, 0.2, 5).translate(0, 0.1, 0), 0x4f3423, 0)];
+  if (voxel) for (let i = 0; i < 4; i++) P.push(lowPaint(new THREE.BoxGeometry(0.42 - i * 0.09, 0.12, 0.42 - i * 0.09).translate(0, 0.26 + i * 0.15, 0), 0x2f5a2a, 1));
+  else for (let i = 0; i < 3; i++) P.push(lowPaint(new THREE.ConeGeometry(0.3 - i * 0.07, 0.36, 7).translate(0, 0.32 + i * 0.2, 0), [0x234f33, 0x2b5e3c, 0x3a7046][i], 1));
+  const g = mergeGeometries(P, false); g.computeBoundingSphere(); return g;
+}
+export function lowBroad(kind = 'green', voxel = false) {
+  const c = { green: 0x4f8a34, lime: 0x76aa3c, autumn: 0xc8782c, blossom: 0xe9a3bc }[kind] || 0x4f8a34;
+  const crown = voxel ? new THREE.BoxGeometry(0.5, 0.36, 0.5).translate(0, 0.62, 0) : new THREE.IcosahedronGeometry(0.32, 0).scale(1, 0.85, 1).translate(0, 0.64, 0);
+  const g = mergeGeometries([lowPaint(new THREE.CylinderGeometry(0.025, 0.04, 0.5, 5).translate(0, 0.25, 0), 0x5b3d29, 0), lowPaint(crown, c, 0.85)], false); g.computeBoundingSphere(); return g;
 }

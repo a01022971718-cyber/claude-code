@@ -300,6 +300,8 @@ export class HQView {
       const g = instanced(K[name], items, mat); g.userData.inst = true; grp.add(g);
       // 只有树投影：灌木、石头、菜苗、芦苇、睡莲的影子几乎看不见，却要再画一遍
       if (!SHADOW_KITS.has(name)) g.traverse((o) => { o.castShadow = false; });
+      // 树的远近分级（LOD）：同一批树再做一份几十个三角面的简化版，远处的区块显示简化版、不投影
+      if (K[name + 'Lo']) { g.name = 'tree-hi'; const lo = instanced(K[name + 'Lo'], items, mat); lo.name = 'tree-lo'; lo.visible = false; lo.traverse((o) => { o.castShadow = false; }); grp.add(lo); }
     }
     for (const [b, list] of Object.entries(blades)) if (list.length) { const m = bladeField(b, list, { cull: true }); m.geometry.userData.owned = true; grp.add(m); }
     const peaks = [];
@@ -338,7 +340,7 @@ export class HQView {
     const recs = [...ch.keys].map((k) => this.rec.get(k)).filter((r) => r && !r.hidden);
     for (const r of recs) this._ensure(r);
     const old = ch.group;
-    ch.group = recs.length ? this._fill(new THREE.Group(), recs) : null;
+    ch.group = recs.length ? this._fill(new THREE.Group(), recs) : null; ch.treeNear = null; ch.far = null;
     if (ch.group) this.root.add(ch.group);
     if (old) { this.root.remove(old); this._disposeGroup(old); }
     // 升完的地块：区块重建好以后再撤掉它单独的网格，中间不会闪一下
@@ -477,13 +479,16 @@ export class HQView {
     if (dirty.length && !this.chunksDirty) this.waterDirty = true;
     // 远处区块的草叶、花、麦穗不画（它们只有几个像素，却占了大部分顶点）
     const bladeRange = (34 + dist * 0.9) * (this.q.viewK ?? 1);
-    // 细节调节：按最近的平均帧时间慢慢调 lodK（0.3–1）。目标是稳在 30 帧以上：超过 36ms 就减，低于 24ms 就加
+    // 细节调节：按最近的平均帧时间慢慢调 lodK（0.2–1）。目标是稳在 30 帧以上：超过 36ms 就减，低于 24ms 就加
     this.lodK ??= 1; this._ft = (this._ft ?? 0.02) * 0.95 + dt * 0.05;
-    if (!this.loading) { if (this._ft > 0.036) this.lodK = Math.max(0.3, this.lodK - dt * 0.25); else if (this._ft < 0.024) this.lodK = Math.min(1, this.lodK + dt * 0.06); }
+    if (!this.loading) { if (this._ft > 0.036) this.lodK = Math.max(0.2, this.lodK - dt * 0.25); else if (this._ft < 0.024) this.lodK = Math.min(1, this.lodK + dt * 0.06); }
     for (const ch of this.chunks.values()) {
       if (!ch.group) continue;
       const [q, r] = ch.ck.split(',').map(Number), [x, z] = toWorld((q + 0.5) * CH, (r + 0.5) * CH), far = Math.hypot(x - focus.x, z - focus.z) > bladeRange;
       if (ch.far !== far) { ch.far = far; for (const o of ch.group.children) if (o.name?.endsWith('-field')) o.visible = !far; }
+      // 树：离焦点近的区块用完整的树，远的换简化版；距离跟镜头远近和细节系数走（帧时间超标时更早换）
+      const treeNear = Math.hypot(x - focus.x, z - focus.z) < (9 + dist * 0.45) * (this.q.viewK ?? 1) * (0.55 + 0.45 * this.lodK);
+      if (ch.treeNear !== treeNear) { ch.treeNear = treeNear; for (const o of ch.group.children) { if (o.name === 'tree-hi') o.visible = treeNear; else if (o.name === 'tree-lo') o.visible = !treeNear; } }
       // 草叶分级：近处全画，越远画得越少（实例顺序是打乱的，所以是均匀变稀）；镜头拉远时整体再减；
       // 再乘上“细节调节”系数 lodK——帧时间超标时自动减草、有余量时加回来，分辨率和清晰度不动
       if (!far) {
@@ -533,7 +538,7 @@ export class HQView {
     this.villagers.update(dt, t);
     this.wild.update(dt, t);   // 鹬、白鹭、燕鸥、蝙蝠、跃鱼
     this.skyLayer.update(dt, focus, this.gulls.center, Math.max(3, this.gulls.radius - 1.5));   // 地平线的云、清晨海雾
-    if (STYLE.blocky && !this.chunksDirty) { this.macro ||= new MacroLayer(this); this.macro.update(focus, dist); this.pipe.opts.macro = Math.max(0, Math.min(1, (4.2 - dist) / 2.8)); }   // 原型：特写的微距草地和浅景深
+    if (this.q.ao && !this.chunksDirty) { this.macro ||= new MacroLayer(this); this.macro.update(focus, dist); this.pipe.opts.macro = Math.max(0, Math.min(1, (4.2 - dist) / 2.8)); }   // 特写的微距草地和浅景深（极致、高清档）
     // 动物、海龟、海鸥、村民、岸边的鸟：全岛合批（同一部件一次绘制）
     this.batcher.sync([this.faunaRoot, this.marine?.group, this.gulls.group, this.villagers.group, this.wild.group]);
     // 营火：离镜头最近的那一处冒火苗和炊烟
