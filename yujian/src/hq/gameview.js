@@ -20,6 +20,7 @@ import { Wildlife } from './wildlife.js';
 import { SkyLayer } from './clouds.js';
 import { MacroLayer } from './macro.js';
 import { STYLE } from './blocky.js';
+import { CreatureLayer } from './creatures.js';
 import { Ocean } from './ocean.js';
 import { Particles } from './particles.js';
 import { Atmosphere, presetAt } from './atmosphere.js';
@@ -81,7 +82,7 @@ export class HQView {
     this.sky = new Sky();                 // 只用来给界面提供小时和时间文字
     this.mats = {
       terrain: terrainMaterial(), peak: terrainMaterial({ flat: true, env: 0.5 }),
-      prop: propMaterial({ rough: 0.8 }), soil: propMaterial({ rough: 0.95 }),
+      prop: propMaterial({ rough: 0.8 }), soil: propMaterial({ rough: 0.95 }), clay: propMaterial({ rough: 0.6, env: 1 }),
       tree: foliageMaterial({ sway: 1, translucency: 0.45 }), bush: foliageMaterial({ sway: 0.5, translucency: 0.35 }),
     };
     this.mat = landMaterial();            // 地标、小人、装饰沿用低多边形模型和它们的材质（夜里窗户会亮）
@@ -117,6 +118,7 @@ export class HQView {
     this.batcher = new Batcher(this.scene);
     this.villagers = new Villagers(this);
     this.wild = new Wildlife(this);
+    this.creatures = new CreatureLayer(this);   // AI 创造的动物
     this.skyLayer = new SkyLayer(this.scene);
     this.fires = new Map();
     this.items = new ItemLayer(this);
@@ -299,7 +301,7 @@ export class HQView {
       const mat = name === 'rock' || name === 'stump' || name === 'lily' || name === 'wrack' || name === 'drift' || name === 'shell' ? M.prop : name === 'bush' || name === 'crop' ? M.bush : M.tree;
       const g = instanced(K[name], items, mat); g.userData.inst = true; grp.add(g);
       // 只有树投影：灌木、石头、菜苗、芦苇、睡莲的影子几乎看不见，却要再画一遍
-      if (!SHADOW_KITS.has(name)) g.traverse((o) => { o.castShadow = false; });
+      if (!SHADOW_KITS.has(name) && !K[name]?.shadow) g.traverse((o) => { o.castShadow = false; });
       // 树的远近分级（LOD）：同一批树再做一份几十个三角面的简化版，远处的区块显示简化版、不投影
       if (K[name + 'Lo']) { g.name = 'tree-hi'; const lo = instanced(K[name + 'Lo'], items, mat); lo.name = 'tree-lo'; lo.visible = false; lo.traverse((o) => { o.castShadow = false; }); grp.add(lo); }
     }
@@ -539,10 +541,11 @@ export class HQView {
     if (!this.chunksDirty && (this._vilT = (this._vilT || 0) + dt) > 1) { this._vilT = 0; this.villagers.sync(); }
     this.villagers.update(dt, t);
     this.wild.update(dt, t);   // 鹬、白鹭、燕鸥、蝙蝠、跃鱼
+    if (!this.chunksDirty) this.creatures.populate(); this.creatures.update(dt, t);
     this.skyLayer.update(dt, focus, this.gulls.center, Math.max(3, this.gulls.radius - 1.5));   // 地平线的云、清晨海雾
     if (this.q.ao && !this.chunksDirty) { this.macro ||= new MacroLayer(this); this.macro.update(focus, dist); this.pipe.opts.macro = Math.max(0, Math.min(1, (4.2 - dist) / 2.8)); }   // 特写的微距草地和浅景深（极致、高清档）
     // 动物、海龟、海鸥、村民、岸边的鸟：全岛合批（同一部件一次绘制）
-    this.batcher.sync([this.faunaRoot, this.marine?.group, this.gulls.group, this.villagers.group, this.wild.group], this.camera, (11 + 10 * this.lodK) * (this.q.viewK ?? 1));
+    this.batcher.sync([this.faunaRoot, this.marine?.group, this.gulls.group, this.villagers.group, this.wild.group, this.creatures.group], this.camera, (11 + 10 * this.lodK) * (this.q.viewK ?? 1));
     // 营火：离镜头最近的那一处冒火苗和炊烟
     let bestF = null, bd = 1e9; for (const f of this.fires.values()) { const d = Math.hypot(f[0] - focus.x, f[2] - focus.z); if (d < bd) { bd = d; bestF = f; } }
     this.fireAt = bestF;

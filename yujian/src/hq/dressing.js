@@ -7,6 +7,7 @@ import { rng, makeNoise } from './noise.js';
 import * as P from './props.js';
 import * as L from './models-land.js';
 import * as BK from './blocky.js';
+import { TYPES } from './terrain.js';
 
 const NZ = makeNoise(9);
 const INR = Math.sqrt(3) / 2;
@@ -68,6 +69,14 @@ export function dressTile(T, t, opts = {}) {
   const inHex = (pad = 0.12) => { for (let k = 0; k < 40; k++) { const x = (R() * 2 - 1) * (INR - pad), z = (R() * 2 - 1) * (1 - pad); if (Math.abs(z) <= (1 - pad) - Math.abs(x) / Math.sqrt(3) && Math.abs(x) <= INR - pad) return [t.x + x, t.z + z]; } return [t.x, t.z]; };
   const plant = (k, v, it, d) => { if (!free(it.x, it.z, d)) return false; if (T.pathD && T.paths?.length && T.pathD(it.x, it.z) < d + 0.04) return false; taken.push([it.x, it.z, d]); out.obstacles.push([it.x, it.z, d]); push(k + ':' + v, it); return true; };
   const ty = t.t, harvested = !!t.harvested;
+  // AI 新造的生态：按配方种它自己的植物（密度 0–1 → 每块地 0–14 株），草和花的多少、颜色也按配方
+  const cu = TYPES[ty]?.custom, K0 = kit();
+  if (cu) for (const pr of cu.plants || []) {
+    if (!K0[pr.id]) continue;
+    const n = Math.round(Math.max(0, Math.min(1, pr.density ?? 0.5)) * 14 * tf), tall = !!K0[pr.id].shadow;
+    for (let i = 0; i < n; i++) { const [x, z] = inHex(0.08); if (riverD(x, z) < 0.3) continue; const s = 0.8 + R() * 0.45; if (plant(pr.id, 0, { x, y: H(x, z) - 0.02, z, s, ry: R() * 6.28, tilt: 0.04 }, (tall ? 0.12 : 0.06) * s) && tall) out.perches.push({ x, y: H(x, z), z, h: 0.8 * s }); }
+  }
+  const cuGrass = cu?.grassColor ? new THREE.Color(cu.grassColor) : null, cuFlowers = (cu?.flowerColors || []).map((h) => new THREE.Color(h)).map((c) => [c.r, c.g, c.b]);
   if (t.center) taken.push([t.x, t.z, 0.55]);
 
   if (ty === 'forest') {
@@ -208,7 +217,7 @@ export function dressTile(T, t, opts = {}) {
   // 岸边的草越来越稀
   const coastDist = (x, z) => { let m = 9; const lx = x - t.x, lz = z - t.z; for (const k of coastKs) m = Math.min(m, INRc - (lx * Math.cos(Math.PI / 3 * k) + lz * Math.sin(Math.PI / 3 * k))); return m; };
   // ---- 草叶、花、麦穗 ----
-  const grassy = ({ meadow: 4200, flowers: 3800, camp: 3000, islet: 2200, forest: 900, quarry: 1500, mountain: 1400, pond: 3600, stream: 3800, beach: T.typeShare ? 1500 : 260 }[ty] || 0) * dens;
+  const grassy = ({ meadow: 4200, flowers: 3800, camp: 3000, islet: 2200, forest: 900, quarry: 1500, mountain: 1400, pond: 3600, stream: 3800, beach: T.typeShare ? 1500 : 260 }[ty] || (cu ? Math.max(0, Math.min(1, cu.grass ?? 0.6)) * 4200 : 0)) * dens;
   for (let i = 0; i < grassy; i++) {
     const [x, z] = inHex(0.0);
     if (riverD(x, z) < 0.2) continue;
@@ -223,17 +232,18 @@ export function dressTile(T, t, opts = {}) {
     if (T.pathD && T.paths.length && T.pathD(x, z) < 0.06) continue;   // 路上不长草
     const h = H(x, z), c = T._topColor(t, x, z, h), v = 0.88 + R() * 0.3;
     if (dune > 0.2) c.lerp(DUNE, Math.min(1, dune * 1.2));   // 沙地上的是发黄的沙丘草
+    if (cuGrass && T.typeShare(t, x, z, ty) > 0.5) c.lerp(cuGrass, 0.55);
     out.blades.grass.push({ x, y: h - 0.004, z, h: (0.035 + R() * 0.045) * (ty === 'forest' ? 0.8 : 1), w: 0.008 + R() * 0.006, lean: R() * 0.3, rot: R() * 6.28, tint: [c.r * v * 1.12, c.g * v * 1.08, c.b * v * 0.95], tint2: [c.r * 0.55, c.g * 0.6, c.b * 0.5] });
   }
-  const nFlower = ({ flowers: 3200, meadow: 380, camp: 160, islet: 260, pond: 220, stream: 300 }[ty] || 0) * fdens;
+  const nFlower = ({ flowers: 3200, meadow: 380, camp: 160, islet: 260, pond: 220, stream: 300 }[ty] || (cu ? Math.max(0, Math.min(1, cu.flowers ?? 0.2)) * 1600 : 0)) * fdens;
   for (let i = 0; i < nFlower; i++) {
     const [x, z] = inHex(0.03);
     if (riverD(x, z) < 0.22) continue;
     const patch = NZ.fbm2(x * 1.6, z * 1.6, 3), kind = Math.floor((NZ.n2(x * 0.9 + 30, z * 0.9) * 0.5 + 0.5) * 5) % 5;
-    if (ty === 'flowers' ? patch < -0.15 : patch < 0.25) continue;
+    if (ty === 'flowers' || cu ? patch < -0.15 : patch < 0.25) continue;
     if (T.typeShare && (T.typeShare(t, x, z, 'forest') > 0.45 || R() < T.typeShare(t, x, z, 'beach') * 1.5)) continue;
     const h = H(x, z), s = 0.022 + R() * 0.02;
-    out.blades.flower.push({ x, y: h - 0.003, z, h: s * 2.2, w: s * 0.45, lean: R() * 0.15, rot: R() * 6.28, tint: FC[kind], tint2: [0.08, 0.2, 0.05] });
+    out.blades.flower.push({ x, y: h - 0.003, z, h: s * 2.2, w: s * 0.45, lean: R() * 0.15, rot: R() * 6.28, tint: cuFlowers.length ? cuFlowers[kind % cuFlowers.length] : FC[kind], tint2: [0.08, 0.2, 0.05] });
     if (i % 7 === 0) out.flowers.push({ x, y: h + s * 2.2, z });
   }
   if (ty === 'wheat') {

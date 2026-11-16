@@ -2,6 +2,7 @@
 // 让特写有“蹲在草地里看”的质感，而不是一片宽扁的卡通草。只在镜头附近生成，焦点走开半个单位才重铺。
 import * as THREE from 'three';
 import { bladeField } from './vegetation.js';
+import { TYPES } from './terrain.js';
 import { rng } from './noise.js';
 
 const GRASSY = new Set(['meadow', 'flowers', 'camp', 'pond', 'stream', 'islet', 'forest', 'mountain']);
@@ -40,7 +41,7 @@ export class MacroLayer {
     let nd = 0, nf = 0;
     for (let i = 0; i < 11000; i++) {
       const a = R() * Math.PI * 2, r = Math.sqrt(R()) * R0, x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r, t = T.tileAt(x, z);
-      if (!t || !GRASSY.has(t.t)) continue;
+      if (!t || !(GRASSY.has(t.t) || (TYPES[t.t]?.custom?.grass ?? 0) > 0.3)) continue;
       if (T.riverD && T.riverD(x, z) < 0.2) continue;
       if (T.paths?.length && T.pathD(x, z) < 0.06) continue;
       if (T.typeShare && T.typeShare(t, x, z, 'beach') > 0.4) continue;

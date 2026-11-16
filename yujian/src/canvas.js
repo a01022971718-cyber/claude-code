@@ -4,6 +4,11 @@
 import { key, toWorld, fromWorld, DIRS } from './hex.js';
 import { findItem, STARTER } from './catalog.js';
 import { CANNED } from './ai.js';
+import { registerAll } from './creations.js';
+import { STYLE } from './hq/blocky.js';
+// AI 造物里引用原有植物时，对应的植被套件
+const BASE_KIT = { pine: 'con', oak: 'broad', sakura: 'broad', maple: 'broad', bush: 'bush', palm: 'palm', reed: 'reed', boulder: 'rock' };
+const BASE_TILES = ['meadow', 'flowers', 'forest', 'mountain', 'quarry', 'field', 'wheat', 'beach', 'camp', 'stream', 'pond', 'islet'];
 import { RARE, GRASS, newDiscovery, roll, chance } from './discovery.js';
 import { GROUND } from './ground.js';
 import { audio } from './audio.js';
@@ -37,8 +42,29 @@ export class CanvasMode {
   }
   save() { store.set(this.s); }
   /** 整座岛重建（读档、新画布） */
+  /** 把存档里的 AI 造物登记进游戏（新地块类型、新植物模型、新动物） */
+  registerCustom() {
+    const c = (this.s.custom ||= { biomes: [], plants: [], creatures: [], seq: 1 });
+    registerAll(c); this.view.creatures?.setSpecs(c.creatures, STYLE.blocky);
+  }
+  /** 以前造过的东西的名字（AI 造岛时可以直接引用） */
+  known() { const c = this.s.custom || {}; return { biomes: (c.biomes || []).map((x) => x.name), plants: (c.plants || []).map((x) => x.name), creatures: (c.creatures || []).map((x) => x.name) }; }
+  /** 收下 AI 的新造物：分配 id 存进存档（同名的算重新设计，覆盖旧的），把布局里的名字换成 id */
+  adopt(L) {
+    const c = (this.s.custom ||= { biomes: [], plants: [], creatures: [], seq: 1 }); c.seq ||= 1;
+    const map = new Map();
+    for (const k of ['biomes', 'plants', 'creatures']) for (const x of c[k]) map.set(x.name, x.id);
+    const add = (kind, prefix, list) => { for (const x of list) { x.id = map.get(x.name) || prefix + c.seq++; map.set(x.name, x.id); const i = c[kind].findIndex((y) => y.id === x.id); if (i >= 0) c[kind][i] = x; else c[kind].push(x); } };
+    add('plants', 'ai_p', L.plants); add('biomes', 'ai_b', L.biomes); add('creatures', 'ai_c', L.creatures);
+    for (const b of c.biomes) b.plants = (b.plants || []).map((p) => ({ name: p.name, density: p.density, id: p.id?.startsWith('ai_') || BASE_KIT[p.id] ? p.id : map.get(p.name) || BASE_KIT[p.name] })).filter((p) => p.id);
+    for (const a of c.creatures) if (!['land', 'sea'].includes(a.habitat) && !a.habitat.startsWith('ai_b') && !BASE_TILES.includes(a.habitat)) a.habitat = map.get(a.habitat) || 'land';
+    L.tiles = L.tiles.map(([q, r, t]) => [q, r, map.get(t) || t]); L.items = L.items.map((it) => ({ ...it, k: map.get(it.k) || it.k }));
+    this.save(); this.registerCustom();
+    return { biomes: L.biomes.map((x) => x.name), plants: L.plants.map((x) => x.name), creatures: L.creatures.map((x) => x.name) };
+  }
   syncAll() {
     const v = this.view, s = this.s;
+    this.registerCustom();
     v.rebuildAll(s.tiles.map(([q, r, t]) => ({ q, r, t })));
     v.items?.set(s.items);
     v.setSea?.(s.sea);
@@ -52,7 +78,7 @@ export class CanvasMode {
     return { minX: a - 14, maxX: b + 14, minZ: c - 14, maxZ: d + 14 };
   }
   async newWorld(kind) {
-    this.s = newCanvas(kind); this.undo = []; this.save(); this.syncAll();
+    const keep = this.s.custom; this.s = newCanvas(kind); if (keep) this.s.custom = keep;   // AI 造物是玩家的收藏，换岛也留着 this.undo = []; this.save(); this.syncAll();
     const app = this.app, v = this.view;
     if (v.preload) { app.booting = true; app.ui.loading(0, '正在生成海岛'); await v.preload((p, t) => app.ui.loading(p, t), app.rig.focus, app.rig.target.dist); app.ui.loading(null); app.booting = false; }
     analytics.track('canvas_new', { kind });
@@ -109,7 +135,7 @@ export class CanvasMode {
   }
   async loadLayout(L, keepCam = false) {
     const oldCam = keepCam ? { ...this.s.cam } : null, oldDisc = keepCam ? this.s.disc : null;
-    const s = newCanvas('blank'); s.tiles = L.tiles.map(([q, r, t]) => [q, r, t]); s.items = []; s.sea = L.sea;
+    const s = newCanvas('blank'); if (this.s.custom) s.custom = this.s.custom; s.tiles = L.tiles.map(([q, r, t]) => [q, r, t]); s.items = []; s.sea = L.sea;
     s.unlocked = ['stream', 'pond'].filter((k) => s.tiles.some((t) => t[2] === k));
     for (const it of L.items) {
       const def = findItem(it.k); if (!def) continue;

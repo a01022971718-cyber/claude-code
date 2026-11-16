@@ -10,6 +10,9 @@ import * as P from './hq/props.js';
 import * as L from './hq/models-land.js';
 import { audio } from './audio.js';
 import { CAM_ICON } from './camdock.js';
+import { CUSTOM } from './creations.js';
+import { creatureParts } from './hq/forge.js';
+import { STYLE } from './hq/blocky.js';
 import * as THREE from 'three';
 
 const I = {
@@ -127,6 +130,10 @@ export class CanvasHUD {
     try {
       if (it.kit) obj = kit()[it.kit][it.v];
       else if (it.prop && typeof P[it.prop] === 'function') obj = propOf(P[it.prop], 0).geometry;
+      else if (it.creature) {   // AI 创造的动物：按配方生成的部件拼起来拍一张
+        const sp = CUSTOM.creatures.get(it.creature), P = sp && creatureParts(sp, STYLE.blocky);
+        if (P) { obj = new THREE.Group(); obj.add(new THREE.Mesh(P.body, thumbMaterial())); for (const l of [...P.legs, ...P.wings]) obj.add(new THREE.Mesh(l.geo, thumbMaterial())); }
+      }
       else if (it.animal) {
         const m = L[it.animal](1);
         if (m.parts) { obj = new THREE.Group(); for (const p of Object.values(m.parts)) obj.add(new THREE.Mesh(p.geometry, thumbMaterial())); } else obj = m.geometry || m;

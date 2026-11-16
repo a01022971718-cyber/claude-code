@@ -31,6 +31,7 @@ const GRASSY = new Set(['meadow', 'flowers', 'camp', 'islet', 'pond', 'stream'])
 /** 各类地表的细节起伏（世界坐标的噪声，同一点不管哪块地来算都一样） */
 function detail(ty, x, z) {
   if (GRASSY.has(ty)) return NZ.fbm2(x * 1.3, z * 1.3, 3) * 0.014 + NZ.n2(x * 5, z * 5) * 0.003;
+  const cu = TYPES[ty]?.custom; if (cu) return NZ.fbm2(x * 1.6, z * 1.6, 3) * (0.008 + Math.min(1, +cu.roughness || 0) * 0.02) + NZ.n2(x * 5, z * 5) * 0.003;   // AI 新造的生态：起伏程度按配方
   if (ty === 'forest') return NZ.fbm2(x * 1.7, z * 1.7, 3) * 0.018 + NZ.n2(x * 7, z * 7) * 0.004;
   if (ty === 'quarry') return NZ.fbm2(x * 2.2, z * 2.2, 3) * 0.022;
   if (ty === 'mountain') return NZ.fbm2(x * 1.4, z * 1.4, 3) * 0.02;

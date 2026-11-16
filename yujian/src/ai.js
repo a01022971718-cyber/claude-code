@@ -30,33 +30,64 @@ class HttpError extends Error { constructor(status, msg) { super(msg); this.stat
 // 支持服务端兜底参数的模型（其余模型不带这个参数，否则请求会被拒绝）
 const FALLBACK_OK = new Set(['claude-opus-5-5', 'claude-opus-5', 'claude-fable-5-2', 'claude-fable-5-1', 'claude-sonnet-5-5']);
 
-const TILE_IDS = ITEMS.land.map((x) => x.id);
-const PROP_IDS = ['lighthouse', 'windmill', 'belltower', 'hut', 'campfire', 'woodpile', 'fence', 'signpost', 'boat', 'buoy', 'pine', 'oak', 'sakura', 'maple', 'bush', 'palm', 'reed', 'boulder', 'deer', 'sheep', 'rabbit', 'crab'];
+// 地块和物件：既可以是游戏原有的，也可以是这次（或以前）AI 新造的（用名字引用）
+const BASE_TILES = ITEMS.land.filter((x) => !x.ai).map((x) => x.id);
+const BASE_PROPS = ['lighthouse', 'windmill', 'belltower', 'hut', 'campfire', 'woodpile', 'fence', 'signpost', 'boat', 'buoy', 'pine', 'oak', 'sakura', 'maple', 'bush', 'palm', 'reed', 'boulder', 'deer', 'sheep', 'rabbit', 'crab'];
+const HEX = { type: 'string', description: '颜色，#rrggbb' };
 const ISLAND_SCHEMA = {
   type: 'object',
   properties: {
     name: { type: 'string', description: '岛的名字，2–6 个汉字' },
     note: { type: 'string', description: '一句话介绍这座岛（30 字以内）' },
+    biomes: {
+      type: 'array', description: '这次新创造的生态（地块类型），0–3 种',
+      items: { type: 'object', additionalProperties: false, required: ['name', 'colors', 'height', 'roughness', 'grass', 'grassColor', 'flowers', 'flowerColors', 'plants'],
+        properties: { name: { type: 'string' }, colors: { type: 'array', items: HEX, description: '地面三种颜色：主色、暗斑、亮斑' }, height: { type: 'number', description: '地面高度 0.36（低洼）–0.5（高地），普通草地 0.45' }, roughness: { type: 'number', description: '起伏 0–1' },
+          grass: { type: 'number', description: '草的密度 0–1' }, grassColor: HEX, flowers: { type: 'number', description: '花的密度 0–1' }, flowerColors: { type: 'array', items: HEX },
+          plants: { type: 'array', description: '这个生态里长的植物（用植物名字，可以是这次新造的）', items: { type: 'object', additionalProperties: false, required: ['name', 'density'], properties: { name: { type: 'string' }, density: { type: 'number', description: '0–1' } } } } } },
+    },
+    plants: {
+      type: 'array', description: '这次新创造的植物，0–6 种',
+      items: { type: 'object', additionalProperties: false, required: ['name', 'form', 'height', 'trunkColor', 'trunkThickness', 'bend', 'crownShape', 'crownColor', 'crownColor2', 'crownSize', 'accent', 'accentColor'],
+        properties: { name: { type: 'string' }, form: { type: 'string', enum: ['tree', 'conifer', 'palm', 'bush', 'mushroom', 'flower', 'cactus', 'crystal', 'reed'] }, height: { type: 'number', description: '高度 0.1–1.6（普通树 0.85，灌木 0.2）' },
+          trunkColor: HEX, trunkThickness: { type: 'number', description: '0–1' }, bend: { type: 'number', description: '树干弯曲 0–1' }, crownShape: { type: 'string', enum: ['sphere', 'cone', 'layers', 'umbrella', 'cluster', 'spike', 'blob'] },
+          crownColor: HEX, crownColor2: HEX, crownSize: { type: 'number', description: '0.15–1.2' }, accent: { type: 'string', enum: ['none', 'fruit', 'flower', 'spots', 'glow'] }, accentColor: HEX } },
+    },
+    creatures: {
+      type: 'array', description: '这次新创造的动物，0–5 种',
+      items: { type: 'object', additionalProperties: false, required: ['name', 'shape', 'size', 'color', 'color2', 'legs', 'head', 'eyes', 'ears', 'horns', 'tail', 'wings', 'pattern', 'move', 'habitat', 'count'],
+        properties: { name: { type: 'string' }, shape: { type: 'string', enum: ['round', 'long', 'box', 'flat'] }, size: { type: 'number', description: '身长 0.03（虫子）–0.25（大型），鹿约 0.15，兔子 0.05' },
+          color: HEX, color2: HEX, legs: { type: 'integer', enum: [0, 2, 4, 6] }, head: { type: 'number', description: '头和身子的比例 0.2–0.8' }, eyes: { type: 'string', enum: ['big', 'small'] },
+          ears: { type: 'string', enum: ['none', 'round', 'long', 'pointy'] }, horns: { type: 'string', enum: ['none', 'small', 'antlers'] }, tail: { type: 'string', enum: ['none', 'short', 'long', 'fluffy', 'fin'] },
+          wings: { type: 'boolean' }, pattern: { type: 'string', enum: ['none', 'spots', 'stripes', 'belly'] }, move: { type: 'string', enum: ['walk', 'hop', 'fly', 'swim', 'slither'] },
+          habitat: { type: 'string', description: '住在哪：某种地块的名字（可以是新生态）、land（任意陆地）或 sea（近岸海面）' }, count: { type: 'integer', description: '岛上住几只 1–8' } } },
+    },
     tiles: {
-      type: 'array', description: '地块，六边形轴坐标 (q, r)，相邻地块坐标差为 (±1,0)、(0,±1)、(+1,-1)、(-1,+1)',
-      items: { type: 'object', properties: { q: { type: 'integer' }, r: { type: 'integer' }, t: { type: 'string', enum: TILE_IDS } }, required: ['q', 'r', 't'], additionalProperties: false },
+      type: 'array', description: '地块，六边形轴坐标 (q, r)，相邻地块坐标差为 (±1,0)、(0,±1)、(+1,-1)、(-1,+1)。t 是地块类型：原有类型的英文 id，或新生态的名字',
+      items: { type: 'object', properties: { q: { type: 'integer' }, r: { type: 'integer' }, t: { type: 'string' } }, required: ['q', 'r', 't'], additionalProperties: false },
     },
     items: {
-      type: 'array', description: '摆在地块上的物件（建筑、植物、动物），q/r 是所在地块；boat 和 buoy 要放在紧挨岛的海面格子上',
-      items: { type: 'object', properties: { k: { type: 'string', enum: PROP_IDS }, q: { type: 'integer' }, r: { type: 'integer' } }, required: ['k', 'q', 'r'], additionalProperties: false },
+      type: 'array', description: '摆在地块上的物件，q/r 是所在地块；k 是原有物件的英文 id，或新植物、新动物的名字；boat 和 buoy 要放在紧挨岛的海面格子上',
+      items: { type: 'object', properties: { k: { type: 'string' }, q: { type: 'integer' }, r: { type: 'integer' } }, required: ['k', 'q', 'r'], additionalProperties: false },
     },
     sea: { type: 'string', enum: ['clear', 'jade', 'deep'] },
     hour: { type: 'number', description: '展示时的钟点 0–24' },
   },
-  required: ['name', 'note', 'tiles', 'items', 'sea', 'hour'],
+  required: ['name', 'note', 'biomes', 'plants', 'creatures', 'tiles', 'items', 'sea', 'hour'],
   additionalProperties: false,
 };
-const ISLAND_SYSTEM = `你是一款治愈系六边形海岛游戏的关卡设计师。根据玩家的一句话描述，设计一座岛的布局。
+const ISLAND_SYSTEM = `你是一款治愈系六边形海岛游戏的美术设计师兼关卡设计师。你不只是用现有素材搭岛，更要**创造游戏里原本没有的新东西**：
+新的生态（地块类型：自己的地面颜色、起伏、草和花、长什么植物）、新的植物（按形态和配色设计）、新的动物（按体型、腿、头、耳、角、尾、翅膀、花纹、颜色、习性设计）。
+游戏会按你给的配方现场生成 3D 模型。
 规则：
-- 新岛的地块 12–40 块（改造现有的岛时按需要增减），连成一片（可以另有 1–2 个小离岛），用六边形轴坐标 (q, r)，岛的中心在 (0,0) 附近。
-- 地块类型：meadow 草地、flowers 花田、forest 森林、mountain 岩山、quarry 采石场、field 菜地、wheat 麦田、beach 沙滩、camp 营地、stream 溪流、pond 池塘、islet 小离岛的草地。
-- 要像真实的地方：森林和岩山成片，沙滩在岸边，营地附近有菜地、麦田和水，溪流连成一条线流向海边，池塘挨着溪流或草地。
-- 物件不要太多（8–20 个），每块地最多 2 个；营地上可以有 hut、campfire、woodpile；灯塔放在岸边或离岛上。
+- 默认每次都要创造：至少 1 种新生态、2–4 种新植物、1–3 种新动物，并把它们放进岛里（新生态的地块、新植物和新动物的物件）。玩家明确说“只用现有的”时才不创造。
+- 新东西要有想象力，但要和谐好看：配色用柔和、有层次的颜色，避免纯黑纯白和刺眼的荧光色；名字是 2–6 个汉字，不和原有的重名。
+- 新生态的植物列表里引用新植物或原有植物的名字；新动物的 habitat 写它住的地块类型（可以是新生态的名字）、land 或 sea。
+- 原有地块类型（英文 id）：meadow 草地、flowers 花田、forest 森林、mountain 岩山、quarry 采石场、field 菜地、wheat 麦田、beach 沙滩、camp 营地、stream 溪流、pond 池塘、islet 小离岛草地。
+- 原有物件（英文 id）：lighthouse 灯塔、windmill 风车、belltower 钟楼、hut 茅屋、campfire 营火、woodpile 柴堆、fence 篱笆、signpost 路牌、boat 小船、buoy 浮标、pine 松树、oak 阔叶树、sakura 樱花树、maple 秋叶树、bush 灌木、palm 椰子树、reed 芦苇、boulder 巨石、deer 鹿、sheep 羊、rabbit 兔子、crab 螃蟹。
+- 新岛的地块 12–40 块（改造现有的岛时按需要增减），连成一片（可以另有 1–2 个小离岛），岛的中心在 (0,0) 附近。
+- 要像真实的地方：同类地块成片，沙滩在岸边，溪流连成一条线流向海边；新生态和相邻的地块要过渡自然。
+- 物件 8–30 个，每块地最多 2 个。
 - 用中文起名字和写介绍。`;
 
 export class AIService {
@@ -113,8 +144,10 @@ export class AIService {
     return { text: text.trim(), model: res.model };
   }
   /** AI 造岛：返回 { name, note, tiles:[[q,r,t]], items:[{k,q,r}], sea, hour } */
-  async island(prompt, base = null) {
-    const content = base ? `现在的岛（JSON）：${JSON.stringify(base)}\n\n玩家的要求：${prompt}\n\n请在现在这座岛的基础上按要求修改：没提到的地块和物件尽量原样保留，坐标不要整体平移。返回改完后的完整布局（全部地块和物件）。` : prompt;
+  /** AI 造岛 / 造物。base：现在的岛（改造模式），known：以前造过的东西的名字（可以直接引用） */
+  async island(prompt, base = null, known = null) {
+    const ref = known && (known.biomes.length || known.plants.length || known.creatures.length) ? `\n\n以前已经创造过、可以直接用名字引用的：生态 ${known.biomes.join('、') || '无'}；植物 ${known.plants.join('、') || '无'}；动物 ${known.creatures.join('、') || '无'}。` : '';
+    const content = (base ? `现在的岛（JSON）：${JSON.stringify(base)}\n\n玩家的要求：${prompt}\n\n请在现在这座岛的基础上按要求修改：没提到的地块和物件尽量原样保留，坐标不要整体平移。返回改完后的完整布局（全部地块和物件），以及这次新创造的生态、植物、动物。` : prompt) + ref;
     const { text } = await this._ask({
       max_tokens: 16000,
       system: ISLAND_SYSTEM,
@@ -122,7 +155,7 @@ export class AIService {
       messages: [{ role: 'user', content }],
     });
     let data; try { data = JSON.parse(text.replace(/^\s*```(?:json)?/i, '').replace(/```\s*$/, '')); } catch { throw new Error('模型返回的布局读不出来，再试一次'); }
-    return sanitizeIsland(data);
+    return sanitizeIsland(data, known);
   }
   /** 岛民说话：ctx = { name, doing, hour, weather } → 一句话 */
   async villagerLine(ctx) {
@@ -150,20 +183,35 @@ export function aiError(e) {
 }
 
 /** 模型的布局做一遍清洗：去重、限量、地块必须连在岛上（离岛除外）、物件必须落在地块上 */
-export function sanitizeIsland(d) {
+const num = (v, lo, hi, def) => { const n = Number(v); return Number.isFinite(n) ? Math.max(lo, Math.min(hi, n)) : def; };
+const hexOk = (v, def) => (typeof v === 'string' && /^#?[0-9a-fA-F]{6}$/.test(v.trim()) ? '#' + v.trim().replace('#', '') : def);
+const pick = (v, list, def) => (list.includes(v) ? v : def);
+const nm = (v, def) => String(v || def).replace(/[\s"'<>]/g, '').slice(0, 8) || def;
+/** 模型给的结果做一遍清洗：造物配方的数值夹在合理范围里、颜色和枚举都合法；布局去重、限量、物件必须落在地块上。
+ *  known：以前造过的东西的名字，布局里可以引用 */
+export function sanitizeIsland(d, known = null) {
+  const biomes = (d.biomes || []).slice(0, 3).map((b, i) => ({ name: nm(b.name, '新生态' + (i + 1)), colors: (b.colors || []).slice(0, 3).map((c, k) => hexOk(c, ['#7fae4a', '#5f8f3a', '#a8c860'][k])), height: num(b.height, 0.36, 0.5, 0.45), roughness: num(b.roughness, 0, 1, 0.3),
+    grass: num(b.grass, 0, 1, 0.6), grassColor: hexOk(b.grassColor, '#8cc043'), flowers: num(b.flowers, 0, 1, 0.2), flowerColors: (b.flowerColors || []).slice(0, 5).map((c) => hexOk(c, '#f2c45a')), plants: (b.plants || []).slice(0, 5).map((p) => ({ name: nm(p.name, ''), density: num(p.density, 0, 1, 0.5) })) }));
+  const plants = (d.plants || []).slice(0, 6).map((p, i) => ({ name: nm(p.name, '新植物' + (i + 1)), form: pick(p.form, ['tree', 'conifer', 'palm', 'bush', 'mushroom', 'flower', 'cactus', 'crystal', 'reed'], 'tree'), height: num(p.height, 0.1, 1.6, 0.8),
+    trunkColor: hexOk(p.trunkColor, '#6b4a32'), trunkThickness: num(p.trunkThickness, 0, 1, 0.5), bend: num(p.bend, 0, 1, 0.1), crownShape: pick(p.crownShape, ['sphere', 'cone', 'layers', 'umbrella', 'cluster', 'spike', 'blob'], 'sphere'),
+    crownColor: hexOk(p.crownColor, '#4f8a3a'), crownColor2: hexOk(p.crownColor2, '#8fc050'), crownSize: num(p.crownSize, 0.15, 1.2, 0.6), accent: pick(p.accent, ['none', 'fruit', 'flower', 'spots', 'glow'], 'none'), accentColor: hexOk(p.accentColor, '#e04a3a') }));
+  const creatures = (d.creatures || []).slice(0, 5).map((c, i) => ({ name: nm(c.name, '新动物' + (i + 1)), shape: pick(c.shape, ['round', 'long', 'box', 'flat'], 'round'), size: num(c.size, 0.03, 0.25, 0.08), color: hexOk(c.color, '#c98a4a'), color2: hexOk(c.color2, '#f0e2c8'),
+    legs: [0, 2, 4, 6].includes(+c.legs) ? +c.legs : 4, head: num(c.head, 0.2, 0.8, 0.45), eyes: pick(c.eyes, ['big', 'small'], 'big'), ears: pick(c.ears, ['none', 'round', 'long', 'pointy'], 'none'), horns: pick(c.horns, ['none', 'small', 'antlers'], 'none'),
+    tail: pick(c.tail, ['none', 'short', 'long', 'fluffy', 'fin'], 'short'), wings: !!c.wings, pattern: pick(c.pattern, ['none', 'spots', 'stripes', 'belly'], 'none'), move: pick(c.move, ['walk', 'hop', 'fly', 'swim', 'slither'], 'walk'), habitat: nm(c.habitat, 'land'), count: Math.round(num(c.count, 1, 8, 3)) }));
+  const tileOk = new Set([...BASE_TILES, ...biomes.map((b) => b.name), ...(known?.biomes || [])]), propOk = new Set([...BASE_PROPS, ...plants.map((p) => p.name), ...creatures.map((c) => c.name), ...(known?.plants || []), ...(known?.creatures || [])]);
   const seen = new Set(), tiles = [];
-  for (const t of d.tiles || []) { const k = t.q + ',' + t.r; if (seen.has(k) || !TILE_IDS.includes(t.t) || Math.abs(t.q) > 30 || Math.abs(t.r) > 30) continue; seen.add(k); tiles.push([t.q, t.r, t.t]); if (tiles.length >= 220) break; }
+  for (const t of d.tiles || []) { const k = t.q + ',' + t.r; if (seen.has(k) || !tileOk.has(t.t) || Math.abs(t.q) > 30 || Math.abs(t.r) > 30) continue; seen.add(k); tiles.push([t.q, t.r, t.t]); if (tiles.length >= 220) break; }
   if (tiles.length < 3) throw new Error('模型给的地块太少，再试一次');
-  const land = new Set(tiles.map(([q, r]) => q + ',' + r)), water = new Set(['boat', 'buoy']), count = new Map(), items = [];
+  const land = new Set(tiles.map(([q, r]) => q + ',' + r)), water = new Set(['boat', 'buoy', ...creatures.filter((c) => c.habitat === 'sea').map((c) => c.name)]), count = new Map(), items = [];
   const nearLand = (q, r) => [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]].some(([a, b]) => land.has((q + a) + ',' + (r + b)));
   for (const it of d.items || []) {
-    if (!PROP_IDS.includes(it.k)) continue;
+    if (!propOk.has(it.k)) continue;
     const k = it.q + ',' + it.r, onLand = land.has(k);
     if (water.has(it.k) ? onLand || !nearLand(it.q, it.r) : !onLand) continue;
     if ((count.get(k) || 0) >= 2) continue; count.set(k, (count.get(k) || 0) + 1);
     items.push({ k: it.k, q: it.q, r: it.r }); if (items.length >= 120) break;
   }
-  return { name: String(d.name || 'AI 小岛').slice(0, 12), note: String(d.note || '').slice(0, 60), tiles, items, sea: ['clear', 'jade', 'deep'].includes(d.sea) ? d.sea : 'clear', hour: Math.max(0, Math.min(23.9, Number(d.hour) || 15)) };
+  return { name: String(d.name || 'AI 小岛').slice(0, 12), note: String(d.note || '').slice(0, 60), biomes, plants, creatures, tiles, items, sea: ['clear', 'jade', 'deep'].includes(d.sea) ? d.sea : 'clear', hour: Math.max(0, Math.min(23.9, Number(d.hour) || 15)) };
 }
 
 /** 没配置 AI 时，村民说的话（按在干什么挑） */

@@ -42,6 +42,7 @@ export class ItemLayer {
   set(list) {
     for (const id of [...this.items.keys()]) this.remove(id, true);
     if (this.fauna) { this.fauna.dispose(); this.fauna = null; }
+    this.view.creatures?.clear(true); if (this.view.creatures) this.view.creatures.sig = '';
     for (const it of list) this.add(it, true);
     this._rebuildPlants();
   }
@@ -49,6 +50,10 @@ export class ItemLayer {
   add(it, batch = false) {
     const def = findItem(it.k); if (!def) return false;
     const v = this.view, y = v.terrain.heightAt(it.x, it.z);
+    if (def.creature) {   // AI 创造的动物
+      if (!v.creatures?.spawn(def.creature, it.x, it.z)) return false;
+      this.items.set(it.id, it); return true;
+    }
     if (def.animal) {
       if (!this._fauna().spawn(def.animal, it.x, it.z)) return false;
       this.items.set(it.id, it); return true;
@@ -89,7 +94,12 @@ export class ItemLayer {
     this.view.fires.delete(id);
     if (def?.kit && !quiet) this._rebuildPlants();
     if (def?.animal && !quiet) this._respawnAnimals();
+    if (def?.creature && !quiet) this._respawnCreatures();
     return it;
+  }
+  _respawnCreatures() {
+    const C = this.view.creatures; if (!C) return; C.clear(true); C.sig = '';
+    for (const it of this.items.values()) { const d = findItem(it.k); if (d?.creature) C.spawn(d.creature, it.x, it.z); }
   }
   _respawnAnimals() {
     if (this.fauna) { this.fauna.dispose(); this.fauna = null; }
