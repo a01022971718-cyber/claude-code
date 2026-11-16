@@ -3,7 +3,10 @@
 // 作息（env.hour，游戏里的钟点）：蝴蝶、蜜蜂、蜻蜓白天活动，夜里停在花上、芦苇上；林鸟清晨和傍晚最闹，夜里不飞；
 // 野兔和鹿晨昏最活跃，正午多半歇着；羊群夜里挤成一团不怎么动；螃蟹、青蛙夜里和黄昏更活跃；野鸭夜里漂着睡觉。
 import * as THREE from 'three';
-import * as L from './models-land.js';
+import * as L0 from './models-land.js';
+import * as BK from './blocky.js';
+// 方块风格原型：羊和兔子换成方块造型（其余物种暂不变）
+const L = BK.STYLE.blocky ? { ...L0, sheep: BK.sheep, rabbit: BK.rabbit } : L0;
 import { GLSL_NOISE } from './noise.js';
 import { U } from './materials.js';
 import { G } from './waves.js';

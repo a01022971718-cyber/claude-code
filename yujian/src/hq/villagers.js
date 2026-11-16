@@ -10,15 +10,18 @@
 // 每个营地住三个人。渔夫：清晨划船出海到离岸几个单位的渔场，下午收网回来，船跟着浪起伏（交给海洋的浮力），海鸥在船上空盘旋。
 import * as THREE from 'three';
 import * as P from './props.js';
+import * as BK from './blocky.js';
+import { propMaterial } from './materials.js';
 
 const SHIRTS = [0xc8432f, 0x3f6fb5, 0x5e8f3a, 0xd9a13b, 0x8a5aa8, 0x2f8f8a];
 const HATS = ['straw', 'none', 'cap', 'straw'];
 const VARIANTS = new Map();
 function villagerGeo(i) {
   const k = i % 6; let g = VARIANTS.get(k);
-  if (!g) { g = P.villager(k + 1, { shirt: SHIRTS[k], hat: HATS[k % HATS.length], hatColor: k % 2 ? 0x30343a : 0xd8b56a }).geometry; g.userData.shared = true; VARIANTS.set(k, g); }
+  if (!g) { g = (BK.STYLE.blocky ? BK.villager : P.villager)(k + 1, { shirt: SHIRTS[k], hat: BK.STYLE.blocky ? ['straw', 'none', 'cap', 'band', 'straw', 'none'][k] : HATS[k % HATS.length], hatColor: k % 2 ? 0x30343a : 0xd8b56a }).geometry; g.userData.shared = true; VARIANTS.set(k, g); }
   return g;
 }
+const NAMES = ['阿禾', '小满', '石头', '海生', '阿篱', '青禾', '大树', '小渔'];
 const WORK_SPOT = { field: 'farm', wheat: 'farm', forest: 'wood', beach: 'shore', stream: 'water', pond: 'water' };
 
 export class Villagers {
@@ -38,16 +41,18 @@ export class Villagers {
     for (const c of camps) {
       const paths = T.paths.filter((p) => p.from === c);
       for (let i = 0; i < 3; i++) {
-        const m = new THREE.Mesh(villagerGeo(n++), this.view.mats.prop); m.castShadow = true;
+        const m = new THREE.Mesh(villagerGeo(n++), this._mat()); m.castShadow = true;
         const home = [c.x - 0.24 + [-0.05, 0.2, 0.08][i], c.z - 0.05 + [0, 0.1, 0.22][i]];
         m.position.set(home[0], T.heightAt(home[0], home[1]) ?? c.base, home[1]); this.group.add(m);
-        this.people.push({ m, camp: c, home, paths, i, state: 'idle', route: null, ri: 0, t: 0, wait: 1 + i * 2, task: null, yaw: 0, seed: n * 1.7 });
+        this.people.push({ name: NAMES[(n - 1) % NAMES.length], m, camp: c, home, paths, i, state: 'idle', route: null, ri: 0, t: 0, wait: 1 + i * 2, task: null, yaw: 0, seed: n * 1.7 });
       }
       // 渔船：营地附近（两圈内）有沙滩就配一条
       const beach = T.tiles.find((b) => b.t === 'beach' && (Math.abs(b.q - c.q) + Math.abs(b.r - c.r) + Math.abs(b.q + b.r - c.q - c.r)) / 2 <= 4);
       if (beach) this._boat(beach, n++);
     }
   }
+  /** 方块风格用偏哑光的黏土材质 */
+  _mat() { return BK.STYLE.blocky ? (this.view.mats.clay ||= propMaterial({ rough: 0.58, env: 1 })) : this.view.mats.prop; }
   _boat(beach, seed) {
     const T = this.view.terrain;
     // 停船点：沙滩外侧的浅水；渔场：再往外 3–5 个单位、离岸够远的地方
@@ -68,7 +73,7 @@ export class Villagers {
     const pick = paths[(Math.floor(p.seed * 7 + (this.view.hour > 13 ? 3 : 0) + (p.round || 0)) % paths.length)];
     const pts = pick.pts.map(([x, z]) => [x, z]), end = pts[pts.length - 1], g = pick.to;
     // 走到小路尽头，再往地块里走一点
-    const ex = end[0] + (g.x - end[0]) * 0.4 + (p.i - 0.5) * 0.12, ez = end[1] + (g.z - end[1]) * 0.4;
+    const sa = p.i * 2.1 + (p.round || 0), ex = end[0] + (g.x - end[0]) * 0.4 + Math.cos(sa) * 0.2, ez = end[1] + (g.z - end[1]) * 0.4 + Math.sin(sa) * 0.2;   // 几个人分开站，不挤在一起
     if (this.view.terrain.heightAt(ex, ez) != null) pts.push([ex, ez]);
     return { pts, task: WORK_SPOT[g.t] || 'farm' };
   }

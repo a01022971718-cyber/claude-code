@@ -3,6 +3,7 @@ import { LegacyView } from './legacyview.js';
 import { HQView } from './hq/gameview.js';
 import { CameraRig } from './camera.js';
 import { CamDock } from './camdock.js';
+import { AIService } from './ai.js';
 import { Actors } from './actors.js';
 import { Game, landmarkDef } from './state.js';
 import { UI, ICON, fmtWait } from './ui.js';
@@ -63,6 +64,7 @@ class App {
     this.actors.walkable = (q, r) => { const t = this.game.tile(q, r); return !!t && t.own && ['meadow', 'home', 'islet', 'harbor'].includes(t.t); };
     this.sel = { slot: -1, cell: null, coupon: false };
     this.mode = 'play'; // play | decor | photo | cut
+    this.ai = new AIService(s.settings);   // 大模型接入（设置 → AI）
     this.ui = new UI(this);
     this.camDock = new CamDock(this);
     this.camDock.onToggle = (on) => this.hud?.root.querySelector('[data-a="cam"]')?.classList.toggle('on', on);

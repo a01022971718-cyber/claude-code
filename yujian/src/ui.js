@@ -1,6 +1,7 @@
 // 界面层：资源栏、目标、手牌、委托、设置、模拟广告、提示。全部是 DOM，叠在 3D 画布上面。
 import { TILE, RES, RES_NAME, DAILY, QUALITY, gfx } from './config.js';
 import { CAM_ICON } from './camdock.js';
+import { aiError } from './ai.js';
 import { audio } from './audio.js';
 import { ads, analytics, inFrame } from './services.js';
 import { tileThumb } from './thumbs.js';
@@ -176,11 +177,12 @@ export class UI {
       <button class="btn ghost" id="setTime">岛上的时间：${st.timeMode === 'real' ? '跟随现实' : '固定 ' + app.view.sky.label()}</button>`;
     else if (tab === 'gfx') body = this._gfxPanel();
     else if (tab === 'cam') body = this._camPanel();
+    else if (tab === 'ai') body = this._aiPanel();
     else body = `
       <div class="rowb"><button class="btn ghost" id="setBench">性能测试</button><button class="btn ghost" id="setExport">查看埋点数据</button>${app.canvasMode ? '' : '<button class="btn ghost danger" id="setReset">重新开始</button>'}</div>
       ${app.debug ? `<div class="dbg"><b>调试</b><button data-d="give">+10 资源</button><button data-d="skip">快进 4 小时</button><button data-d="day">进入下一天</button><button data-d="coupon">+2 卡券</button></div>` : ''}
-      <p class="ver">屿见 v0.9 · 存档只保存在这台设备的浏览器里</p>`;
-    const tabs = [['basic', '基础'], ['gfx', '画面'], ['cam', '镜头'], ['other', '其他']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('');
+      <p class="ver">屿见 v0.10 · 存档只保存在这台设备的浏览器里</p>`;
+    const tabs = [['basic', '基础'], ['gfx', '画面'], ['cam', '镜头'], ['ai', 'AI'], ['other', '其他']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('');
     const sh = this.modal(`<header><h2>设置</h2><button class="x" data-close>关闭</button></header><nav class="stabs">${tabs}</nav><div class="set">${body}</div>`, tab === 'gfx' || tab === 'cam' ? 'wide gfxsheet' : '');
     sh.addEventListener('click', (e) => e.stopPropagation());
     sh.querySelector('[data-close]').onclick = () => this.closeModal();
@@ -205,7 +207,50 @@ export class UI {
     on('#set_auto', 'onchange', (e) => { st.autoQuality = e.target.checked; this.g.save(); });
     on('#setLegacy', 'onclick', () => app.setQuality(app.view.kind === 'hq' ? 'low' : 'ultra'));
     // 镜头页
+    // AI 页：保存配置、测试连接
+    const aiSave = () => { st.ai = { key: sh.querySelector('#aiKey').value.trim(), baseURL: sh.querySelector('#aiBase').value.trim(), model: sh.querySelector('#aiModel').value.trim() }; this.g.save(); };
+    on('#aiSave', 'onclick', () => { aiSave(); this.toast('已保存（只存在这台设备上）'); });
+    on('#aiTest', 'onclick', async () => {
+      aiSave(); const out = sh.querySelector('#aiOut');
+      if (!app.ai.ready) { out.textContent = '先填 API 密钥或代理地址'; return; }
+      out.textContent = '正在连接……';
+      try { const r = await app.ai.ping(); out.textContent = `连上了（${r.model}）：${r.text}`; } catch (e) { out.textContent = '连接失败：' + aiError(e); }
+    });
     sh.querySelectorAll('[data-cam]').forEach((b) => { b.onclick = () => { app.setCam(b.dataset.cam, JSON.parse(b.dataset.v)); setTimeout(() => { if (!this.el.modal.hidden) this.openSettings('cam'); }, 30); }; });
+  }
+  /** AI 设置页：大模型接入 */
+  _aiPanel() {
+    const c = this.g.s.settings.ai || {}, esc = (v) => String(v || '').replace(/[&"<>]/g, (m) => ({ '&': '&amp;', '"': '&quot;', '<': '&lt;', '>': '&gt;' }[m]));
+    return `<div class="aiform">
+      <p class="note">接入 Claude 大模型后可以用一句话生成一座岛（岛屿菜单 → AI 造岛），点村民时他们会根据此刻在做的事说话。</p>
+      <label>API 密钥<input id="aiKey" type="password" autocomplete="off" placeholder="sk-ant-…" value="${esc(c.key)}"></label>
+      <label>代理地址（可选）<input id="aiBase" type="url" placeholder="https://你的服务器/anthropic" value="${esc(c.baseURL)}"></label>
+      <label>模型<input id="aiModel" type="text" placeholder="claude-opus-5-5" value="${esc(c.model)}"></label>
+      <div class="rowb"><button class="btn" id="aiSave">保存</button><button class="btn ghost" id="aiTest">测试连接</button></div>
+      <p class="note" id="aiOut"></p>
+      <p class="note">密钥只保存在这台设备的浏览器里。正式上线给玩家用时，请在自己的服务器上转发请求（填“代理地址”、不填密钥），不要把密钥放进客户端。</p></div>`;
+  }
+  /** AI 造岛：输入一句话描述 → 生成一座新岛 */
+  openAIIsland() {
+    const app = this.app;
+    if (!app.ai.ready) { this.toast('先在 设置 → AI 里填 API 密钥'); return this.openSettings('ai'); }
+    const sh = this.modal(`<header><h2>AI 造岛</h2><button class="x" data-close>关闭</button></header>
+      <div class="aiform"><label>想要一座什么样的岛？<textarea id="aiPrompt" rows="3" placeholder="比如：一座有瀑布和渔村的小岛，北边是松林，南边是长长的沙滩"></textarea></label>
+      <div class="rowb"><button class="btn" id="aiGo">生成</button></div><p class="note" id="aiMsg">生成会替换现在这座岛，需要等十几秒到一分钟。</p></div>`, 'small');
+    sh.addEventListener('click', (e) => e.stopPropagation());
+    sh.querySelector('[data-close]').onclick = () => this.closeModal();
+    sh.querySelector('#aiGo').onclick = async () => {
+      const text = sh.querySelector('#aiPrompt').value.trim(), msg = sh.querySelector('#aiMsg'), btn = sh.querySelector('#aiGo');
+      if (!text) { msg.textContent = '先写一句描述'; return; }
+      btn.disabled = true; msg.textContent = 'AI 正在设计这座岛……';
+      try {
+        const L = await app.ai.island(text);
+        msg.textContent = `「${L.name}」：${L.note}（${L.tiles.length} 块地）`;
+        if (!(await this.confirm(`生成「${L.name}」会替换现在这座岛，确定吗？`, '换成这座岛'))) { btn.disabled = false; return; }
+        this.closeModal(); app.hud?.setOpen(false);
+        await app.canvasMode.loadLayout(L); this.toast(`「${L.name}」：${L.note}`);
+      } catch (e) { msg.textContent = '没生成出来：' + aiError(e); btn.disabled = false; }
+    };
   }
   /** 镜头设置页 */
   _camPanel() {

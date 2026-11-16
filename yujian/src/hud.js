@@ -180,6 +180,7 @@ export class CanvasHUD {
       <div class="c-menu-grid">
         <button class="c-card" data-n="starter"><b>样张岛</b><span>从高画质样张那座完整的岛开始</span></button>
         <button class="c-card" data-n="blank"><b>空白小岛</b><span>三块地，从零开始搭</span></button>
+        <button class="c-card" data-n="ai"><b>AI 造岛</b><span>用一句话描述，AI 帮你设计一座岛</span></button>
       </div>
       <p class="note">已发现：${Object.keys(RARE).map((k) => `${RARE[k].name}${cv.unlocked(k) ? ' ✓' : '（未发现）'}`).join('　')}</p>
       <p class="note">自由画布的存档和经营玩法分开保存。想玩资源、目标、地块卡，到设置里打开「经营玩法」。</p>`, 'small');
@@ -187,6 +188,7 @@ export class CanvasHUD {
       e.stopPropagation();
       if (e.target.closest('[data-close]')) return ui.closeModal();
       const b = e.target.closest('[data-n]'); if (!b) return;
+      if (b.dataset.n === 'ai') return ui.openAIIsland();
       if (!(await ui.confirm('换一座新岛会清空现在这座岛，确定吗？', '换新岛'))) return;
       cv.newWorld(b.dataset.n); this.setOpen(false); ui.toast(b.dataset.n === 'starter' ? '回到了样张岛' : '一座新的小岛');
     });

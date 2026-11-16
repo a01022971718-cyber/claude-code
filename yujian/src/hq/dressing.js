@@ -6,6 +6,7 @@ import { boulder, peak } from './rocks.js';
 import { rng, makeNoise } from './noise.js';
 import * as P from './props.js';
 import * as L from './models-land.js';
+import * as BK from './blocky.js';
 
 const NZ = makeNoise(9);
 const INR = Math.sqrt(3) / 2;
@@ -31,6 +32,11 @@ export function kit() {
     reed: [L.reeds(1).geometry, L.cattail(2).geometry],
     lily: [L.lilyPad(1, false).geometry, L.lilyPad(2, true).geometry],
     stump: [stump],
+    ...(BK.STYLE.blocky ? {   // 方块风格原型：体素树和灌木
+      con: [1, 2, 3, 4, 5].map((s) => BK.voxelConifer(s)),
+      broad: [BK.voxelTree(3, 'green'), BK.voxelTree(7, 'lime'), BK.voxelTree(9, 'green'), BK.voxelTree(13, 'autumn'), BK.voxelTree(17, 'green')],
+      bush: [BK.voxelBush(1, 'green'), BK.voxelBush(2, 'lime'), BK.voxelBush(3, 'green')],
+    } : {}),
     wrack: [L.wrack(1).geometry, L.wrack(2).geometry], drift: [L.driftwood(1).geometry, L.driftwood(2).geometry], shell: [L.shells(1).geometry, L.shells(2).geometry],
   };
   return KIT;

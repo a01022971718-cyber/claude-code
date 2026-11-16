@@ -18,6 +18,8 @@ import { Batcher } from './batcher.js';
 import { Villagers } from './villagers.js';
 import { Wildlife } from './wildlife.js';
 import { SkyLayer } from './clouds.js';
+import { MacroLayer } from './macro.js';
+import { STYLE } from './blocky.js';
 import { Ocean } from './ocean.js';
 import { Particles } from './particles.js';
 import { Atmosphere, presetAt } from './atmosphere.js';
@@ -510,6 +512,7 @@ export class HQView {
     this.villagers.update(dt, t);
     this.wild.update(dt, t);   // 鹬、白鹭、燕鸥、蝙蝠、跃鱼
     this.skyLayer.update(dt, focus, this.gulls.center, Math.max(3, this.gulls.radius - 1.5));   // 地平线的云、清晨海雾
+    if (STYLE.blocky && !this.chunksDirty) { this.macro ||= new MacroLayer(this); this.macro.update(focus, dist); this.pipe.opts.macro = Math.max(0, Math.min(1, (4.2 - dist) / 2.8)); }   // 原型：特写的微距草地和浅景深
     // 动物、海龟、海鸥、村民、岸边的鸟：全岛合批（同一部件一次绘制）
     this.batcher.sync([this.faunaRoot, this.marine?.group, this.gulls.group, this.villagers.group, this.wild.group]);
     // 营火：离镜头最近的那一处冒火苗和炊烟

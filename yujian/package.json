@@ -9,6 +9,7 @@
     "sheet": "node tools/sheet.cjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
     "three": "0.170.0"
   },
   "devDependencies": {

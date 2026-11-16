@@ -3,6 +3,7 @@
 // 存档单独一份（和经营玩法互不影响）；所有操作都能撤销。
 import { key, toWorld, fromWorld, DIRS } from './hex.js';
 import { findItem, STARTER } from './catalog.js';
+import { CANNED } from './ai.js';
 import { RARE, GRASS, newDiscovery, roll, chance } from './discovery.js';
 import { GROUND } from './ground.js';
 import { audio } from './audio.js';
@@ -89,7 +90,7 @@ export class CanvasMode {
   }
   tap(cx, cy) {
     const p = this.pick(cx, cy); if (!p) return;
-    if (!this.sel) return this.inspect(p);
+    if (!this.sel) return this.inspect(p, cx, cy);
     if (this.sel === 'erase') return this.erase(p, cx, cy);
     const def = findItem(this.sel); if (!def) return;
     if (def.tile) return this.placeTile(p, def);
@@ -101,7 +102,44 @@ export class CanvasMode {
     const p = this.pick(cx, cy); if (!p) return false;
     const rig = this.app.rig; rig.flyTo(p.x, p.z, Math.min(rig.target.dist, 10), 0.8); return true;
   }
-  inspect(p) {
+  /** 用 AI 生成的布局建一座新岛（AI 造岛） */
+  async loadLayout(L) {
+    const s = newCanvas('blank'); s.tiles = L.tiles.map(([q, r, t]) => [q, r, t]); s.items = []; s.sea = L.sea;
+    s.unlocked = ['stream', 'pond'].filter((k) => s.tiles.some((t) => t[2] === k));
+    for (const it of L.items) {
+      const def = findItem(it.k); if (!def) continue;
+      const [x, z] = toWorld(it.q, it.r), a = Math.random() * 6.28, d = def.water ? 0 : 0.15 + Math.random() * 0.2;
+      s.items.push({ id: s.seq++, k: it.k, x: +(x + Math.cos(a) * d).toFixed(3), z: +(z + Math.sin(a) * d).toFixed(3), ry: +(Math.random() * 6.28).toFixed(2), s: def.prop === 'lighthouse' || def.prop === 'windmill' || def.prop === 'bellTower' ? 1 : +(0.9 + Math.random() * 0.2).toFixed(2) });
+    }
+    let cx = 0, cz = 0; for (const [q, r] of s.tiles) { const [x, z] = toWorld(q, r); cx += x; cz += z; } cx /= s.tiles.length; cz /= s.tiles.length;
+    let rad = 1; for (const [q, r] of s.tiles) { const [x, z] = toWorld(q, r); rad = Math.max(rad, Math.hypot(x - cx, z - cz)); }
+    s.cam = { x: +cx.toFixed(2), z: +cz.toFixed(2), yaw: -0.45, pitch: 0.6, dist: Math.min(40, Math.max(12, rad * 2.2 + 8)) };
+    this.s = s; this.undo = []; this.save(); this.syncAll();
+    const app = this.app, v = this.view;
+    app.setTimeMode('fixed', L.hour);
+    if (v.preload) { app.booting = true; app.ui.loading(0, '正在生成海岛'); await v.preload((p, t) => app.ui.loading(p, t), app.rig.focus, app.rig.target.dist); app.ui.loading(null); app.booting = false; }
+    analytics.track('canvas_ai_island', { tiles: s.tiles.length });
+  }
+  /** 屏幕上离点击位置最近的村民（40 像素以内） */
+  _villagerHit(cx, cy) {
+    const V = this.view.villagers; if (!V || cx == null) return null;
+    const rig = this.app.rig, b = this.app.canvas.getBoundingClientRect(); let best = null, bd = 40;
+    for (const p of V.people) { if (p.state === 'sleep') continue; const m = p.m.position, [sx, sy, vis] = rig.project(m.x, m.y + 0.13, m.z); if (!vis) continue; const d = Math.hypot(sx + b.left - cx, sy + b.top - cy); if (d < bd) { bd = d; best = p; } }
+    return best;
+  }
+  /** 点到村民：他说一句话（配置了 AI 就让模型说，否则用内置台词） */
+  talk(p) {
+    const app = this.app, DOING = { farm: '在菜地里干活', wood: '在林子边砍柴', shore: '在海边捡贝壳', water: '在溪边打水' };
+    const doing = p.state === 'work' ? DOING[p.task] || '在地里干活' : p.state === 'walk' ? '在小路上走' : p.state === 'sit' ? '坐在营火边' : '在屋前伸懒腰';
+    const canned = CANNED[p.state === 'work' ? 'work' : p.state === 'walk' ? 'walk' : p.state === 'sit' ? 'sit' : 'idle'];
+    const say = (t) => app.hud?.hint(`${p.name}：${t}`, 3600);
+    audio.sfx('tap');
+    if (!app.ai?.ready) { say(canned[Math.floor(Math.random() * canned.length)]); return; }
+    if (this._talking) return; this._talking = true; say('……');
+    app.ai.villagerLine({ name: p.name, doing, hour: app.view.sky.label() }).then(say).catch((e) => { say(canned[0]); console.warn('AI 岛民说话失败', e); }).finally(() => { this._talking = false; });
+  }
+  inspect(p, cx, cy) {
+    const vp = this._villagerHit(cx, cy); if (vp) return this.talk(vp);
     // 没有选东西时点一下：显示这块地的名字（轻提示，不打断）
     const [q, r] = fromWorld(p.x, p.z), t = this.tileAt(q, r);
     if (t) { const d = findItem(t[2]); if (d) this.app.hud?.hint(d.name + (RARE[t[2]] ? ' · ' + RARE[t[2]].name : ''), 1200); }

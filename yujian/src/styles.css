@@ -329,3 +329,9 @@ body { background: var(--haze); color: var(--ink); font-family: var(--font); fon
 @media (orientation: portrait) { .camdock { top: auto; bottom: calc(max(12px, env(safe-area-inset-bottom, 0px)) + 84px); transform: none; } }
 .camhelp { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--paper2); font-size: 12.5px; line-height: 1.6; }
 .camhelp p { margin: 2px 0; color: var(--ink2); }
+
+/* AI 设置和 AI 造岛（v0.10） */
+.aiform label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; font-size: 13px; font-weight: 700; }
+.aiform input, .aiform textarea { width: 100%; box-sizing: border-box; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line); background: var(--paper2); color: var(--ink); font: inherit; font-weight: 500; }
+.aiform textarea { resize: vertical; min-height: 64px; }
+.aiform .note { margin: 6px 0; }

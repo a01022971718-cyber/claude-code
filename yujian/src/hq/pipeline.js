@@ -217,7 +217,8 @@ export class HQPipeline {
     const d = this.dof.uniforms; d.cameraNear.value = cam.near; d.cameraFar.value = cam.far; d.uFocus.value = focusDist;
     // 景深两种：柔和 = 焦点前后很大一段都清楚，只虚化远处和很近的前景；移轴 = 微缩模型感（样张的效果）
     const pr = this.renderer.getPixelRatio();
-    if (o.dof === 'soft') { d.uAperture.value = 9; d.uFocusRange.value = 0.32; d.uMaxCoc.value = 5 * pr; }
+    const mk = o.macro || 0;   // 特写时（原型）：光圈开大、清楚的范围收窄，像微距镜头
+    if (o.dof === 'soft') { d.uAperture.value = 9 + 16 * mk; d.uFocusRange.value = 0.32 - 0.24 * mk; d.uMaxCoc.value = (5 + 5 * mk) * pr; }
     else { d.uAperture.value = 18; d.uFocusRange.value = 0.08; d.uMaxCoc.value = 9 * pr; }
     this.grade.uniforms.uTime.value += dt;
     this.composer.render(dt);
