@@ -454,7 +454,10 @@ export class Marine {
     const D = this.dolphins, c = this.center, m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(0, 0, 0, 'YXZ'), sc = new V3(1.6, 1.6, 1.6);
     // 头领沿一条绕岛的路线游，经过沙丁鱼群（追猎）
     const R0 = this.radius + 6, w = 0.045 * 10.5 / R0, a = t * w;
-    const lx = c.x + Math.cos(a) * R0 + Math.sin(t * 0.13) * 1.2, lz = c.z + Math.sin(a) * R0 * 0.85 + Math.cos(t * 0.11) * 1.2;
+    let lx = c.x + Math.cos(a) * R0 + Math.sin(t * 0.13) * 1.2, lz = c.z + Math.sin(a) * R0 * 0.85 + Math.cos(t * 0.11) * 1.2;
+    // 被“唤来”时：头领朝指定的海面绕小圈游一阵
+    const B = this.dolphinBoost;
+    if (B && B.t > 0) { B.t -= dt; const k = Math.min(1, B.t / 3, (25 - B.t) / 3); const bx = B.x + Math.cos(t * 0.35) * 3.5, bz = B.z + Math.sin(t * 0.35) * 3.5; if (this.terrain.landDist(bx, bz) > 1.5) { lx += (bx - lx) * k; lz += (bz - lz) * k; } }
     const tx = -Math.sin(a) * R0 * w, tz = Math.cos(a) * R0 * 0.85 * w, tl = Math.hypot(tx, tz), fx = tx / tl, fz = tz / tl, sx = -fz, sz = fx;
     D.list.forEach((d, i) => {
       const hx = lx + sx * d.offs[0] + fx * d.offs[1], hz = lz + sz * d.offs[0] + fz * d.offs[1];

@@ -250,5 +250,5 @@ export class Ocean {
     this.uniforms.uShoreC.value.set(cx, cz);
     this.mesh.position.set(cx, 0, cz);
   }
-  setFalls(list) { list.slice(0, 4).forEach((f, i) => this.uniforms.uFalls.value[i].set(f[0], f[1], f[2] || 0.35, 1)); }
+  setFalls(list) { this.uniforms.uFalls.value.forEach((v, i) => { const f = list[i]; if (f) v.set(f[0], f[1], f[2] || 0.35, 1); else v.set(0, 0, 0, 0); }); }
 }

@@ -9,6 +9,10 @@ import * as THREE from 'three';
 import { Terrain, mergeColored } from './terrain.js';
 import { terrainMaterial, propMaterial, foliageMaterial, U } from './materials.js';
 import { instanced, bladeField } from './vegetation.js';
+import { ribbon, streamMaterial } from './streams.js';
+import { Gulls } from './seabirds.js';
+import { boulder } from './rocks.js';
+import { ItemLayer } from './items.js';
 import { Ocean } from './ocean.js';
 import { Particles } from './particles.js';
 import { Atmosphere, presetAt } from './atmosphere.js';
@@ -33,7 +37,8 @@ const now = () => performance.now();
 
 /** 游戏地块 → 高画质地形类型。草地里约三分之一按位置固定成花草地，让大片草地有变化 */
 const GAME2HQ = { meadow: 'meadow', forest: 'forest', mountain: 'mountain', garden: 'field', wheat: 'wheat', harbor: 'beach', home: 'camp', islet: 'islet' };
-export function hqType(t, q, r) { if (t === 'meadow' && tileSeed(q, r) % 100 < 34) return 'flowers'; return GAME2HQ[t] || 'meadow'; }
+/** 自由画布直接用高画质的地形类型（花草地、采石场、溪流、池塘……），不在映射表里的原样使用 */
+export function hqType(t, q, r) { if (t === 'meadow' && tileSeed(q, r) % 100 < 34) return 'flowers'; return GAME2HQ[t] || t || 'meadow'; }
 const MARK_DY = { forest: 1.3, garden: 0.42, wheat: 0.5, harbor: 0.55 };
 
 export class HQView {
@@ -79,7 +84,12 @@ export class HQView {
     this.pipe = new HQPipeline(this.renderer, this.scene, cam);
     this.ocean = new Ocean({ terrain: this.terrain, sceneColor: this.pipe.sceneColor, sceneDepth: this.pipe.sceneDepth, shoreSize: 256, shoreSpan: 64 });
     this.ocean.mesh.layers.set(LAYER_FX); this.scene.add(this.ocean.mesh);
-    this.fx = new Particles(this.pipe.sceneDepth, { pollen: 500, mist: 0, flame: 90, spark: 40, smoke: 60, fly: 120 });
+    this.fx = new Particles(this.pipe.sceneDepth, { pollen: 700, mist: 260, flame: 90, spark: 40, smoke: 60, fly: 120 });
+    this.mats.stream = streamMaterial(this.pipe.sceneColor, this.pipe.sceneDepth);
+    this.mats.pond = streamMaterial(this.pipe.sceneColor, this.pipe.sceneDepth, 0.04); this.mats.pond.uniforms.uTint.value.set(0x2f6b4a);
+    this.gulls = new Gulls(this.scene);
+    this.fires = new Map();
+    this.items = new ItemLayer(this);
     this.fx.points.layers.set(LAYER_FX); this.fx.smoke.layers.set(LAYER_FX); this.scene.add(this.fx.points);
     this.fireLight = new THREE.PointLight(0xff8a3a, 0, 3.2, 2); this.scene.add(this.fireLight);
     this.applyQuality();
@@ -107,7 +117,7 @@ export class HQView {
     if (top && rec.top) { rec.top.dispose(); rec.top = null; }
     if (rock && rec.rock) { rec.rock.dispose(); rec.rock = null; }
     if (rock) rec.rockDone = false;
-    if (dress && rec.dress) { for (const m of rec.dress.meshes) if (!m.shared) m.geo.dispose(); rec.dress = null; }
+    if (dress && rec.dress) { for (const m of rec.dress.meshes) if (!m.shared) m.geo.dispose(); for (const w of rec.dress.water || []) w.geo.dispose(); rec.dress = null; }
     this._chunk(rec.ck).dirty = true;
   }
   /** t: 游戏地块的显示信息 { q, r, t, dir, center, harvested, lm }；rise=true 时从海里升起 */
@@ -120,8 +130,8 @@ export class HQView {
       return;
     }
     const tt = { q: t.q, r: t.r, t: hqType(t.t, t.q, t.r), game: t.t, dir: t.dir || 0, center: !!t.center, harvested: !!t.harvested };
-    this.terrain.addTile(tt);
-    rec = { tt, k, ck: this._ck(t.q, t.r), hidden: rise, top: null, rock: null, dress: null };
+    const affected = this.terrain.addTile(tt);
+    rec = { tt, k, ck: this._ck(t.q, t.r), hidden: rise, top: null, rock: null, dress: null, affected };
     this.rec.set(k, rec);
     this._chunk(rec.ck).keys.add(k);
     // 海底：陆地距离场变了，附近的方块要重建
@@ -138,8 +148,24 @@ export class HQView {
   }
   _touchNeighbors(rec, self = true) {
     if (self) this._invalidate(rec, { top: true, rock: true, dress: true }); else this._chunk(rec.ck).dirty = true;
-    for (const d of DIRS) { const n = this.rec.get(key(rec.tt.q + d[0], rec.tt.r + d[1])); if (n) this._invalidate(n, { top: true, rock: true, dress: true }); }
+    // 邻居 + 水网里受影响的地块（河道改道、出海口换位置）
+    const keys = new Set([...DIRS.map((d) => key(rec.tt.q + d[0], rec.tt.r + d[1])), ...(rec.affected || [])]); keys.delete(rec.k);
+    for (const kk of keys) { const n = this.rec.get(kk); if (n) this._invalidate(n, { top: true, rock: true, dress: true }); }
+    rec.affected = null; this.waterDirty = true;
   }
+  /** 删掉一块地（自由画布的橡皮擦） */
+  removeTile(q, r) {
+    const k = key(q, r), rec = this.rec.get(k); if (!rec) return false;
+    const affected = this.terrain.removeTile(q, r);
+    this._invalidate(rec, { top: true, rock: true, dress: true });
+    this.rec.delete(k); this._chunk(rec.ck).keys.delete(k); this._chunk(rec.ck).faunaSig = null;
+    for (const kk of affected) { const n = this.rec.get(kk); if (n) this._invalidate(n, { top: true, rock: true, dress: true }); }
+    for (const sk of this.seabed.keys()) { const [sx, sz] = sk.split(',').map(Number); if (Math.abs((sx + 0.5) * SB - rec.tt.x) < SB / 2 + 17 && Math.abs((sz + 0.5) * SB - rec.tt.z) < SB / 2 + 17) this.sbDirty.add(sk); }
+    this.landChanged = now(); this.markers.clearCache(); this.waterDirty = true;
+    if (this.ocean) { this.ocean.ripple(rec.tt.x, rec.tt.z, 1.2); this.marine?.splash.emit(rec.tt.x, 0.02, rec.tt.z, 50, { speed: 0.45, up: 1.1, spread: 0.9, size: 0.03, life: 1 }); }
+    return true;
+  }
+  tileType(q, r) { const rec = this.rec.get(key(q, r)); return rec ? rec.tt.t : null; }
   rebuildAll(tiles) {
     for (const ch of this.chunks.values()) this._disposeChunk(ch, true);
     for (const r of this.rec.values()) this._invalidate(r, { top: true, rock: true, dress: true });
@@ -162,6 +188,31 @@ export class HQView {
     if (!rec.dress) {
       rec.dress = dressTile(T, tt, { grass: this.q.grass ?? 0.4, flowers: this.q.flowers ?? 0.5 });
       this._extras(rec);
+      this._water(rec);
+    }
+  }
+  /** 水面：溪流的河面（沿河道的带状网格）、出海口的瀑布、池塘和泉眼的静水 */
+  _water(rec) {
+    const T = this.terrain, tt = rec.tt, d = rec.dress, lines = T.lines.get(rec.k) || [];
+    d.falls = []; d.water = [];
+    for (const pl of lines) {
+      const pts = pl.map(([x, z]) => [x, T.heightIn(tt, x, z) + 0.045, z]);
+      for (let i = 1; i < pts.length; i++) pts[i][1] = Math.min(pts[i][1], pts[i - 1][1] + 0.002);
+      d.water.push({ geo: ribbon(pts, (u) => 0.11 + Math.sin(u * 18 + tt.q) * 0.01, 0), mat: 'stream' });
+    }
+    if (tt.fall && lines.length) {
+      const last = lines[lines.length - 1], ex = last[last.length - 1][0], ez = last[last.length - 1][1], y0 = T.heightIn(tt, ex, ez) + 0.04, pts = [];
+      for (let i = 0; i <= 10; i++) { const u = i / 10, o = 0.05 + Math.pow(u, 0.6) * 0.28 + u * 0.05; pts.push([ex + tt.fall.nx * (0.04 + o), y0 * (1 - u) - 0.02 * u, ez + tt.fall.nz * (0.04 + o)]); }
+      d.water.push({ geo: ribbon(pts, (u) => 0.1 + u * 0.05, 1), mat: 'stream' });
+      d.falls.push([pts[10][0], pts[10][2]]);
+    }
+    const pd = d.pond;
+    if (pd) {
+      const y = tt.base - (pd.spring ? 0.035 : 0.05), g = new THREE.CircleGeometry(pd.r * (pd.spring ? 1.2 : 1.15), 40); g.rotateX(-Math.PI / 2); g.translate(pd.x, y, pd.z);
+      const p = g.attributes.position, flow = new Float32Array(p.count * 2), fall = new Float32Array(p.count);
+      for (let i = 0; i < p.count; i++) { const dx = p.getX(i) - pd.x, dz = p.getZ(i) - pd.z; flow[i * 2] = Math.atan2(dz, dx) * pd.r; flow[i * 2 + 1] = Math.hypot(dx, dz) / pd.r * 0.55; }
+      g.setAttribute('flow', new THREE.BufferAttribute(flow, 2)); g.setAttribute('fall', new THREE.BufferAttribute(fall, 1));
+      d.water.push({ geo: g, mat: 'pond' }); pd.y = y;
     }
   }
   /** 沿用低多边形模型的部件：渔港的栈桥、地标小岛中心的石台 */
@@ -173,7 +224,7 @@ export class HQView {
       add(B.pier(rng, 1.25).rotateY(Math.PI / 2 - th), tt.base - 0.06, 0, Math.cos(th) * 0.42, Math.sin(th) * 0.42);
     }
     if (tt.game === 'islet' && tt.center) add(B.isletBase(rng), tt.base - 0.02);
-    if (d.fire) this.fireAt = d.fire;
+    if (d.fire) this.fires?.set('tile:' + rec.k, d.fire);
   }
   /** 一块地的完整网格组（升起动画、放置预览用） */
   _tileGroup(rec, { blades = true } = {}) {
@@ -197,11 +248,14 @@ export class HQView {
     if (rocks.length) { const geo = own(mergeColored(rocks), rocks), m = new THREE.Mesh(geo, M.terrain); m.castShadow = m.receiveShadow = true; grp.add(m); }
     const K = kit();
     for (const [name, items] of Object.entries(inst)) {
-      const mat = name === 'rock' || name === 'stump' ? M.prop : name === 'bush' || name === 'crop' ? M.bush : M.tree;
+      const mat = name === 'rock' || name === 'stump' || name === 'lily' ? M.prop : name === 'bush' || name === 'crop' ? M.bush : M.tree;
       const g = instanced(K[name], items, mat); g.userData.inst = true; grp.add(g);
     }
     for (const [b, list] of Object.entries(blades)) if (list.length) { const m = bladeField(b, list, { cull: true }); m.geometry.userData.owned = true; grp.add(m); }
     const peaks = [];
+    for (const r of recs) for (const w of r.dress.water || []) {
+      const m = new THREE.Mesh(w.geo, w.mat === 'pond' ? M.pond : M.stream); m.layers.set(LAYER_FX); m.renderOrder = 5; m.frustumCulled = false; grp.add(m);
+    }
     for (const it of meshes) {
       const mat = it.mat === 'peak' ? M.peak : it.mat === 'soil' ? M.soil : it.mat === 'legacy' ? this.mat : M.prop;
       const m = new THREE.Mesh(it.geo, mat); m.position.fromArray(it.pos); m.rotation.y = it.ry || 0; if (it.s) m.scale.setScalar(it.s);
@@ -249,12 +303,18 @@ export class HQView {
       rabbits: c(Math.min(6, fl * 2 + Math.floor(m / 2))), butterflies: c(Math.min(36, fl * 8 + m * 2 + crop)), songbirds: c(Math.min(8, f * 2 + (m ? 1 : 0))),
       crabs: c(Math.min(6, b * 2)), dragonflies: 0,
     };
+    const ponds = recs.filter((r) => r.dress.pond && !r.dress.pond.spring), streams = recs.filter((r) => this.terrain.lines.has(r.k));
+    counts.dragonflies = c(Math.min(9, ponds.length * 4 + streams.length * 2));
+    counts.rabbits += c(ponds.length + streams.length > 0 && n.stream ? 1 : 0);
     if (!Object.values(counts).some((v) => v > 0)) return;
     const tiles = recs.map((r) => r.tt), taken = [], trees = [], flowers = [];
     for (const r of recs) { taken.push(...r.dress.obstacles); trees.push(...r.dress.perches); for (let i = 0; i < r.dress.flowers.length; i += 3) flowers.push(r.dress.flowers[i]); }
     for (const r of recs) if (r.tt.center) taken.push([r.tt.x, r.tt.z, 0.6]);
-    const [cq, cr] = ch.ck.split(',').map(Number);
-    ch.fauna = new Fauna({ scene: this.scene, parent: this.faunaRoot, terrain: this.terrain, tiles, taken, trees, flowers, peaks: ch.group.userData.peaks, splash: this.marine?.splash, center: new THREE.Vector3(tiles[0].x, 0, tiles[0].z), seed: (cq * 92821 + cr * 68917) >>> 0, counts });
+    const [cq, cr] = ch.ck.split(',').map(Number), T = this.terrain;
+    const pr = ponds[0], pond = pr ? { ...pr.dress.pond } : null;
+    const riverPts = []; for (const r of streams) for (const pl of T.lines.get(r.k)) for (let i = 0; i < pl.length; i += 2) riverPts.push([pl[i][0], T.heightIn(r.tt, pl[i][0], pl[i][1]) + 0.045, pl[i][1]]);
+    ch.fauna = new Fauna({ scene: this.scene, parent: this.faunaRoot, terrain: T, tiles, taken, trees, flowers, peaks: ch.group.userData.peaks, splash: this.marine?.splash, center: new THREE.Vector3(tiles[0].x, 0, tiles[0].z), seed: (cq * 92821 + cr * 68917) >>> 0, counts,
+      pond, lilyPads: pr?.dress.lilyPads || [], river: streams.length ? (x, z) => T.riverD(x, z) : null, riverPts });
   }
 
   // ---------------- 海底 ----------------
@@ -288,8 +348,12 @@ export class HQView {
     if (bake) this.bakedHour = h;
     this.atmo.apply(p, this.ocean, this.pipe, bake);
     this.nightK = p.nightK;
+    this._seaTint();
+    for (const m of [this.mats.stream, this.mats.pond]) {
+      const u = m.uniforms; u.uSunDir.value.copy(this.atmo.dir); u.uSunColor.value.set(p.sun).multiplyScalar(p.sunI * 0.3); u.uSky.value.set(p.zen).lerp(new THREE.Color(p.hor), 0.35); u.uFogColor.value.set(p.fog); u.uFogDensity.value = p.fogD;
+    }
     FX.uNight.value = Math.min(1, p.nightK * 1.1 + (p.lamp > 0.3 ? 0.2 : 0)); FX.uCloud.value = 1 - p.nightK;
-    this.fireBase = 0.9 + p.nightK * 1.6 + (p.lamp > 0.3 ? 0.4 : 0);
+    this.fireBase = 0.8 + p.nightK * 0.7 + (p.lamp > 0.3 ? 0.25 : 0);
     this.onSky?.(this.sky);
   }
 
@@ -303,7 +367,16 @@ export class HQView {
     for (const u of this._fxUniforms()) u.uResolution?.value.set(W, H);
     this.fx.uniforms.uPR.value = pr; if (this.marine) this.marine.splash.uniforms.uPR.value = pr;
   }
-  _fxUniforms() { return [this.ocean.uniforms, this.fx.uniforms, ...(this.marine ? [this.marine.splash.uniforms] : [])]; }
+  _fxUniforms() { return [this.ocean.uniforms, this.fx.uniforms, this.mats.stream.uniforms, this.mats.pond.uniforms, ...(this.marine ? [this.marine.splash.uniforms] : [])]; }
+  /** 瀑布：最近的 4 道给海面加落水白沫，最近的 2 道冒水雾 */
+  _falls() {
+    const all = [];
+    for (const r of this.rec.values()) if (r.dress && !r.hidden) for (const f of r.dress.falls || []) all.push(f);
+    const fx = this.focus.x, fz = this.focus.z;
+    all.sort((a, b) => Math.hypot(a[0] - fx, a[1] - fz) - Math.hypot(b[0] - fx, b[1] - fz));
+    this.ocean.setFalls(all.slice(0, 4).map(([x, z]) => [x, z, 0.4]));
+    this.fallMist = all.slice(0, 2).map(([x, z]) => [x, 0.02, z]);
+  }
   update(dt, focus, dist) {
     this.dt = dt; this.focus.copy(focus); this.dist = dist;
     U.uTime.value += dt;
@@ -329,6 +402,17 @@ export class HQView {
       }
     }
     this.loading = dirty.length > 0 && this.stats.builds < this.chunks.size;
+    this.chunksDirty = dirty.length > 0 && [...this.chunks.values()].some((c) => c.dirty);
+    if (dirty.length && !this.chunksDirty) this.waterDirty = true;
+    // 远处区块的草叶、花、麦穗不画（它们只有几个像素，却占了大部分顶点）
+    const bladeRange = 34 + dist * 0.9;
+    for (const ch of this.chunks.values()) {
+      if (!ch.group) continue;
+      const [q, r] = ch.ck.split(',').map(Number), [x, z] = toWorld((q + 0.5) * CH, (r + 0.5) * CH), far = Math.hypot(x - focus.x, z - focus.z) > bladeRange;
+      if (ch.far !== far) { ch.far = far; for (const o of ch.group.children) if (o.name?.endsWith('-field')) o.visible = !far; }
+    }
+    // 着色器预热：第一批区块和海洋生态就绪后，把所有材质编译一遍，避免第一次转镜头时卡顿
+    if (!this.prewarmed && this.marine && !this.chunksDirty && this.stats.builds > 0) { this.prewarmed = true; try { this.renderer.compile(this.scene, this.camera); } catch { /* 不支持就算了 */ } }
     // 动物：区块建好一会儿以后再生成；远处的暂停
     let faunaBuilt = false;
     for (const ch of this.chunks.values()) {
@@ -354,7 +438,14 @@ export class HQView {
     }
     // 镜头相关
     this.atmo.follow(focus.x, focus.z, THREE.MathUtils.clamp(dist * 0.62, 8, 26));
-    this.fx.setEmitters({ fire: this.fireAt || [0, -50, 0], night: this.nightK > 0.4 ? this.nightK : 0, pollen: [focus.x - 1, 0, focus.z + 0.3], flies: [focus.x - 0.6, 0, focus.z - 0.1] });
+    if (this.waterDirty && !this.chunksDirty) { this.waterDirty = false; this._falls(); }
+    const mist = this.fallMist || [];
+    this.fx.setEmitters({ falls: mist.length ? mist : [[0, -50, 0]], fire: this.fireAt || [0, -50, 0], night: this.nightK > 0.4 ? this.nightK : 0, dark: this.nightK, pollen: [focus.x - 1, 0, focus.z + 0.3], flies: [focus.x - 0.6, 0, focus.z - 0.1] });
+    this.gulls.update(t);
+    this.items.update(dt, t);
+    // 营火：离镜头最近的那一处冒火苗和炊烟
+    let bestF = null, bd = 1e9; for (const f of this.fires.values()) { const d = Math.hypot(f[0] - focus.x, f[2] - focus.z); if (d < bd) { bd = d; bestF = f; } }
+    this.fireAt = bestF;
     if (this.fireAt) { this.fireLight.position.set(this.fireAt[0], this.fireAt[1] + 0.12, this.fireAt[2]); this.fireLight.intensity = this.fireBase * (0.85 + Math.sin(t * 13) * 0.08 + Math.sin(t * 7.3) * 0.07 + Math.sin(t * 23.1) * 0.05); }
     this.markers.update(dt);
     const cam = this.camera;
@@ -370,9 +461,11 @@ export class HQView {
   }
   _makeMarine() {
     const [c, r] = this._islandShape();
+    this.gulls.center.copy(c); this.gulls.radius = Math.max(4, r + 1.5);
     this.marine = new Marine({ scene: this.scene, terrain: this.terrain, ocean: this.ocean, sceneDepth: this.pipe.sceneDepth, center: c, zones: 'noise', radius: Math.max(3, r) });
     this.seagrass = bladeField('seagrass', this.marine.seagrassBlades()); this.scene.add(this.seagrass);
     this.marineAt = this.landChanged;
+    this._seaLife();
     if (this.w) this.resize(this.w, this.h);
     for (const ch of this.chunks.values()) if (ch.fauna) ch.fauna.env.splash = this.marine.splash;
   }
@@ -381,8 +474,46 @@ export class HQView {
     const blades = this.marine.rebuild(c, Math.max(3, r));
     this.scene.remove(this.seagrass); this.seagrass.geometry.dispose();
     this.seagrass = bladeField('seagrass', blades); this.scene.add(this.seagrass);
+    this.gulls.center.copy(c); this.gulls.radius = Math.max(4, r + 1.5);
+    this._seaLife();
+  }
+  /** 礁石、浮标、歇在海面上的海鸥：沿海岸按固定的随机位置摆放（和样张一样的海面点缀） */
+  _seaLife() {
+    if (this.seaLife) { for (const o of this.seaLife) { this.scene.remove(o); o.traverse((c) => { if (c.isInstancedMesh) c.dispose(); }); } this.marine.floaters = this.marine.floaters.filter((f) => !this.seaLife.includes(f.obj)); }
+    this.seaLife = [];
+    const sp = this.marine.spots, T = this.terrain, R = mulberry32(77);
+    const far = [...sp.rocky, ...sp.kelp].filter((p) => p[3] > 0.7 && p[3] < 1.8 && !T.tileAt(p[0], p[2]));
+    const nR = Math.min(6, 1 + Math.floor(T.tiles.length / 8)), rocks = [];
+    for (let k = 0; k < far.length && rocks.length < nR; k += 1 + Math.floor(R() * 37)) { const p = far[k]; if (rocks.every((q) => Math.hypot(q.x - p[0], q.z - p[2]) > 1.5)) rocks.push({ v: R() < 0.5 ? 0 : 1, x: p[0], y: -0.35, z: p[2], s: 0.22 + R() * 0.22, ry: R() * 6.28, sy: 1.7 }); }
+    this.seaRockGeo ||= [boulder(7, 0, 0), boulder(8, 1, 0)];
+    const g = instanced(this.seaRockGeo, rocks, this.mats.prop); this.scene.add(g); this.seaLife.push(g);
+    const near = sp.grass.concat(sp.reef).filter((p) => p[3] > 0.6 && p[3] < 2.2);
+    for (let i = 0; i < Math.min(3, Math.floor(near.length / 40)); i++) {
+      const p = near[Math.floor(R() * near.length)], b = this.gulls.resting(); b.position.set(p[0], 0, p[2]); b.rotation.y = R() * 6.28; this.scene.add(b); this.seaLife.push(b);
+      this.marine.addFloater(b, { draft: -0.012, stiff: 16, yawRate: 0.2 });
+    }
   }
   render() { this.pipe.render(this.dt, this.camera.position.distanceTo(this.focus)); }
+  /** 海水风格：在当前时段的光照上叠一层色调（清澈浅滩 / 碧玉海湾 / 深蓝外海） */
+  setSea(name) { this.sea = name || 'clear'; this.setHour(this.hour, false); }
+  _seaTint() {
+    const o = this.ocean.uniforms, k = this.sea || 'clear';
+    if (k === 'clear') { o.uAbsorb.value.set(1.9, 0.6, 0.4); o.uShallow.value.lerp(new THREE.Color(0x3fd0c8), 0.35); }
+    else if (k === 'jade') { o.uAbsorb.value.set(2.6, 0.55, 0.75); o.uShallow.value.lerp(new THREE.Color(0x2fb58e), 0.55); o.uDeep.value.lerp(new THREE.Color(0x0b4a44), 0.5); }
+    else if (k === 'deep') { o.uAbsorb.value.set(3.2, 1.05, 0.62); o.uShallow.value.lerp(new THREE.Color(0x1f74a8), 0.5); o.uDeep.value.lerp(new THREE.Color(0x041c3c), 0.6); }
+  }
+  /** 惊喜事件：鲸在镜头前方浮上来、海豚群游过来 */
+  event(name, focus) {
+    const M = this.marine; if (!M) return false;
+    const fwd = new THREE.Vector3(); this.camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
+    if (name === 'whale') {
+      // 找镜头前方离岸 3 个单位以外的深水，让鲸从那里开始换气
+      for (let d = 8; d < 30; d += 1.5) { const x = focus.x + fwd.x * d, z = focus.z + fwd.z * d; if (this.terrain.landDist(x, z) > 3) { M.whale.x = x - 3; M.whale.z = z; M.whale.t = 4; M.whale.spouts = 0; return true; } }
+      return false;
+    }
+    if (name === 'dolphins') { M.dolphinBoost = { x: focus.x + fwd.x * 6, z: focus.z + fwd.z * 6, t: 25 }; for (const d of M.dolphins.list) d.next = Math.min(d.next, 1 + Math.random() * 3); return true; }
+    return false;
+  }
   markY(type, q, r) { const rec = this.rec.get(key(q, r)); return (rec ? rec.tt.base : 0.45) + (MARK_DY[type] ?? 0.6); }
   /** 放置预览：和真实地块同一套几何（不加入地图），带缓存 */
   previewGroup(type, q, r, dir) {

@@ -77,7 +77,7 @@ export const GOALS = [
 // 画质档位。hq=true 用高画质画面（细分地形、真实海洋、生态、后期管线），false 用低多边形画面。
 // grass/flowers：草和花的密度系数；life：动物数量系数；detail：低多边形画面的装饰密度
 export const QUALITY = {
-  ultra: { label: '极高', hq: true, pixelRatio: 2, shadow: 4096, ao: true, dof: true, bloom: true, grass: 0.6, flowers: 0.7, life: 1 },
+  ultra: { label: '极高', hq: true, pixelRatio: 2, shadow: 4096, ao: true, dof: true, bloom: true, grass: 1, flowers: 1, life: 1 },
   high: { label: '高', hq: true, pixelRatio: 1.5, shadow: 2048, ao: true, dof: true, bloom: true, grass: 0.4, flowers: 0.5, life: 1 },
   mid: { label: '中', hq: true, pixelRatio: 1, shadow: 2048, ao: false, dof: true, bloom: true, grass: 0.22, flowers: 0.35, life: 0.6 },
   low: { label: '低', hq: false, pixelRatio: 1.5, shadow: 1024, detail: 0.75, post: true, bloom: false, samples: 2 },

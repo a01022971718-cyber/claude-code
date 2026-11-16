@@ -170,3 +170,101 @@ body { background: var(--haze); color: var(--ink); font-family: var(--font); fon
 .stdBox { margin-top: 12px; border-radius: 12px; background: #fff; box-shadow: inset 0 0 0 1px var(--line); padding: 8px 10px; }
 .stdBox summary { cursor: pointer; font-size: 13px; color: var(--ink2); } .stdBox summary b { color: var(--sea-d); }
 #ugcOut { margin-top: 12px; } #ugcOut:empty { display: none; }
+
+/* ================= 自由画布界面（v0.4）=================
+   画面优先：只用四个角；深色毛玻璃 + 金色强调（正式手游的常见做法）；不操作 4 秒自动淡出。 */
+.chud { --g: rgba(10, 26, 32, .42); --g2: rgba(10, 26, 32, .62); --gl: rgba(255, 255, 255, .2); --gold: #f2c45a; --gold2: #ffe4a0;
+  position: absolute; inset: 0; pointer-events: none; color: #fff; font-family: var(--font);
+  --sl: max(14px, env(safe-area-inset-left, 0px)); --sr: max(14px, env(safe-area-inset-right, 0px)); --sb: max(12px, env(safe-area-inset-bottom, 0px)); --st: max(10px, env(safe-area-inset-top, 0px)); }
+.chud > div > *, .chud .c-strip, .chud .c-wheel > * { pointer-events: auto; }
+.chud > div { transition: opacity .45s ease, transform .45s ease; }
+.chud.idle > div:not(.c-br) { opacity: 0; pointer-events: none; }
+.chud.idle > div:not(.c-br) * { pointer-events: none; }
+.chud.idle .c-fab { opacity: .38; }
+.chud button { display: inline-flex; align-items: center; justify-content: center; color: #fff; }
+.c-ico, .c-chip, .c-fab, .c-cat, .c-strip { background: var(--g); border: 1px solid var(--gl); -webkit-backdrop-filter: blur(10px) saturate(1.2); backdrop-filter: blur(10px) saturate(1.2); box-shadow: 0 4px 14px rgba(0, 0, 0, .18); }
+.c-ico { position: relative; width: 40px; height: 40px; border-radius: 50%; }
+.c-ico svg { width: 20px !important; height: 20px !important; }
+.c-ico i { position: absolute; top: calc(100% + 3px); left: 50%; transform: translateX(-50%); font-style: normal; font-size: 10.5px; font-weight: 700; white-space: nowrap; text-shadow: 0 1px 3px rgba(0, 0, 0, .7); }
+.c-ico.on { background: rgba(242, 196, 90, .9); color: #2a1d05; border-color: var(--gold2); }
+.c-tl { position: absolute; top: var(--st); left: var(--sl); }
+.c-menu b { font-size: 17px; font-weight: 900; letter-spacing: 0; color: var(--gold2); }
+.c-tr { position: absolute; top: var(--st); right: var(--sr); display: flex; gap: 8px; align-items: center; }
+.c-chip { height: 32px; padding: 0 12px 0 9px; border-radius: 999px; gap: 5px; font-variant-numeric: tabular-nums; }
+.c-chip b { font-size: 13.5px; font-weight: 800; } .c-chip i { font-style: normal; font-size: 10px; color: var(--gold2); font-weight: 700; }
+.c-chip svg { width: 16px !important; height: 16px !important; }
+.c-bl { position: absolute; left: var(--sl); bottom: calc(var(--sb) + 18px); display: flex; gap: 12px; opacity: 0; transform: translateY(8px); pointer-events: none; }
+.chud.building .c-bl { opacity: 1; transform: none; }
+.chud:not(.building) .c-bl * { pointer-events: none; }
+.chud.building.has-strip .c-bl { bottom: calc(var(--sb) + 112px); }
+/* 右下：建造按钮 + 分类轮盘（右手拇指的位置） */
+.c-br { position: absolute; right: var(--sr); bottom: var(--sb); width: 64px; height: 64px; }
+.c-fab { position: absolute; inset: 0; border-radius: 50%; flex-direction: column; gap: 0; background: radial-gradient(circle at 35% 30%, rgba(255, 228, 160, .28), transparent 55%), var(--g2); border: 1.5px solid rgba(242, 196, 90, .75); transition: transform .2s ease, opacity .45s; }
+.c-fab svg { width: 24px !important; height: 24px !important; color: var(--gold2); }
+.c-fab i { font-style: normal; font-size: 11px; font-weight: 800; margin-top: 1px; color: var(--gold2); }
+.chud.building .c-fab { transform: rotate(-20deg) scale(.92); }
+.c-fab.flash, .c-cat.flash { animation: cFlash 1.2s ease 2; }
+@keyframes cFlash { 50% { box-shadow: 0 0 0 6px rgba(242, 196, 90, .55), 0 0 26px rgba(242, 196, 90, .8); } }
+.c-wheel { position: absolute; inset: 0; pointer-events: none; }
+.c-cat { position: absolute; left: 9px; top: 9px; width: 46px; height: 46px; border-radius: 50%; flex-direction: column; opacity: 0; pointer-events: none; transform: rotate(calc(-84deg + var(--i) * -18deg)) translate(0) rotate(calc(84deg + var(--i) * 18deg)); transition: transform .32s cubic-bezier(.2, 1.3, .4, 1), opacity .2s; transition-delay: calc(var(--i) * 25ms); }
+.c-cat svg { width: 21px !important; height: 21px !important; }
+.c-cat i { position: absolute; top: calc(100% + 2px); font-style: normal; font-size: 10.5px; font-weight: 800; white-space: nowrap; text-shadow: 0 1px 3px rgba(0, 0, 0, .75); }
+.chud.building .c-cat { opacity: 1; pointer-events: auto; transform: rotate(calc(-84deg + var(--i) * -18deg)) translate(178px) rotate(calc(84deg + var(--i) * 18deg)); }
+.c-cat.on { background: rgba(242, 196, 90, .92); color: #2a1d05; border-color: var(--gold2); }
+.c-cat.on i { color: #fff; }
+/* 底边的物件栏：只占一条，右边给建造按钮留位置 */
+.c-strip { position: absolute; left: var(--sl); right: calc(var(--sr) + 236px); bottom: var(--sb); border-radius: 18px; padding: 6px 8px 8px; animation: cStrip .22s ease; }
+@keyframes cStrip { from { transform: translateY(14px); opacity: 0; } }
+.c-strip-head { display: flex; align-items: center; gap: 10px; padding: 0 2px 4px 6px; font-size: 12px; }
+.c-strip-head b { font-size: 13px; color: var(--gold2); } .c-strip-head span { flex: 1; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.c-x { width: 24px; height: 24px; border-radius: 50%; background: rgba(255, 255, 255, .12); }
+.c-x svg { width: 14px !important; height: 14px !important; }
+.c-items { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.c-items::-webkit-scrollbar { display: none; }
+.c-item { flex: none; width: 62px; flex-direction: column; gap: 3px; padding: 4px 0 3px; border-radius: 12px; background: rgba(255, 255, 255, .06); border: 1px solid transparent; }
+.c-item i { font-style: normal; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.c-item.on { background: rgba(242, 196, 90, .22); border-color: var(--gold); }
+.c-item.rare:not(.locked) .c-art { box-shadow: 0 0 0 1.5px var(--gold), 0 0 10px rgba(242, 196, 90, .6); }
+.c-item.locked { opacity: .6; }
+.c-art { width: 44px; height: 44px; border-radius: 10px; background: center / cover no-repeat; display: flex; align-items: center; justify-content: center; }
+.c-art svg { width: 20px !important; height: 20px !important; }
+.c-hex { width: 40px; height: 44px; border-radius: 0; background: linear-gradient(160deg, rgba(255, 255, 255, .35), transparent 55%), var(--sw); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+.c-round { border-radius: 50%; }
+.c-lock { background: rgba(255, 255, 255, .1); border-radius: 50%; }
+.c-hint { position: absolute; left: 50%; top: calc(var(--st) + 44px); transform: translateX(-50%); padding: 6px 14px; border-radius: 999px; background: var(--g2); font-size: 12.5px; font-weight: 700; white-space: nowrap; max-width: 86vw; overflow: hidden; text-overflow: ellipsis; pointer-events: none !important; }
+.c-hint.in { animation: toastIn .25s ease; }
+.c-menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0; }
+.c-card { flex-direction: column; align-items: flex-start !important; text-align: left; gap: 4px; padding: 12px; border-radius: 14px; background: var(--paper2) !important; color: var(--ink) !important; }
+.c-card b { font-size: 15px; } .c-card span { font-size: 12px; color: var(--ink2); }
+@media (orientation: portrait) {
+  .c-strip { right: var(--sr); bottom: calc(var(--sb) + 84px); }
+  .c-cat { transform: translateX(0); }
+  .chud.building .c-cat { transform: translateX(calc((var(--i) + 1) * -54px)); }
+  .chud.building.has-strip .c-bl { bottom: calc(var(--sb) + 192px); }
+}
+@media (max-height: 420px) { .c-item { width: 56px; } .c-art { width: 38px; height: 38px; } .c-hex { width: 34px; height: 38px; } }
+
+/* ================= 经营玩法界面重排（v0.4）=================
+   和自由画布同一套视觉：深色毛玻璃贴边。目标默认折叠成一行，手牌缩小并移到右下角（右手拇指），画面中间不放任何东西。 */
+.hud .pill { background: rgba(10, 26, 32, .46); color: #fff; box-shadow: none; border: 1px solid rgba(255, 255, 255, .18); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); padding: 3px 9px 3px 6px; }
+.hud .pill i { color: rgba(255, 255, 255, .7); } .hud .pill.clock i { color: #ffe4a0; }
+.hud .tl { width: min(40vw, 220px); }
+.hud .goals { background: rgba(10, 26, 32, .46); color: #fff; box-shadow: none; border: 1px solid rgba(255, 255, 255, .16); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); padding: 6px 8px; gap: 4px; }
+.hud .goals h3 { color: #ffe4a0; } .hud .goals h3 span { color: rgba(255, 255, 255, .7); }
+.hud .goal { background: rgba(255, 255, 255, .08); border-left-color: #f2c45a; } .hud .goal small { color: rgba(255, 255, 255, .72); } .hud .goal em { color: #ffe4a0; }
+.hud .goal .chip { background: rgba(255, 255, 255, .14); color: #fff; }
+.hud .tr { flex-direction: row; gap: 8px; }
+.hud .tr button { width: 42px; height: 42px; padding: 0; border-radius: 50%; background: rgba(10, 26, 32, .46); color: #fff; box-shadow: none; border: 1px solid rgba(255, 255, 255, .18); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); justify-content: center; }
+.hud .tr button svg { width: 20px; height: 20px; }
+.hud .tr button span { position: absolute; top: calc(100% + 2px); color: #fff; font-size: 10.5px; text-shadow: 0 1px 3px rgba(0, 0, 0, .7); white-space: nowrap; }
+.hud .bottom { justify-content: flex-end; }
+.hud .tools button { background: rgba(10, 26, 32, .5); color: #fff; box-shadow: none; border: 1px solid rgba(255, 255, 255, .18); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); font-size: 12px; padding: 5px 10px; }
+.hud .tools button i { color: rgba(255, 255, 255, .7); } .hud .tools button.on { background: rgba(242, 196, 90, .9); color: #2a1d05; }
+.hud .card { --w: clamp(70px, 9.5vw, 94px); padding: 4px 4px 5px; border-radius: 14px; background: rgba(255, 250, 240, .92); }
+.hud .card small { display: none; }
+.hud .card b { font-size: 12.5px; }
+.hud .card.sel { transform: translateY(-10px); box-shadow: 0 10px 20px rgba(10, 44, 56, .32), inset 0 0 0 3px #f2c45a; }
+/* #ui button 的 color: inherit 优先级更高：经营界面整体用白字，牌面单独用深色 */
+.hud { color: #fff; }
+.hud .card { color: var(--ink); }
+#ui .hud .tr button svg { width: 20px; height: 20px; }

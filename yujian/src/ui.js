@@ -42,12 +42,13 @@ export class UI {
     this.el.hand.addEventListener('click', (e) => { const b = e.target.closest('.card'); if (b) app.selectCard(+b.dataset.i); });
     this.el.tools.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; audio.sfx('tap'); ({ refresh: () => app.refreshHand(), coupon: () => app.toggleCoupon(), regrow: () => app.regrowAll() })[b.dataset.a]?.(); });
     this.el.side.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; audio.sfx('tap'); ({ orders: () => this.openOrders(), decor: () => app.decor.enter(), photo: () => this.photoMode(true), set: () => this.openSettings() })[b.dataset.a]?.(); });
+    this.el.goals.classList.add('fold');   // 目标默认折叠成一行，点一下展开
     this.el.goals.addEventListener('click', () => { this.el.goals.classList.toggle('fold'); });
     this.el.clock.addEventListener('click', () => { audio.sfx('tap'); this.openTime(); });
     this.el.modal.addEventListener('click', (e) => { if (e.target === this.el.modal || e.target.closest('[data-close]')) this.closeModal(); });
   }
   thumb(t) { return (this.thumbs[t] ??= tileThumb(t)); }
-  hud(on) { this.el.hud.hidden = !on; if (!on) { this.bubble(null); this.hint(''); } }
+  hud(on) { const canvas = !!this.app.canvasMode; this.el.hud.hidden = !on || canvas; this.app.hud?.show(on && canvas); if (!on) { this.bubble(null); this.hint(''); } }
   refresh() { if (this._raf) return; this._raf = requestAnimationFrame(() => { this._raf = 0; this.render(); }); }
 
   render() {
@@ -165,18 +166,21 @@ export class UI {
   openSettings() {
     const s = this.g.s, st = s.settings, app = this.app;
     const sw = (k, label) => `<label class="sw"><span>${label}</span><input type="checkbox" id="set_${k}" ${st[k] ? 'checked' : ''}><i></i></label>`;
-    const sh = this.modal(`<header><h2>设置</h2><button class="x" data-close>关闭</button></header><div class="set">${sw('sound', '声音')}${sw('music', '背景音乐')}
+    const sh = this.modal(`<header><h2>设置</h2><button class="x" data-close>关闭</button></header><div class="set">
+      <label class="sw"><span>经营玩法<small>${st.gameplay ? '打开：资源、目标、地块卡、委托' : '关闭：自由画布，随意摆放，没有资源限制'}</small></span><input type="checkbox" id="set_gameplay" ${st.gameplay ? 'checked' : ''}><i></i></label>
+      ${sw('sound', '声音')}${sw('music', '背景音乐')}
       <div class="seg"><span>画质${st.autoQuality ? '<small>自动</small>' : ''}</span>${Object.keys(QUALITY).map((k) => `<button data-q="${k}" class="${st.quality === k ? 'on' : ''}">${QUALITY[k].label}</button>`).join('')}</div>
       <button class="btn ghost" id="setTime">岛上的时间：${st.timeMode === 'real' ? '跟随现实' : '固定 ' + this.app.view.sky.label()}</button>
-      <div class="rowb"><button class="btn ghost" id="setExport">查看埋点数据</button><button class="btn ghost danger" id="setReset">重新开始</button></div>
+      <div class="rowb"><button class="btn ghost" id="setExport">查看埋点数据</button>${app.canvasMode ? '' : '<button class="btn ghost danger" id="setReset">重新开始</button>'}</div>
       ${app.debug ? `<div class="dbg"><b>调试</b><button data-d="give">+10 资源</button><button data-d="skip">快进 4 小时</button><button data-d="day">进入下一天</button><button data-d="coupon">+2 卡券</button></div>` : ''}
-      <p class="ver">屿见 MVP v0.1 · 存档只保存在这台设备的浏览器里</p></div>`);
+      <p class="ver">屿见 v0.4 · 存档只保存在这台设备的浏览器里</p></div>`);
     sh.addEventListener('click', (e) => e.stopPropagation());
     sh.querySelector('[data-close]').onclick = () => this.closeModal();
+    sh.querySelector('#set_gameplay').onchange = (e) => { st.gameplay = e.target.checked; this.g.save(true); this.toast(st.gameplay ? '正在打开经营玩法…' : '正在回到自由画布…'); setTimeout(() => location.reload(), 350); };
     sh.querySelector('#set_sound').onchange = (e) => { st.sound = e.target.checked; audio.setEnabled(st.sound); this.g.save(); };
     sh.querySelector('#set_music').onchange = (e) => { st.music = e.target.checked; audio.setMusic(st.music); this.g.save(); };
     sh.querySelectorAll('[data-q]').forEach((b) => { b.onclick = () => { app.setQuality(b.dataset.q); sh.querySelectorAll('[data-q]').forEach((x) => x.classList.toggle('on', x === b)); }; });
-    sh.querySelector('#setReset').onclick = async () => { if (await this.confirm('重新开始会清空这座岛和所有进度，确定吗？', '清空重来')) app.restart(); };
+    if (sh.querySelector('#setReset')) sh.querySelector('#setReset').onclick = async () => { if (await this.confirm('重新开始会清空这座岛和所有进度，确定吗？', '清空重来')) app.restart(); };
     sh.querySelector('#setExport').onclick = () => this.showEvents();
     sh.querySelector('#setTime').onclick = () => this.openTime();
     sh.querySelectorAll('[data-d]').forEach((b) => { b.onclick = () => app.dbg[b.dataset.d](); });
@@ -206,10 +210,10 @@ export class UI {
       sh.querySelector('#adNo').onclick = () => fin(false);
     });
   }
-  showTitle(isNew) {
+  showTitle(isNew, canvas = false) {
     return new Promise((res) => {
       const t = this.el.title;
-      t.innerHTML = `<div class="logo"><span>屿</span><span>见</span></div><p>把小岛一块块铺向远方，在路上遇见新的同伴</p><button class="btn big" id="startBtn">${isNew ? '开始' : '回到小岛'}</button><small>手机横屏体验更好</small>`;
+      t.innerHTML = `<div class="logo"><span>屿</span><span>见</span></div><p>${canvas ? '一座属于你的海岛：随意摆放地块、植物、动物和海洋' : '把小岛一块块铺向远方，在路上遇见新的同伴'}</p><button class="btn big" id="startBtn">${isNew ? '开始' : '回到小岛'}</button><small>手机横屏体验更好</small>`;
       t.hidden = false;
       t.querySelector('#startBtn').onclick = () => { t.classList.add('out'); setTimeout(() => { t.hidden = true; t.classList.remove('out'); }, 500); res(); };
     });
@@ -218,7 +222,7 @@ export class UI {
   // ---------- 拍照 ----------
   photoMode(on) {
     const app = this.app, bar = this.el.photoBar;
-    app.mode = on ? 'photo' : 'play'; app.selectCard(-1);
+    app.mode = on ? 'photo' : 'play'; if (!app.canvasMode) app.selectCard(-1);
     this.hud(!on); bar.hidden = !on;
     if (!on) return;
     bar.innerHTML = `<button class="btn ghost" id="phExit">返回</button><button class="shutter" id="phShot" aria-label="拍照"></button><label class="phTime"><span id="phHourLabel">${app.view.sky.label()}</span><input type="range" id="phHour" min="0" max="23.9" step="0.1" value="${app.view.sky.hour}" aria-label="拍照时间"></label>`;

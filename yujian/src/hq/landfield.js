@@ -31,6 +31,18 @@ export class LandField {
     }
     this.version++;
   }
+  /** 删掉一块地以后：把它周围的格子清空，再用附近剩下的地块重算（只动这一片） */
+  remove(cx, cz, tiles) {
+    const i0 = Math.floor((cx - REACH) / CELL), i1 = Math.ceil((cx + REACH) / CELL), j0 = Math.floor((cz - REACH) / CELL), j1 = Math.ceil((cz + REACH) / CELL);
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) { const r = this._chunk(i, j, false); if (r) r[0][r[1]] = MAXD; }
+    const near = tiles.filter((t) => Math.abs(t.x - cx) < REACH * 2 + 1 && Math.abs(t.z - cz) < REACH * 2 + 1);
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const x = (i + 0.5) * CELL, z = (j + 0.5) * CELL; let m = MAXD;
+      for (const t of near) { const d = Math.max(0, hexEdgeDist(x, z, t.x, t.z)); if (d < m) m = d; }
+      if (m < MAXD) { const [c, o] = this._chunk(i, j, true); c[o] = m; }
+    }
+    this.version++;
+  }
   /** 双线性插值的距离 */
   dist(x, z) {
     const fx = x / CELL - 0.5, fz = z / CELL - 0.5, i = Math.floor(fx), j = Math.floor(fz), u = fx - i, v = fz - j;

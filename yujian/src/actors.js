@@ -7,6 +7,8 @@ import { TOP } from './config.js';
 import { GROUND } from './ground.js';
 import { HOME_POSE, rotY } from './tiles.js';
 import { FX } from './fx.js';
+import * as HQP from './hq/props.js';
+import { propMaterial } from './hq/materials.js';
 
 const asG = (m) => (m instanceof G ? m : m.static);
 const LM_RY = -0.42; // 地标正面朝向镜头
@@ -70,6 +72,14 @@ export class Actors {
     this.center = [0, 0];
   }
   _mesh(g, parent = this.scene) { const m = new THREE.Mesh(g.toGeometry(), this.mat); m.castShadow = m.receiveShadow = true; parent.add(m); return m; }
+  /** 高画质画面：地标、小人、渔船、补给箱换成高画质模型（hq/props.js） */
+  _hqMesh(geo, parent = this.scene) { this.hqMat ||= propMaterial({ rough: 0.8 }); const m = new THREE.Mesh(geo, this.hqMat); m.castShadow = m.receiveShadow = true; parent.add(m); return m; }
+  _hqPart(part, parent) { const geo = part.geometry.clone(), pv = part.pivot || [0, 0, 0]; geo.translate(-pv[0], -pv[1], -pv[2]); const m = this._hqMesh(geo, parent); m.position.fromArray(pv); return m; }
+  setHQ(on) {
+    this.hq = on; if (!on) return;
+    for (const g of this.gulls) g.m.visible = false;   // 高画质画面有自己的海鸥
+    this.scene.remove(this.crate); this.crate = this._hqMesh(HQP.supplyCrate(3).geometry); this.crate.scale.setScalar(1.4); this.crate.visible = false;
+  }
 
   // ---------- 地标 ----------
   addLandmark(lm, def, active) {
@@ -77,6 +87,21 @@ export class Actors {
     const [x, z] = toWorld(lm.q, lm.r), grp = new THREE.Group(), rng = mulberry32(lm.i * 13 + 1);
     grp.position.set(x, GROUND.y(x, z) - 0.01, z); grp.rotation.y = LM_RY; this.scene.add(grp);
     const o = { lm, type: def.type, grp, active, pop: 0 };
+    if (this.hq) {
+      const fn = def.type === 'windmill' ? HQP.windmill : def.type === 'lighthouse' ? HQP.lighthouse : HQP.bellTower, m = fn(lm.i + 1);
+      this._hqMesh(m.geometry, grp); o.door = m.anchors.door || [0, 0, 0.5];
+      if (m.parts?.sails) o.sails = this._hqPart(m.parts.sails, grp);
+      if (m.parts?.bell) o.bell = this._hqPart(m.parts.bell, grp);
+      if (def.type === 'lighthouse') {
+        const beam = new THREE.Mesh(new THREE.ConeGeometry(0.42, 7, 20, 1, true), new THREE.ShaderMaterial({ transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+          vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+          fragmentShader: 'uniform float uA; varying vec2 vUv; void main(){ float a = pow(vUv.y, 2.2) * uA; gl_FragColor = vec4(vec3(1.0, 0.86, 0.55) * a, a); }', uniforms: { uA: { value: 0.2 } } }));
+        beam.geometry.translate(0, -3.5, 0); beam.geometry.rotateZ(-Math.PI / 2 - 0.04);
+        const piv = new THREE.Group(); piv.position.fromArray(m.anchors.lamp || [0, 1.6, 0]); piv.add(beam); grp.add(piv);
+        o.beam = piv; o.beamMat = { set opacity(v) { beam.material.uniforms.uA.value = v; } }; piv.visible = active;
+      }
+      this.landmarks.set(lm.i, o); return;
+    }
     if (def.type === 'windmill') {
       const m = B.windmill(rng); this._mesh(m.static, grp);
       o.sails = this._mesh(m.parts.sails.g, grp); o.sails.position.fromArray(m.parts.sails.at); o.door = m.anchors.door;
@@ -104,8 +129,8 @@ export class Actors {
 
   // ---------- 小人 ----------
   addPerson(opts, x, z, seed = 1) {
-    const m = this._mesh(asG(B.person(mulberry32(seed), opts)));
-    m.scale.setScalar(1.25); m.position.set(x, GROUND.y(x, z), z);
+    const m = this.hq ? this._hqMesh(HQP.villager(seed, { shirt: opts.shirt, hat: opts.hat, hatColor: opts.hatColor }).geometry) : this._mesh(asG(B.person(mulberry32(seed), opts)));
+    m.scale.setScalar(this.hq ? 1.1 : 1.25); m.position.set(x, GROUND.y(x, z), z);
     this.people.push({ m, x, z, tx: x, tz: z, wait: 1 + Math.random() * 2, walk: 0, seed });
   }
   clearPeople() { for (const p of this.people) { this.scene.remove(p.m); p.m.geometry.dispose(); } this.people = []; }
@@ -137,8 +162,8 @@ export class Actors {
       const k = key(h.q, h.r); seen.add(k);
       let b = this.boats.get(k);
       if (!b) {
-        const th = h.dir * Math.PI / 3, [x, z] = toWorld(h.q, h.r), m = this._mesh(asG(B.boat(mulberry32(h.q * 7 + h.r))));
-        m.scale.setScalar(1.35); m.rotation.y = Math.PI / 2 - th + 0.5;
+        const th = h.dir * Math.PI / 3, [x, z] = toWorld(h.q, h.r), m = this.hq ? this._hqMesh(HQP.rowBoat(h.q * 7 + h.r).geometry) : this._mesh(asG(B.boat(mulberry32(h.q * 7 + h.r))));
+        m.scale.setScalar(this.hq ? 1.25 : 1.35); m.rotation.y = Math.PI / 2 - th + 0.5;
         b = { m, x: x + Math.cos(th) * 1.45 + Math.sin(th) * 0.38, z: z + Math.sin(th) * 1.45 - Math.cos(th) * 0.38, ph: Math.random() * 6 };
         this.boats.set(k, b);
       }

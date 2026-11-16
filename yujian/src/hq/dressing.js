@@ -28,6 +28,8 @@ export function kit() {
     rock: [boulder(1), boulder(2, 1), boulder(3), boulder(4, 1), boulder(5), boulder(6, 1), boulder(7, 0, 0), boulder(8, 1, 0)],
     crop: [bush(21, 'lime'), bush(22, 'green'), bush(23, 'lime')],
     palm: [L.palm(1, 0.95).geometry, L.palm(2, 1.1).geometry],
+    reed: [L.reeds(1).geometry, L.cattail(2).geometry],
+    lily: [L.lilyPad(1, false).geometry, L.lilyPad(2, true).geometry],
     stump: [stump],
   };
   return KIT;
@@ -37,7 +39,7 @@ const FC = [[1.0, 0.82, 0.18], [0.98, 0.96, 0.9], [0.98, 0.5, 0.68], [0.62, 0.48
 
 // 道具模型生成很慢（茅屋、营火各约 60ms），每种只生成几个变体，缓存起来共用
 const PROPS = new Map();
-function propOf(fn, sd) { let m = PROPS.get(fn); if (!m) PROPS.set(fn, m = new Map()); let r = m.get(sd); if (!r) { r = fn(sd * 97 + 11); m.set(sd, r); } return r; }
+export function propOf(fn, sd) { let m = PROPS.get(fn); if (!m) PROPS.set(fn, m = new Map()); let r = m.get(sd); if (!r) { r = fn(sd * 97 + 11); m.set(sd, r); } return r; }
 
 /** 生成一块地的装点。opts: { grass: 草的密度系数, flowers: 花的密度系数, props: 是否放道具, clear: [[x,z,r]] 额外要空出来的圆 } */
 export function dressTile(T, t, opts = {}) {
@@ -47,7 +49,7 @@ export function dressTile(T, t, opts = {}) {
   const H = (x, z) => T.heightIn(t, x, z);
   const taken = (opts.clear || []).slice();
   const free = (x, z, d) => taken.every(([a, b, r]) => (a - x) ** 2 + (b - z) ** 2 > (r + d) ** 2);
-  const riverD = (x, z) => { let d = T.river ? T.river(x, z)[0] : 9; for (const pd of T.ponds) d = Math.min(d, Math.hypot(x - pd.x, z - pd.z) - pd.r * 0.75 + 0.2); return d; };
+  const riverD = (x, z) => { let d = T.riverD ? T.riverD(x, z) : T.river ? T.river(x, z)[0] : 9; for (const pd of (T.pondsAt ? T.pondsAt(x, z) : T.ponds)) d = Math.min(d, Math.hypot(x - pd.x, z - pd.z) - pd.r * 0.75 + 0.2); return d; };
   const inHex = (pad = 0.12) => { for (let k = 0; k < 40; k++) { const x = (R() * 2 - 1) * (INR - pad), z = (R() * 2 - 1) * (1 - pad); if (Math.abs(z) <= (1 - pad) - Math.abs(x) / Math.sqrt(3) && Math.abs(x) <= INR - pad) return [t.x + x, t.z + z]; } return [t.x, t.z]; };
   const plant = (k, v, it, d) => { if (!free(it.x, it.z, d)) return false; taken.push([it.x, it.z, d]); out.obstacles.push([it.x, it.z, d]); push(k + ':' + v, it); return true; };
   const ty = t.t, harvested = !!t.harvested;
@@ -86,8 +88,32 @@ export function dressTile(T, t, opts = {}) {
     prop(P.logSeat, t.x + 0.42, t.z + 0.05, 1.2); prop(P.logSeat, t.x + 0.1, t.z + 0.42, 0.1); prop(P.logSeat, t.x - 0.18, t.z + 0.22, 2.2);
     prop(P.woodPile, t.x - 0.55, t.z + 0.1, 0.4);
   }
-  if (['meadow', 'flowers', 'camp', 'islet', 'pond'].includes(ty)) {
-    const nTree = ty === 'meadow' ? (R() < 0.6 ? 1 : 0) + (R() < 0.3 ? 1 : 0) : ty === 'camp' ? 2 : 0;
+  // 水系：池塘的睡莲和一圈芦苇香蒲；溪流两岸的芦苇和卵石
+  if (ty === 'pond' || ty === 'stream') {
+    const pd = (T.pondsAt ? T.pondsAt(t.x, t.z) : []).find((p) => Math.hypot(p.x - t.x, p.z - t.z) < 0.5);
+    if (pd) {
+      out.pond = pd;
+      if (!pd.spring) {
+        const pads = [];
+        for (let k = 0; k < 40 && pads.length < 12; k++) { const a = R() * 6.28, r = Math.sqrt(R()) * pd.r * 0.8, x = pd.x + Math.cos(a) * r, z = pd.z + Math.sin(a) * r; if (pads.every((q) => Math.hypot(q.x - x, q.z - z) > 0.07)) pads.push({ x, z }); }
+        out.lilyPads = pads.map((p) => ({ x: p.x, y: t.base - 0.05 + 0.002, z: p.z }));
+        for (const p of out.lilyPads) push('lily:' + (R() < 0.3 ? 1 : 0), { x: p.x, y: p.y, z: p.z, ry: R() * 6.28, s: 1.2 + R() * 0.6 });
+      }
+      for (let k = 0; k < (pd.spring ? 10 : 24); k++) { const a = R() * 6.28, r = pd.r * (0.95 + R() * 0.3), x = pd.x + Math.cos(a) * r, z = pd.z + Math.sin(a) * r; push('reed:' + (R() < 0.6 ? 0 : 1), { x, y: H(x, z) - 0.01, z, ry: R() * 6.28, s: 1.1 + R() * 0.5 }); }
+      taken.push([pd.x, pd.z, pd.r * 1.2]);
+    }
+    for (const pl of (T.lines && T.lines.get(t.q + ',' + t.r)) || []) {
+      for (let i = 1; i < pl.length - 1; i++) {
+        const [ax, az] = pl[i - 1], [bx, bz] = pl[i + 1], dx = bx - ax, dz = bz - az, L2 = Math.hypot(dx, dz) || 1;
+        for (const side of [-1, 1]) {
+          if (R() < 0.45) { const o = 0.17 + R() * 0.06, x = pl[i][0] - dz / L2 * o * side, z = pl[i][1] + dx / L2 * o * side; push('reed:0', { x, y: H(x, z) - 0.01, z, ry: R() * 6.28, s: 0.9 + R() * 0.4 }); }
+          if (R() < 0.3) { const o = 0.15 + R() * 0.05, x = pl[i][0] - dz / L2 * o * side, z = pl[i][1] + dx / L2 * o * side; push('rock:' + Math.floor(R() * 4), { x, y: H(x, z) - 0.02, z, s: 0.03 + R() * 0.035, ry: R() * 6.28 }); }
+        }
+      }
+    }
+  }
+  if (['meadow', 'flowers', 'camp', 'islet', 'pond', 'stream'].includes(ty)) {
+    const nTree = ty === 'meadow' || ty === 'stream' ? (R() < 0.6 ? 1 : 0) + (R() < 0.3 ? 1 : 0) : ty === 'camp' ? 2 : 0;
     for (let i = 0; i < nTree; i++) { const [x, z] = inHex(0.15); if (riverD(x, z) < 0.35) continue; const s = 0.8 + R() * 0.35; if (plant('broad', Math.floor(R() * 5), { x, y: H(x, z) - 0.02, z, s, ry: R() * 6.28 }, 0.24)) out.perches.push({ x, y: H(x, z), z, h: 0.85 * s }); }
     for (let i = 0; i < (ty === 'islet' ? 4 : 3); i++) { const [x, z] = inHex(0.05); if (riverD(x, z) < 0.25) continue; plant('bush', Math.floor(R() * 3), { x, y: H(x, z), z, s: 0.7 + R() * 0.6, ry: R() * 6.28 }, 0.07); }
     for (let i = 0; i < 2; i++) { const [x, z] = inHex(0.08); if (riverD(x, z) < 0.25) continue; plant('rock', Math.floor(R() * 4), { x, y: H(x, z) - 0.02, z, s: 0.04 + R() * 0.05, ry: R() * 6.28 }, 0.06); }
@@ -114,7 +140,7 @@ export function dressTile(T, t, opts = {}) {
     taken.push([t.x, t.z, 0.8]);
   }
   // ---- 草叶、花、麦穗 ----
-  const grassy = ({ meadow: 4200, flowers: 3800, camp: 3000, islet: 2200, forest: 900, quarry: 1500, mountain: 1400, pond: 3600, beach: 260 }[ty] || 0) * dens;
+  const grassy = ({ meadow: 4200, flowers: 3800, camp: 3000, islet: 2200, forest: 900, quarry: 1500, mountain: 1400, pond: 3600, stream: 3800, beach: 260 }[ty] || 0) * dens;
   for (let i = 0; i < grassy; i++) {
     const [x, z] = inHex(0.0);
     if (riverD(x, z) < 0.2) continue;
@@ -125,7 +151,7 @@ export function dressTile(T, t, opts = {}) {
     const h = H(x, z), c = T._topColor(t, x, z, h), v = 0.88 + R() * 0.3;
     out.blades.grass.push({ x, y: h - 0.004, z, h: (0.035 + R() * 0.045) * (ty === 'forest' ? 0.8 : 1), w: 0.008 + R() * 0.006, lean: R() * 0.3, rot: R() * 6.28, tint: [c.r * v * 1.12, c.g * v * 1.08, c.b * v * 0.95], tint2: [c.r * 0.55, c.g * 0.6, c.b * 0.5] });
   }
-  const nFlower = ({ flowers: 3200, meadow: 380, camp: 160, islet: 260, pond: 220 }[ty] || 0) * fdens;
+  const nFlower = ({ flowers: 3200, meadow: 380, camp: 160, islet: 260, pond: 220, stream: 300 }[ty] || 0) * fdens;
   for (let i = 0; i < nFlower; i++) {
     const [x, z] = inHex(0.03);
     if (riverD(x, z) < 0.22) continue;

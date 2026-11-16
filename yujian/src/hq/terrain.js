@@ -21,9 +21,11 @@ export const TYPES = {
   mountain: { h: 0.485, c: [0x7fa843, 0x6a9539, 0x9cb653], surf: [1, 0.15, 0] },
   beach: { h: 0.34, c: [0xe8d6a6, 0xd9c08c, 0xf2e6c4], surf: [0, 0, 0.12] },
   pond: { h: 0.45, c: [0x84b046, 0x678f3a, 0xa3bd5c], surf: [1, 0, 0] },
+  stream: { h: 0.452, c: [0x88b845, 0x6c9c3a, 0xaec65a], surf: [1, 0, 0] },
   islet: { h: 0.415, c: [0x9cb85a, 0x84a24c, 0xbac469], surf: [1, 0.1, 0] },
 };
 const col = (hex) => new THREE.Color(hex); // three 默认开启色彩管理，得到的是线性值
+const WATER = new Set(['stream', 'pond']);
 
 /** 以 polyline（XZ 点数组）表示的河道：返回点到河道的距离和沿河的进度 */
 export function riverField(points) {
@@ -48,6 +50,10 @@ export class Terrain {
     this.riverW = opts.riverWidth || 0.17;
     this.ponds = opts.ponds || [];
     this.river = this.riverPts ? riverField(this.riverPts) : null;
+    // 游戏里的水系：溪流地块的河道折线、池塘（按地块键索引，查询只看附近几块地，地图再大也一样快）
+    this.lines = new Map();      // 地块键 → [[ [x,z], ... ], ...] 河道中心线（上游 → 下游）
+    this.pondMap = new Map();    // 地块键 → { x, z, r, depth }
+    this.lineNear = new Set();   // 有河道的地块和它们的邻居
     this.field = new LandField();
     for (const t of tiles) this._init(t);
   }
@@ -62,7 +68,96 @@ export class Terrain {
   /** 新增一块地（游戏里放地块时调用），返回受影响的地块键（自己 + 邻居） */
   addTile(t) {
     this.tiles.push(t); this.map.set(key(t.q, t.r), t); this._init(t);
-    return [key(t.q, t.r), ...DIRS.map((d) => key(t.q + d[0], t.r + d[1]))];
+    const out = new Set([key(t.q, t.r), ...DIRS.map((d) => key(t.q + d[0], t.r + d[1]))]);
+    // 水系：新地块本身是溪流/池塘，或者挨着溪流（海岸变了，出水口可能要换），就重算它所在的水网
+    const seeds = [t, ...DIRS.map((d) => this.map.get(key(t.q + d[0], t.r + d[1])))].filter((x) => x && WATER.has(x.t));
+    const seen = new Set();
+    for (const s0 of seeds) { if (seen.has(key(s0.q, s0.r))) continue; for (const kk of this._waterNet(s0)) { seen.add(kk); out.add(kk); } }
+    return [...out];
+  }
+  /** 重算 t 所在的连通水网（溪流 + 池塘）：流向、河道折线、出海口瀑布、源头泉眼。返回受影响的地块键（水网里的地块和它们的邻居） */
+  _waterNet(t0) {
+    const comp = [], idx = new Map(), queue = [t0];
+    idx.set(key(t0.q, t0.r), t0);
+    while (queue.length) { const t = queue.shift(); comp.push(t); for (const d of DIRS) { const kk = key(t.q + d[0], t.r + d[1]), n = this.map.get(kk); if (n && WATER.has(n.t) && !idx.has(kk)) { idx.set(kk, n); queue.push(n); } } }
+    const coastEdges = (t) => DIRS.map((d, k) => (this.map.has(key(t.q + d[0], t.r + d[1])) ? -1 : k)).filter((k) => k >= 0);
+    // 离出海口的距离：所有挨海的溪流地块都是出海口；没有就流进池塘；都没有就从第一块地的泉眼开始
+    let src = comp.filter((t) => t.t === 'stream' && coastEdges(t).length);
+    if (!src.length) src = comp.filter((t) => t.t === 'pond');
+    if (!src.length) src = [comp[0]];
+    const dist = new Map(src.map((t) => [key(t.q, t.r), 0])), q2 = [...src];
+    while (q2.length) { const t = q2.shift(), d0 = dist.get(key(t.q, t.r)); for (const d of DIRS) { const kk = key(t.q + d[0], t.r + d[1]); if (idx.has(kk) && !dist.has(kk)) { dist.set(kk, d0 + 1); q2.push(idx.get(kk)); } } }
+    const touched = new Set();
+    for (const t of comp) {
+      const k = key(t.q, t.r), dt = dist.get(k) ?? 0, lines = [];
+      this.lines.delete(k); this.pondMap.delete(k); t.fall = null;
+      const mid = (e) => [t.x + Math.cos(Math.PI / 3 * e) * INR, t.z + Math.sin(Math.PI / 3 * e) * INR];
+      const curve = (a, b, salt) => {
+        // 两点之间带一点弯的河道（二次贝塞尔，控制点按位置固定偏移）
+        const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2, dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz) || 1;
+        const off = NZ.n2(mx * 3.7 + salt, mz * 3.7 - salt) * 0.16, cx = mx - dz / L * off, cz = mz + dx / L * off, pts = [];
+        for (let i = 0; i <= 8; i++) { const u = i / 8; pts.push([(1 - u) ** 2 * a[0] + 2 * (1 - u) * u * cx + u * u * b[0], (1 - u) ** 2 * a[1] + 2 * (1 - u) * u * cz + u * u * b[1]]); }
+        return pts;
+      };
+      const conn = [];
+      for (let e = 0; e < 6; e++) { const kk = key(t.q + DIRS[e][0], t.r + DIRS[e][1]); if (idx.has(kk)) conn.push([e, dist.get(kk) ?? 0]); }
+      if (t.t === 'pond') {
+        this.pondMap.set(k, { x: t.x, z: t.z, r: 0.42, depth: 0.11 });
+        for (const [e] of conn) { const m = mid(e), inner = [t.x + Math.cos(Math.PI / 3 * e) * 0.3, t.z + Math.sin(Math.PI / 3 * e) * 0.3]; lines.push(curve(m, inner, e)); }
+      } else {
+        const c = [t.x, t.z];
+        for (const [e, dn] of conn) lines.push(dn < dt ? curve(c, mid(e), e) : curve(mid(e), c, e));
+        // 出海口：选和上游方向最顺的那条海岸边，河水从那里落进海里
+        const ce = coastEdges(t);
+        if (dt === 0 && ce.length && src.includes(t)) {
+          let best = ce[0], bs = -9;
+          const ux = conn.reduce((a, [e]) => a + Math.cos(Math.PI / 3 * e), 0), uz = conn.reduce((a, [e]) => a + Math.sin(Math.PI / 3 * e), 0);
+          for (const e of ce) { const sc = -(Math.cos(Math.PI / 3 * e) * ux + Math.sin(Math.PI / 3 * e) * uz) + NZ.n2(t.q * 1.7 + e, t.r * 1.3) * 0.01; if (sc > bs) { bs = sc; best = e; } }
+          lines.push(curve(c, mid(best), best + 7));
+          t.fall = { x: mid(best)[0], z: mid(best)[1], nx: Math.cos(Math.PI / 3 * best), nz: Math.sin(Math.PI / 3 * best) };
+        } else if (dt === 0 && !ce.length && !comp.some((x) => x.t === 'pond')) {
+          // 没有出海口也没有池塘：源头是一眼泉
+          this.pondMap.set(k, { x: t.x, z: t.z, r: 0.2, depth: 0.07, spring: true });
+        }
+        if (!conn.length && !t.fall && !this.pondMap.has(k)) this.pondMap.set(k, { x: t.x, z: t.z, r: 0.2, depth: 0.07, spring: true });
+      }
+      if (lines.length) this.lines.set(k, lines);
+      touched.add(k); for (const d of DIRS) touched.add(key(t.q + d[0], t.r + d[1]));
+    }
+    this.lineNear.clear();
+    for (const kk of this.lines.keys()) { const [q, r] = kk.split(',').map(Number); this.lineNear.add(kk); for (const d of DIRS) this.lineNear.add(key(q + d[0], r + d[1])); }
+    return [...touched];
+  }
+  /** 点到最近河道中心线的距离（样张的整条河 + 游戏里溪流地块的河道） */
+  riverD(x, z) {
+    let best = this.river ? this.river(x, z)[0] : 9;
+    if (!this.lines.size) return best;
+    const [q, r] = fromWorld(x, z); if (!this.lineNear.has(key(q, r))) return best;
+    for (let k = -1; k < 6; k++) {
+      const L = this.lines.get(k < 0 ? key(q, r) : key(q + DIRS[k][0], r + DIRS[k][1])); if (!L) continue;
+      for (const pl of L) for (let i = 0; i < pl.length - 1; i++) {
+        const [ax, az] = pl[i], [bx, bz] = pl[i + 1], dx = bx - ax, dz = bz - az, l2 = dx * dx + dz * dz || 1;
+        const u = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / l2)), d = Math.hypot(x - ax - dx * u, z - az - dz * u);
+        if (d < best) best = d;
+      }
+    }
+    return best;
+  }
+  /** 离 (x,z) 最近、会影响它的池塘（样张的固定池塘 + 游戏里的池塘地块） */
+  pondsAt(x, z) {
+    const out = this.ponds.length ? this.ponds.slice() : [];
+    if (this.pondMap.size) { const [q, r] = fromWorld(x, z), p = this.pondMap.get(key(q, r)); if (p) out.push(p); }
+    return out;
+  }
+  /** 删掉一块地（自由画布的橡皮擦），返回受影响的地块键 */
+  removeTile(q, r) {
+    const k = key(q, r), t = this.map.get(k); if (!t) return [];
+    this.map.delete(k); this.tiles.splice(this.tiles.indexOf(t), 1);
+    this.field.remove(t.x, t.z, this.tiles);
+    const out = new Set([k, ...DIRS.map((d) => key(q + d[0], r + d[1]))]);
+    if (this.lines.has(k) || this.pondMap.has(k)) { this.lines.delete(k); this.pondMap.delete(k); }
+    for (const d of DIRS) { const n = this.map.get(key(q + d[0], r + d[1])); if (n && WATER.has(n.t)) for (const kk of this._waterNet(n)) out.add(kk); }
+    return [...out];
   }
   tileAt(x, z) { const [q, r] = fromWorld(x, z); return this.map.get(key(q, r)); }
   has(q, r) { return this.map.has(key(q, r)); }
@@ -86,10 +181,10 @@ export class Terrain {
       if (d < w) { const f = 1 - Math.max(0, d) / w; h -= dep * f * f; }
     }
     // 池塘：碗状下凹
-    for (const pd of this.ponds) { const d = Math.hypot(x - pd.x, z - pd.z); if (d < pd.r * 1.3) { const f = 1 - THREE.MathUtils.smoothstep(d, pd.r * 0.45, pd.r * 1.3); h -= pd.depth * f; } }
+    for (const pd of this.pondsAt(x, z)) { const d = Math.hypot(x - pd.x, z - pd.z); if (d < pd.r * 1.3) { const f = 1 - THREE.MathUtils.smoothstep(d, pd.r * 0.45, pd.r * 1.3); h -= pd.depth * f; } }
     // 河道
-    if (this.river) {
-      const [d] = this.river(x, z), w = this.riverW;
+    if (this.river || this.lines.size) {
+      const d = this.riverD(x, z), w = this.riverW;
       if (d < w * 1.8) { const f = 1 - Math.min(1, d / (w * 1.8)); h -= 0.075 * (f * f * (3 - 2 * f)); }
     }
     return h;
@@ -112,9 +207,9 @@ export class Terrain {
       c.lerp(col(0x86b244), 1 - THREE.MathUtils.smoothstep(dm, 0.05, 0.13 + NZ.n2(x * 9, z * 9) * 0.03));
     }
     // 池塘边的湿泥和池底
-    for (const pd of this.ponds) { const d = Math.hypot(x - pd.x, z - pd.z); if (d < pd.r * 1.45) { c.lerp(col(0x5f6a3a), (1 - THREE.MathUtils.smoothstep(d, pd.r * 0.95, pd.r * 1.45)) * 0.7); c.lerp(col(0x4a4630), 1 - THREE.MathUtils.smoothstep(d, pd.r * 0.6, pd.r * 1.0)); } }
+    for (const pd of this.pondsAt(x, z)) { const d = Math.hypot(x - pd.x, z - pd.z); if (d < pd.r * 1.45) { c.lerp(col(0x5f6a3a), (1 - THREE.MathUtils.smoothstep(d, pd.r * 0.95, pd.r * 1.45)) * 0.7); c.lerp(col(0x4a4630), 1 - THREE.MathUtils.smoothstep(d, pd.r * 0.6, pd.r * 1.0)); } }
     // 河岸湿土
-    if (this.river) { const [d] = this.river(x, z); const f = 1 - THREE.MathUtils.smoothstep(d, this.riverW * 0.8, this.riverW * 2.0); c.lerp(col(0x6f7a46), f * 0.6); }
+    if (this.river || this.lines.size) { const d = this.riverD(x, z); const f = 1 - THREE.MathUtils.smoothstep(d, this.riverW * 0.8, this.riverW * 2.0); c.lerp(col(0x6f7a46), f * 0.6); }
     // 凹槽处略暗（接缝读得出来）
     const dropAO = THREE.MathUtils.clamp((t.base - h) * 9, 0, 0.3);
     return c.multiplyScalar(1 - dropAO);

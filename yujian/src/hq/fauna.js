@@ -391,6 +391,26 @@ export class Fauna {
     }
   }
 
+  /** 自由画布：在 (x,z) 附近放一只动物。返回是否放成功（地形不合适就失败） */
+  spawn(kind, x, z) {
+    const near = new V3(x, 0, z), R = this.R;
+    if (kind === 'deer' || kind === 'sheep') {
+      const list = kind === 'deer' ? this._herd(L.deer, 1, ['meadow', 'forest', 'flowers'], 1.6, 0.08, near, 'deer') : this._herd(L.sheep, 1, ['meadow', 'flowers'], 1.6, 0.045, near, 'sheep');
+      if (!list.length || list[0].q.grp.position.distanceTo(new V3(x, list[0].q.grp.position.y, z)) > 0.8) { for (const a of list) { this.group.remove(a.q.grp); } return false; }
+      (kind === 'deer' ? this.deer : this.sheep).push(...list); return true;
+    }
+    if (kind === 'rabbit') {
+      const p = this.randomSpot(['flowers', 'meadow', 'camp'], near, 0.3); if (!p) return false;
+      const m = new THREE.Mesh(geoOf(memo('rabbit', () => L.rabbit(1))), this.mat); m.castShadow = true; m.scale.setScalar(1.8); m.position.copy(p); this.group.add(m);
+      this.rabbits.push({ m, base: p.clone(), from: p.clone(), to: null, t: 0, T: 0.4, hops: 0, wait: R() * 2, yaw: R() * 6.28 }); return true;
+    }
+    if (kind === 'crab') {
+      const p = this.randomSpot(['beach'], near, 0.3); if (!p) return false;
+      const m = new THREE.Mesh(geoOf(memo('crab', () => L.crab(1))), this.mat); m.castShadow = true; m.scale.setScalar(2.0); m.position.copy(p); this.group.add(m);
+      this.crabs.push({ m, yaw: R() * 6.28, dir: 1, speed: 0, wait: R() * 2, run: 0 }); return true;
+    }
+    return false;
+  }
   update(dt, t) {
     this._updHerd(this.deer, dt, 0); this._updHerd(this.sheep, dt, 1); this._updGoats(dt); this._updRabbits(dt);
     this._updButterflies(dt, t); this._updDragonflies(dt, t); this._updSongbirds(dt, t); this._updDucks(dt, t); this._updFrogs(dt); this._updCrabs(dt, t);

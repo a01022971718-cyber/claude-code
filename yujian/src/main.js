@@ -6,6 +6,9 @@ import { Actors } from './actors.js';
 import { Game, landmarkDef } from './state.js';
 import { UI, ICON, fmtWait } from './ui.js';
 import { DecorMode } from './decor.js';
+import { CanvasMode } from './canvas.js';
+import { CanvasHUD } from './hud.js';
+import { RARE, newDiscovery, roll } from './discovery.js';
 import { audio } from './audio.js';
 import { analytics, ads } from './services.js';
 import { TILE, QUALITY, QUALITY_DOWN, RES, RES_NAME, DAILY, HOUR } from './config.js';
@@ -29,20 +32,28 @@ class App {
     this.game = new Game();
     if (!this.game.load()) this.game.newGame();
     const s = this.game.s;
-    if (!QUALITY[s.settings.quality]) s.settings.quality = 'high';
+    if (!QUALITY[s.settings.quality]) s.settings.quality = 'ultra';
+    // v0.4：默认画质改成和样张一致的“极高”；老存档里自动档的“高”也升上来（太卡会自动降回去）
+    if (!s.settings.qv4) { s.settings.qv4 = 1; if (s.settings.quality === 'high' && s.settings.autoQuality) s.settings.quality = 'ultra'; }
+    // 经营玩法（资源、目标、地块卡）默认关闭：打开游戏就是自由画布
+    this.gameplay = qs.has('gameplay') ? qs.get('gameplay') === '1' : !!s.settings.gameplay;
     const qk = this.forceQ || s.settings.quality;
     this.rig = new CameraRig(this.canvas, 1);
     this.view = this.makeView(qk);
-    this.view.onSky = () => this.ui?.refreshTime();
+    this.rig.free = this.view.kind === 'hq' || !this.gameplay;
+    if (this.view.kind === 'hq') { this.rig.lookY = 0.45; this.rig.setView({ pitch: 0.62, yaw: -0.45 }); }
+    this.view.onSky = () => { this.ui?.refreshTime(); this.hud?.refreshTime(); };
     this.updateTime();
     this.perf = { t: 0, n: 0, armed: false, checks: 0 };
     this.actors = new Actors(this.view.scene, this.view.mat);
     this.actors.noChimney = this.view.kind === 'hq';
+    this.actors.setHQ(this.view.kind === 'hq');
     this.actors.walkable = (q, r) => { const t = this.game.tile(q, r); return !!t && t.own && ['meadow', 'home', 'islet', 'harbor'].includes(t.t); };
     this.sel = { slot: -1, cell: null, coupon: false };
     this.mode = 'play'; // play | decor | photo | cut
     this.ui = new UI(this);
     this.decor = new DecorMode(this);
+    if (!this.gameplay) { this.canvasMode = new CanvasMode(this); this.hud = new CanvasHUD(this); this.hud.show(false); }
     this.syncAll();
     this.resize();
     addEventListener('resize', () => this.resize());
@@ -71,10 +82,11 @@ class App {
     }
     const v = new LegacyView(this.canvas, qk); v.attach(this.rig.cam); return v;
   }
-  tileView(t) { return { q: t.q, r: t.r, t: t.t, dir: t.dir, center: t.center, harvested: !!(TILE[t.t].harvest && t.ready > this.game.now()) }; }
+  tileView(t) { if (t.eco) return { q: t.q, r: t.r, t: t.eco, dir: t.dir, center: t.center, harvested: false }; return { q: t.q, r: t.r, t: t.t, dir: t.dir, center: t.center, harvested: !!(TILE[t.t].harvest && t.ready > this.game.now()) }; }
 
   // ---------- 同步画面 ----------
   syncAll() {
+    if (this.canvasMode) { this.canvasMode.syncAll(); this.actors.clearPeople(); return; }
     const g = this.game, s = g.s;
     this.view.rebuildAll(s.tiles.map((t) => this.tileView(t)));
     this.view.setLand(g.landCells());
@@ -88,6 +100,7 @@ class App {
     this.syncDynamic();
   }
   syncDynamic() {
+    if (this.canvasMode) return;
     const g = this.game, now = g.now();
     this.view.markers.setReady(g.readyTiles());
     this.actors.syncBoats(g.s.tiles.filter((t) => t.t === 'harbor').map((t) => ({ q: t.q, r: t.r, dir: t.dir, ready: (t.ready || 0) <= now })));
@@ -96,6 +109,7 @@ class App {
     this.checkCrate();
   }
   checkCrate() {
+    if (this.canvasMode) return;
     const g = this.game;
     if (g.s.day.crate !== 'ready' || this.mode === 'cut') { this.actors.hideCrate(); return; }
     // 漂在离镜头最近的岸边
@@ -107,7 +121,7 @@ class App {
     const w = this.canvas.clientWidth || innerWidth, h = this.canvas.clientHeight || innerHeight;
     // 底部有手牌，把画面整体往上挪一点，让岛的中心落在手牌上方
     this.rig.cam.aspect = w / h; this.rig.cam.fov = w < h ? 44 : 30;
-    this.rig.cam.setViewOffset(w, h, 0, Math.round(h * (w < h ? 0.07 : h < 500 ? 0.12 : 0.06)), w, h);
+    this.rig.cam.setViewOffset(w, h, 0, this.canvasMode ? 0 : Math.round(h * (w < h ? 0.07 : h < 500 ? 0.12 : 0.06)), w, h);
     this.rig.cam.updateProjectionMatrix();
     this.view.resize(w, h);
   }
@@ -124,10 +138,11 @@ class App {
 
   // ---------- 开场 ----------
   async intro() {
+    if (this.canvasMode) return this.introCanvas();
     const g = this.game, s = g.s, lm = s.landmarks[0], [lx, lz] = toWorld(lm.q, lm.r), first = !s.started;
     this.ui.hud(false); this.rig.locked = true;
-    if (first) { this.rig.focus.set(lx, 0, lz); this.rig.dist = 12; }
-    else { const [cx, cz] = g.centroid(); this.rig.focus.set(cx, 0, cz); this.rig.dist = 22; }
+    if (first) { this.rig.focus.set(lx, 0, lz); this.rig.setView({ dist: 12 }); }
+    else { const [cx, cz] = g.centroid(); this.rig.focus.set(cx, 0, cz); this.rig.setView({ dist: 22 }); }
     await this.ui.showTitle(first);
     audio.init(); audio.setEnabled(s.settings.sound); audio.setMusic(s.settings.music);
     if (first) {
@@ -142,6 +157,17 @@ class App {
       if ((g.away || 0) > 10 * 60000 && n) this.ui.toast(`欢迎回来，有 ${n} 块地长好了`);
     }
     this.rig.locked = false; this.ui.hud(true); this.ui.render(); this.checkCrate();
+    this.perf.armed = true;
+  }
+
+  /** 自由画布：标题页之后直接是完整的岛，界面只露出四个角 */
+  async introCanvas() {
+    this.ui.hud(false); this.rig.locked = true;
+    await this.ui.showTitle(!this.game.s.started, true);
+    audio.init(); audio.setEnabled(this.game.s.settings.sound); audio.setMusic(this.game.s.settings.music);
+    this.game.s.started = true; this.game.save();
+    this.rig.locked = false; this.hud.show(true); this.hud.wake();
+    analytics.track('canvas_start', { tiles: this.canvasMode.s.tiles.length });
     this.perf.armed = true;
   }
 
@@ -177,7 +203,7 @@ class App {
   }
   selectCard(i) {
     const g = this.game, s = g.s;
-    if (this.mode !== 'play') return;
+    if (this.canvasMode || this.mode !== 'play') return;
     if (i < 0 || this.sel.slot === i) { this.clearSel(); this.ui.refresh(); return; }
     const type = s.hand[i];
     if (!g.canPlay(i) && !s.coupons) {
@@ -198,6 +224,12 @@ class App {
     const res = g.place(slot, q, r, useCoupon);
     if (!res) { audio.sfx('error'); this.ui.toast('资源不够了'); return; }
     this.clearSel(); this.sel.coupon = false;
+    // 稀有生态：草地有机会冒出泉水（第 2 块草地必出，之后有保底）。规则上它仍是草地，外观变成溪流或池塘
+    if (res.tile.t === 'meadow') {
+      const disc = this.game.s.disc ||= newDiscovery(), coastal = [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]].some(([a, b]) => !this.game.tile(q + a, r + b));
+      const found = roll(disc, Math.random, { hour: this.view.sky.hour, coastal });
+      if (found) { res.tile.eco = found; setTimeout(() => { audio.sfx('landmark'); this.ui.banner('发现新生态 · ' + RARE[found].name, RARE[found].desc, 3000); }, 800); analytics.track('discover', { type: found }); }
+    }
     this.view.setTile(this.tileView(res.tile), true);
     this.view.setLand(g.landCells());
     audio.sfx('place');
@@ -223,6 +255,7 @@ class App {
   tap(cx, cy) {
     if (this.mode === 'decor') return this.decor.tap(cx, cy);
     if (this.mode !== 'play') return;
+    if (this.canvasMode) return this.canvasMode.tap(cx, cy);
     const g = this.game, gp = this.rig.ground(cx, cy, 0), cp = this.actors.cratePos;
     if (cp && Math.hypot(gp.x - cp[0], gp.z - cp[1]) < 1.1) return this.openCrate();
     const top = this.rig.ground(cx, cy, GROUND.top);
@@ -325,6 +358,7 @@ class App {
   }
   /** 每秒一次：作物长好、跨天刷新 */
   tick() {
+    if (this.canvasMode) { this.updateTime(); if ((this._camT = (this._camT || 0) + 1) % 5 === 0) this.canvasMode.rememberCam(); return; }
     const g = this.game, grown = g.tickRegrow();
     if (grown.length) { grown.forEach((t) => this.view.setTile(this.tileView(t))); this.syncDynamic(); }
     this.updateTime();
@@ -340,7 +374,7 @@ class App {
     this.rig.update(dt); this.actors.update(dt); this.decor.update(dt);
     const f = this.rig.focus;
     this.view.update(dt, f, this.rig.dist);
-    if (this.sel.cell && this.mode === 'play') { const [x, z] = toWorld(this.sel.cell[0], this.sel.cell[1]), [sx, sy] = this.rig.project(x, 1.5, z); this.ui.bubble(undefined, sx, sy); }
+    if (this.sel.cell && this.mode === 'play' && !this.canvasMode) { const [x, z] = toWorld(this.sel.cell[0], this.sel.cell[1]), [sx, sy] = this.rig.project(x, 1.5, z); this.ui.bubble(undefined, sx, sy); }
     this.acc += dt; if (this.acc >= 1) { this.acc = 0; this.tick(); }
     this.view.render();
     requestAnimationFrame((t) => this.loop(t));

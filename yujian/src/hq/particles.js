@@ -16,13 +16,13 @@ void main(){
     float t = uTime * 0.08;
     p = b + vec3(sin(t * 3.0 + seed.x * 40.0) * 0.6, sin(t * 5.0 + seed.y * 30.0) * 0.25, cos(t * 2.0 + seed.z * 50.0) * 0.6);
     size = 0.016 * (0.6 + seed.z);
-    col = vec4(1.0, 0.93, 0.75, 0.32 * (0.5 + 0.5 * sin(uTime * 2.0 + seed.x * 60.0)));
+    col = vec4(1.0, 0.93, 0.75, 0.32 * (0.5 + 0.5 * sin(uTime * 2.0 + seed.x * 60.0)) * (1.0 - 0.9 * uEmit[5].y));
   } else if (kind < 1.5) {              // 瀑布水雾：从落水点向上翻涌
     float life = fract(uTime * 0.35 + seed.x);
     vec3 e = uEmit[int(floor(seed.z * 2.0))];
     p = e + vec3((seed.y - 0.5) * 0.5, 0.0, (seed.z - 0.5) * 0.5) * (0.4 + life) + vec3(0.0, life * 0.55, 0.0);
     size = mix(0.06, 0.22, life);
-    col = vec4(0.95, 0.98, 1.0, 0.16 * (1.0 - life) * smoothstep(0.0, 0.15, life));
+    col = vec4(vec3(0.95, 0.98, 1.0) * (1.0 - 0.8 * uEmit[5].y), 0.16 * (1.0 - life) * smoothstep(0.0, 0.15, life));
   } else if (kind < 2.5) {              // 火焰
     float life = fract(uTime * 1.6 + seed.x);
     vec3 e = uEmit[2];
@@ -93,11 +93,11 @@ export class Particles {
     this.points.add(this.smoke);
   }
   /** pollen / flies：花粉和萤火虫活动范围的偏移（游戏里跟着镜头走） */
-  setEmitters({ falls = [], fire, night = 0, pollen, flies }) {
+  setEmitters({ falls = [], fire, night = 0, pollen, flies, dark }) {
     const e = this.uniforms.uEmit.value;
     if (pollen) e[3].set(...pollen); if (flies) e[4].set(...flies);
     if (falls[0]) e[0].set(...falls[0]); if (falls[1]) e[1].set(...falls[1]); else if (falls[0]) e[1].set(...falls[0]);
     if (fire) e[2].set(...fire);
-    e[5].set(night, 0, 0);
+    e[5].set(night, dark ?? 0, 0);
   }
 }
