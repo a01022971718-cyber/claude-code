@@ -48,7 +48,7 @@ const { chromium } = require('playwright');
   res.closeClamp = await page.evaluate(() => { const r = window.__game.rig, v = window.__game.view, p = r.cam.position; return { dist: +r.dist.toFixed(2), camY: +p.y.toFixed(3), ground: +((v.terrain.heightAt(p.x, p.z) ?? 0)).toFixed(3), near: +r.cam.near.toFixed(3) }; });
   // 预设机位截图
   for (const k of ['top', 'three', 'eye', 'close']) {
-    await page.evaluate((k) => { const a = window.__game; a.rig.preset(k, a.islandHome()); }, k); await page.waitForTimeout(2600);
+    await page.evaluate((k) => { const a = window.__game; a.rig.preset(k, a.islandHome()); }, k); await page.waitForFunction(() => !window.__game.rig.fly, null, { timeout: 120000 }); await page.waitForTimeout(800);
     res['preset_' + k] = await state();
     await page.screenshot({ path: path.join(out, 'cam-' + k + '.png'), timeout: 240000 });
   }

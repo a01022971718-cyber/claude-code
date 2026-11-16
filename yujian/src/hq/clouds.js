@@ -9,7 +9,7 @@ import { GLSL_NOISE, rng } from './noise.js';
 import { U } from './materials.js';
 
 function cloudGeometry(seed = 7, n = 16) {
-  const R = rng(seed), list = [], top = new THREE.Color(1, 1, 1), bot = new THREE.Color(0.62, 0.68, 0.78);
+  const R = rng(seed), list = [], top = new THREE.Color(1, 1, 1), bot = new THREE.Color(0.8, 0.84, 0.92);
   for (let c = 0; c < n; c++) {
     const a = (c / n) * Math.PI * 2 + (R() - 0.5) * 0.3, d = 130 + R() * 60, s = 9 + R() * 12, h = 6 + R() * 14;
     const cx = Math.cos(a) * d, cz = Math.sin(a) * d, puffs = 5 + Math.floor(R() * 5);
@@ -65,7 +65,7 @@ export class SkyLayer {
     this.mist.visible = k > 0.01;
     this.mistMat.uniforms.uColor.value.set(p.fog).lerp(new THREE.Color(0xffffff), 0.35);
     // 夜里云是暗的灰蓝；白天由太阳和天光照亮
-    this.cloudMat.emissive.set(p.hor).multiplyScalar(0.25 * (1 - p.nightK * 0.7));
+    this.cloudMat.emissive.set(p.hor).multiplyScalar(0.42 * (1 - p.nightK * 0.75));
   }
   update(dt, focus, center, radius) {
     this.clouds.position.set(focus.x, 0, focus.z); this.clouds.rotation.y += dt * 0.0015;

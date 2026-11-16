@@ -94,15 +94,17 @@ export class CameraRig {
     const v = this._v.set(x, y, z).project(this.cam), r = this.dom.getBoundingClientRect();
     return [(v.x * 0.5 + 0.5) * r.width, (-v.y * 0.5 + 0.5) * r.height, v.z < 1];
   }
-  /** 平移：屏幕上从 (x0,y0) 拖到 (x1,y1)。能跟手就跟手；镜头很平、指到远处时按屏幕距离换算 */
+  /** 平移：屏幕上从 (x0,y0) 拖到 (x1,y1)。能跟手就跟手；镜头很平、指到远处时按屏幕距离换算，
+   *  跟手的位移最多是屏幕距离估算值的 1.8 倍（远处一小段手指移动不会把镜头甩出去好几个单位） */
   _pan(x0, y0, x1, y1) {
-    const lim = this.dist * 2.5 + 2, a = this._hit(x0, y0, this._ha, lim), b = a && this._hit(x1, y1, this._hb, lim);
-    let dx, dz;
-    if (a && b) { dx = a.x - b.x; dz = a.z - b.z; }
-    else {
-      const r = this.dom.getBoundingClientRect(), wpp = 2 * this.dist * Math.tan(this.cam.fov * Math.PI / 360) / r.height;
-      const px = x1 - x0, py = y1 - y0, k = 1 / Math.max(Math.sin(this.pitch), 0.35), s = Math.sin(this.yaw), c = Math.cos(this.yaw);
-      dx = -c * px * wpp - s * py * wpp * k; dz = s * px * wpp - c * py * wpp * k;
+    const r = this.dom.getBoundingClientRect(), wpp = 2 * this.dist * Math.tan(this.cam.fov * Math.PI / 360) / r.height;
+    const px = x1 - x0, py = y1 - y0, k = 1 / Math.max(Math.sin(this.pitch), 0.35), s = Math.sin(this.yaw), c = Math.cos(this.yaw);
+    const ex = -c * px * wpp - s * py * wpp * k, ez = s * px * wpp - c * py * wpp * k;
+    const lim = this.dist * 1.6 + 1, a = this._hit(x0, y0, this._ha, lim), b = a && this._hit(x1, y1, this._hb, lim);
+    let dx = ex, dz = ez;
+    if (a && b) {
+      dx = a.x - b.x; dz = a.z - b.z;
+      const L = Math.hypot(dx, dz), E = Math.hypot(ex, ez) * 1.8 + 1e-5; if (L > E) { dx *= E / L; dz *= E / L; }
     }
     [dx, dz] = this._soft(dx, dz);
     this.focus.x += dx; this.focus.z += dz;
