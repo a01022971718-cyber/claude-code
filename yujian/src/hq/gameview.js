@@ -15,6 +15,9 @@ import { Gulls } from './seabirds.js';
 import { boulder } from './rocks.js';
 import { ItemLayer } from './items.js';
 import { Batcher } from './batcher.js';
+import { Villagers } from './villagers.js';
+import { Wildlife } from './wildlife.js';
+import { SkyLayer } from './clouds.js';
 import { Ocean } from './ocean.js';
 import { Particles } from './particles.js';
 import { Atmosphere, presetAt } from './atmosphere.js';
@@ -110,6 +113,9 @@ export class HQView {
     this.mats.pond = streamMaterial(this.pipe.sceneColor, this.pipe.sceneDepth, 0.04); this.mats.pond.uniforms.uTint.value.set(0x2f6b4a);
     this.gulls = new Gulls(this.scene);
     this.batcher = new Batcher(this.scene);
+    this.villagers = new Villagers(this);
+    this.wild = new Wildlife(this);
+    this.skyLayer = new SkyLayer(this.scene);
     this.fires = new Map();
     this.items = new ItemLayer(this);
     this.fx.points.layers.set(LAYER_FX); this.fx.smoke.layers.set(LAYER_FX); this.scene.add(this.fx.points);
@@ -280,7 +286,7 @@ export class HQView {
     if (rocks.length) { const geo = own(mergeColored(rocks), rocks), m = new THREE.Mesh(geo, M.terrain); m.castShadow = m.receiveShadow = true; grp.add(m); }
     const K = kit();
     for (const [name, items] of Object.entries(inst)) {
-      const mat = name === 'rock' || name === 'stump' || name === 'lily' ? M.prop : name === 'bush' || name === 'crop' ? M.bush : M.tree;
+      const mat = name === 'rock' || name === 'stump' || name === 'lily' || name === 'wrack' || name === 'drift' || name === 'shell' ? M.prop : name === 'bush' || name === 'crop' ? M.bush : M.tree;
       const g = instanced(K[name], items, mat); g.userData.inst = true; grp.add(g);
       // 只有树投影：灌木、石头、菜苗、芦苇、睡莲的影子几乎看不见，却要再画一遍
       if (!SHADOW_KITS.has(name)) g.traverse((o) => { o.castShadow = false; });
@@ -389,6 +395,7 @@ export class HQView {
     if (bake) this.bakedHour = h;
     this.atmo.apply(p, this.ocean, this.pipe, bake);
     this.nightK = p.nightK;
+    this.skyLayer?.setHour(h, p);
     this._seaTint();
     for (const m of [this.mats.stream, this.mats.pond]) {
       const u = m.uniforms; u.uSunDir.value.copy(this.atmo.dir); u.uSunColor.value.set(p.sun).multiplyScalar(p.sunI * 0.3); u.uSky.value.set(p.zen).lerp(new THREE.Color(p.hor), 0.35); u.uFogColor.value.set(p.fog); u.uFogDensity.value = p.fogD;
@@ -469,6 +476,7 @@ export class HQView {
       const c = ch.fauna.env.center, near = Math.hypot(c.x - focus.x, c.z - focus.z) < (FAUNA_RANGE + dist * 0.3) * (this.q.viewK ?? 1);
       ch.fauna.group.visible = near;
       // 降频：离镜头 14 单位以外的动物隔一帧更新一次（时间步加倍，动作速度不变）
+      ch.fauna.env.hour = this.hour;   // 各物种按钟点作息
       if (near) { const mid = Math.hypot(c.x - focus.x, c.z - focus.z) > 14; if (!mid) ch.fauna.update(dt, t); else if ((ch.tick = !ch.tick)) ch.fauna.update(dt * 2, t); }
     }
     // 海底
@@ -492,8 +500,13 @@ export class HQView {
     this.fx.setEmitters({ falls: mist.length ? mist : [[0, -50, 0]], fire: this.fireAt || [0, -50, 0], night: this.nightK > 0.4 ? this.nightK : 0, dark: this.nightK, pollen: [focus.x - 1, 0, focus.z + 0.3], flies: [focus.x - 0.6, 0, focus.z - 0.1] });
     this.gulls.update(t);
     this.items.update(dt, t);
-    // 动物、海龟、海鸥：全岛合批（同一部件一次绘制）
-    this.batcher.sync([this.faunaRoot, this.marine?.group, this.gulls.group]);
+    // 村民和渔船：地块稳定以后按营地和小路重排，然后按作息活动
+    if (!this.chunksDirty && (this._vilT = (this._vilT || 0) + dt) > 1) { this._vilT = 0; this.villagers.sync(); }
+    this.villagers.update(dt, t);
+    this.wild.update(dt, t);   // 鹬、白鹭、燕鸥、蝙蝠、跃鱼
+    this.skyLayer.update(dt, focus, this.gulls.center, Math.max(3, this.gulls.radius - 1.5));   // 地平线的云、清晨海雾
+    // 动物、海龟、海鸥、村民、岸边的鸟：全岛合批（同一部件一次绘制）
+    this.batcher.sync([this.faunaRoot, this.marine?.group, this.gulls.group, this.villagers.group, this.wild.group]);
     // 营火：离镜头最近的那一处冒火苗和炊烟
     let bestF = null, bd = 1e9; for (const f of this.fires.values()) { const d = Math.hypot(f[0] - focus.x, f[2] - focus.z); if (d < bd) { bd = d; bestF = f; } }
     this.fireAt = bestF;

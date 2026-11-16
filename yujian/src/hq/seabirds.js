@@ -38,13 +38,16 @@ export class Gulls {
     }
   }
   /** 歇在海面上的一只（返回 Group，调用方把它交给浮力计算） */
-  resting() { const g = gullModel(this.mat); g.userData.L.rotation.z = 1.2; g.userData.R.rotation.z = -1.2; return g; }
+  resting() { const g = gullModel(this.mat), { L, R } = g.userData; L.rotation.z = 0.12; R.rotation.z = -0.12; L.scale.x = 0.38; R.scale.x = -0.38; return g; }   // 翅膀收在身体两侧
   update(t) {
-    for (const b of this.list) {
-      const d = b.userData.f, a = t * d.sp + d.ph, c = this.center, r = this.radius + d.r;
-      b.position.set(c.x + Math.cos(a) * r, d.h + Math.sin(t * 0.7 + d.ph) * 0.3, c.z + Math.sin(a) * r);
+    this.list.forEach((b, i) => {
+      const d = b.userData.f;
+      // 渔船在海上时，前三只去船上空盘旋（等鱼）；其余绕岛
+      const onBoat = this.follow && i < 3, c = onBoat ? this.follow : this.center, a = t * d.sp * (onBoat ? 2.2 : 1) + d.ph, r = onBoat ? 0.7 + i * 0.35 : this.radius + d.r;
+      const want = new THREE.Vector3(c.x + Math.cos(a) * r, (onBoat ? 1.1 + i * 0.25 : d.h) + Math.sin(t * 0.7 + d.ph) * 0.3, c.z + Math.sin(a) * r);
+      if (!d.init) { b.position.copy(want); d.init = true; } else b.position.lerp(want, 0.03);   // 换目标时慢慢飞过去
       b.rotation.set(0, -a + (d.sp > 0 ? Math.PI : 0), Math.sin(t * 0.8 + d.ph) * 0.2);
       const f = Math.sin(t * 7 + d.ph * 3) * 0.55; b.userData.L.rotation.z = f; b.userData.R.rotation.z = -f;
-    }
+    });
   }
 }

@@ -1,5 +1,7 @@
 // 陆地生态：森林里的鹿和林鸟、草地上的羊群和野兔、花田里的蝴蝶、岩山上的山羊、河边和池塘的蜻蜓、野鸭、青蛙，沙滩上的螃蟹。
 // 行为用简单的状态机 + 转向；跳跃（兔子、青蛙、山羊）走重力抛物线；四足动物按步态摆腿，低头吃草。
+// 作息（env.hour，游戏里的钟点）：蝴蝶、蜜蜂、蜻蜓白天活动，夜里停在花上、芦苇上；林鸟清晨和傍晚最闹，夜里不飞；
+// 野兔和鹿晨昏最活跃，正午多半歇着；羊群夜里挤成一团不怎么动；螃蟹、青蛙夜里和黄昏更活跃；野鸭夜里漂着睡觉。
 import * as THREE from 'three';
 import * as L from './models-land.js';
 import { GLSL_NOISE } from './noise.js';
@@ -76,7 +78,21 @@ export class Fauna {
     this.grid = new Map();
     for (const o of env.taken || []) { const k = Math.floor(o[0] / 0.6) + ',' + Math.floor(o[1] / 0.6); let L = this.grid.get(k); if (!L) this.grid.set(k, L = []); L.push(o); }
     this.ray = new THREE.Raycaster();
-    this._deer(); this._sheep(); this._goats(); this._rabbits(); this._butterflies(); this._dragonflies(); this._songbirds(); this._ducks(); this._frogs(); this._crabs();
+    this._deer(); this._sheep(); this._goats(); this._rabbits(); this._butterflies(); this._bees(); this._dragonflies(); this._songbirds(); this._ducks(); this._frogs(); this._crabs();
+  }
+  /** 当前钟点的时段 */
+  _clock() {
+    const h = this.env.hour ?? 14;
+    this.night = h < 5.3 || h >= 19.8; this.dawn = h >= 5.3 && h < 8.5; this.dusk = h >= 17 && h < 19.8; this.midday = h >= 11 && h < 15;
+    this.warm = h >= 7.5 && h < 18.3;   // 蜜蜂、蝴蝶出来的时段
+  }
+  /** 等待时间的作息系数：活跃的时段等得短，歇着的时段等得长 */
+  _pace(kind) {
+    const { night, dawn, dusk, midday } = this;
+    if (kind === 'crepuscular') return dawn || dusk ? 0.4 : midday ? 2.5 : night ? 1.4 : 1;
+    if (kind === 'nocturnal') return night ? 0.35 : dusk ? 0.6 : midday ? 2.2 : 1.3;
+    if (kind === 'bird') return night ? 99 : dawn || dusk ? 0.4 : midday ? 1.6 : 1;
+    return 1;
   }
   /** 物种数量：env.counts 里有就用它 */
   n(name, def) { const c = this.env.counts; return c && c[name] != null ? c[name] : def; }
@@ -126,12 +142,14 @@ export class Fauna {
     this.sheep = a ? this._herd(L.sheep, this.n('sheep', 6), ['meadow', 'flowers'], 1.6, 0.045, new V3(a.x, 0, a.z), 'sheep') : [];
   }
   _updHerd(list, dt, flock = 0) {
+    // 鹿晨昏出来吃草走动、正午歇着；羊群夜里往中间挤、基本不动
+    const pace = flock ? (this.night ? 3 : 1) : this._pace('crepuscular'), walkP = flock && this.night ? 0.3 : 0.55 / Math.sqrt(pace);
     for (const a of list) {
       const g = a.q.grp, p = g.position; a.timer -= dt;
       if (a.state !== 'walk' && a.timer < 0) {
-        if (this.R() < 0.55) { a.state = 'walk'; let c = null; if (flock) { c = new V3(); for (const b of list) c.add(b.q.grp.position); c.multiplyScalar(1 / list.length); } a.target = this.randomSpot(a.types, c || p, flock ? 0.6 : 0.9); if (!a.target) a.state = 'graze'; }
-        else a.state = this.R() < 0.7 ? 'graze' : 'look';
-        a.timer = a.state === 'graze' ? 4 + this.R() * 7 : 2 + this.R() * 3;
+        if (this.R() < walkP) { a.state = 'walk'; let c = null; if (flock) { c = new V3(); for (const b of list) c.add(b.q.grp.position); c.multiplyScalar(1 / list.length); } a.target = this.randomSpot(a.types, c || p, flock ? (this.night ? 0.3 : 0.6) : 0.9); if (!a.target) a.state = 'graze'; }
+        else a.state = this.night || this.R() >= 0.7 ? 'look' : 'graze';
+        a.timer = (a.state === 'graze' ? 4 + this.R() * 7 : 2 + this.R() * 3) * pace;
       }
       let want = 0;
       if (a.state === 'walk' && a.target) {
@@ -220,7 +238,7 @@ export class Fauna {
           const d = 0.045 + this.R() * 0.035, x = r.from.x + Math.sin(r.yaw) * d, z = r.from.z + Math.cos(r.yaw) * d;
           if (this.ok(x, z, ['flowers', 'meadow', 'camp'], 0.02) && Math.hypot(x - r.base.x, z - r.base.z) < 0.8) { r.to = new V3(x, this.ground(x, z), z); r.t = 0; r.T = 0.36 + this.R() * 0.08; }
           else { r.yaw += Math.PI * 0.7; }
-          r.hops--; r.wait = r.hops > 0 ? 0.08 : 1.5 + this.R() * 4;
+          r.hops--; r.wait = r.hops > 0 ? 0.08 : (1.5 + this.R() * 4) * this._pace('crepuscular');
         }
       } else {
         r.t += dt; const u = Math.min(1, r.t / r.T), T = r.T, tt = u * T;
@@ -261,6 +279,8 @@ export class Fauna {
     const fl = this.env.flowers, m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(0, 0, 0, 'YXZ'), sc = new V3(2.0, 2.0, 2.0);
     for (const b of this.bflies) {
       b.timer -= dt;
+      if (!this.warm && b.state === 'fly' && b.target && b.target.distanceTo(b.p) < 0.03) { b.state = 'rest'; b.timer = 1e9; b.v.set(0, 0, 0); }   // 天凉了：落到花上不动
+      if (!this.warm && b.state === 'fly' && b.timer < 0) { const f = fl[Math.floor(this.R() * fl.length)]; if (f) { b.target = new V3(f.x, f.y + 0.035, f.z); b.timer = 6; } }
       if (b.state === 'fly') {
         if (!b.target || b.timer < 0) { const f = fl[Math.floor(this.R() * fl.length)]; if (f && Math.hypot(f.x - b.p.x, f.z - b.p.z) < 1.4) { b.target = new V3(f.x, f.y + 0.035, f.z); } else if (f) b.target = new V3(b.p.x + (this.R() - 0.5) * 0.8, f.y + 0.12, b.p.z + (this.R() - 0.5) * 0.8); b.timer = 3 + this.R() * 4; }
         // 蝴蝶的飞行：朝目标飘过去，叠加不规则的上下翻飞
@@ -275,12 +295,45 @@ export class Fauna {
       } else {
         // 停在花上：翅膀合拢、偶尔慢慢开合
         b.bm.anim.set([b.ph, 2.2, 0.25, 1.15], b.i * 4);
-        if (b.timer < 0) { b.state = 'fly'; b.target = null; b.v.y = 0.15; }
+        if (this.warm && (b.timer < 0 || b.timer > 1e8)) { b.state = 'fly'; b.target = null; b.v.y = 0.15; }
       }
       e.set(0, b.yaw, 0); q.setFromEuler(e);
       b.bm.m.setMatrixAt(b.i, m4.compose(b.p, q, sc));
     }
     for (const bm of this.bflyMeshes) { bm.m.instanceMatrix.needsUpdate = true; bm.attr.needsUpdate = true; }
+  }
+  // ---------- 蜜蜂：在花之间来回，每朵停一下；天暖才出来，夜里停在花上过夜 ----------
+  _bees() {
+    const fl = this.env.flowers || [], n = fl.length ? this.n('bees', Math.min(16, Math.ceil(fl.length / 6))) : 0;
+    this.beeMeshes = this._flyers([memo('bee', () => L.bee(1))], n, this.flapMat); this.bees = [];
+    if (!this.beeMeshes.length) return;
+    const bm = this.beeMeshes[0];
+    for (let i = 0; i < bm.m.count; i++) { const f = fl[Math.floor(this.R() * fl.length)]; this.bees.push({ i, p: new V3(f.x, f.y + 0.02, f.z), from: new V3(f.x, f.y + 0.02, f.z), to: null, t: 0, T: 1, wait: this.R() * 2, ph: this.R() * 6, yaw: 0 }); bm.anim.set([this.R() * 6, 90, 0.5, 0.2], i * 4); }
+  }
+  _updBees(dt, t) {
+    if (!this.bees?.length) return;
+    const bm = this.beeMeshes[0], fl = this.env.flowers, m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new V3(2.2, 2.2, 2.2), up = new V3(0, 1, 0);
+    for (const b of this.bees) {
+      if (!b.to) {
+        b.wait -= dt; b.p.y = b.from.y + Math.sin(t * 9 + b.ph) * 0.002;
+        bm.anim.set([b.ph, this.warm ? 90 : 0, this.warm ? 0.5 : 0, this.warm ? 0.2 : 1.2], b.i * 4);
+        if (b.wait < 0 && this.warm) {
+          // 下一朵：大多是附近的花，偶尔飞远一点
+          const near = fl.filter((f) => Math.abs(f.x - b.p.x) + Math.abs(f.z - b.p.z) < 0.6), f = (near.length && this.R() < 0.85 ? near : fl)[Math.floor(this.R() * (near.length && this.R() < 0.85 ? near.length : fl.length))] || fl[0];
+          b.from.copy(b.p); b.to = new V3(f.x + (this.R() - 0.5) * 0.02, f.y + 0.018, f.z + (this.R() - 0.5) * 0.02); b.t = 0; b.T = 0.25 + b.from.distanceTo(b.to) * 1.6;
+          b.yaw = Math.atan2(b.to.x - b.from.x, b.to.z - b.from.z);
+        }
+      } else {
+        // 之字形的飞行路线
+        b.t += dt; const u = Math.min(1, b.t / b.T), side = Math.sin(u * Math.PI * 5 + b.ph) * 0.03 * Math.sin(u * Math.PI);
+        b.p.lerpVectors(b.from, b.to, u); b.p.y += Math.sin(u * Math.PI) * 0.06; b.p.x += Math.cos(b.yaw) * side; b.p.z -= Math.sin(b.yaw) * side;
+        bm.anim.set([b.ph, 90, 0.5, 0.2], b.i * 4);
+        if (u >= 1) { b.from.copy(b.to); b.to = null; b.wait = 0.5 + this.R() * 1.5; }
+      }
+      q.setFromAxisAngle(up, b.yaw);
+      bm.m.setMatrixAt(b.i, m4.compose(b.p, q, sc));
+    }
+    bm.m.instanceMatrix.needsUpdate = true; bm.attr.needsUpdate = true;
   }
   _dragonflies() {
     const water = !!(this.env.pond || this.env.riverPts?.length);
@@ -302,11 +355,13 @@ export class Fauna {
     const D = this.dflyMeshes[0], pts = this.waterPoints(), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new V3(1.6, 1.6, 1.6);
     for (const d of this.dflies) {
       d.timer -= dt;
+      if (!this.warm) { if (!d.rest) { d.rest = true; d.target.y -= 0.05; } d.timer = 1; }   // 夜里停在水边不动
+      else d.rest = false;
       if (d.timer < 0) { const p = pts[Math.floor(this.R() * pts.length)]; d.target = new V3(p.x + (this.R() - 0.5) * 0.3, p.y + 0.04 + this.R() * 0.1, p.z + (this.R() - 0.5) * 0.3); d.timer = 1 + this.R() * 2.5; }
       // 蜻蜓：快速冲到目标点然后悬停，悬停时有细小抖动
       const dv = d.target.clone().sub(d.p), dl = dv.length();
       if (dl > 0.01) { d.p.addScaledVector(dv, Math.min(1, dt * 4)); d.yaw = Math.atan2(dv.x, dv.z); }
-      d.p.y += Math.sin(t * 13 + d.ph) * 0.0006;
+      if (!d.rest) d.p.y += Math.sin(t * 13 + d.ph) * 0.0006;
       q.setFromAxisAngle(new V3(0, 1, 0), d.yaw);
       D.m.setMatrixAt(d.i, m4.compose(d.p, q, sc));
     }
@@ -323,7 +378,7 @@ export class Fauna {
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new V3(2.0, 2.0, 2.0), perches = this.env.trees;
     for (const b of this.sbirds) {
       if (!b.to) {
-        b.wait -= dt; b.bm.anim.set([b.yaw, 3, 0.05, 0.02], b.i * 4);
+        b.wait -= dt / this._pace('bird'); b.bm.anim.set([b.yaw, 3, 0.05, 0.02], b.i * 4);
         if (b.wait < 0) { const c = perches.filter((p) => Math.hypot(p.x - b.p.x, p.z - b.p.z) < 2.5); const p = c[Math.floor(this.R() * c.length)] || perches[0]; b.from = b.p.clone(); b.to = new V3(p.x + (this.R() - 0.5) * 0.1, p.y + p.h * (0.85 + this.R() * 0.1), p.z + (this.R() - 0.5) * 0.1); b.t = 0; b.T = 0.6 + b.from.distanceTo(b.to) * 0.7; b.yaw = Math.atan2(b.to.x - b.from.x, b.to.z - b.from.z); }
       } else {
         // 波浪形飞行：扇几下、收翅滑一段，轨迹是一串小弧线
@@ -348,10 +403,10 @@ export class Fauna {
   _updDucks(dt, t) {
     const pd = this.env.pond; if (!pd) return;
     for (const d of this.ducks) {
-      d.a += d.w * dt;
+      d.a += d.w * dt * (this.night ? 0.12 : 1);   // 夜里漂着睡觉，几乎不动
       const x = pd.x + Math.cos(d.a) * d.r, z = pd.z + Math.sin(d.a) * d.r;
       d.m.position.set(x, pd.y + Math.sin(t * 1.7 + d.ph) * 0.002, z);
-      if (d.dab <= 0 && Math.random() < dt * 0.06) d.dab = 1.8;
+      if (d.dab <= 0 && !this.night && Math.random() < dt * 0.06) d.dab = 1.8;
       d.dab -= dt;
       d.m.rotation.set(d.dab > 0 ? Math.min(1.1, d.dab * 2) : 0, -d.a + (d.w > 0 ? 0 : Math.PI), 0, 'YXZ');
     }
@@ -369,7 +424,7 @@ export class Fauna {
     for (const f of this.frogs) {
       if (!f.to) {
         f.wait -= dt;
-        if (f.wait < 0) { const c = this.frogSpots.filter((p) => p.distanceTo(f.from) < 0.35 && p.distanceTo(f.from) > 0.04); if (c.length) { f.to = c[Math.floor(this.R() * c.length)].clone(); f.t = 0; f.T = 0.35 + f.from.distanceTo(f.to) * 0.8; f.m.rotation.y = Math.atan2(f.to.x - f.from.x, f.to.z - f.from.z); } f.wait = 3 + this.R() * 9; }
+        if (f.wait < 0) { const c = this.frogSpots.filter((p) => p.distanceTo(f.from) < 0.35 && p.distanceTo(f.from) > 0.04); if (c.length) { f.to = c[Math.floor(this.R() * c.length)].clone(); f.t = 0; f.T = 0.35 + f.from.distanceTo(f.to) * 0.8; f.m.rotation.y = Math.atan2(f.to.x - f.from.x, f.to.z - f.from.z); } f.wait = (3 + this.R() * 9) * this._pace('nocturnal'); }
       } else {
         f.t += dt; const u = Math.min(1, f.t / f.T), T = f.T, tt = u * T, vy = (f.to.y - f.from.y + 0.5 * G * T * T) / T;
         f.m.position.set(f.from.x + (f.to.x - f.from.x) * u, f.from.y + vy * tt - 0.5 * G * tt * tt, f.from.z + (f.to.z - f.from.z) * u);
@@ -392,7 +447,7 @@ export class Fauna {
         const sx = Math.cos(c.yaw) * c.dir * 0.07 * dt, sz = -Math.sin(c.yaw) * c.dir * 0.07 * dt;
         if (this.ok(p.x + sx, p.z + sz, ['beach'], 0.01)) { p.x += sx; p.z += sz; } else { c.dir *= -1; c.run = 0; }
         c.m.rotation.z = Math.sin(t * 30) * 0.05;
-      } else { c.wait -= dt; c.m.rotation.z = 0; if (c.wait < 0) { c.run = 0.4 + this.R() * 1.2; c.wait = 1 + this.R() * 4; if (this.R() < 0.4) c.dir *= -1; if (this.R() < 0.3) c.yaw += (this.R() - 0.5) * 1.5; } }
+      } else { c.wait -= dt; c.m.rotation.z = 0; if (c.wait < 0) { c.run = 0.4 + this.R() * 1.2; c.wait = (1 + this.R() * 4) * this._pace('nocturnal'); if (this.R() < 0.4) c.dir *= -1; if (this.R() < 0.3) c.yaw += (this.R() - 0.5) * 1.5; } }
       const gy = this.ground(p.x, p.z); if (gy != null) p.y = gy;
       c.m.rotation.y = c.yaw;
     }
@@ -440,10 +495,10 @@ export class Fauna {
     for (const [geo, b] of this.batches) if (!by.has(geo)) b.im.count = 0;
   }
   update(dt, t) {
-    this._batchAfter = true;
+    this._batchAfter = true; this._clock();
     this._updHerd(this.deer, dt, 0); this._updHerd(this.sheep, dt, 1); this._updGoats(dt); this._updRabbits(dt);
-    this._updButterflies(dt, t); this._updDragonflies(dt, t); this._updSongbirds(dt, t); this._updDucks(dt, t); this._updFrogs(dt); this._updCrabs(dt, t);
+    this._updButterflies(dt, t); this._updBees(dt, t); this._updDragonflies(dt, t); this._updSongbirds(dt, t); this._updDucks(dt, t); this._updFrogs(dt); this._updCrabs(dt, t);
     if (!this.env.extBatch) this._batch();   // 游戏里由画面统一合批（hq/batcher.js）
   }
-  get counts() { return { deer: this.deer.length, sheep: this.sheep.length, goats: this.goats.length, rabbits: this.rabbits.length, butterflies: this.bflies.length, dragonflies: this.dflies.length, songbirds: this.sbirds.length, ducks: this.ducks.length, frogs: this.frogs.length, crabs: this.crabs.length }; }
+  get counts() { return { deer: this.deer.length, sheep: this.sheep.length, goats: this.goats.length, rabbits: this.rabbits.length, butterflies: this.bflies.length, bees: this.bees?.length || 0, dragonflies: this.dflies.length, songbirds: this.sbirds.length, ducks: this.ducks.length, frogs: this.frogs.length, crabs: this.crabs.length }; }
 }

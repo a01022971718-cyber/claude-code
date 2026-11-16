@@ -1329,3 +1329,439 @@ export function lilyPad(seed = 1, flower = false) {
   const geometry = assemble(list, ['wind'], null);
   return { geometry };
 }
+
+/* ============================================================
+ * 滨海追加：小鹬 / 白鹭 / 蜜蜂 / 蝙蝠 / 燕鸥 / 漂流木 / 贝壳 / 海藻
+ * ============================================================ */
+/** 开口曲面（grid 生成）法线朝上 */
+function faceUp(g) {
+  const N = g.attributes.normal; let s = 0;
+  for (let i = 0; i < N.count; i++) s += N.getY(i);
+  if (s < 0) { const ix = g.index.array; for (let i = 0; i < ix.length; i += 3) { const t = ix[i + 1]; ix[i + 1] = ix[i + 2]; ix[i + 2] = t; } g.index.needsUpdate = true; g.computeVertexNormals(); }
+  return g;
+}
+/** 向前伸的三趾（脚）：从踝 [x,y,z] 出发，返回几何列表 */
+function toes(x, y, z, len, spread, rad, col, side = 1) {
+  return [-spread, 0, spread].map((a) => {
+    const t = tube([[x, y, z], [x + side * Math.sin(a) * len * 0.5, y * 0.8, z + Math.cos(a) * len * 0.5], [x + side * Math.sin(a) * len, y * 0.6, z + Math.cos(a) * len]], [rad, rad * 0.8, rad * 0.5], { segs: 3, sub: 1, capN: 0, capS: 0, capE: 0.5 });
+    return solid(t, col);
+  });
+}
+
+/* ============================================================
+ * 小鹬：浪边奔跑的小滨鹬（风格化放大）。parts: body / legL / legR（腿绕 x 轴摆，pivot 在髋）
+ * ============================================================ */
+export function sandpiper(seed = 1) {
+  const R = mulberry32(seed * 6151 + 7);
+  const C = { back: hex(0x8b7d69), backDk: hex(0x5a4f42), belly: hex(0xf3efe6), side: hex(0xb4a994), bill: hex(0x1c1916), leg: hex(0x3b342d), eye: hex(0x0a0807) };
+  const body = tube(
+    [[0, 0.0182, -0.0120], [0, 0.0178, -0.0060], [0, 0.0190, 0.0010], [0, 0.0218, 0.0078], [0, 0.0250, 0.0108]],
+    [[0.0014, 0.0012], [0.0046, 0.0050], [0.0058, 0.0060], [0.0046, 0.0050], [0.0034, 0.0034]],
+    { segs: 8, sub: 1, capN: 1, capS: 0.9, capE: 0.6 });
+  paint(body, (p, n, c) => {
+    const nz = vnoise(p.x * 800, p.y * 800, p.z * 800, seed);
+    const bel = sstep(0.1, -0.4, n.y);
+    c.copy(C.back).lerp(C.backDk, 0.3 * nz + 0.3 * sstep(-0.009, -0.0125, p.z));
+    c.lerp(C.side, 0.55 * sstep(0.45, 0.0, n.y) * sstep(-0.004, 0.003, p.z) * (0.5 + nz));
+    c.lerp(C.belly, bel);
+    c.lerp(C.side, 0.4 * bel * sstep(0.0, 0.006, p.z) * sstep(0.45, 0.7, Math.abs(n.x)) * (0.4 + nz));
+  });
+  const head = blob([0.0032, 0.0034, 0.0042], [0, 0.0266, 0.0120], [0.1, 0, 0], 7, 4);
+  paint(head, (p, n, c) => {
+    c.copy(C.back).lerp(C.backDk, 0.4 * sstep(0.1, 0.8, n.y));
+    c.lerp(C.belly, sstep(0.05, -0.45, n.y) * 0.95);
+    c.lerp(C.backDk, 0.7 * sstep(0.35, 0.6, Math.abs(n.x)) * sstep(0.5, 0.0, Math.abs(n.y - 0.1)) * sstep(0.0128, 0.0145, p.z));
+  });
+  const bill = tube([[0, 0.0262, 0.0150], [0, 0.0258, 0.0190], [0, 0.0250, 0.0232]], [[0.0013, 0.0012], [0.00075, 0.0007], [0.0002, 0.0002]], { segs: 5, sub: 1, capN: 0, capS: 0, capE: 0.5 });
+  solid(bill, C.bill);
+  const eyes = sideX.map((s) => solid(blob([0.0007, 0.0007, 0.0007], [s * 0.0027, 0.0272, 0.0136], [0, 0, 0], 4, 3), C.eye));
+  // 折叠的翅膀，飞羽尖伸出到尾后
+  const wings = sideX.map((s) => paint(blob([0.0017, 0.0030, 0.0092], [s * 0.0041, 0.0220, -0.0030], [-0.1, 0, -s * 0.05], 7, 4), (p, n, c) => {
+    c.copy(C.back).lerp(C.backDk, 0.25 + 0.4 * sstep(-0.007, -0.011, p.z) + 0.2 * vnoise(p.x * 900, p.y * 900, p.z * 900, seed + 3));
+    c.lerp(C.side, 0.5 * sstep(0.2, -0.4, n.y) * sstep(-0.006, 0.002, p.z));
+  }));
+  const bodyG = assemble([body, head, bill, ...eyes, ...wings], [], null);
+  shade(bodyG, (p, n) => skyAO(n, 0.2));
+  const parts = { body: { geometry: bodyG } };
+  for (const [name, s] of [['legL', 1], ['legR', -1]]) {
+    const x = s * 0.0032, hip = [x, 0.0166, 0.0010];
+    const leg = tube([hip, [x, 0.0100, -0.0004], [x, 0.0050, 0.0006], [x, 0.0006, 0.0012]], [0.0008, 0.0006, 0.0005, 0.0005], { segs: 4, sub: 1, capN: 0, capS: 0.5, capE: 0.5 });
+    solid(leg, C.leg);
+    const g = assemble([leg, ...toes(x, 0.0007, 0.0012, 0.0036, 0.45, 0.00038, C.leg, s)], [], 0);
+    shade(g, (p, n) => groundAO(p.y, 0.003, 0.25));
+    parts[name] = { geometry: g, pivot: hip };
+  }
+  const geometry = assemble(Object.values(parts).map((p) => p.geometry), [], null);
+  return { geometry, parts };
+}
+
+/* ============================================================
+ * 白鹭：S 形长颈，涉水。parts: body / neck（含头，pivot 在颈根）/ legL / legR（pivot 在髋）
+ * ============================================================ */
+export function egret(seed = 1) {
+  const R = mulberry32(seed * 7243 + 13);
+  const C = { white: hex(0xf6f5ee), shade: hex(0xcfd3d0), bill: hex(0xe8b520), billDk: hex(0xc58a18), lore: hex(0xd3d048), leg: hex(0x1d1b19), eye: hex(0xf0d23a), pupil: hex(0x0a0807) };
+  const body = tube(
+    [[0, 0.0625, -0.0300], [0, 0.0585, -0.0190], [0, 0.0580, -0.0040], [0, 0.0615, 0.0100], [0, 0.0665, 0.0185]],
+    [[0.0020, 0.0030], [0.0078, 0.0092], [0.0104, 0.0122], [0.0092, 0.0112], [0.0058, 0.0072]],
+    { segs: 10, sub: 1, capN: 1, capS: 0.8, capE: 0.6 });
+  paint(body, (p, n, c) => {
+    c.copy(C.white).lerp(C.shade, 0.35 * sstep(0.1, -0.9, n.y) + 0.12 * vnoise(p.x * 400, p.y * 400, p.z * 400, seed));
+  });
+  const wings = sideX.map((s) => paint(blob([0.0024, 0.0058, 0.0165], [s * 0.0108, 0.0616, -0.0095], [-0.12, 0, -s * 0.1], 8, 5), (p, n, c) => {
+    c.copy(C.white).lerp(C.shade, 0.25 * sstep(0.2, -0.8, n.y) + 0.15 * sstep(-0.012, -0.020, p.z) + 0.08 * vnoise(p.x * 500, p.y * 500, p.z * 500, seed + 1));
+  }));
+  // 繁殖期背部饰羽：几条细长的带，从背上垂过尾部
+  const ps = new Soup(['wing']);
+  for (let i = 0; i < 3; i++) {
+    const x0 = (i - 1) * 0.0034, bx = (i - 1) * 0.0012, y0 = 0.0690 - Math.abs(i - 1) * 0.0008;
+    const pts = [[x0, y0, -0.0040], [x0 + bx, y0 - 0.0004, -0.0170], [x0 + bx * 2, y0 - 0.0038 - 0.0006 * i, -0.0285], [x0 + bx * 3, y0 - 0.0100, -0.0345 + i * 0.0012]];
+    for (let k = 0; k < 3; k++) {
+      const w0 = 0.0007 * (1 - k * 0.28), w1 = 0.0007 * (1 - (k + 1) * 0.28), a = pts[k], b = pts[k + 1];
+      const cA = mixC(C.white, C.shade, 0.1 + 0.1 * k), cB = mixC(C.white, C.shade, 0.1 + 0.1 * (k + 1));
+      ps.quad(sv([a[0] - w0, a[1], a[2]], cA, {}), sv([a[0] + w0, a[1], a[2]], cA, {}), sv([b[0] + w1, b[1], b[2]], cB, {}), sv([b[0] - w1, b[1], b[2]], cB, {}), { soft: 0.6, backMul: 0.92 });
+    }
+  }
+  const bodyG = assemble([body, ...wings, ps.geometry()], ['wing'], null);
+  bodyG.deleteAttribute('wing');
+  shade(bodyG, (p, n) => skyAO(n, 0.14));
+  // 颈 + 头：S 形（先前上，再后弯，最后前伸），pivot 在颈根
+  const rootP = [0, 0.0640, 0.0170];
+  const neck = tube([rootP, [0, 0.0740, 0.0235], [0, 0.0860, 0.0185], [0, 0.0950, 0.0130], [0, 0.1030, 0.0190], [0, 0.1062, 0.0290]],
+    [[0.0052, 0.0052], [0.0040, 0.0040], [0.0027, 0.0027], [0.0025, 0.0025], [0.0027, 0.0027], [0.0026, 0.0026]], { segs: 7, sub: 2, capN: 0, capS: 0.3, capE: 0.2 });
+  paint(neck, (p, n, c, i) => { c.copy(C.white).lerp(C.shade, 0.22 * sstep(0.2, -0.8, n.y) + 0.1 * sstep(0.25, 0.0, ttOf(neck, i))); });
+  const head = blob([0.0034, 0.0036, 0.0070], [0, 0.1066, 0.0325], [0.12, 0, 0], 8, 5);
+  paint(head, (p, n, c) => { c.copy(C.white).lerp(C.shade, 0.1); c.lerp(C.lore, 0.7 * sstep(0.0350, 0.0385, p.z) * sstep(0.7, 0.0, n.y)); });
+  const bill = tube([[0, 0.1056, 0.0375], [0, 0.1046, 0.0440], [0, 0.1030, 0.0520]], [[0.0019, 0.0020], [0.0012, 0.0013], [0.0002, 0.0002]], { segs: 5, sub: 1, capN: 0, capS: 0.2, capE: 0.3 });
+  paint(bill, (p, n, c) => { c.copy(C.bill).lerp(C.billDk, 0.55 * sstep(0.2, -0.8, n.y)); });
+  const eyes = sideX.map((s) => solid(blob([0.0008, 0.0008, 0.0008], [s * 0.0030, 0.1076, 0.0345], [0, 0, 0], 4, 3), C.eye));
+  const neckG = assemble([neck, head, bill, ...eyes], [], null);
+  shade(neckG, (p, n) => skyAO(n, 0.1));
+  const parts = { body: { geometry: bodyG }, neck: { geometry: neckG, pivot: rootP } };
+  for (const [name, s] of [['legL', 1], ['legR', -1]]) {
+    const x = s * 0.0050, hip = [x, 0.0540, -0.0020];
+    const leg = tube([hip, [x, 0.0400, 0.0000], [x, 0.0200, -0.0005], [x, 0.0022, 0.0010]], [0.0021, 0.0013, 0.0009, 0.0009], { segs: 5, sub: 1, capN: 0, capS: 0.5, capE: 0.5 });
+    paint(leg, (p, n, c) => c.copy(C.leg).lerp(C.white, 0.9 * sstep(0.044, 0.050, p.y)));
+    const g = assemble([leg, ...toes(x, 0.0014, 0.0012, 0.0080, 0.5, 0.0007, C.leg, s)], [], 0);
+    shade(g, (p, n) => groundAO(p.y, 0.004, 0.2));
+    parts[name] = { geometry: g, pivot: hip };
+  }
+  const geometry = assemble(Object.values(parts).map((p) => p.geometry), [], null);
+  return { geometry, parts };
+}
+
+/* ============================================================
+ * 蜜蜂（≤300 面）：黄黑条纹腹部，浅色翅；wing = x / 半翼展
+ * ============================================================ */
+export function bee(seed = 1) {
+  const R = mulberry32(seed * 3571 + 9);
+  const Y = hex(0xf0b21a), K = hex(0x1e1611), F = hex(0xc9962c), Hd = hex(0x2a2018);
+  const abd = tube([[0, 0.0006, -0.0010], [0, 0.0004, -0.0035], [0, 0.0000, -0.0060], [0, -0.0003, -0.0078]],
+    [[0.0017, 0.0018], [0.0023, 0.0024], [0.0019, 0.0020], [0.0003, 0.0003]], { segs: 5, sub: 2, capN: 0, capS: 0.6, capE: 0.3 });
+  paint(abd, (p, n, c, i) => {
+    const t = ttOf(abd, i), band = 0.5 + 0.5 * Math.cos(t * TAU * 2.2 + 0.4);
+    c.copy(Y).lerp(K, sstep(0.45, 0.65, band)).lerp(K, 0.9 * sstep(0.9, 1.0, t)).lerp(F, 0.5 * sstep(0.12, 0.0, t));
+    c.lerp(K, 0.3 * sstep(0.0, -0.8, n.y));
+  });
+  const thorax = paint(blob([0.0019, 0.0019, 0.0019], [0, 0.0010, 0.0016], [0, 0, 0], 7, 4), (p, n, c) => {
+    c.copy(F).lerp(Hd, 0.45 * sstep(0.5, 1, n.y) * sstep(0.0, 0.0030, p.z) + 0.35 * sstep(0.0, -0.8, n.y)).lerp(Y, 0.25 * vnoise(p.x * 1500, p.y * 1500, p.z * 1500, seed));
+  });
+  const head = solid(blob([0.0013, 0.0013, 0.0012], [0, 0.0010, 0.0046], [0, 0, 0], 6, 3), Hd);
+  // 翅：前翅大、后翅小，扇形铺在翅根与轮廓之间；上翘并略向后
+  const HALF = 0.0076, soup = new Soup(['wing']);
+  const pale = hex(0xe8f0f2), vein = hex(0xa9bcc3), root = hex(0x8c8068);
+  const o = { soft: 0.9, backMul: 0.92 };
+  const fan = (s, rootP, outline) => {
+    const yAt = (x) => 0.0026 + 0.35 * x;
+    const mk = (x0, z0, col) => { const x = x0 * 0.8, z = z0 * 0.85; return sv([s * x, yAt(x), z], col, { wing: clamp((s * x) / HALF, -1, 1) }); };
+    const rv = mk(rootP[0], rootP[1], root);
+    const ring = outline.map(([x, z], k) => mk(x, z, mixC(pale, vein, k === 0 || k === outline.length - 1 ? 0.2 : 0.55)));
+    for (let k = 0; k < ring.length - 1; k++) soup.tri(rv, ring[k], ring[k + 1], o);
+  };
+  const fore = [[0.0015, 0.0030], [0.0050, 0.0034], [0.0082, 0.0016], [0.0094, -0.0010], [0.0082, -0.0034], [0.0050, -0.0030], [0.0016, -0.0010]];
+  const hind = [[0.0014, -0.0012], [0.0040, -0.0016], [0.0058, -0.0030], [0.0044, -0.0044], [0.0016, -0.0030]];
+  for (const s of sideX) { fan(s, [0.0010, 0.0004], fore); fan(s, [0.0010, -0.0006], hind); }
+  // 触角、腿（细）
+  const dark = hex(0x15100c);
+  for (const s of sideX) {
+    const a = [[s * 0.0004, 0.0016, 0.0056], [s * 0.0014, 0.0030, 0.0076]];
+    soup.quad(sv([a[0][0] - 0.00012, a[0][1], a[0][2]], dark, {}), sv([a[0][0] + 0.00012, a[0][1], a[0][2]], dark, {}), sv([a[1][0] + 0.00008, a[1][1], a[1][2]], dark, {}), sv([a[1][0] - 0.00008, a[1][1], a[1][2]], dark, {}), { soft: 0.3 });
+  }
+  const legs = [];
+  for (const s of sideX) for (const z of [0.0024, 0.0004]) {
+    legs.push(solid(tube([[s * 0.0010, 0.0000, z], [s * 0.0022, -0.0012, z - 0.0006], [s * 0.0024, -0.0024, z - 0.0016]], [0.00024, 0.0002, 0.00014], { segs: 3, sub: 1, capN: 0, capS: 0.2, capE: 0.2 }), dark));
+  }
+  const geometry = assemble([abd, thorax, head, ...legs, soup.geometry()], ['wing']);
+  shade(geometry, (p, n) => 0.9 + 0.1 * n.y);
+  return { geometry };
+}
+
+/* ============================================================
+ * 蝙蝠（≤500 面）：翼展约 0.05，膜翼 + 指骨深色线；wing = x / 半翼展
+ * ============================================================ */
+export function bat(seed = 1) {
+  const R = mulberry32(seed * 4421 + 11);
+  const fur = hex(0x4a3b31), furLt = hex(0x6a574a), memNear = hex(0x4b3c33), memFar = hex(0x2f2724), bone = hex(0x171210), ear = hex(0x3a2d27);
+  const body = tube([[0, 0.0000, -0.0072], [0, 0.0002, -0.0030], [0, 0.0008, 0.0020], [0, 0.0010, 0.0052]],
+    [[0.0012, 0.0012], [0.0030, 0.0030], [0.0032, 0.0032], [0.0022, 0.0022]], { segs: 7, sub: 1, capN: 1, capS: 0.8, capE: 0.5 });
+  paint(body, (p, n, c) => { c.copy(fur).lerp(furLt, 0.5 * sstep(0.2, -0.8, n.y) + 0.25 * vnoise(p.x * 1500, p.y * 1500, p.z * 1500, seed)); });
+  const head = paint(blob([0.0022, 0.0020, 0.0024], [0, 0.0014, 0.0068], [0.1, 0, 0], 7, 4), (p, n, c) => { c.copy(fur).lerp(furLt, 0.4 * sstep(0.2, -0.8, n.y)); });
+  const snout = solid(blob([0.0011, 0.0009, 0.0011], [0, 0.0006, 0.0090], [0, 0, 0], 5, 3), hex(0x2e2420));
+  const eyes = sideX.map((s) => solid(blob([0.0004, 0.0004, 0.0004], [s * 0.0016, 0.0020, 0.0080], [0, 0, 0], 4, 2), hex(0x050403)));
+  const soup = new Soup(['wing']);
+  for (const s of sideX) {
+    const a = [[s * 0.0010, 0.0030, 0.0058], [s * 0.0026, 0.0026, 0.0064], [s * 0.0022, 0.0056, 0.0056]];
+    const cc = [ear, hex(0x55453b), ear];
+    soup.tri(sv(a[0], cc[0], { wing: 0 }), sv(a[1], cc[1], { wing: 0 }), sv(a[2], cc[2], { wing: 0 }), { soft: 0.4, backMul: 0.8 });
+  }
+  const HALF = 0.025, mo = { soft: 0.9, backMul: 0.85 };
+  const wv = (s, p, col) => sv([s * p[0], p[1], p[2]], col, { wing: clamp((s * p[0]) / HALF, -1, 1) });
+  const Sh = [0.0028, 0.0006, 0.0030], Wr = [0.0125, 0.0062, 0.0058], H = [0.0035, 0.0000, -0.0090];
+  const T = [[0.0250, 0.0042, 0.0030], [0.0216, 0.0028, -0.0046], [0.0170, 0.0012, -0.0092], [0.0118, 0.0003, -0.0112]];
+  const pull = (e, k) => [lerp(e[0], Wr[0], k), lerp(e[1], Wr[1], k), lerp(e[2], Wr[2], k)];
+  const mid = (a, b, k) => pull([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2], k);
+  const E = [T[0], mid(T[0], T[1], 0.16), T[1], mid(T[1], T[2], 0.16), T[2], mid(T[2], T[3], 0.16), T[3], mid(T[3], H, 0.1), H];
+  const colAt = (u) => mixC(memNear, memFar, u);
+  for (const s of sideX) {
+    const W = wv(s, Wr, colAt(0.3));
+    const I = E.map((e) => { const q = pull(e, 0.55); q[1] -= 0.0004; return wv(s, q, colAt(0.55)); });
+    const O = E.map((e, k) => wv(s, e, colAt(k === E.length - 1 ? 0.2 : 0.9)));
+    for (let k = 0; k < E.length - 1; k++) { mo.ref = [0, 1, 0]; soup.tri(W, I[k], I[k + 1], mo); soup.quad(I[k], O[k], O[k + 1], I[k + 1], mo); }
+    const S = wv(s, Sh, colAt(0));
+    soup.tri(W, I[E.length - 1], S, mo); soup.tri(S, I[E.length - 1], O[E.length - 1], mo);
+    // 骨线：臂 + 四指
+    const strip = (a, b, w) => {
+      const dx = b[0] - a[0], dz = b[2] - a[2], l = Math.hypot(dx, dz) || 1, nx = -dz / l * w, nz = dx / l * w, up = 0.00005;
+      const v = (p, ox, oz, wid) => sv([s * (p[0] + ox * wid), p[1] + up, p[2] + oz * wid], bone, { wing: clamp((s * p[0]) / HALF, -1, 1) });
+      soup.quad(v(a, nx, nz, 1), v(a, -nx, -nz, 1), v(b, -nx * 0.4, -nz * 0.4, 1), v(b, nx * 0.4, nz * 0.4, 1), { soft: 0.9, backMul: 1 });
+    };
+    strip(Sh, Wr, 0.00042);
+    for (const t of T) strip(Wr, t, 0.00028);
+  }
+  // 尾膜
+  const tail = [[0, 0.0000, -0.0125]];
+  soup.tri(wv(1, H, colAt(0.2)), wv(-1, H, colAt(0.2)), sv(tail[0], colAt(0.5), { wing: 0 }), mo);
+  const geometry = assemble([body, head, snout, ...eyes, soup.geometry()], ['wing']);
+  shade(geometry, (p, n) => skyAO(n, 0.15));
+  return { geometry };
+}
+
+/* ============================================================
+ * 燕鸥（≤600 面）：翼展约 0.09，白身灰背翅、黑顶、橙红喙、分叉尾；wing = x / 半翼展
+ * ============================================================ */
+export function tern(seed = 1) {
+  const R = mulberry32(seed * 5851 + 29);
+  const white = hex(0xf8f8f4), grayB = hex(0x66717b), grayDk = hex(0x2b3035), cap = hex(0x17191c), billC = hex(0xe5501c), billTip = hex(0xf0a030);
+  const body = tube([[0, 0.0000, -0.0160], [0, 0.0000, -0.0080], [0, 0.0005, 0.0010], [0, 0.0020, 0.0110], [0, 0.0028, 0.0160]],
+    [[0.0012, 0.0012], [0.0036, 0.0034], [0.0048, 0.0046], [0.0040, 0.0040], [0.0030, 0.0030]], { segs: 8, sub: 1, capN: 1, capS: 0.8, capE: 0.6 });
+  paint(body, (p, n, c) => {
+    c.copy(white).lerp(grayB, 0.85 * sstep(0.25, 0.85, n.y) * sstep(0.0170, 0.0090, p.z) * 0.9);
+    c.lerp(hex(0xe9ecee), 0.5 * sstep(0.1, -0.7, n.y));
+  });
+  const head = paint(blob([0.0029, 0.0029, 0.0040], [0, 0.0031, 0.0188], [0.05, 0, 0], 8, 4), (p, n, c) => {
+    c.copy(white);
+    c.lerp(cap, 0.98 * sstep(0.0030, 0.0036, p.y) * sstep(0.0222, 0.0208, p.z));
+    c.lerp(cap, 0.9 * sstep(0.3, 0.6, n.y) * sstep(0.0176, 0.0166, p.z));
+  });
+  const bill = tube([[0, 0.0026, 0.0215], [0, 0.0024, 0.0270], [0, 0.0021, 0.0330]], [[0.0014, 0.0013], [0.0008, 0.0008], [0.0002, 0.0002]], { segs: 5, sub: 1, capN: 0, capS: 0, capE: 0.5 });
+  paint(bill, (p, n, c, i) => c.copy(billC).lerp(billTip, 0.7 * sstep(0.0305, 0.0328, p.z)));
+  const eyes = sideX.map((s) => solid(blob([0.0005, 0.0005, 0.0005], [s * 0.0026, 0.0036, 0.0200], [0, 0, 0], 4, 2), hex(0x050403)));
+  const soup = new Soup(['wing']);
+  // 分叉尾：两条长尾羽
+  const tv = (p, c) => sv(p, c, { wing: 0 });
+  const tb = mixC(white, hex(0xe8eaec), 0.5), to = { soft: 0.4, backMul: 0.95 };
+  const bL = tv([-0.0030, 0.0002, -0.0125], white), bR = tv([0.0030, 0.0002, -0.0125], white), cr = tv([0, 0.0001, -0.0215], tb);
+  const tL = tv([-0.0050, 0.0002, -0.0345], tb), tR = tv([0.0050, 0.0002, -0.0345], tb);
+  soup.tri(bL, tL, cr, to); soup.tri(bL, cr, bR, to); soup.tri(bR, cr, tR, to);
+  // 翅：前缘—弦向 4 排顶点，翼尖收成点；上面灰，下面白；外侧初级飞羽深色
+  const HALF = 0.046;
+  const xs = [0.0035, 0.0095, 0.0155, 0.0215, 0.0275, 0.0335, 0.0395, 0.0435, 0.0460];
+  const zl = [0.0040, 0.0065, 0.0085, 0.0090, 0.0075, 0.0050, 0.0015, -0.0025, -0.0066];
+  const zt = [-0.0075, -0.0075, -0.0070, -0.0075, -0.0085, -0.0095, -0.0100, -0.0090, -0.0066];
+  const ys = [0.0030, 0.0065, 0.0100, 0.0115, 0.0100, 0.0075, 0.0050, 0.0035, 0.0025];
+  const wo = { soft: 0.85, backCol: hex(0xe6e9eb) };
+  const NR = 4;
+  for (const s of sideX) {
+    const rows = xs.map((x, i) => Array.from({ length: NR }, (_, j) => {
+      const f = j / (NR - 1), z = lerp(zl[i], zt[i], f);
+      const c = grayB.clone();
+      c.lerp(grayDk, 0.85 * sstep(0.034, 0.043, x) * (1 - f * 0.5));
+      c.lerp(white, 0.75 * sstep(0.6, 1.0, f) * (1 - sstep(0.035, 0.044, x)));
+      c.lerp(mixC(grayB, white, 0.3), 0.3 * sstep(0.0, 0.5, f) * (1 - sstep(0.02, 0.04, x)));
+      return sv([s * x, ys[i] + 0.0008 * (1 - f) * 0 - 0.0005 * f, z], c, { wing: clamp((s * x) / HALF, -1, 1) });
+    }));
+    for (let i = 0; i < xs.length - 1; i++) for (let j = 0; j < NR - 1; j++) soup.quad(rows[i][j], rows[i + 1][j], rows[i + 1][j + 1], rows[i][j + 1], wo);
+  }
+  const geometry = assemble([body, head, bill, ...eyes, soup.geometry()], ['wing']);
+  shade(geometry, (p, n) => skyAO(n, 0.12));
+  return { geometry };
+}
+
+/* ============================================================
+ * 漂流木（≤800 面）：长约 0.18，沿 x 躺在沙滩上，底部 y=0
+ * ============================================================ */
+export function driftwood(seed = 1) {
+  const R = mulberry32(seed * 6203 + 37);
+  const Cw = { base: hex(0xa39d8f), lt: hex(0xcfc9bb), dk: hex(0x5f584c), warm: hex(0x8f7c63), end: hex(0xd9c9a6), endDk: hex(0x9a8662) };
+  const ph = R() * TAU;
+  const N = 8, pts = [], rad = [];
+  const R0 = [0.0112, 0.0092, 0.0076, 0.0070, 0.0068, 0.0064, 0.0054, 0.0042];
+  for (let i = 0; i < N; i++) {
+    const t = i / (N - 1);
+    pts.push([lerp(-0.088, 0.090, t), 0.0090 + 0.0030 * Math.sin(t * 5.2 + ph) + 0.002 * (R() - 0.5), 0.0085 * Math.sin(t * 4.1 + ph * 1.7) + 0.003 * (R() - 0.5)]);
+    rad.push([R0[i] * (0.9 + 0.2 * R()), R0[i] * (0.85 + 0.2 * R())]);
+  }
+  const trunk = tube(pts, rad, { segs: 12, sub: 2, capN: 1, capS: 0.5, capE: 0.4 });
+  const surf = trunk.userData.surf;
+  displace(trunk, (p, n) => 0.0022 * (fbm(p.x * 28, p.y * 50, p.z * 50, seed, 3) - 0.5) * 2 + 0.0007 * Math.sin(p.x * 95 + (p.y * 1.0 + p.z) * 330 + ph + 5 * fbm(p.x * 20, 0, 0, seed, 2)));
+  paint(trunk, (p, n, c, i) => {
+    const t = ttOf(trunk, i);
+    const streak = vnoise(p.x * 45, p.y * 380, p.z * 380, seed), patch = fbm(p.x * 22, p.y * 40, p.z * 40, seed + 5, 3);
+    c.copy(Cw.base).lerp(Cw.lt, 0.7 * sstep(0.45, 0.8, patch)).lerp(Cw.dk, 0.8 * sstep(0.6, 0.78, streak) + 0.3 * sstep(0.5, 0.3, patch));
+    c.lerp(Cw.warm, 0.35 * sstep(0.2, 0.0, t) + 0.25 * sstep(0.75, 1.0, t));
+    c.lerp(Cw.dk, 0.75 * sstep(0.05, 0.0, Math.abs(vnoise(p.x * 55, p.y * 600, p.z * 600, seed + 2) - 0.5)));
+    const ring = 0.5 + 0.5 * Math.cos(Math.hypot(p.y - 0.009, p.z) * 900);
+    c.lerp(mixC(Cw.end, Cw.endDk, ring), (sstep(0.045, 0.0, t) + sstep(0.955, 1.0, t)) * 0.85 * sstep(0.6, 0.95, Math.abs(n.x)));
+  });
+  const list = [trunk];
+  // 短枝 / 断茬
+  const spec = [[0.20, 0.7, 0.036], [0.40, 2.5, 0.026], [0.58, 0.3, 0.040], [0.78, 1.6, 0.022], [0.06, 2.3, 0.020], [0.10, 3.9, 0.018]];
+  for (const [u, a0, len] of spec) {
+    const a = a0 + (R() - 0.5) * 0.4, { p, n } = surf(u, a), L = len * (0.85 + 0.3 * R());
+    const dir = n.clone().add(V3(0.6 * (R() - 0.2), -0.1, 0.3 * (R() - 0.5))).normalize();
+    const side = V3(-dir.z, 0.4, dir.x).multiplyScalar(0.014 * (R() - 0.5));
+    const q = (k, w) => p.clone().addScaledVector(dir, L * k).addScaledVector(side, w);
+    const r0 = 0.0034 + 0.0008 * R();
+    const br = tube([[q(-0.08, 0).toArray()][0], q(0.35, 1).toArray(), q(1, 2).toArray()].map((v) => v), [r0, r0 * 0.7, r0 * 0.5], { segs: 6, sub: 1, capN: 1, capS: 0.2, capE: 0.2 });
+    displace(br, (pp) => 0.0007 * (fbm(pp.x * 80, pp.y * 80, pp.z * 80, seed + 9, 2) - 0.5) * 2);
+    paint(br, (pp, nn, c, i) => {
+      const t = ttOf(br, i);
+      c.copy(Cw.base).lerp(Cw.lt, 0.4 * vnoise(pp.x * 120, pp.y * 120, pp.z * 120, seed)).lerp(Cw.dk, 0.35 * sstep(0.1, 0.0, t));
+      c.lerp(mixC(Cw.end, Cw.endDk, 0.4), 0.9 * sstep(0.88, 1.0, t));
+    });
+    list.push(br);
+  }
+  const geometry = assemble(list, [], null);
+  geometry.computeBoundingBox();
+  geometry.translate(0, -geometry.boundingBox.min.y, 0);
+  shade(geometry, (p, n) => skyAO(n, 0.2) * groundAO(p.y, 0.006, 0.35));
+  geometry.computeBoundingBox(); geometry.computeBoundingSphere();
+  return { geometry };
+}
+
+/* ============================================================
+ * 贝壳与小石子（≤500 面）：约 0.05 见方，高 ≤0.008
+ * ============================================================ */
+export function shells(seed = 1) {
+  const R = mulberry32(seed * 2909 + 43);
+  const cream = hex(0xdccba8), pink = hex(0xd89c8e), orange = hex(0xdf9560), ivory = hex(0xeee4cc);
+  const stones = [hex(0x8d8a82), hex(0xa09484), hex(0x6a6661), hex(0xd8d4c8)];
+  const list = [], placed = [];
+  const spot = (r) => {
+    for (let k = 0; k < 40; k++) {
+      const x = (R() - 0.5) * 0.044, z = (R() - 0.5) * 0.044;
+      if (placed.every(([px, pz, pr]) => Math.hypot(px - x, pz - z) > (pr + r) * 0.95)) { placed.push([x, z, r]); return [x, z]; }
+    }
+    const x = (R() - 0.5) * 0.044, z = (R() - 0.5) * 0.044; placed.push([x, z, r]); return [x, z];
+  };
+  // 扇贝：扇形、放射肋、中心隆起
+  const scallop = (r, tint) => {
+    const [x, z] = spot(r), cols = 11, rows = 4, A = 1.0;
+    let g = grid(cols, rows, (i, j, v) => {
+      const th = -A + (2 * A * i) / (cols - 1), t = j / (rows - 1), rho = r * t * (1 - 0.08 * Math.abs(th));
+      const rib = 0.0006 * (i & 1 ? 1 : -1) * t;
+      v[0] = rho * Math.sin(th); v[2] = rho * Math.cos(th) - r * 0.45;
+      v[1] = 0.0004 + 0.0030 * Math.sin(Math.PI * (0.15 + 0.7 * t)) * (1 - 0.5 * (th / A) ** 2) * (r / 0.0055) + rib;
+    }, false);
+    g = smooth(g); faceUp(g);
+    paint(g, (p, n, c) => {
+      const th = Math.atan2(p.x, p.z + r * 0.45), a = Math.round(((th + A) / (2 * A)) * (cols - 1));
+      const rr = Math.hypot(p.x, p.z + r * 0.45) / r;
+      c.copy(cream).lerp(tint, 0.15 + 0.7 * (a & 1)).lerp(ivory, 0.5 * sstep(0.25, 0.0, rr)).multiplyScalar(0.96 + 0.08 * vnoise(p.x * 1500, p.z * 1500, 0, seed));
+    });
+    return place(g, x, 0, z + r * 0.45, 0, R() * TAU, 0);
+  };
+  // 螺 / 塔形小贝：回转体 + 螺旋沟，侧卧
+  const snail = (r, tint) => {
+    const [x, z] = spot(r * 1.2), cols = 7, rows = 5, Hh = r * 2.0;
+    let g = grid(cols, rows, (i, j, v) => {
+      const a = (i / cols) * TAU, t = j / (rows - 1);
+      const prof = t === 0 ? 0 : t === 1 ? 0 : r * Math.pow(1 - (t - 0.25) / 0.75 * (t > 0.25 ? 1 : 0), 0.9) * (t < 0.25 ? 0.75 + t : 1);
+      const rho = prof * (1 + 0.16 * Math.sin(2 * TAU * t * 1.2 + a));
+      v[0] = Math.cos(a) * rho; v[2] = Math.sin(a) * rho; v[1] = t * Hh;
+    });
+    g = solidify(g);
+    paint(g, (p, n, c) => {
+      c.copy(cream).lerp(tint, 0.55 * (0.5 + 0.5 * Math.sin(p.y / Hh * 20 + Math.atan2(p.z, p.x) * 2))).multiplyScalar(0.95 + 0.1 * vnoise(p.x * 1500, p.y * 1500, p.z * 1500, seed));
+    });
+    g = place(g, 0, 0, 0, 0, 0, Math.PI / 2 - 0.15);
+    g.translate(Hh * 0.3, r * 0.9, 0);
+    return place(g, x, 0, z, 0, R() * TAU, 0);
+  };
+  const pebble = (r, col) => {
+    const [x, z] = spot(r);
+    const g = blob([r, r * (0.6 + 0.3 * R()), r * (0.75 + 0.25 * R())], [x, r * 0.35, z], [0, R() * TAU, 0], 7, 4);
+    g.translate(0, 0, 0);
+    displace(g, (p, n) => 0.0004 * (vnoise(p.x * 900, p.y * 900, p.z * 900, seed) - 0.5));
+    paint(g, (p, n, c) => c.copy(col).multiplyScalar(0.9 + 0.2 * vnoise(p.x * 1200, p.y * 1200, p.z * 1200, seed)));
+    return g;
+  };
+  list.push(scallop(0.0058, pink), scallop(0.0050, orange), scallop(0.0044, pink));
+  list.push(snail(0.0026, orange), snail(0.0020, pink), snail(0.0023, orange));
+  list.push(pebble(0.0030, stones[0]), pebble(0.0022, stones[1]), pebble(0.0026, stones[3]), pebble(0.0018, stones[2]));
+  const geometry = assemble(list, [], 0);
+  shade(geometry, (p, n) => skyAO(n, 0.12) * groundAO(p.y, 0.002, 0.25));
+  return { geometry };
+}
+
+/* ============================================================
+ * 海藻（≤400 面）：潮线上被冲上岸的一小片，贴地，高 ≤0.006
+ * ============================================================ */
+export function wrack(seed = 1) {
+  const R = mulberry32(seed * 3257 + 51);
+  const olive = hex(0x3f4a1e), brown = hex(0x5e4322), dkGreen = hex(0x2a3516), rib = hex(0x6d6330), bladder = hex(0x6a5a24);
+  const soup = new Soup(['wing']);
+  const list = [];
+  const strand = (x0, z0, ang, len, w0, segs, curl, tintC = olive) => {
+    const rows = [];
+    let x = x0, z = z0, a = ang;
+    for (let k = 0; k <= segs; k++) {
+      const t = k / segs, nx = Math.cos(a), nz = Math.sin(a);
+      const w = w0 * (0.6 + 0.4 * Math.sin(Math.PI * Math.min(1, t * 1.1 + 0.15))) * (1 - 0.35 * t * t) * (0.7 + 0.6 * vnoise(k * 1.7, seed, a * 2, seed));
+      const y = 0.0004 + 0.0010 * (fbm(x * 200, z * 200, 0, seed, 2)) + 0.0002 * Math.sin(k * 1.3 + seed);
+      const col = mixC(olive, brown, clamp(t * 0.9 + 0.3 * vnoise(x * 300, z * 300, 0, seed)));
+      rows.push({ x, y, z, sx: -nz, sz: nx, w, wl: w * (0.6 + 0.8 * vnoise(k * 1.3, seed + 1, 0, seed)), wr: w * (0.6 + 0.8 * vnoise(k * 1.3, seed + 2, 0, seed)), col: mixC(col, tintC, 0.5), t });
+      x += nx * len / segs; z += nz * len / segs; a += curl * (0.6 + 0.8 * Math.sin(k * 0.9 + seed * 3)) + 0.18 * (R() - 0.5);
+    }
+    const o = { ref: [0, 1, 0], soft: 0.6, backMul: 0.85 };
+    const V = (r, f, edge) => sv([r.x + r.sx * (f < 0 ? r.wl : r.wr) * Math.abs(f) * Math.sign(f), r.y + (edge ? 0.0012 * Math.abs(f) * (1 + Math.sin(r.t * 16 + seed + r.x * 600)) : 0.0002), r.z + r.sz * (f < 0 ? r.wl : r.wr) * Math.abs(f) * Math.sign(f)], edge ? mixC(r.col, dkGreen, 0.5) : mixC(r.col, rib, 0.5), { wing: 0 });
+    for (let k = 0; k < segs; k++) {
+      const A = rows[k], B = rows[k + 1];
+      soup.quad(V(A, -1, true), V(A, 0, false), V(B, 0, false), V(B, -1, true), o);
+      soup.quad(V(A, 0, false), V(A, 1, true), V(B, 1, true), V(B, 0, false), o);
+    }
+    return rows;
+  };
+  const bladders = [];
+  const baseAng = R() * TAU;
+  for (let i = 0; i < 4; i++) {
+    const ang = baseAng + (i - 1.5) * 0.65 + (R() - 0.5) * 0.3;
+    const x0 = (R() - 0.5) * 0.05, z0 = (R() - 0.5) * 0.04;
+    const rows = strand(x0, z0, ang, 0.030 + 0.012 * R(), 0.0040, 7, (R() - 0.5) * 0.55, [olive, brown, dkGreen, brown][i]);
+    for (const k of [2, 5]) if (R() < 0.7) bladders.push(rows[k]);
+  }
+  for (let i = 0; i < 3; i++) strand((R() - 0.5) * 0.04, (R() - 0.5) * 0.04, R() * TAU, 0.022 + 0.01 * R(), 0.0014, 3, (R() - 0.5) * 0.7, [dkGreen, olive, brown][i]);
+  const strandG = soup.geometry();
+  for (const r of bladders.slice(0, 4)) {
+    const b = blob([0.0014, 0.0011, 0.0014], [r.x, r.y + 0.0012, r.z], [0, 0, 0], 5, 3);
+    paint(b, (p, n, c) => c.copy(bladder).lerp(olive, 0.4 * sstep(0.2, 0.8, n.y)));
+    list.push(b);
+  }
+  const geometry = assemble([strandG, ...list], ['wing'], 0);
+  geometry.deleteAttribute('wing');
+  geometry.computeBoundingBox();
+  geometry.translate(-(geometry.boundingBox.min.x + geometry.boundingBox.max.x) / 2, 0, -(geometry.boundingBox.min.z + geometry.boundingBox.max.z) / 2);
+  geometry.computeBoundingBox(); geometry.computeBoundingSphere();
+  shade(geometry, (p, n) => skyAO(n, 0.1) * (0.85 + 0.15 * sstep(0, 0.003, p.y)));
+  return { geometry };
+}

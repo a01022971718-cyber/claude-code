@@ -31,10 +31,14 @@ export function kit() {
     reed: [L.reeds(1).geometry, L.cattail(2).geometry],
     lily: [L.lilyPad(1, false).geometry, L.lilyPad(2, true).geometry],
     stump: [stump],
+    wrack: [L.wrack(1).geometry, L.wrack(2).geometry], drift: [L.driftwood(1).geometry, L.driftwood(2).geometry], shell: [L.shells(1).geometry, L.shells(2).geometry],
   };
   return KIT;
 }
 
+const DUNE = new THREE.Color(0x8f9a52);
+/** 麦子在某点的留存率：麦田占比过半才开始长，越往麦田深处越密 */
+const wheatKeep = (share) => THREE.MathUtils.smoothstep(share, 0.42, 0.9);
 const FC = [[1.0, 0.82, 0.18], [0.98, 0.96, 0.9], [0.98, 0.5, 0.68], [0.62, 0.48, 0.9], [1.0, 0.58, 0.2]].map((c) => c.map((v) => Math.pow(v, 2.2)));
 
 // 道具模型生成很慢（茅屋、营火各约 60ms），每种只生成几个变体，缓存起来共用
@@ -51,7 +55,7 @@ export function dressTile(T, t, opts = {}) {
   const free = (x, z, d) => taken.every(([a, b, r]) => (a - x) ** 2 + (b - z) ** 2 > (r + d) ** 2);
   const riverD = (x, z) => { let d = T.riverD ? T.riverD(x, z) : T.river ? T.river(x, z)[0] : 9; for (const pd of (T.pondsAt ? T.pondsAt(x, z) : T.ponds)) d = Math.min(d, Math.hypot(x - pd.x, z - pd.z) - pd.r * 0.75 + 0.2); return d; };
   const inHex = (pad = 0.12) => { for (let k = 0; k < 40; k++) { const x = (R() * 2 - 1) * (INR - pad), z = (R() * 2 - 1) * (1 - pad); if (Math.abs(z) <= (1 - pad) - Math.abs(x) / Math.sqrt(3) && Math.abs(x) <= INR - pad) return [t.x + x, t.z + z]; } return [t.x, t.z]; };
-  const plant = (k, v, it, d) => { if (!free(it.x, it.z, d)) return false; taken.push([it.x, it.z, d]); out.obstacles.push([it.x, it.z, d]); push(k + ':' + v, it); return true; };
+  const plant = (k, v, it, d) => { if (!free(it.x, it.z, d)) return false; if (T.pathD && T.paths?.length && T.pathD(it.x, it.z) < d + 0.04) return false; taken.push([it.x, it.z, d]); out.obstacles.push([it.x, it.z, d]); push(k + ':' + v, it); return true; };
   const ty = t.t, harvested = !!t.harvested;
   if (t.center) taken.push([t.x, t.z, 0.55]);
 
@@ -61,6 +65,8 @@ export function dressTile(T, t, opts = {}) {
       const [x, z] = inHex(0.05), s = 0.85 + R() * 0.55, v = Math.floor(R() * 5), cut = R() > keep;
       if (tf < 1 && ((i * 0.618) % 1) > tf) continue;   // 植被密度低时少种几棵（按序号挑，不打乱其余随机数）
       if (cut) { if (free(x, z, 0.05)) { taken.push([x, z, 0.05]); push('stump:0', { x, y: H(x, z) - 0.01, z, s: 1 + R() * 0.4, ry: R() * 6.28 }); } continue; }
+      // 林缘：越往外树越稀、越矮，慢慢过渡到草地
+      const fs = T.typeShare ? T.typeShare(t, x, z, 'forest') : 1; if (fs < 0.6 && R() > fs * 1.5) continue;
       if (plant('con', v, { x, y: H(x, z) - 0.02, z, s, ry: R() * 6.28, tilt: 0.04, tint: [0.9 + R() * 0.2, 0.92 + R() * 0.16, 0.9 + R() * 0.2] }, 0.13 * s)) out.perches.push({ x, y: H(x, z), z, h: s });
     }
     for (let i = 0; i < 3; i++) { const [x, z] = inHex(0.1), s = 0.9 + R() * 0.3; if (plant('broad', R() < 0.5 ? 1 : 0, { x, y: H(x, z) - 0.02, z, s, ry: R() * 6.28 }, 0.2)) out.perches.push({ x, y: H(x, z), z, h: 0.85 * s }); }
@@ -135,21 +141,76 @@ export function dressTile(T, t, opts = {}) {
       const p = g.attributes.position, c = new Float32Array(p.count * 3);
       for (let i = 0; i < p.count; i++) { const cc = soilA.clone().lerp(soilB, THREE.MathUtils.clamp((p.getY(i) - t.base) * 25 + 0.5, 0, 1)).multiplyScalar(0.9 + NZ.n2(p.getX(i) * 30, p.getZ(i) * 30) * 0.1); c.set([cc.r, cc.g, cc.b], i * 3); }
       g.setAttribute('color', new THREE.BufferAttribute(c, 3)); parts.push(g);
-      for (let s = -Lr / 2 + 0.06; s < Lr / 2 - 0.04; s += 0.09) push('crop:' + Math.floor(R() * 3), { x: t.x + Math.cos(dir) * s - Math.sin(dir) * off, y: t.base + 0.008, z: t.z - Math.sin(dir) * s - Math.cos(dir) * off, s: harvested ? 0.1 + R() * 0.05 : 0.28 + R() * 0.12, ry: R() * 6.28, sy: 0.7 });
+      for (let s = -Lr / 2 + 0.06; s < Lr / 2 - 0.04; s += 0.09) if (!T.typeShare || T.typeShare(t, t.x + Math.cos(dir) * s - Math.sin(dir) * off, t.z - Math.sin(dir) * s - Math.cos(dir) * off, 'field') > 0.4 + R() * 0.2) push('crop:' + Math.floor(R() * 3), { x: t.x + Math.cos(dir) * s - Math.sin(dir) * off, y: t.base + 0.008, z: t.z - Math.sin(dir) * s - Math.cos(dir) * off, s: harvested ? 0.1 + R() * 0.05 : 0.28 + R() * 0.12, ry: R() * 6.28, sy: 0.7 });
     }
     out.meshes.push({ geo: mergeSimple(parts), mat: 'soil', pos: [0, 0, 0], ry: 0, merged: true });
     taken.push([t.x, t.z, 0.8]);
   }
+  // ---- 交错带：相邻地块的植被互相渗透 ----
+  if (T.typeShare && ty !== 'forest' && ty !== 'beach') {
+    const DIRS6n = [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]];
+    for (let k = 0; k < 6; k++) {
+      const nb = T.map?.get((t.q + DIRS6n[k][0]) + ',' + (t.r + DIRS6n[k][1])); if (!nb) continue;
+      const nx = Math.cos(Math.PI / 3 * k), nz = Math.sin(Math.PI / 3 * k), along = (o, u) => [t.x + nx * (INR - o) - nz * u, t.z + nz * (INR - o) + nx * u];
+      if (nb.t === 'forest') {
+        // 林缘：草地靠林子的一侧长出灌木、小树苗
+        for (let i = 0; i < 6; i++) {
+          const [x, z] = along(0.03 + Math.pow(R(), 1.5) * 0.32, (R() - 0.5) * 0.9);
+          if (riverD(x, z) < 0.3 || T.typeShare(t, x, z, 'forest') < 0.12) continue;
+          if (i < 2 && tf >= 0.5) { const s = 0.45 + R() * 0.3; if (plant('con', Math.floor(R() * 5), { x, y: H(x, z) - 0.02, z, s, ry: R() * 6.28, tilt: 0.05 }, 0.1 * s + 0.03)) out.perches.push({ x, y: H(x, z), z, h: s }); }
+          else plant('bush', Math.floor(R() * 3), { x, y: H(x, z), z, s: 0.6 + R() * 0.5, ry: R() * 6.28 }, 0.06);
+        }
+      } else if (nb.t === 'mountain' || nb.t === 'quarry') {
+        // 山脚：滚下来的碎石
+        for (let i = 0; i < 4; i++) { const [x, z] = along(0.02 + R() * 0.25, (R() - 0.5) * 0.9); if (riverD(x, z) < 0.25) continue; plant('rock', Math.floor(R() * 6), { x, y: H(x, z) - 0.015, z, s: 0.02 + R() * 0.04, ry: R() * 6.28 }, 0.03); }
+      }
+    }
+  }
+  // ---- 海岸：岩岸脚下和浅滩里散落礁石（有的半露出水面），沙滩的潮线上有被冲上来的海藻、漂流木和贝壳 ----
+  const DIRS6 = [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]], INRc = INR;
+  const coastKs = T.has ? DIRS6.map((d, k) => (T.has(t.q + d[0], t.r + d[1]) ? -1 : k)).filter((k) => k >= 0) : [];
+  out.coastKs = coastKs;
+  for (const k of coastKs) {
+    const A = [Math.cos(Math.PI / 3 * (k - 1) + Math.PI / 6), Math.sin(Math.PI / 3 * (k - 1) + Math.PI / 6)], B = [Math.cos(Math.PI / 3 * k + Math.PI / 6), Math.sin(Math.PI / 3 * k + Math.PI / 6)];
+    const nx = Math.cos(Math.PI / 3 * k), nz = Math.sin(Math.PI / 3 * k), beachy = ty === 'beach';
+    const nR = beachy ? 1 + Math.floor(R() * 2) : 3 + Math.floor(R() * 3);
+    for (let i = 0; i < nR; i++) {
+      const u = 0.08 + R() * 0.84, d = T.edgeDisp ? T.edgeDisp(t, k, u) : [0, 0], o = (beachy ? 0.55 : 0.04) + Math.pow(R(), 1.6) * (beachy ? 0.4 : 0.55);
+      const x = t.x + A[0] + (B[0] - A[0]) * u + d[0] + nx * o, z = t.z + A[1] + (B[1] - A[1]) * u + d[1] + nz * o;
+      if (T.tileAt && T.tileAt(x, z)) continue;
+      const sb = T.seabedAt ? T.seabedAt(x, z) : -0.3, sc = 0.04 + R() * 0.11;
+      push('rock:' + (R() < 0.55 ? 6 + Math.floor(R() * 2) : Math.floor(R() * 4)), { x, y: sb - sc * 0.25, z, s: sc, sy: 1 + R() * 0.8, ry: R() * 6.28 });
+    }
+    // 沙滩的潮线：涨潮最高处留下一道海藻，夹着几截漂流木和一小堆一小堆的贝壳
+    if (beachy) {
+      const line = 0.1 + NZ.n2(t.q * 3.7 + k, t.r * 2.9) * 0.04;
+      for (let i = 0; i < 9; i++) {
+        const u = 0.06 + (i + R() * 0.8) / 9 * 0.88, d = T.edgeDisp ? T.edgeDisp(t, k, u) : [0, 0], o = line + (R() - 0.5) * 0.06 + Math.sin(u * 9 + k) * 0.025;
+        const x = t.x + A[0] + (B[0] - A[0]) * u + d[0] - nx * o, z = t.z + A[1] + (B[1] - A[1]) * u + d[1] - nz * o;
+        if (!T.tileAt || T.tileAt(x, z) !== t) continue;
+        const kind = i % 4 === 1 && R() < 0.7 ? 'drift' : i % 3 === 2 ? 'shell' : 'wrack', y = H(x, z);
+        push(kind + ':' + Math.floor(R() * 2), { x, y: y - (kind === 'drift' ? 0.012 : 0.002), z, s: kind === 'drift' ? 0.8 + R() * 0.5 : kind === 'shell' ? 1.1 + R() * 0.5 : 1.3 + R() * 0.7, ry: Math.atan2(B[0] - A[0], B[1] - A[1]) + (R() - 0.5) * (kind === 'drift' ? 1.2 : 0.6) });
+      }
+    }
+  }
+  // 岸边的草越来越稀
+  const coastDist = (x, z) => { let m = 9; const lx = x - t.x, lz = z - t.z; for (const k of coastKs) m = Math.min(m, INRc - (lx * Math.cos(Math.PI / 3 * k) + lz * Math.sin(Math.PI / 3 * k))); return m; };
   // ---- 草叶、花、麦穗 ----
-  const grassy = ({ meadow: 4200, flowers: 3800, camp: 3000, islet: 2200, forest: 900, quarry: 1500, mountain: 1400, pond: 3600, stream: 3800, beach: 260 }[ty] || 0) * dens;
+  const grassy = ({ meadow: 4200, flowers: 3800, camp: 3000, islet: 2200, forest: 900, quarry: 1500, mountain: 1400, pond: 3600, stream: 3800, beach: T.typeShare ? 1500 : 260 }[ty] || 0) * dens;
   for (let i = 0; i < grassy; i++) {
     const [x, z] = inHex(0.0);
     if (riverD(x, z) < 0.2) continue;
     if (ty === 'camp' && Math.hypot(x - t.x - 0.05, z - t.z + 0.05) < 0.42) continue;
     if (ty === 'mountain' && Math.hypot(x - t.x, z - t.z) < 0.5) continue;
-    if (ty === 'beach' && Math.hypot(x - t.x, z - t.z) < 0.55) continue;
+    // 草地靠沙滩的一侧草越来越稀；沙滩靠草地的一侧长出沙丘草，正中间的沙地只零星几丛
+    let dune = 0;
+    if (T.typeShare) { const sand = T.typeShare(t, x, z, 'beach'); if (ty === 'beach' ? sand > 0.85 || R() > (1 - sand) * 1.4 : R() < sand * 1.3) continue; dune = sand; }
+    else if (ty === 'beach' && Math.hypot(x - t.x, z - t.z) < 0.55) continue;
     if (t.center && Math.hypot(x - t.x, z - t.z) < 0.35) continue;
+    if (coastKs.length && ty !== 'beach') { const cd = coastDist(x, z); if (cd < 0.2 && R() > cd / 0.2) continue; }
+    if (T.pathD && T.paths.length && T.pathD(x, z) < 0.06) continue;   // 路上不长草
     const h = H(x, z), c = T._topColor(t, x, z, h), v = 0.88 + R() * 0.3;
+    if (dune > 0.2) c.lerp(DUNE, Math.min(1, dune * 1.2));   // 沙地上的是发黄的沙丘草
     out.blades.grass.push({ x, y: h - 0.004, z, h: (0.035 + R() * 0.045) * (ty === 'forest' ? 0.8 : 1), w: 0.008 + R() * 0.006, lean: R() * 0.3, rot: R() * 6.28, tint: [c.r * v * 1.12, c.g * v * 1.08, c.b * v * 0.95], tint2: [c.r * 0.55, c.g * 0.6, c.b * 0.5] });
   }
   const nFlower = ({ flowers: 3200, meadow: 380, camp: 160, islet: 260, pond: 220, stream: 300 }[ty] || 0) * fdens;
@@ -158,6 +219,7 @@ export function dressTile(T, t, opts = {}) {
     if (riverD(x, z) < 0.22) continue;
     const patch = NZ.fbm2(x * 1.6, z * 1.6, 3), kind = Math.floor((NZ.n2(x * 0.9 + 30, z * 0.9) * 0.5 + 0.5) * 5) % 5;
     if (ty === 'flowers' ? patch < -0.15 : patch < 0.25) continue;
+    if (T.typeShare && (T.typeShare(t, x, z, 'forest') > 0.45 || R() < T.typeShare(t, x, z, 'beach') * 1.5)) continue;
     const h = H(x, z), s = 0.022 + R() * 0.02;
     out.blades.flower.push({ x, y: h - 0.003, z, h: s * 2.2, w: s * 0.45, lean: R() * 0.15, rot: R() * 6.28, tint: FC[kind], tint2: [0.08, 0.2, 0.05] });
     if (i % 7 === 0) out.flowers.push({ x, y: h + s * 2.2, z });
@@ -165,11 +227,28 @@ export function dressTile(T, t, opts = {}) {
   if (ty === 'wheat') {
     const n = (harvested ? 3000 : 8000) * dens;
     for (let i = 0; i < n; i++) {
-      const [x, z] = inHex(0.1), h = H(x, z), g = 0.85 + R() * 0.25;
+      const [x, z] = inHex(0.0), h = H(x, z), g = 0.85 + R() * 0.25;
+      const keep = T.typeShare ? wheatKeep(T.typeShare(t, x, z, 'wheat')) : 1; if (R() > keep) continue;   // 麦田边缘参差不齐，越往外越稀越矮
       if (harvested) out.blades.wheat.push({ x, y: h - 0.005, z, h: 0.03 + R() * 0.02, w: 0.1, lean: 0.05, rot: R() * 6.28, tint: [0.85 * g, 0.66 * g, 0.32 * g], tint2: [0.62 * g, 0.5 * g, 0.24 * g] });
-      else out.blades.wheat.push({ x, y: h - 0.005, z, h: 0.17 + R() * 0.07, w: 0.11, lean: 0.1 + R() * 0.25, rot: R() * 6.28, tint: [0.98 * g, 0.62 * g, 0.16 * g], tint2: [0.7 * g, 0.52 * g, 0.16 * g] });
+      else out.blades.wheat.push({ x, y: h - 0.005, z, h: (0.17 + R() * 0.07) * (0.55 + 0.45 * keep), w: 0.11, lean: 0.1 + R() * 0.25, rot: R() * 6.28, tint: [0.98 * g, 0.62 * g, 0.16 * g], tint2: [0.7 * g, 0.52 * g, 0.16 * g] });
     }
     taken.push([t.x, t.z, 0.8]);
+  }
+  // 邻居是麦田：靠它的一侧也零零星星长出麦子（不是一刀切的直线）
+  if (T.typeShare && ty !== 'wheat' && ty !== 'beach') {
+    const DIRS6w = [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]];
+    for (let k = 0; k < 6; k++) {
+      const nb = T.map?.get((t.q + DIRS6w[k][0]) + ',' + (t.r + DIRS6w[k][1])); if (!nb || nb.t !== 'wheat') continue;
+      const nx = Math.cos(Math.PI / 3 * k), nz = Math.sin(Math.PI / 3 * k), n = (nb.harvested ? 300 : 900) * dens;
+      for (let i = 0; i < n; i++) {
+        const o = R() * 0.3, u = (R() - 0.5) * 1.0, x = t.x + nx * (INR - o) - nz * u, z = t.z + nz * (INR - o) + nx * u;
+        const keep = wheatKeep(T.typeShare(t, x, z, 'wheat'));
+        if (R() > keep || riverD(x, z) < 0.2 || T.tileAt(x, z) !== t) continue;
+        const h = H(x, z), g = 0.85 + R() * 0.25;
+        out.blades.wheat.push(nb.harvested ? { x, y: h - 0.005, z, h: 0.03 + R() * 0.02, w: 0.1, lean: 0.05, rot: R() * 6.28, tint: [0.85 * g, 0.66 * g, 0.32 * g], tint2: [0.62 * g, 0.5 * g, 0.24 * g] }
+          : { x, y: h - 0.005, z, h: (0.17 + R() * 0.07) * (0.55 + 0.45 * keep), w: 0.11, lean: 0.1 + R() * 0.25, rot: R() * 6.28, tint: [0.98 * g, 0.62 * g, 0.16 * g], tint2: [0.7 * g, 0.52 * g, 0.16 * g] });
+      }
+    }
   }
   return out;
 }
