@@ -11,22 +11,26 @@ const V3 = THREE.Vector3;
 const geoOf = (r) => (r && r.geometry) || r;
 
 /** 动物材质；mode 'flap' 时按 wing 属性扇翅膀（每个实例的相位、频率、幅度、张开角在 iAnim 里） */
-export function faunaMaterial({ mode = 'none', rough = 0.7 } = {}) {
-  const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: rough, metalness: 0, side: mode === 'flap' ? THREE.DoubleSide : THREE.FrontSide, envMapIntensity: 0.9 });
-  if (mode === 'flap') m.defines = { MODE_FLAP: '' };
+export function faunaMaterial({ mode = 'none', rough = 0.7, alpha = false } = {}) {
+  const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: rough, metalness: 0, side: mode === 'flap' ? THREE.DoubleSide : THREE.FrontSide, envMapIntensity: 0.9, transparent: alpha });
+  m.defines = {}; if (mode === 'flap') m.defines.MODE_FLAP = ''; if (alpha) m.defines.USE_WALPHA = '';
   m.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, U);
     sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', `#include <common>\nuniform float uTime; attribute float wing;\n#ifdef USE_INSTANCING\nattribute vec4 iAnim;\n#else\nvec4 iAnim = vec4(0.0, 20.0, 0.8, 0.3);\n#endif`)
+      .replace('#include <common>', `#include <common>\nuniform float uTime; attribute float wing;\n#ifdef USE_WALPHA\nattribute float alpha; varying float vWAlpha;\n#endif\n#ifdef USE_INSTANCING\nattribute vec4 iAnim;\n#else\nvec4 iAnim = vec4(0.0, 20.0, 0.8, 0.3);\n#endif`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
         #ifdef MODE_FLAP
           // 翅膀绕身体中轴转：a = 张开角 + 扇动
           float a = iAnim.w + sin(uTime * iAnim.y + iAnim.x) * iAnim.z;
           float ax = abs(transformed.x);
           if (abs(wing) > 0.001) { transformed.y += ax * sin(a); transformed.x = sign(transformed.x) * ax * cos(a); }
+        #endif
+        #ifdef USE_WALPHA
+          vWAlpha = alpha;
         #endif`);
+    if (alpha) sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vWAlpha;').replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.a *= vWAlpha;');
   };
-  m.customProgramCacheKey = () => 'hq-fauna-' + mode;
+  m.customProgramCacheKey = () => 'hq-fauna-' + mode + alpha;
   return m;
 }
 
@@ -57,7 +61,7 @@ export class Fauna {
   constructor(env) {
     this.env = env; this.R = rng(515);
     this.group = new THREE.Group(); env.scene.add(this.group);
-    this.mat = faunaMaterial({ rough: 0.75 }); this.flapMat = faunaMaterial({ mode: 'flap', rough: 0.6 });
+    this.mat = faunaMaterial({ rough: 0.75 }); this.flapMat = faunaMaterial({ mode: 'flap', rough: 0.6 }); this.flapAlphaMat = faunaMaterial({ mode: 'flap', rough: 0.3, alpha: true });
     this.ray = new THREE.Raycaster();
     this._deer(); this._sheep(); this._goats(); this._rabbits(); this._butterflies(); this._dragonflies(); this._songbirds(); this._ducks(); this._frogs(); this._crabs();
   }
@@ -92,8 +96,8 @@ export class Fauna {
     }
     return list;
   }
-  _deer() { const forest = this.env.tiles.find((t) => t.t === 'meadow' && t.q === -1) || this.env.tiles[0]; this.deer = this._herd(L.deer, 3, ['meadow', 'forest', 'flowers'], 1.25, 0.07, new V3(forest.x, 0, forest.z)); }
-  _sheep() { const t = this.env.tiles.find((x) => x.t === 'meadow' && x.q === 3) || this.env.tiles[0]; this.sheep = this._herd(L.sheep, 6, ['meadow', 'flowers'], 1.25, 0.04, new V3(t.x, 0, t.z)); }
+  _deer() { const forest = this.env.tiles.find((t) => t.t === 'meadow' && t.q === -1) || this.env.tiles[0]; this.deer = this._herd(L.deer, 3, ['meadow', 'forest', 'flowers'], 1.6, 0.08, new V3(forest.x, 0, forest.z)); }
+  _sheep() { const t = this.env.tiles.find((x) => x.t === 'meadow' && x.q === 3) || this.env.tiles[0]; this.sheep = this._herd(L.sheep, 6, ['meadow', 'flowers'], 1.6, 0.045, new V3(t.x, 0, t.z)); }
   _updHerd(list, dt, flock = 0) {
     for (const a of list) {
       const g = a.q.grp, p = g.position; a.timer -= dt;
@@ -142,7 +146,7 @@ export class Fauna {
     this.ledgePts = this.env.peaks ? this._ledges() : [];
     this.goats = [];
     for (let i = 0; i < Math.min(3, this.ledgePts.length); i++) {
-      const q = new Quadruped(L.goat(i + 1), this.mat, 1.15), p = this.ledgePts[Math.floor(this.R() * this.ledgePts.length)];
+      const q = new Quadruped(L.goat(i + 1), this.mat, 1.5), p = this.ledgePts[Math.floor(this.R() * this.ledgePts.length)];
       q.grp.position.copy(p); this.group.add(q.grp);
       this.goats.push({ q, p0: p.clone(), p1: null, t: 0, T: 0.6, wait: 3 + this.R() * 6, yaw: this.R() * 6.28 });
     }
@@ -175,7 +179,7 @@ export class Fauna {
     const geo = geoOf(L.rabbit(1));
     for (let i = 0; i < 7; i++) {
       const p = this.randomSpot(['flowers', 'meadow', 'camp']); if (!p) continue;
-      const m = new THREE.Mesh(geo, this.mat); m.castShadow = true; m.scale.setScalar(1.3); m.position.copy(p); this.group.add(m);
+      const m = new THREE.Mesh(geo, this.mat); m.castShadow = true; m.scale.setScalar(1.8); m.position.copy(p); this.group.add(m);
       this.rabbits.push({ m, base: p.clone(), from: p.clone(), to: null, t: 0, T: 0.4, hops: 0, wait: this.R() * 4, yaw: this.R() * 6.28 });
     }
   }
@@ -183,7 +187,7 @@ export class Fauna {
     for (const r of this.rabbits) {
       if (!r.to) {
         r.wait -= dt;
-        r.m.scale.set(1.3, 1.3 * (1 + Math.sin(performance.now() * 0.012 + r.yaw) * 0.015), 1.3);
+        r.m.scale.set(1.8, 1.8 * (1 + Math.sin(performance.now() * 0.012 + r.yaw) * 0.015), 1.8);
         if (r.wait < 0) {
           if (r.hops <= 0) r.hops = 2 + Math.floor(this.R() * 5), r.yaw += (this.R() - 0.5) * 1.6;
           const d = 0.045 + this.R() * 0.035, x = r.from.x + Math.sin(r.yaw) * d, z = r.from.z + Math.cos(r.yaw) * d;
@@ -195,7 +199,7 @@ export class Fauna {
         r.t += dt; const u = Math.min(1, r.t / r.T), T = r.T, tt = u * T;
         const vy = (r.to.y - r.from.y + 0.5 * G * T * T) / T;
         r.m.position.set(r.from.x + (r.to.x - r.from.x) * u, r.from.y + vy * tt - 0.5 * G * tt * tt, r.from.z + (r.to.z - r.from.z) * u);
-        const st = Math.sin(u * Math.PI); r.m.scale.set(1.3 * (1 - st * 0.08), 1.3 * (1 + st * 0.18), 1.3 * (1 - st * 0.08));
+        const st = Math.sin(u * Math.PI); r.m.scale.set(1.8 * (1 - st * 0.08), 1.8 * (1 + st * 0.18), 1.8 * (1 - st * 0.08));
         if (u >= 1) { r.from.copy(r.to); r.to = null; }
       }
       r.m.rotation.y = r.yaw;
@@ -226,7 +230,7 @@ export class Fauna {
     });
   }
   _updButterflies(dt, t) {
-    const fl = this.env.flowers, m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(0, 0, 0, 'YXZ'), sc = new V3(1.5, 1.5, 1.5);
+    const fl = this.env.flowers, m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(0, 0, 0, 'YXZ'), sc = new V3(2.0, 2.0, 2.0);
     for (const b of this.bflies) {
       b.timer -= dt;
       if (b.state === 'fly') {
@@ -251,7 +255,7 @@ export class Fauna {
     for (const bm of this.bflyMeshes) { bm.m.instanceMatrix.needsUpdate = true; bm.attr.needsUpdate = true; }
   }
   _dragonflies() {
-    this.dflyMeshes = this._flyers([L.dragonfly(1)], 9, this.flapMat);
+    this.dflyMeshes = this._flyers([L.dragonfly(1)], 9, L.dragonfly(1).geometry.attributes.alpha ? this.flapAlphaMat : this.flapMat);
     this.dflies = [];
     const pts = this.waterPoints();
     for (let i = 0; i < this.dflyMeshes[0].m.count; i++) { const p = pts[Math.floor(this.R() * pts.length)]; this.dflies.push({ i, p: p.clone().add(new V3(0, 0.1, 0)), target: p.clone(), timer: 0, ph: this.R() * 6, yaw: 0 }); this.dflyMeshes[0].anim.set([this.R() * 6, 70, 0.45, 0.1], i * 4); }
@@ -284,7 +288,7 @@ export class Fauna {
     this.birdMeshes.forEach((bm) => { for (let i = 0; i < bm.m.count; i++) { const p = perches[Math.floor(this.R() * perches.length)]; this.sbirds.push({ bm, i, p: new V3(p.x, p.y + p.h, p.z), from: null, to: null, t: 0, T: 1, wait: 2 + this.R() * 8, yaw: this.R() * 6 }); } });
   }
   _updSongbirds(dt, t) {
-    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new V3(1.6, 1.6, 1.6), perches = this.env.trees;
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new V3(2.0, 2.0, 2.0), perches = this.env.trees;
     for (const b of this.sbirds) {
       if (!b.to) {
         b.wait -= dt; b.bm.anim.set([b.yaw, 3, 0.05, 0.02], b.i * 4);
@@ -307,7 +311,7 @@ export class Fauna {
     this.ducks = [];
     const pd = this.env.pond; if (!pd) return;
     const geo = geoOf(L.duck(1));
-    for (let i = 0; i < 3; i++) { const m = new THREE.Mesh(geo, this.mat); m.castShadow = true; m.scale.setScalar(1.3); this.group.add(m); const a = this.R() * 6.28; this.ducks.push({ m, a, r: pd.r * (0.3 + this.R() * 0.45), w: (this.R() < 0.5 ? 1 : -1) * (0.06 + this.R() * 0.06), dab: 0, ph: this.R() * 6 }); }
+    for (let i = 0; i < 3; i++) { const m = new THREE.Mesh(geo, this.mat); m.castShadow = true; m.scale.setScalar(1.7); this.group.add(m); const a = this.R() * 6.28; this.ducks.push({ m, a, r: pd.r * (0.3 + this.R() * 0.45), w: (this.R() < 0.5 ? 1 : -1) * (0.06 + this.R() * 0.06), dab: 0, ph: this.R() * 6 }); }
   }
   _updDucks(dt, t) {
     const pd = this.env.pond; if (!pd) return;
@@ -327,7 +331,7 @@ export class Fauna {
     this.frogSpots = [];
     for (let k = 0; k < 10; k++) { const a = k / 10 * 6.28 + this.R() * 0.3, r = pd.r * (1.02 + this.R() * 0.15); const x = pd.x + Math.cos(a) * r, z = pd.z + Math.sin(a) * r, y = this.ground(x, z); if (y != null) this.frogSpots.push(new V3(x, y, z)); }
     for (const lp of this.env.lilyPads || []) this.frogSpots.push(new V3(lp.x, pd.y + 0.004, lp.z));
-    for (let i = 0; i < 4 && this.frogSpots.length; i++) { const m = new THREE.Mesh(geo, this.mat); m.castShadow = true; m.scale.setScalar(1.3); const p = this.frogSpots[Math.floor(this.R() * this.frogSpots.length)]; m.position.copy(p); this.group.add(m); this.frogs.push({ m, from: p.clone(), to: null, t: 0, T: 0.5, wait: 2 + this.R() * 8 }); }
+    for (let i = 0; i < 4 && this.frogSpots.length; i++) { const m = new THREE.Mesh(geo, this.mat); m.castShadow = true; m.scale.setScalar(1.8); const p = this.frogSpots[Math.floor(this.R() * this.frogSpots.length)]; m.position.copy(p); this.group.add(m); this.frogs.push({ m, from: p.clone(), to: null, t: 0, T: 0.5, wait: 2 + this.R() * 8 }); }
   }
   _updFrogs(dt) {
     for (const f of this.frogs) {
@@ -346,7 +350,7 @@ export class Fauna {
   _crabs() {
     this.crabs = [];
     const geo = geoOf(L.crab(1));
-    for (let i = 0; i < 6; i++) { const p = this.randomSpot(['beach']); if (!p) continue; const m = new THREE.Mesh(geo, this.mat); m.castShadow = true; m.scale.setScalar(1.3); m.position.copy(p); this.group.add(m); this.crabs.push({ m, yaw: this.R() * 6.28, dir: 1, speed: 0, wait: this.R() * 3, run: 0 }); }
+    for (let i = 0; i < 6; i++) { const p = this.randomSpot(['beach']); if (!p) continue; const m = new THREE.Mesh(geo, this.mat); m.castShadow = true; m.scale.setScalar(2.0); m.position.copy(p); this.group.add(m); this.crabs.push({ m, yaw: this.R() * 6.28, dir: 1, speed: 0, wait: this.R() * 3, run: 0 }); }
   }
   _updCrabs(dt, t) {
     for (const c of this.crabs) {

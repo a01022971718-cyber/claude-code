@@ -676,7 +676,7 @@ export function goat(seed = 1) {
 }
 
 /* ============================================================
- * 蝴蝶（≤300 面）：翅膀 4 片，双面，wing = x / 半翼展
+ * 蝴蝶（≤700 面）：翅膀 4 片，双面，样条轮廓 + 顶点色花纹，wing = x / 半翼展
  * ============================================================ */
 const BF_HALF = 0.0153;
 const BF_PAL = {
@@ -706,28 +706,78 @@ export function butterfly(seed = 1, kind = 'swallowtail') {
   const R = mulberry32(seed * 2713 + 5);
   const K = BF_KIND[kind] ?? BF_KIND.swallowtail;
   const soup = new Soup(['wing']);
-  const RINGS = [0.45, 0.76, 1.0];
+  const RINGS = [0.5, 0.76, 1.0];
   const wo = { soft: 0.9, backMul: 0.8 };
   const wingAt = (x) => clamp(x / BF_HALF, -1, 1);
-  const addWing = (side, outline, root, table, rootKey, yJit) => {
+  const P = BF_PAL, cc = (k) => P[k];
+  // 控制点 → Catmull-Rom（向心）按弧长等距取 n 个轮廓点
+  const smoothOutline = (ctrl, n) => new THREE.CatmullRomCurve3(ctrl.map(([x, z]) => V3(x, 0, z)), false, 'centripetal').getSpacedPoints(n - 1).map((v) => [v.x, v.z]);
+  /** 顶点色：m=环序号，k/n=沿轮廓序号，tipK=轮廓上最靠后的点（凤蝶尾尖）。花纹全靠顶点色：边缘深色带、翅脉放射线、斑点 */
+  const paintWing = (fore, m, k, n, u, tipK) => {
+    const c = new THREE.Color(), a = k / (n - 1), odd = k & 1, ev = 1 - odd, v3 = k % 3 === 0 ? 1 : 0;
+    const mix = (col, t) => c.lerp(cc(col), clamp(t));
+    const nearTip = (w) => clamp(1 - Math.abs(k - tipK) / w);
+    if (kind === 'swallowtail') {
+      c.copy(cc('Y'));
+      if (m === 0) mix('K', 0.95 * (fore ? ev : v3));
+      if (m === 1) mix('K', 0.95);
+      if (m === 2) mix('K', 1);
+      if (fore) { if (m === 1) mix('Y', 0.3 * odd); if (m === 2) mix('Y', 0.4 * ev); }
+      else {
+        if (m === 1) { mix('B', 0.9 * clamp((tipK - 1 - k) / 2) * clamp((k - (tipK - 9)) / 2)); mix('Y', 0.5 * odd * (k > tipK + 1 ? 1 : 0)); }
+        if (m === 0) mix('R', 0.85 * nearTip(1.3) * (k < tipK ? 1 : 0));
+        if (m === 2 && k === tipK) mix('Y', 0.6);
+        if (m === 0 && k > tipK - 8 && k < tipK) mix('A', 0.35);
+      }
+    } else if (kind === 'blue') {
+      c.copy(cc('B'));
+      if (m === 0) { mix('L', 0.6 * sstep(0.1, 0.5, a) * sstep(0.95, 0.5, a)); mix('D', 0.3 * ev); }
+      if (m === 1) { mix('K', 0.88); mix('L', 0.55 * odd * (fore ? 0 : 1)); }
+      if (m === 2) { mix('K', 0.95); mix('W', 0.92 * odd); }
+    } else if (kind === 'monarch') {
+      c.copy(cc('O'));
+      if (m === 0) { mix('K', 0.95 * ev + 0.15 * odd); mix('A', 0.3 * odd); if (fore) mix('K', 0.75 * sstep(0.12, 0.3, a) * sstep(0.55, 0.38, a)); }
+      if (m === 1) { mix('K', 0.97); mix('W', 0.3 * odd); }
+      if (m === 2) { mix('K', 1); mix('W', 0.55 * ev); }
+    } else { // white
+      c.copy(cc('W'));
+      if (m === 0) { mix('K', 0.3 * v3); mix('G', 0.3); if (fore) { mix('K', 0.95 * (k === Math.round((n - 1) * 0.62) ? 1 : 0)); } }
+      if (m >= 1) { mix('w', 0.25); mix('K', 0.15 * v3); }
+      if (fore) {
+        const tip = sstep(0.05, 0.15, a) * sstep(0.62, 0.5, a) * (m === 0 ? 0.35 : 1);
+        mix('K', 0.95 * tip);
+        if (m === 1 && (k === Math.round((n - 1) * 0.66) || k === Math.round((n - 1) * 0.74))) mix('K', 0.85);
+      } else {
+        mix('A', 0.15 * (m === 0 ? 1 : 0));
+        if (m === 1) mix('K', 0.65 * nearTip(1.2));
+      }
+    }
+    return c;
+  };
+  const addWing = (side, fore, outline, root, rootKey, dy) => {
+    const n = outline.length;
+    let tipK = 0; outline.forEach((o, k) => { if (o[1] < outline[tipK][1]) tipK = k; });
     const pt = (u, k) => {
       const o = outline[k], x = root[0] + (o[0] - root[0]) * u, z = root[1] + (o[1] - root[1]) * u;
-      return [side * x, 0.0003 + 0.12 * x + yJit * u * u * 0.001, z];
+      return [side * x, 0.0003 + dy + 0.12 * x, z];
     };
-    const rootV = sv([side * root[0], 0.0003 + 0.12 * root[0], root[1]], BF_PAL[rootKey], { wing: wingAt(side * root[0]) });
+    const rootV = sv([side * root[0], 0.0003 + dy + 0.12 * root[0], root[1]], cc(rootKey), { wing: wingAt(side * root[0]) });
     const rows = RINGS.map((u, m) => outline.map((_, k) => {
       const p = pt(u, k);
-      return sv(p, BF_PAL[table[m][k]], { wing: wingAt(p[0]) });
+      return sv(p, paintWing(fore, m, k, n, u, tipK), { wing: wingAt(p[0]) });
     }));
-    const n = outline.length;
     for (let k = 0; k < n - 1; k++) soup.tri(rootV, rows[0][k], rows[0][k + 1], wo);
     for (let m = 0; m < 2; m++) for (let k = 0; k < n - 1; k++) soup.quad(rows[m][k], rows[m + 1][k], rows[m + 1][k + 1], rows[m][k + 1], wo);
   };
-  const fore = [[0.0048, 0.0042], [0.0100, 0.0072], [0.0152, 0.0058], [0.0150, -0.0014], [0.0105, -0.0040], [0.0030, -0.0030]];
-  const hind = [[0.0052, -0.0006], [0.0112, -0.0045], [0.0124, -0.0090], K.tail ? [0.0076, -0.0172] : [0.0092, -0.0124], [0.0045, -0.0108], [0.0018, -0.0058]];
+  // 前翅 16 点：前缘弧线 → 圆润翅尖 → 外缘 → 后缘内收
+  const fore = smoothOutline([[0.0030, 0.0032], [0.0062, 0.0060], [0.0102, 0.0073], [0.0136, 0.0064], [0.0152, 0.0038], [0.0152, -0.0004], [0.0132, -0.0030], [0.0094, -0.0042], [0.0054, -0.0038], [0.0026, -0.0024]], 16);
+  // 后翅 14 点；凤蝶尾突作为曲线的一段，从外缘自然收窄成细长的尾
+  const hind = K.tail
+    ? smoothOutline([[0.0048, -0.0004], [0.0088, -0.0028], [0.0118, -0.0056], [0.0123, -0.0086], [0.0108, -0.0108], [0.0094, -0.0126], [0.0086, -0.0150], [0.0079, -0.0172], [0.0073, -0.0150], [0.0069, -0.0124], [0.0056, -0.0108], [0.0038, -0.0102], [0.0018, -0.0070]], 16)
+    : smoothOutline([[0.0048, -0.0004], [0.0084, -0.0030], [0.0112, -0.0058], [0.0124, -0.0088], [0.0114, -0.0114], [0.0090, -0.0124], [0.0062, -0.0112], [0.0040, -0.0102], [0.0018, -0.0070]], 16);
   for (const s of sideX) {
-    addWing(s, fore, [0.0012, 0.0006], K.fore, K.foreRoot ?? 'k', 0);
-    addWing(s, hind, [0.0012, -0.0010], K.hind, 'k', 0);
+    addWing(s, true, fore, [0.0012, 0.0006], K.foreRoot ?? 'k', 0.00012);
+    addWing(s, false, hind, [0.0012, -0.0010], 'k', 0);
   }
   // 触角
   for (const s of sideX) {
@@ -747,7 +797,7 @@ export function butterfly(seed = 1, kind = 'swallowtail') {
 }
 
 /* ============================================================
- * 蜻蜓（≤300 面）
+ * 蜻蜓（≤600 面）：翅膀半透明，几何带 alpha 属性（身体 1，翅 0.35–0.45，翅痣 0.9）
  * ============================================================ */
 export function dragonfly(seed = 1) {
   const R = mulberry32(seed * 1811 + 3);
@@ -765,31 +815,40 @@ export function dragonfly(seed = 1) {
   });
   const head = solid(blob([0.0017, 0.0014, 0.0014], [0, 0.0004, 0.0150], [0, 0, 0], 6, 3), hex(0x6bd1b8));
   const eyes = sideX.map((s) => paint(blob([0.0020, 0.0021, 0.0021], [s * 0.0014, 0.0010, 0.0158], [0, 0, 0], 6, 4), (p, n, c) => c.copy(eyeDk).lerp(eye, sstep(-0.2, 0.7, n.y))));
-  // 翅：每片 5 个三角 × 双面
-  const soup = new Soup(['wing']);
+  // 翅：狭长平滑轮廓（前缘 9 点 + 后缘 9 点 + 翅尖），前缘—中脉—后缘三排顶点；alpha：翅根 0.45 → 翅尖 0.36，翅痣 0.9
+  const soup = new Soup(['wing', 'alpha']);
   const HALF = 0.0235;
-  const pale = hex(0xcfe1ea), vein = hex(0x7f98a3), stig = hex(0x2a1e16);
+  const pale = hex(0xcfe1ea), vein = hex(0x7f98a3), stig = hex(0x2a1e16), amber = hex(0xd9a441);
   const wing = (s, zr, len, chord, sweep, droop, hindW) => {
-    const st = [0, 0.28, 0.62, 0.9];
-    const cw = hindW ? [0.8, 1.15, 1.1, 0.8] : [0.6, 1.0, 1.0, 0.75];
-    const X = (k) => s * (0.0016 + len * st[k]), Y = (k) => 0.0030 + droop * st[k] * st[k];
-    const lead = (k) => [X(k), Y(k), zr + chord * 0.30 * cw[k] + sweep * st[k]];
-    const trail = (k) => [X(k), Y(k), zr - chord * 0.70 * cw[k] + sweep * st[k]];
-    const wv = (p, col) => sv(p, col, { wing: clamp(p[0] / HALF, -1, 1) });
-    const rows = st.map((_, k) => [wv(lead(k), k === 3 ? stig : mixC(hex(0x62767f), pale, 0.45 + 0.15 * k)), wv(trail(k), mixC(pale, vein, 0.15))]);
-    const tip = wv([s * (0.0016 + len), Y(3) + droop * 0.3, zr - chord * 0.12 + sweep], hex(0xb9ccd5));
-    const o = { soft: 0.9, backMul: 0.92 };
-    for (let k = 0; k < 3; k++) soup.quad(rows[k][0], rows[k][1], rows[k + 1][1], rows[k + 1][0], o);
-    soup.tri(rows[3][0], rows[3][1], tip, o);
+    const NS = 9, o = { soft: 0.9, backMul: 0.92 };
+    const X = (t) => s * (0.0016 + len * t), Y = (t) => 0.0030 + droop * t * t;
+    const cw = (t) => ((hindW ? 0.78 + 0.5 * sstep(0, 0.25, t) : 0.62 + 0.4 * sstep(0, 0.3, t)) * (1 - 0.42 * t) * 0.9) * Math.pow(Math.max(0, 1 - Math.pow(t, 3.5)), 0.55);
+    const zl = (t) => zr + chord * 0.30 * cw(t) + sweep * t, zt = (t) => zr - chord * 0.70 * cw(t) + sweep * t;
+    const al = (t) => 0.45 - 0.09 * t;
+    const wv = (x, y, z, col, t) => sv([x, y, z], col, { wing: clamp(x / HALF, -1, 1), alpha: al(t) });
+    const base = (t) => (hindW ? mixC(pale, amber, 0.55 * sstep(0.22, 0.0, t)) : pale);
+    const rows = [];
+    for (let i = 0; i < NS; i++) {
+      const t = (i / (NS - 1)) * 0.96, x = X(t), y = Y(t), bc = base(t);
+      rows.push([wv(x, y, zl(t), mixC(hex(0x4d6069), bc, 0.35 + 0.35 * t), t), wv(x, y + 0.00006, (zl(t) + zt(t)) / 2, mixC(bc, vein, 0.28), t), wv(x, y, zt(t), mixC(bc, vein, 0.1), t)]);
+    }
+    const tip = wv(X(1), Y(1) + droop * 0.3, zr - chord * 0.12 + sweep, hex(0xb9ccd5), 1);
+    for (let i = 0; i < NS - 1; i++) { soup.quad(rows[i][0], rows[i][1], rows[i + 1][1], rows[i + 1][0], o); soup.quad(rows[i][1], rows[i][2], rows[i + 1][2], rows[i + 1][1], o); }
+    soup.tri(rows[NS - 1][0], rows[NS - 1][2], tip, o);
+    // 翅痣：前缘靠近末端的深色小斑，略高于翅面
+    const t1 = 0.80, t2 = 0.89, th = chord * 0.12, dy = 0.00005, sa = { alpha: 0.9 };
+    const sp = (t, dz) => sv([X(t), Y(t) + dy, zl(t) - dz], stig, { wing: clamp(X(t) / HALF, -1, 1), alpha: 0.9 });
+    soup.quad(sp(t1, 0), sp(t1, th), sp(t2, th), sp(t2, 0), o);
   };
   for (const s of sideX) { wing(s, 0.0100, 0.0220, 0.0056, 0.0008, 0.0010, false); wing(s, 0.0058, 0.0212, 0.0070, -0.0006, 0.0010, true); }
-  const geometry = assemble([abd, thorax, head, ...eyes, soup.geometry()], ['wing']);
+  for (const g of [abd, thorax, head, ...eyes]) setAttr(g, 'alpha', () => 1);
+  const geometry = assemble([abd, thorax, head, ...eyes, soup.geometry()], ['wing', 'alpha']);
   shade(geometry, (p, n) => skyAO(n, 0.12));
   return { geometry };
 }
 
 /* ============================================================
- * 小鸟（≤300 面）：欧亚鸲 / 大山雀 / 金翅雀
+ * 小鸟（≤600 面）：欧亚鸲 / 大山雀 / 金翅雀
  * ============================================================ */
 export function songbird(seed = 1, kind = 'robin') {
   const R = mulberry32(seed * 977 + 17);
@@ -831,9 +890,14 @@ export function songbird(seed = 1, kind = 'robin') {
   const tc = Ct, tc2 = mixC(Ct, hex(0x111111), 0.3);
   const tv = (p, c) => sv(p, c, { wing: 0 });
   soup.quad(tv([-0.0016, 0.0006, -0.0066], tc), tv([0.0016, 0.0006, -0.0066], tc), tv([0.0028, 0.0002, -0.0136], tc2), tv([-0.0028, 0.0002, -0.0136], tc2), { soft: 0.3 });
-  // 翅膀：多边形扇面，wing = x / 半翼展
+  // 翅膀：平滑羽翼（前缘样条 + 5 枚初级飞羽的锯齿后缘 + 次级飞羽样条），wing = x / 半翼展
   const HALF = 0.0170;
-  const outline = [[0.0030, 0.0030], [0.0060, 0.0040], [0.0095, 0.0040], [0.0130, 0.0022], [0.0158, -0.0006], [0.0170, -0.0040], [0.0148, -0.0034], [0.0138, -0.0066], [0.0112, -0.0050], [0.0098, -0.0074], [0.0068, -0.0058], [0.0044, -0.0072], [0.0026, -0.0046]];
+  const spline = (ctrl, n) => new THREE.CatmullRomCurve3(ctrl.map(([x, z]) => V3(x, 0, z)), false, 'centripetal').getSpacedPoints(n - 1).map((v) => [v.x, v.z]);
+  const lead = spline([[0.0030, 0.0030], [0.0060, 0.0044], [0.0098, 0.0046], [0.0132, 0.0032], [0.0156, 0.0008], [0.0166, -0.0016]], 8).map((p) => ({ p, t: 0 }));
+  // 初级飞羽：尖端 t=1，羽间缺口 t=2
+  const prim = [[0.0170, -0.0038, 1], [0.0155, -0.0034, 2], [0.0156, -0.0060, 1], [0.0142, -0.0050, 2], [0.0136, -0.0074, 1], [0.0124, -0.0060, 2], [0.0112, -0.0080, 1], [0.0102, -0.0064, 2], [0.0086, -0.0082, 1], [0.0076, -0.0066, 2]].map(([x, z, t]) => ({ p: [x, z], t }));
+  const sec = spline([[0.0076, -0.0066], [0.0058, -0.0074], [0.0040, -0.0066], [0.0026, -0.0046]], 5).slice(1).map((p) => ({ p, t: 3 }));
+  const outline = [...lead, ...prim, ...sec];
   const cen = [0.0052, -0.0004];
   const wingCol = (x, z) => {
     const c = Cw.clone();
@@ -844,11 +908,26 @@ export function songbird(seed = 1, kind = 'robin') {
     return c;
   };
   const yAt = (x) => 0.0014 + 0.34 * Math.max(0, x - 0.0030);
-  const wv = (x, z, s) => { const c = wingCol(x, z); return sv([s * x, yAt(x), z], c, { wing: clamp((s * x) / HALF, -1, 1) }); };
+  const dark = hex(0x15110d);
+  // t：0 前缘 / 1 飞羽尖 / 2 羽间缺口 / 3 次级飞羽。飞羽尖略深并带浅边，缺口处压暗以显出羽片分界
+  const wv = (x, z, s, t = 0, u = 0) => {
+    const c = wingCol(x, z);
+    if (z < 0.0004) c.lerp(dark, 0.22 * sstep(0.0, -0.005, z) * (0.4 + 0.6 * u));
+    if (t === 1) { c.lerp(dark, 0.3); if (k.edge) c.lerp(hex(k.edge), 0.35); }
+    else if (t === 2) c.lerp(dark, 0.5);
+    else if (t === 3) c.lerp(dark, 0.12 * u);
+    return sv([s * x, yAt(x), z], c, { wing: clamp((s * x) / HALF, -1, 1) });
+  };
+  const so = { soft: 0.85, backMul: 1.0 }, UI = 0.55, n = outline.length;
   for (const s of sideX) {
     const cv = wv(cen[0], cen[1], s);
-    for (let i = 0; i < outline.length - 1; i++) soup.tri(cv, wv(outline[i][0], outline[i][1], s), wv(outline[i + 1][0], outline[i + 1][1], s), { soft: 0.85, backMul: 1.0 });
-    soup.tri(cv, wv(outline[outline.length - 1][0], outline[outline.length - 1][1], s), wv(outline[0][0], outline[0][1], s), { soft: 0.85, backMul: 1.0 });
+    const ring = outline.map((o) => wv(cen[0] + (o.p[0] - cen[0]) * UI, cen[1] + (o.p[1] - cen[1]) * UI, s, o.t === 2 ? 2 : 0, 0.4));
+    const edge = outline.map((o) => wv(o.p[0], o.p[1], s, o.t, 1));
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n;
+      soup.tri(cv, ring[i], ring[j], so);
+      soup.quad(ring[i], edge[i], edge[j], ring[j], so);
+    }
   }
   const geometry = assemble([body, beak, ...eyes, soup.geometry()], ['wing']);
   shade(geometry, (p, n) => skyAO(n, 0.16));

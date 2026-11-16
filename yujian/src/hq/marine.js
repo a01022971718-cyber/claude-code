@@ -263,6 +263,7 @@ export class Marine {
       e.set(it.tx || 0, it.ry, it.tz || 0); q.setFromEuler(e); s.set(it.s, it.sy ?? it.s, it.s);
       mesh.setMatrixAt(i, m4.compose(p.set(it.x, it.y, it.z), q, s));
       anim.set([i * 1.7, 2 + (i % 5) * 0.2, 0, 0], i * 4);
+      if (it.tint) mesh.setColorAt(i, new THREE.Color(...it.tint));
     });
     mesh.castShadow = castShadow; mesh.computeBoundingSphere(); this.group.add(mesh);
     return mesh;
@@ -277,9 +278,9 @@ export class Marine {
         const a = R() * 6.28, r = Math.sqrt(R()) * 0.42, x = c[0] + Math.cos(a) * r, z = c[2] + Math.sin(a) * r, y = this.terrain.seabedAt(x, z) - 0.008;
         if (this.terrain.tileAt(x, z)) continue;
         const it = { x, y, z, ry: R() * 6.28, s: 1.3 + R() * 1.3 }, pick = R();
-        if (pick < 0.36) corals.branch[Math.floor(R() * 3)].push(it);
-        else if (pick < 0.5) corals.brain.push(it);
-        else if (pick < 0.62) corals.table.push({ ...it, s: 0.8 + R() * 0.6 });
+        if (pick < 0.4) corals.branch[Math.floor(R() * 3)].push(it);
+        else if (pick < 0.56) corals.brain.push(it);
+        else if (pick < 0.61) corals.table.push({ ...it, s: 0.8 + R() * 0.5, tint: [1.25, 0.72, 0.95] });
         else if (pick < 0.75) corals.fan.push(it);
         else if (pick < 0.86) corals.anem.push(it);
         else if (pick < 0.94) corals.star.push({ ...it, y: y + 0.004, s: 1.4 });

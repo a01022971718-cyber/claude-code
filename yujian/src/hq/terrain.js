@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { toWorld, fromWorld, key, DIRS, CORNERS } from '../hex.js';
 import { makeNoise } from './noise.js';
+import { LandField } from './landfield.js';
 
 const NZ = makeNoise(20261115);
 const SUB = 18;                         // 每个三角扇区的细分数
@@ -47,11 +48,19 @@ export class Terrain {
     this.riverW = opts.riverWidth || 0.17;
     this.ponds = opts.ponds || [];
     this.river = this.riverPts ? riverField(this.riverPts) : null;
-    for (const t of tiles) {
-      const [x, z] = toWorld(t.q, t.r);
-      t.x = x; t.z = z;
-      t.base = TYPES[t.t].h + (NZ.n2(t.q * 3.1, t.r * 2.7)) * 0.012;
-    }
+    this.field = new LandField();
+    for (const t of tiles) this._init(t);
+  }
+  _init(t) {
+    const [x, z] = toWorld(t.q, t.r);
+    t.x = x; t.z = z;
+    t.base = (TYPES[t.t] || TYPES.meadow).h + (NZ.n2(t.q * 3.1, t.r * 2.7)) * 0.012;
+    this.field.add(x, z);
+  }
+  /** 新增一块地（游戏里放地块时调用），返回受影响的地块键（自己 + 邻居） */
+  addTile(t) {
+    this.tiles.push(t); this.map.set(key(t.q, t.r), t); this._init(t);
+    return [key(t.q, t.r), ...DIRS.map((d) => key(t.q + d[0], t.r + d[1]))];
   }
   tileAt(x, z) { const [q, r] = fromWorld(x, z); return this.map.get(key(q, r)); }
   has(q, r) { return this.map.has(key(q, r)); }
@@ -109,40 +118,35 @@ export class Terrain {
     return c.multiplyScalar(1 - dropAO);
   }
 
-  /** 生成所有网格，返回 Group */
+  /** 静态构建（样张用）：所有地块一次性生成，返回 Group */
   build(material, rockMaterial) {
     const grp = new THREE.Group();
-    const top = this._buildTops(); top.computeVertexNormals();
+    const top = mergeColored(this.tiles.map((t) => this.tileTop(t)));
+    const rock = mergeColored(this.tiles.map((t) => this.tileRock(t)).filter(Boolean));
     const mTop = new THREE.Mesh(top, material); mTop.receiveShadow = true; mTop.castShadow = true; mTop.name = 'terrain-top';
-    const steps = this._buildSteps();
-    const cliffs = this._buildCliffs();
-    const rock = mergeColored([cliffs, steps].filter(Boolean));
     const mRock = new THREE.Mesh(rock, rockMaterial); mRock.receiveShadow = true; mRock.castShadow = true; mRock.name = 'terrain-cliffs';
     grp.add(mTop, mRock);
     this.topMesh = mTop; this.rockMesh = mRock;
     return grp;
   }
 
-  _buildTops() {
-    const pos = [], colr = [], surf = [], idx = [];
-    for (const t of this.tiles) {
-      const surfT = TYPES[t.t].surf;
-      for (let s = 0; s < 6; s++) {
-        const a = CORNERS[s], b = CORNERS[(s + 1) % 6], base = pos.length / 3;
-        // 三角形 (中心, a, b) 细分成 SUB² 个小三角
-        for (let i = 0; i <= SUB; i++) for (let j = 0; j <= SUB - i; j++) {
-          const u = i / SUB, v = j / SUB;
-          const x = t.x + a[0] * u + b[0] * v, z = t.z + a[1] * u + b[1] * v, h = this.heightIn(t, x, z);
-          pos.push(x, h, z);
-          const c = this._topColor(t, x, z, h); colr.push(c.r, c.g, c.b);
-          surf.push(surfT[0], surfT[1], surfT[2]);
-        }
-        const row = (i) => { let o = 0; for (let k = 0; k < i; k++) o += SUB + 1 - k; return o; };
-        for (let i = 0; i < SUB; i++) for (let j = 0; j < SUB - i; j++) {
-          const p0 = base + row(i) + j, p1 = base + row(i + 1) + j, p2 = p0 + 1;
-          idx.push(p0, p2, p1);
-          if (j < SUB - i - 1) { const p3 = p1 + 1; idx.push(p2, p3, p1); }
-        }
+  /** 一块地的顶面（带法线），坐标为世界坐标 */
+  tileTop(t) {
+    const pos = [], colr = [], surf = [], idx = [], surfT = (TYPES[t.t] || TYPES.meadow).surf;
+    for (let s = 0; s < 6; s++) {
+      const a = CORNERS[s], b = CORNERS[(s + 1) % 6], base = pos.length / 3;
+      for (let i = 0; i <= SUB; i++) for (let j = 0; j <= SUB - i; j++) {
+        const u = i / SUB, v = j / SUB;
+        const x = t.x + a[0] * u + b[0] * v, z = t.z + a[1] * u + b[1] * v, h = this.heightIn(t, x, z);
+        pos.push(x, h, z);
+        const c = this._topColor(t, x, z, h); colr.push(c.r, c.g, c.b);
+        surf.push(surfT[0], surfT[1], surfT[2]);
+      }
+      const row = (i) => { let o = 0; for (let k = 0; k < i; k++) o += SUB + 1 - k; return o; };
+      for (let i = 0; i < SUB; i++) for (let j = 0; j < SUB - i; j++) {
+        const p0 = base + row(i) + j, p1 = base + row(i + 1) + j, p2 = p0 + 1;
+        idx.push(p0, p2, p1);
+        if (j < SUB - i - 1) { const p3 = p1 + 1; idx.push(p2, p3, p1); }
       }
     }
     const g = new THREE.BufferGeometry();
@@ -150,111 +154,102 @@ export class Terrain {
     g.setAttribute('color', new THREE.Float32BufferAttribute(colr, 3));
     g.setAttribute('surf', new THREE.Float32BufferAttribute(surf, 3));
     g.setIndex(idx);
-    return mergeTileSeams(g);
+    const out = mergeTileSeams(g); out.computeVertexNormals();
+    return out;
   }
 
-  /** 相邻地块高度不同时，在高的一侧补一条土坎 */
-  _buildSteps() {
-    const pos = [], colr = [], idx = [], N = SUB * 2;
-    const soil = col(0x6e5038), soilD = col(0x4f3826);
-    for (const t of this.tiles) for (let k = 0; k < 6; k++) {
-      const nb = this.map.get(key(t.q + DIRS[k][0], t.r + DIRS[k][1]));
-      if (!nb || nb.base >= t.base) continue;
-      const a = CORNERS[(k + 5) % 6], b = CORNERS[k], base = pos.length / 3;
-      for (let i = 0; i <= N; i++) {
-        const u = i / N, x = t.x + a[0] + (b[0] - a[0]) * u, z = t.z + a[1] + (b[1] - a[1]) * u;
-        const y1 = this.heightIn(t, x, z), y0 = this.heightIn(nb, x, z) - 0.01;
-        pos.push(x, y1, z, x, y0, z);
-        colr.push(soil.r, soil.g, soil.b, soilD.r, soilD.g, soilD.b);
-        if (i < N) { const p = base + i * 2; idx.push(p, p + 2, p + 1, p + 2, p + 3, p + 1); }
-      }
-    }
-    if (!pos.length) return null;
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    g.setAttribute('color', new THREE.Float32BufferAttribute(colr, 3));
-    g.setIndex(idx); g.computeVertexNormals();
-    return g;
-  }
-
-  /** 海岸线：把所有没有邻居的边连成闭环 */
-  coastLoops() {
-    const edges = new Map(), r6 = (v) => Math.round(v * 1000);
-    for (const t of this.tiles) for (let k = 0; k < 6; k++) {
-      if (this.has(t.q + DIRS[k][0], t.r + DIRS[k][1])) continue;
-      const a = CORNERS[(k + 5) % 6], b = CORNERS[k];
-      const A = [t.x + a[0], t.z + a[1]], B = [t.x + b[0], t.z + b[1]];
-      edges.set(r6(A[0]) + ',' + r6(A[1]), { A, B, t, k, next: r6(B[0]) + ',' + r6(B[1]) });
-    }
-    const loops = [], used = new Set();
-    for (const [k0] of edges) {
-      if (used.has(k0)) continue;
-      const loop = []; let k = k0, guard = 0;
-      while (k && !used.has(k) && guard++ < 10000) { const e = edges.get(k); if (!e) break; used.add(k); loop.push(e); k = e.next; }
-      if (loop.length > 2) loops.push(loop);
-    }
-    return loops;
-  }
-
-  _buildCliffs() {
+  /** 一块地的“侧面”：朝海的岩壁 + 朝较低邻居的土坡；没有侧面时返回 null */
+  tileRock(t) {
     const parts = [];
-    for (const loop of this.coastLoops()) parts.push(this._cliffLoop(loop));
-    return mergeColored(parts);
+    for (let k = 0; k < 6; k++) {
+      const nb = this.map.get(key(t.q + DIRS[k][0], t.r + DIRS[k][1]));
+      if (!nb) parts.push(this.coastEdge(t, k));
+      else if (nb.base < t.base - 0.004) parts.push(this.stepEdge(t, k, nb));
+    }
+    return parts.length ? mergeColored(parts) : null;
   }
-  _cliffLoop(loop) {
-    const NU = 12, ROWS = [0, 0.012, 0.035, 0.07, 0.12, 0.2, 0.3, 0.42, 0.56, 0.7, 0.82, 0.92, 1.0];
-    const pts = [];
-    // 沿环取样：每条边 NU 段；法线取相邻两条边的平均（拐角处）
-    for (let e = 0; e < loop.length; e++) {
-      const E = loop[e], nA = edgeNormal(loop[(e + loop.length - 1) % loop.length]), nE = edgeNormal(E), nB = edgeNormal(loop[(e + 1) % loop.length]);
-      for (let i = 0; i < NU; i++) {
-        const u = i / NU, x = E.A[0] + (E.B[0] - E.A[0]) * u, z = E.A[1] + (E.B[1] - E.A[1]) * u;
-        let nx = nE[0], nz = nE[1];
-        if (i === 0) { nx = nA[0] + nE[0]; nz = nA[1] + nE[1]; const l = Math.hypot(nx, nz); nx /= l; nz /= l; }
-        pts.push({ x, z, nx, nz, t: E.t, corner: i === 0 });
+
+  /** 角点处的外法线：把所有接触这个角点的海岸边的法线加起来（相邻地块算出来完全一样，岩壁才能无缝对接） */
+  cornerNormal(px, pz, fallback) {
+    const keys = new Set();
+    for (let m = 0; m < 6; m++) { const a = (Math.PI / 3) * m + Math.PI / 6, [q, r] = fromWorld(px + Math.cos(a) * 0.3, pz + Math.sin(a) * 0.3); keys.add(key(q, r)); }
+    let nx = 0, nz = 0;
+    for (const kk of keys) {
+      const h = this.map.get(kk); if (!h) continue;
+      for (let c = 0; c < 6; c++) {
+        if (Math.abs(h.x + CORNERS[c][0] - px) > 1e-3 || Math.abs(h.z + CORNERS[c][1] - pz) > 1e-3) continue;
+        for (const e of [c, (c + 1) % 6]) if (!this.has(h.q + DIRS[e][0], h.r + DIRS[e][1])) { nx += Math.cos((Math.PI / 3) * e); nz += Math.sin((Math.PI / 3) * e); }
       }
     }
-    const n = pts.length, pos = new Float32Array(n * ROWS.length * 3), colr = new Float32Array(n * ROWS.length * 3), surf = new Float32Array(n * ROWS.length * 3);
+    const l = Math.hypot(nx, nz);
+    return l > 1e-4 ? [nx / l, nz / l] : fallback;
+  }
+
+  /** 一条海岸边的岩壁（沙滩是缓坡） */
+  coastEdge(t, k) {
+    const NU = 12, ROWS = [0, 0.012, 0.035, 0.07, 0.12, 0.2, 0.3, 0.42, 0.56, 0.7, 0.82, 0.92, 1.0], R = ROWS.length;
+    const A = [t.x + CORNERS[(k + 5) % 6][0], t.z + CORNERS[(k + 5) % 6][1]], B = [t.x + CORNERS[k][0], t.z + CORNERS[k][1]];
+    const nE = [Math.cos((Math.PI / 3) * k), Math.sin((Math.PI / 3) * k)], nA = this.cornerNormal(A[0], A[1], nE), nB = this.cornerNormal(B[0], B[1], nE);
+    const pos = new Float32Array((NU + 1) * R * 3), colr = new Float32Array((NU + 1) * R * 3), surf = new Float32Array((NU + 1) * R * 3);
     const strata = [col(0x8a6a4c), col(0x6f523c), col(0x9a7a58), col(0x5c4636), col(0x7d6650)], grassC = col(0x6f9a38), wet = col(0x3e3a34), rockG = col(0x77736c);
-    pts.forEach((p, i) => {
-      const yTop = this.heightIn(p.t, p.x - p.nx * 1e-3, p.z - p.nz * 1e-3);
-      ROWS.forEach((v, j) => {
-        const y = yTop + (SEA_FLOOR - yTop) * v;
-        // 剖面：顶部圆角外凸一点，中段近乎垂直，水下往外铺开成碎石坡
-        const beach = p.t.t === 'beach';
+    const beach = t.t === 'beach';
+    for (let i = 0; i <= NU; i++) {
+      const u = i / NU, x0 = A[0] + (B[0] - A[0]) * u, z0 = A[1] + (B[1] - A[1]) * u;
+      const n = i === 0 ? nA : i === NU ? nB : nE;
+      const yTop = this.heightIn(t, x0 - n[0] * 1e-3, z0 - n[1] * 1e-3);
+      for (let j = 0; j < R; j++) {
+        const v = ROWS[j], y = yTop + (SEA_FLOOR - yTop) * v;
         let off = (j === 0 ? 0 : 0.012 + 0.03 * Math.sin(Math.min(1, v * 4) * Math.PI * 0.5)) + Math.max(0, v - 0.55) ** 2 * 1.4;
-        if (beach) off = Math.min(yTop - y, 0.9) * 1.75 + Math.max(0, yTop - y - 0.9) * 0.6 + NZ.n2(p.x * 3, p.z * 3) * 0.04 * Math.min(1, v * 6);
-        if (j >= 2 && !beach) {
-          const s = NZ.fbm3(p.x * 1.8, y * 2.6, p.z * 1.8, 4);
-          off += s * 0.11 + Math.round(NZ.n3(p.x * 0.7, y * 7.0, p.z * 0.7) * 2) * 0.022;
-        }
-        const wx = j >= 2 && !beach ? NZ.n3(p.x * 2.3 + 40, y * 2.3, p.z * 2.3) * 0.04 : 0, wz = j >= 2 && !beach ? NZ.n3(p.x * 2.3, y * 2.3, p.z * 2.3 - 40) * 0.04 : 0;
-        const o = (i * ROWS.length + j) * 3;
-        pos[o] = p.x + p.nx * off + wx; pos[o + 1] = y + (j >= 2 ? NZ.n3(p.x * 3, y * 3, p.z * 3) * 0.02 : 0); pos[o + 2] = p.z + p.nz * off + wz;
-        // 颜色：顶上一圈草皮垂边，往下是分层岩，水线附近变湿变暗
-        const band = strata[Math.abs(Math.floor(y * 9 + NZ.n3(p.x * 1.2, y * 2, p.z * 1.2) * 1.6)) % strata.length].clone();
+        if (beach) off = Math.min(yTop - y, 0.9) * 1.75 + Math.max(0, yTop - y - 0.9) * 0.6 + NZ.n2(x0 * 3, z0 * 3) * 0.04 * Math.min(1, v * 6);
+        if (j >= 2 && !beach) off += NZ.fbm3(x0 * 1.8, y * 2.6, z0 * 1.8, 4) * 0.11 + Math.round(NZ.n3(x0 * 0.7, y * 7.0, z0 * 0.7) * 2) * 0.022;
+        const wx = j >= 2 && !beach ? NZ.n3(x0 * 2.3 + 40, y * 2.3, z0 * 2.3) * 0.04 : 0, wz = j >= 2 && !beach ? NZ.n3(x0 * 2.3, y * 2.3, z0 * 2.3 - 40) * 0.04 : 0;
+        const o = (i * R + j) * 3;
+        pos[o] = x0 + n[0] * off + wx; pos[o + 1] = y + (j >= 2 ? NZ.n3(x0 * 3, y * 3, z0 * 3) * 0.02 : 0); pos[o + 2] = z0 + n[1] * off + wz;
+        const band = strata[Math.abs(Math.floor(y * 9 + NZ.n3(x0 * 1.2, y * 2, z0 * 1.2) * 1.6)) % strata.length].clone();
         band.lerp(rockG, THREE.MathUtils.clamp(-y * 0.5, 0, 0.6));
-        if (j <= 1) band.copy(grassC);
-        else if (j === 2) band.lerp(grassC, 0.35 + NZ.n2(p.x * 9, p.z * 9) * 0.3);
+        if (j <= 1) band.copy(grassC); else if (j === 2) band.lerp(grassC, 0.35 + NZ.n2(x0 * 9, z0 * 9) * 0.3);
         const wetF = 1 - THREE.MathUtils.smoothstep(y, -0.05, 0.12);
-        if (beach) { band.copy(col(0xe6d3a2)).lerp(col(0xc9b07c), THREE.MathUtils.clamp(0.2 - y * 2, 0, 1) * 0.6).multiplyScalar(0.93 + NZ.n2(p.x * 20, y * 20) * 0.07); band.lerp(col(0xb59a6a), wetF * 0.6); }
+        if (beach) { band.copy(col(0xe6d3a2)).lerp(col(0xc9b07c), THREE.MathUtils.clamp(0.2 - y * 2, 0, 1) * 0.6).multiplyScalar(0.93 + NZ.n2(x0 * 20, y * 20) * 0.07); band.lerp(col(0xb59a6a), wetF * 0.6); }
         else band.lerp(wet, wetF * 0.55);
         colr[o] = band.r; colr[o + 1] = band.g; colr[o + 2] = band.b;
         surf[o] = j <= 1 && !beach ? 1 : 0; surf[o + 1] = j <= 1 || beach ? 0 : 1; surf[o + 2] = beach ? 0.1 : wetF;
-      });
-    });
-    const idx = [], R = ROWS.length;
-    for (let i = 0; i < n; i++) { const i2 = (i + 1) % n; for (let j = 0; j < R - 1; j++) { const a = i * R + j, b = i2 * R + j; idx.push(a, b, a + 1, b, b + 1, a + 1); } }
+      }
+    }
+    const idx = [];
+    for (let i = 0; i < NU; i++) for (let j = 0; j < R - 1; j++) { const a = i * R + j, b = (i + 1) * R + j; idx.push(a, b, a + 1, b, b + 1, a + 1); }
     const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    g.setAttribute('color', new THREE.BufferAttribute(colr, 3));
-    g.setAttribute('surf', new THREE.BufferAttribute(surf, 3));
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(colr, 3)); g.setAttribute('surf', new THREE.BufferAttribute(surf, 3));
     g.setIndex(idx); g.computeVertexNormals();
     return g;
   }
 
-  /** 离最近陆地中心的距离（减去地块半径） */
-  landDist(x, z) { let dl = 1e9; for (const t of this.tiles) dl = Math.min(dl, Math.hypot(x - t.x, z - t.z)); return Math.max(0, dl - 0.95); }
+  /** 朝较低邻居的一面：做成带草皮唇边的土坡，下沿伸进邻居地里；邻居是沙滩时过渡成沙坡 */
+  stepEdge(t, k, nb) {
+    const N = SUB * 2, ROWS = 4, A = [t.x + CORNERS[(k + 5) % 6][0], t.z + CORNERS[(k + 5) % 6][1]], B = [t.x + CORNERS[k][0], t.z + CORNERS[k][1]];
+    const nx = Math.cos((Math.PI / 3) * k), nz = Math.sin((Math.PI / 3) * k), sandy = nb.t === 'beach';
+    const lip = col(0x6f9a38), soil = col(0x7a5a3e), soilD = col(0x5a422d), sand = col(0xd9c597);
+    const pos = [], colr = [], idx = [], srf = [];
+    for (let i = 0; i <= N; i++) {
+      const u = i / N, x0 = A[0] + (B[0] - A[0]) * u, z0 = A[1] + (B[1] - A[1]) * u, y1 = this.heightIn(t, x0, z0);
+      const dh = Math.max(0.01, y1 - this.heightIn(nb, x0, z0)), reach = dh * (sandy ? 2.6 : 1.1) + 0.025 + NZ.n2(x0 * 7, z0 * 7) * 0.012;
+      for (let j = 0; j < ROWS; j++) {
+        const f = j / (ROWS - 1), ox = x0 + nx * reach * f, oz = z0 + nz * reach * f;
+        const yb = this.heightIn(nb, ox, oz) - 0.006, y = j === 0 ? y1 : THREE.MathUtils.lerp(y1, yb, sandy ? f : Math.pow(f, 0.7));
+        pos.push(ox, y, oz);
+        const c = j === 0 ? lip.clone() : sandy ? soil.clone().lerp(sand, f) : soil.clone().lerp(soilD, f);
+        c.multiplyScalar(0.92 + NZ.n2(x0 * 15, y * 30) * 0.08);
+        colr.push(c.r, c.g, c.b); srf.push(j === 0 ? 1 : 0, 0, j === 0 ? 0 : 1);
+      }
+      if (i < N) for (let j = 0; j < ROWS - 1; j++) { const a = i * ROWS + j, b = (i + 1) * ROWS + j; idx.push(a, b, a + 1, b, b + 1, a + 1); }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(colr, 3)); g.setAttribute('surf', new THREE.Float32BufferAttribute(srf, 3));
+    g.setIndex(idx); g.computeVertexNormals();
+    return g;
+  }
+
+  /** 到最近陆地边缘的距离（陆地距离场，增量更新） */
+  landDist(x, z) { return this.field.dist(x, z); }
   /** 海底高度：岛周围浅、远处深 */
   seabedAt(x, z) {
     const dl = this.landDist(x, z);
@@ -263,9 +258,9 @@ export class Terrain {
     y += Math.sin(x * 2.4 + NZ.n2(x * 0.3, z * 0.3) * 4) * 0.015;
     return y;
   }
-  /** 海底网格 */
-  buildSeabed(material, radius = 60, seg = 240) {
-    const g = new THREE.PlaneGeometry(radius * 2, radius * 2, seg, seg); g.rotateX(-Math.PI / 2);
+  /** 海底网格（样张：一整块；游戏：按区块，传入中心） */
+  buildSeabed(material, radius = 60, seg = 240, cx = 0, cz = 0) {
+    const g = new THREE.PlaneGeometry(radius * 2, radius * 2, seg, seg); g.rotateX(-Math.PI / 2); g.translate(cx, 0, cz);
     const p = g.attributes.position, colr = new Float32Array(p.count * 3), sand = col(0xcdb88e), mid = col(0x7f8c6e), deep = col(0x3b5560), rockC = col(0x7a7468);
     for (let i = 0; i < p.count; i++) {
       const x = p.getX(i), z = p.getZ(i);
@@ -284,7 +279,6 @@ export class Terrain {
   }
 }
 
-function edgeNormal(E) { const dx = E.B[0] - E.A[0], dz = E.B[1] - E.A[1], l = Math.hypot(dx, dz); return [dz / l, -dx / l]; }
 
 /** 相邻扇区共享的边上会有重复顶点：按位置合并，法线才能平滑 */
 function mergeTileSeams(g) {
