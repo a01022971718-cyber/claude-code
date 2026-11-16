@@ -145,7 +145,7 @@ class Showcase {
       if (t) rocks.push({ v: Math.floor(R() * 4), x, y: H(t, x, z) - 0.02, z, s: 0.03 + R() * 0.04, ry: R() * 6.28 });
     }
     // 海里的礁石
-    for (const [x, z, s] of [[-4.2, 2.6, 0.45], [-3.9, 3.3, 0.25], [4.6, 2.4, 0.38], [4.1, -4.6, 0.3], [-3.2, -3.4, 0.35], [3.2, 4.4, 0.22], [7.2, -2.1, 0.3]]) rocks.push({ v: 6 + Math.floor(R() * 2), x, y: -0.35, z, s, ry: R() * 6.28, sy: 1.7 });
+    for (const [x, z, s] of [[-4.2, 2.6, 0.45], [-3.9, 3.3, 0.25], [4.6, 2.4, 0.38], [4.1, -4.6, 0.3], [-3.2, -3.4, 0.35], [3.2, 4.4, 0.22], [7.2, -2.1, 0.3]]) { const v = 6 + Math.floor(R() * 2), ry = R() * 6.28; if (T.tileAt(x, z) || T.landDist(x, z) < s + 0.3) continue; rocks.push({ v, x, y: -0.35, z, s, ry, sy: 1.7 }); } // 落在陆地或贴着岸的礁石跳过（会从沙滩里露出来）
     const treeMat = foliageMaterial({ sway: 1, translucency: 0.45 }), bushMat = foliageMaterial({ sway: 0.5, translucency: 0.35 });
     scene.add(instanced(conV, trees, treeMat), instanced(broadV, broads, treeMat), instanced(bushV, bushes, bushMat));
     const rockV = [boulder(1), boulder(2, 1), boulder(3), boulder(4, 1), boulder(5), boulder(6, 1), boulder(7, 0, 0), boulder(8, 1, 0)];
