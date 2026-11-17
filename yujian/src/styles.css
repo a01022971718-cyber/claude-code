@@ -341,3 +341,32 @@ body { background: var(--haze); color: var(--ink); font-family: var(--font); fon
 .aiform input, .aiform textarea, .aiform select { width: 100%; box-sizing: border-box; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line); background: var(--paper2); color: var(--ink); font: inherit; font-weight: 500; }
 .aiform textarea { resize: vertical; min-height: 64px; }
 .aiform .note { margin: 6px 0; }
+
+/* ---- 建造栏小分类 ---- */
+.c-groups { display: flex; gap: 6px; overflow-x: auto; padding: 0 2px 6px 6px; scrollbar-width: none; }
+.c-groups::-webkit-scrollbar { display: none; }
+.c-grp { flex: none; padding: 4px 11px; border-radius: 999px; background: rgba(255,255,255,.1); color: rgba(255,255,255,.82); font-size: 12px; white-space: nowrap; }
+.c-grp i { font-style: normal; opacity: .55; margin-left: 4px; font-size: 11px; }
+.c-grp.on { background: #f7e7b8; color: #17313b; }
+
+/* ---- AI 造物：流程、对比图、造物手册 ---- */
+.aichk { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; color: var(--ink2, #4a5a60); margin: 2px 0 8px; }
+.aichk input { margin-top: 2px; }
+.aimsg b { color: var(--ink); }
+.aiout figure { margin: 8px 0; }
+.aiout img { width: 100%; border-radius: 10px; display: block; background: #e6eef0; }
+.aiout figcaption { font-size: 11px; color: #6a7a80; margin-top: 4px; line-height: 1.5; }
+.aiout .rowb { margin-top: 8px; }
+.sop { font-size: 13px; line-height: 1.65; color: var(--ink); }
+.sop h3 { font-size: 14px; margin: 14px 0 6px; }
+.sop ol { padding-left: 20px; margin: 0; }
+.sop li { margin: 3px 0; }
+.sop table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.sop td { padding: 4px 6px; border-bottom: 1px solid rgba(0,0,0,.07); vertical-align: top; }
+.sop td:first-child { white-space: nowrap; font-weight: 600; }
+.sop .lead { background: var(--paper2); border-radius: 10px; padding: 8px 10px; }
+.pal { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 4px; }
+.pal .sw { height: 34px; border-radius: 6px; position: relative; }
+.pal .sw i { position: absolute; left: 0; right: 0; bottom: -1px; font-size: 9px; font-style: normal; text-align: center; color: #fff; text-shadow: 0 0 2px #000, 0 0 2px #000; }
+.aiform label.aichk { display: flex; flex-direction: row; text-align: left; font-weight: 400; }
+.aiform label.aichk input { width: auto; flex: none; }

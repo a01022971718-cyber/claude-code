@@ -2,7 +2,7 @@
 //  - 只占四个角：左上岛屿菜单，右上时间/镜头/拍照/设置（镜头面板从右边缘伸出），右下（右手拇指）建造按钮，左下撤销/橡皮擦（只在建造时出现）。
 //  - 选了分类才从底边伸出一条物件栏；摆放时界面不挡住点到的位置（物件栏只占底边一条）。
 //  - 不操作 4 秒后界面自动淡出，只留一个半透明的建造按钮；碰一下屏幕就回来。
-import { CATEGORIES, ITEMS } from './catalog.js';
+import { CATEGORIES, ITEMS, GROUPS, AI_GROUP } from './catalog.js';
 import { RARE, DISCOVERY } from './discovery.js';
 import { thumb, thumbMaterial } from './thumbs.js';
 import { kit, propOf } from './hq/dressing.js';
@@ -46,11 +46,11 @@ export class CanvasHUD {
       <div class="c-bl"><button class="c-ico" data-a="undo" aria-label="撤销">${I.undo}<i>撤销</i></button><button class="c-ico" data-a="erase" aria-label="橡皮擦">${I.erase}<i>擦除</i></button></div>
       <div class="c-br"><div class="c-wheel">${CATEGORIES.map((c, i) => `<button class="c-cat" data-cat="${c.id}" style="--i:${i}" aria-label="${c.name}">${CAT_ICON[c.id]}<i>${c.name}</i></button>`).join('')}</div>
         <button class="c-fab" data-a="build" aria-label="建造">${I.build}<i>建造</i></button></div>
-      <div class="c-strip" hidden><div class="c-strip-head"><b></b><span></span></div><div class="c-items"></div></div>
+      <div class="c-strip" hidden><div class="c-strip-head"><b></b><span></span></div><div class="c-groups"></div><div class="c-items"></div></div>
       <div class="c-hint" hidden></div>
       <div class="c-tut" hidden><span></span><button data-a="tutSkip">跳过</button></div>`;
     document.getElementById('ui').appendChild(root);
-    this.root = root; this.el = { strip: root.querySelector('.c-strip'), items: root.querySelector('.c-items'), head: root.querySelector('.c-strip-head'), hint: root.querySelector('.c-hint'), chip: root.querySelector('.c-chip') };
+    this.root = root; this.group = {}; this.el = { groups: root.querySelector('.c-groups'), strip: root.querySelector('.c-strip'), items: root.querySelector('.c-items'), head: root.querySelector('.c-strip-head'), hint: root.querySelector('.c-hint'), chip: root.querySelector('.c-chip') };
     root.addEventListener('click', (e) => this._click(e));
     // 空闲淡出
     const wake = () => this.wake();
@@ -69,6 +69,7 @@ export class CanvasHUD {
     e.stopPropagation(); audio.sfx('tap');
     const a = b.dataset.a, cv = this.cv;
     if (b.dataset.cat) return this.setCat(this.cat === b.dataset.cat ? null : b.dataset.cat);
+    if (b.dataset.grp !== undefined) { this.group[this.cat] = b.dataset.grp; this.renderItems(); return; }
     if (b.dataset.item) {
       const id = b.dataset.item;
       if (b.classList.contains('locked')) { this.hint(`还没发现${RARE[id]?.name || ''}：在草地上多放几块地，泉水会自己冒出来`, 2400); return; }
@@ -109,7 +110,13 @@ export class CanvasHUD {
     if (id === 'land') { const d = cv.s.disc, left = Math.max(0, DISCOVERY.hardAt - d.since), pct = Math.round(cv.nextChance() * 100); sub = d.total ? `泉水保底：还差 ${left} 块草地必出 · 下一块 ${pct}%` : `再放 ${Math.max(1, DISCOVERY.firstAt - d.grass)} 块草地，会有惊喜`; }
     if (id === 'sky') sub = '跟随现实时间时，早晚和你那边同步';
     this.el.head.innerHTML = `<b>${cat.name}</b><span>${sub}</span><button class="c-x" data-a="closeStrip" aria-label="收起">${I.close}</button>`;
-    this.el.items.innerHTML = ITEMS[id].map((it) => {
+    // 小分类：全部 · 各小类 · ✦ AI 造物（只列有东西的）
+    const all = ITEMS[id], gs = [...(GROUPS[id] || []).filter((g) => all.some((it) => it.g === g)), ...(all.some((it) => it.ai) ? [AI_GROUP] : [])];
+    let cur = this.group[id] || ''; if (cur && !gs.includes(cur)) cur = this.group[id] = '';
+    this.el.groups.hidden = gs.length < 2;
+    this.el.groups.innerHTML = [['', '全部'], ...gs.map((g) => [g, g])].map(([g, n]) => `<button class="c-grp ${g === cur ? 'on' : ''}" data-grp="${g}">${n}<i>${g ? all.filter((it) => (g === AI_GROUP ? it.ai : it.g === g)).length : all.length}</i></button>`).join('');
+    const list = cur ? all.filter((it) => (cur === AI_GROUP ? it.ai : it.g === cur)) : all;
+    this.el.items.innerHTML = list.map((it) => {
       const locked = it.rare && !cv.unlocked(it.id), on = cv.sel === it.id;
       return `<button class="c-item ${on ? 'on' : ''} ${locked ? 'locked' : ''} ${it.rare ? 'rare' : ''}" data-item="${it.id}">${this._icon(it, locked)}<i>${locked ? '未发现' : it.name}</i></button>`;
     }).join('');
@@ -190,6 +197,7 @@ export class CanvasHUD {
         <button class="c-card" data-n="starter"><b>样张岛</b><span>从高画质样张那座完整的岛开始</span></button>
         <button class="c-card" data-n="blank"><b>空白小岛</b><span>三块地，从零开始搭</span></button>
         <button class="c-card" data-n="ai"><b>AI 造岛</b><span>用一句话描述，AI 帮你设计一座岛</span></button>
+        <button class="c-card" data-n="sop"><b>造物手册</b><span>AI 和人共用的美术 SOP：七步做法、色板、比例尺、审图清单</span></button>
       </div>
       <p class="note">已发现：${Object.keys(RARE).map((k) => `${RARE[k].name}${cv.unlocked(k) ? ' ✓' : '（未发现）'}`).join('　')}</p>
       <p class="note">自由画布的存档和经营玩法分开保存。想玩资源、目标、地块卡，到设置里打开「经营玩法」。</p>`, 'small');
@@ -198,6 +206,7 @@ export class CanvasHUD {
       if (e.target.closest('[data-close]')) return ui.closeModal();
       const b = e.target.closest('[data-n]'); if (!b) return;
       if (b.dataset.n === 'ai') return ui.openAIIsland();
+      if (b.dataset.n === 'sop') return ui.openSOP();
       if (!(await ui.confirm('换一座新岛会清空现在这座岛，确定吗？', '换新岛'))) return;
       cv.newWorld(b.dataset.n); this.setOpen(false); ui.toast(b.dataset.n === 'starter' ? '回到了样张岛' : '一座新的小岛');
     });

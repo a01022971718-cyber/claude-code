@@ -8,6 +8,7 @@
 // 默认模型 claude-opus-5-5；开启了服务端兜底（模型因安全原因拒绝时，自动换一个模型重试同一个请求）。
 import Anthropic from '@anthropic-ai/sdk';
 import { ITEMS } from './catalog.js';
+import { sopPrompt, snap, shade, FORMS, CHECKLIST } from './artsop.js';
 
 export const DEFAULT_MODEL = 'claude-opus-5-5';
 /** 服务商。kind: 'anthropic' 走官方 SDK；'openai' 走 OpenAI 兼容接口（POST {地址}/chat/completions，绝大多数厂商和本地模型都支持）。
@@ -49,14 +50,14 @@ const ISLAND_SCHEMA = {
     plants: {
       type: 'array', description: '这次新创造的植物，0–6 种',
       items: { type: 'object', additionalProperties: false, required: ['name', 'form', 'height', 'trunkColor', 'trunkThickness', 'bend', 'crownShape', 'crownColor', 'crownColor2', 'crownSize', 'accent', 'accentColor'],
-        properties: { name: { type: 'string' }, form: { type: 'string', enum: ['tree', 'conifer', 'palm', 'bush', 'mushroom', 'flower', 'cactus', 'crystal', 'reed'] }, height: { type: 'number', description: '高度 0.1–1.6（普通树 0.85，灌木 0.2）' },
-          trunkColor: HEX, trunkThickness: { type: 'number', description: '0–1' }, bend: { type: 'number', description: '树干弯曲 0–1' }, crownShape: { type: 'string', enum: ['sphere', 'cone', 'layers', 'umbrella', 'cluster', 'spike', 'blob'] },
+        properties: { name: { type: 'string' }, form: { type: 'string', enum: ['tree', 'conifer', 'palm', 'bush', 'mushroom', 'flower', 'cactus', 'crystal', 'reed'] }, height: { type: 'number', description: '高度，按 SOP 里每种形态的范围（普通树 0.85，灌木 0.2）' },
+          trunkColor: HEX, trunkThickness: { type: 'number', description: '0–1' }, bend: { type: 'number', description: '树干弯曲 0–1' }, crownShape: { type: 'string', enum: ['round', 'tall', 'wide', 'droop'], description: '轮廓：round 原样、tall 高瘦、wide 矮宽、droop 垂枝' },
           crownColor: HEX, crownColor2: HEX, crownSize: { type: 'number', description: '0.15–1.2' }, accent: { type: 'string', enum: ['none', 'fruit', 'flower', 'spots', 'glow'] }, accentColor: HEX } },
     },
     creatures: {
       type: 'array', description: '这次新创造的动物，0–5 种',
       items: { type: 'object', additionalProperties: false, required: ['name', 'shape', 'size', 'color', 'color2', 'legs', 'head', 'eyes', 'ears', 'horns', 'tail', 'wings', 'pattern', 'move', 'habitat', 'count'],
-        properties: { name: { type: 'string' }, shape: { type: 'string', enum: ['round', 'long', 'box', 'flat'] }, size: { type: 'number', description: '身长 0.03（虫子）–0.25（大型），鹿约 0.15，兔子 0.05' },
+        properties: { name: { type: 'string' }, shape: { type: 'string', enum: ['round', 'long', 'box', 'flat'] }, size: { type: 'number', description: '身长 0.04（小虫）–0.16，鹿约 0.15，兔子 0.05' },
           color: HEX, color2: HEX, legs: { type: 'integer', enum: [0, 2, 4, 6] }, head: { type: 'number', description: '头和身子的比例 0.2–0.8' }, eyes: { type: 'string', enum: ['big', 'small'] },
           ears: { type: 'string', enum: ['none', 'round', 'long', 'pointy'] }, horns: { type: 'string', enum: ['none', 'small', 'antlers'] }, tail: { type: 'string', enum: ['none', 'short', 'long', 'fluffy', 'fin'] },
           wings: { type: 'boolean' }, pattern: { type: 'string', enum: ['none', 'spots', 'stripes', 'belly'] }, move: { type: 'string', enum: ['walk', 'hop', 'fly', 'swim', 'slither'] },
@@ -76,19 +77,23 @@ const ISLAND_SCHEMA = {
   required: ['name', 'note', 'biomes', 'plants', 'creatures', 'tiles', 'items', 'sea', 'hour'],
   additionalProperties: false,
 };
+const REVIEW_SCHEMA = { type: 'object', additionalProperties: false, required: ['score', 'notes', 'biomes', 'plants', 'creatures'],
+  properties: { score: { type: 'integer', description: '1–10' }, notes: { type: 'string', description: '最重要的问题，60 字以内' }, biomes: ISLAND_SCHEMA.properties.biomes, plants: ISLAND_SCHEMA.properties.plants, creatures: ISLAND_SCHEMA.properties.creatures } };
 const ISLAND_SYSTEM = `你是一款治愈系六边形海岛游戏的美术设计师兼关卡设计师。你不只是用现有素材搭岛，更要**创造游戏里原本没有的新东西**：
 新的生态（地块类型：自己的地面颜色、起伏、草和花、长什么植物）、新的植物（按形态和配色设计）、新的动物（按体型、腿、头、耳、角、尾、翅膀、花纹、颜色、习性设计）。
 游戏会按你给的配方现场生成 3D 模型。
 规则：
 - 默认每次都要创造：至少 1 种新生态、2–4 种新植物、1–3 种新动物，并把它们放进岛里（新生态的地块、新植物和新动物的物件）。玩家明确说“只用现有的”时才不创造。
-- 新东西要有想象力，但要和谐好看：配色用柔和、有层次的颜色，避免纯黑纯白和刺眼的荧光色；名字是 2–6 个汉字，不和原有的重名。
+- 新东西要有想象力，但必须严格按下面的美术标准（SOP）设计，和游戏原有素材是同一个风格；名字是 2–6 个汉字，不和原有的重名。
 - 新生态的植物列表里引用新植物或原有植物的名字；新动物的 habitat 写它住的地块类型（可以是新生态的名字）、land 或 sea。
 - 原有地块类型（英文 id）：meadow 草地、flowers 花田、forest 森林、mountain 岩山、quarry 采石场、field 菜地、wheat 麦田、beach 沙滩、camp 营地、stream 溪流、pond 池塘、islet 小离岛草地。
 - 原有物件（英文 id）：lighthouse 灯塔、windmill 风车、belltower 钟楼、hut 茅屋、campfire 营火、woodpile 柴堆、fence 篱笆、signpost 路牌、boat 小船、buoy 浮标、pine 松树、oak 阔叶树、sakura 樱花树、maple 秋叶树、bush 灌木、palm 椰子树、reed 芦苇、boulder 巨石、deer 鹿、sheep 羊、rabbit 兔子、crab 螃蟹。
 - 新岛的地块 12–40 块（改造现有的岛时按需要增减），连成一片（可以另有 1–2 个小离岛），岛的中心在 (0,0) 附近。
 - 要像真实的地方：同类地块成片，沙滩在岸边，溪流连成一条线流向海边；新生态和相邻的地块要过渡自然。
 - 物件 8–30 个，每块地最多 2 个。
-- 用中文起名字和写介绍。`;
+- 用中文起名字和写介绍。
+
+` + sopPrompt();
 
 export class AIService {
   constructor(settings) { this.st = settings; }
@@ -126,7 +131,8 @@ export class AIService {
   async _ask(params) {
     if (this.prov.kind !== 'anthropic') {
       const schema = params.output_config?.format?.schema;
-      return this._askCompat({ system: (params.system || '') + (schema ? '\n只输出一个 JSON 对象，不要任何解释或代码块标记。JSON 必须符合这个结构（JSON Schema）：\n' + JSON.stringify(schema) : ''), user: params.messages[0].content, json: !!schema, max: Math.min(params.max_tokens, 8000) });
+      const c = params.messages[0].content, user = typeof c === 'string' ? c : c.map((b) => (b.type === 'image' ? { type: 'image_url', image_url: { url: `data:${b.source.media_type};base64,${b.source.data}` } } : b));
+      return this._askCompat({ system: (params.system || '') + (schema ? '\n只输出一个 JSON 对象，不要任何解释或代码块标记。JSON 必须符合这个结构（JSON Schema）：\n' + JSON.stringify(schema) : ''), user, json: !!schema, max: Math.min(params.max_tokens, 8000) });
     }
     const model = this.model, fb = FALLBACK_OK.has(model);
     const res = await this.client().beta.messages.create({
@@ -157,6 +163,25 @@ export class AIService {
     let data; try { data = JSON.parse(text.replace(/^\s*```(?:json)?/i, '').replace(/```\s*$/, '')); } catch { throw new Error('模型返回的布局读不出来，再试一次'); }
     return sanitizeIsland(data, known);
   }
+  /** AI 审图：把“原有素材 + 新素材”同比例并排的渲染图给视觉模型，按 SOP 检查清单打分，返回意见和改好的配方。
+   *  image：data:image/jpeg;base64,...；labels：图里从左到右每个东西的名字；design：{ biomes, plants, creatures } */
+  async review(image, labels, design) {
+    const [head, data] = image.split(','), media = head.slice(5, head.indexOf(';'));
+    const text = `这张图是游戏里并排渲染的素材，上排是生态和植物、下排是动物，每排内部同一比例，从左到右依次是：${labels.join('、')}。标“原有”的是游戏原有素材（风格标准），其余是这次新设计的。
+新设计的配方（JSON）：${JSON.stringify(design)}
+请按美术标准的审图清单逐条检查新素材：${CHECKLIST.map((c, i) => `(${i + 1}) ${c}`).join(' ')}
+给 1–10 分，用 60 字以内中文写出最重要的问题；然后返回修改后的全部配方（名字不变，字段和原来一样；觉得没问题的照原样返回）。`;
+    const { text: out } = await this._ask({
+      max_tokens: 16000, system: sopPrompt(),
+      output_config: { effort: 'medium', format: { type: 'json_schema', schema: REVIEW_SCHEMA } },
+      messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: media, data } }, { type: 'text', text }] }],
+    });
+    let d; try { d = JSON.parse(out.replace(/^\s*```(?:json)?/i, '').replace(/```\s*$/, '')); } catch { throw new Error('审图结果读不出来'); }
+    const fixed = sanitizeDesign(d);
+    // 只接受同名的修改，没返回的保留原样
+    const keep = (a, b) => a.map((x) => b.find((y) => y.name === x.name) || x);
+    return { score: Math.round(num(d.score, 1, 10, 6)), notes: String(d.notes || '').slice(0, 80), biomes: keep(design.biomes, fixed.biomes), plants: keep(design.plants, fixed.plants), creatures: keep(design.creatures, fixed.creatures) };
+  }
   /** 岛民说话：ctx = { name, doing, hour, weather } → 一句话 */
   async villagerLine(ctx) {
     const { text } = await this._ask({
@@ -184,20 +209,24 @@ export function aiError(e) {
 
 /** 模型的布局做一遍清洗：去重、限量、地块必须连在岛上（离岛除外）、物件必须落在地块上 */
 const num = (v, lo, hi, def) => { const n = Number(v); return Number.isFinite(n) ? Math.max(lo, Math.min(hi, n)) : def; };
-const hexOk = (v, def) => (typeof v === 'string' && /^#?[0-9a-fA-F]{6}$/.test(v.trim()) ? '#' + v.trim().replace('#', '') : def);
+const hexOk = (v, def) => snap(v, def);   // 任何颜色都吸到 SOP 色板上
 const pick = (v, list, def) => (list.includes(v) ? v : def);
 const nm = (v, def) => String(v || def).replace(/[\s"'<>]/g, '').slice(0, 8) || def;
 /** 模型给的结果做一遍清洗：造物配方的数值夹在合理范围里、颜色和枚举都合法；布局去重、限量、物件必须落在地块上。
  *  known：以前造过的东西的名字，布局里可以引用 */
-export function sanitizeIsland(d, known = null) {
-  const biomes = (d.biomes || []).slice(0, 3).map((b, i) => ({ name: nm(b.name, '新生态' + (i + 1)), colors: (b.colors || []).slice(0, 3).map((c, k) => hexOk(c, ['#7fae4a', '#5f8f3a', '#a8c860'][k])), height: num(b.height, 0.36, 0.5, 0.45), roughness: num(b.roughness, 0, 1, 0.3),
+export function sanitizeDesign(d) {
+  const biomes = (d.biomes || []).slice(0, 3).map((b, i) => ({ name: nm(b.name, '新生态' + (i + 1)), colors: ((m) => [m, shade(m, -0.07), shade(m, 0.07)])(hexOk((b.colors || [])[0], '#8cc043')), height: num(b.height, 0.36, 0.5, 0.45), roughness: num(b.roughness, 0, 1, 0.3),
     grass: num(b.grass, 0, 1, 0.6), grassColor: hexOk(b.grassColor, '#8cc043'), flowers: num(b.flowers, 0, 1, 0.2), flowerColors: (b.flowerColors || []).slice(0, 5).map((c) => hexOk(c, '#f2c45a')), plants: (b.plants || []).slice(0, 5).map((p) => ({ name: nm(p.name, ''), density: num(p.density, 0, 1, 0.5) })) }));
-  const plants = (d.plants || []).slice(0, 6).map((p, i) => ({ name: nm(p.name, '新植物' + (i + 1)), form: pick(p.form, ['tree', 'conifer', 'palm', 'bush', 'mushroom', 'flower', 'cactus', 'crystal', 'reed'], 'tree'), height: num(p.height, 0.1, 1.6, 0.8),
-    trunkColor: hexOk(p.trunkColor, '#6b4a32'), trunkThickness: num(p.trunkThickness, 0, 1, 0.5), bend: num(p.bend, 0, 1, 0.1), crownShape: pick(p.crownShape, ['sphere', 'cone', 'layers', 'umbrella', 'cluster', 'spike', 'blob'], 'sphere'),
-    crownColor: hexOk(p.crownColor, '#4f8a3a'), crownColor2: hexOk(p.crownColor2, '#8fc050'), crownSize: num(p.crownSize, 0.15, 1.2, 0.6), accent: pick(p.accent, ['none', 'fruit', 'flower', 'spots', 'glow'], 'none'), accentColor: hexOk(p.accentColor, '#e04a3a') }));
-  const creatures = (d.creatures || []).slice(0, 5).map((c, i) => ({ name: nm(c.name, '新动物' + (i + 1)), shape: pick(c.shape, ['round', 'long', 'box', 'flat'], 'round'), size: num(c.size, 0.03, 0.25, 0.08), color: hexOk(c.color, '#c98a4a'), color2: hexOk(c.color2, '#f0e2c8'),
+  const plants = (d.plants || []).slice(0, 6).map((p, i) => { const form = pick(p.form, Object.keys(FORMS), 'tree'), [h0, h1] = FORMS[form].h; return { name: nm(p.name, '新植物' + (i + 1)), form, height: num(p.height, h0, h1, (h0 + h1) / 2),
+    trunkColor: hexOk(p.trunkColor, '#6b4a32'), trunkThickness: num(p.trunkThickness, 0, 1, 0.5), bend: num(p.bend, 0, 1, 0.1), crownShape: pick(p.crownShape, ['round', 'tall', 'wide', 'droop'], 'round'),
+    crownColor: hexOk(p.crownColor, '#4f8a3a'), crownColor2: hexOk(p.crownColor2, '#8fc050'), crownSize: num(p.crownSize, 0.15, 1.2, 0.6), accent: pick(p.accent, ['none', 'fruit', 'flower', 'spots', 'glow'], 'none'), accentColor: hexOk(p.accentColor, '#e04a3a') }; });
+  const creatures = (d.creatures || []).slice(0, 5).map((c, i) => ({ name: nm(c.name, '新动物' + (i + 1)), shape: pick(c.shape, ['round', 'long', 'box', 'flat'], 'round'), size: num(c.size, 0.04, 0.16, 0.08), color: hexOk(c.color, '#c98a4a'), color2: hexOk(c.color2, '#f0e2c8'),
     legs: [0, 2, 4, 6].includes(+c.legs) ? +c.legs : 4, head: num(c.head, 0.2, 0.8, 0.45), eyes: pick(c.eyes, ['big', 'small'], 'big'), ears: pick(c.ears, ['none', 'round', 'long', 'pointy'], 'none'), horns: pick(c.horns, ['none', 'small', 'antlers'], 'none'),
     tail: pick(c.tail, ['none', 'short', 'long', 'fluffy', 'fin'], 'short'), wings: !!c.wings, pattern: pick(c.pattern, ['none', 'spots', 'stripes', 'belly'], 'none'), move: pick(c.move, ['walk', 'hop', 'fly', 'swim', 'slither'], 'walk'), habitat: nm(c.habitat, 'land'), count: Math.round(num(c.count, 1, 8, 3)) }));
+  return { biomes, plants, creatures };
+}
+export function sanitizeIsland(d, known = null) {
+  const { biomes, plants, creatures } = sanitizeDesign(d);
   const tileOk = new Set([...BASE_TILES, ...biomes.map((b) => b.name), ...(known?.biomes || [])]), propOk = new Set([...BASE_PROPS, ...plants.map((p) => p.name), ...creatures.map((c) => c.name), ...(known?.plants || []), ...(known?.creatures || [])]);
   const seen = new Set(), tiles = [];
   for (const t of d.tiles || []) { const k = t.q + ',' + t.r; if (seen.has(k) || !tileOk.has(t.t) || Math.abs(t.q) > 30 || Math.abs(t.r) > 30) continue; seen.add(k); tiles.push([t.q, t.r, t.t]); if (tiles.length >= 220) break; }

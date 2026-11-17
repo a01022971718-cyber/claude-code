@@ -1,6 +1,8 @@
 // 界面层：资源栏、目标、手牌、委托、设置、模拟广告、提示。全部是 DOM，叠在 3D 画布上面。
 import { TILE, RES, RES_NAME, DAILY, QUALITY, gfx } from './config.js';
 import { CAM_ICON } from './camdock.js';
+import { lineup } from './forgeview.js';
+import { sopHTML } from './artsop.js';
 import { aiError, PROVIDERS } from './ai.js';
 import { STYLE, THEME_KEY } from './hq/blocky.js';
 import { audio } from './audio.js';
@@ -182,7 +184,7 @@ export class UI {
     else body = `
       <div class="rowb"><button class="btn ghost" id="setBench">性能测试</button><button class="btn ghost" id="setExport">查看埋点数据</button>${app.canvasMode ? '' : '<button class="btn ghost danger" id="setReset">重新开始</button>'}</div>
       ${app.debug ? `<div class="dbg"><b>调试</b><button data-d="give">+10 资源</button><button data-d="skip">快进 4 小时</button><button data-d="day">进入下一天</button><button data-d="coupon">+2 卡券</button></div>` : ''}
-      <p class="ver">屿见 v0.14 · 存档只保存在这台设备的浏览器里</p>`;
+      <p class="ver">屿见 v0.15 · 存档只保存在这台设备的浏览器里</p>`;
     const tabs = [['basic', '基础'], ['gfx', '画面'], ['cam', '镜头'], ['ai', 'AI'], ['other', '其他']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('');
     const sh = this.modal(`<header><h2>设置</h2><button class="x" data-close>关闭</button></header><nav class="stabs">${tabs}</nav><div class="set">${body}</div>`, tab === 'gfx' || tab === 'cam' ? 'wide gfxsheet' : '');
     sh.addEventListener('click', (e) => e.stopPropagation());
@@ -247,8 +249,9 @@ export class UI {
       <div class="aiform"><div class="aimode"><button data-m="new" class="on">生成新岛</button><button data-m="create">创造新物种</button><button data-m="edit">改造这座岛</button></div>
       <label><span id="aiQ">想要一座什么样的岛？</span><textarea id="aiPrompt" rows="3"></textarea></label>
       <div class="aichips"></div>
-      <div class="rowb"><button class="btn" id="aiGo">生成</button></div><p class="note" id="aiMsg"></p>
-      <p class="note">AI 会安排地形（草地、森林、岩山、沙滩、溪流、池塘……）、植物、动物、建筑、海水颜色和时段。用的是「设置 → AI」里选的服务商（${app.ai.prov.name}）。</p></div>`, 'small');
+      <label class="aichk"><input type="checkbox" id="aiReview" ${(() => { try { return localStorage.getItem('yujian_ai_review') === '0' ? '' : 'checked'; } catch { return 'checked'; } })()}> AI 审图：生成后把对比图给 AI 看，按清单打分并修改（模型要能看图）</label>
+      <div class="rowb"><button class="btn ghost" id="aiSop">造物手册</button><button class="btn" id="aiGo">生成</button></div><p class="note aimsg" id="aiMsg"></p><div id="aiOut" class="aiout"></div>
+      <p class="note">流程：① AI 按造物手册设计配方 → ② 游戏用原有素材的笔法生成模型 → ③ AI 看对比图审图、修改 → ④ 你确认后放进岛里。用的是「设置 → AI」里选的服务商（${app.ai.prov.name}）。</p></div>`);
     const setMode = (m) => {
       mode = m; sh.querySelectorAll('[data-m]').forEach((b) => b.classList.toggle('on', b.dataset.m === m));
       sh.querySelector('#aiQ').textContent = m === 'new' ? '想要一座什么样的岛？（AI 会创造新的生态、植物和动物）' : m === 'create' ? '想创造什么新东西？（生态、植物、动物，造好后放进这座岛，也会出现在建造栏里）' : '想怎么改现在的岛？';
@@ -259,21 +262,50 @@ export class UI {
     setMode('new');
     sh.addEventListener('click', (e) => { e.stopPropagation(); const m = e.target.closest('[data-m]'); if (m) setMode(m.dataset.m); const ex = e.target.closest('[data-ex]'); if (ex) sh.querySelector('#aiPrompt').value = ex.dataset.ex; });
     sh.querySelector('[data-close]').onclick = () => this.closeModal();
+    sh.querySelector('#aiSop').onclick = () => this.openSOP();
     sh.querySelector('#aiGo').onclick = async () => {
-      const text = sh.querySelector('#aiPrompt').value.trim(), msg = sh.querySelector('#aiMsg'), btn = sh.querySelector('#aiGo');
+      const text = sh.querySelector('#aiPrompt').value.trim(), msg = sh.querySelector('#aiMsg'), btn = sh.querySelector('#aiGo'), out = sh.querySelector('#aiOut');
       if (!text) { msg.textContent = '先写一句描述，或点一个例子'; return; }
-      btn.disabled = true; msg.textContent = mode === 'new' ? 'AI 正在设计这座岛……' : 'AI 正在改造这座岛……';
+      const review = sh.querySelector('#aiReview').checked; try { localStorage.setItem('yujian_ai_review', review ? '1' : '0'); } catch {}
+      btn.disabled = true; out.innerHTML = '';
+      const step = (k, t) => { msg.innerHTML = `<b>${'①②③④'[k]}</b> ${t}`; };
       try {
         const cv = app.canvasMode, ask = mode === 'create' ? `请创造这些新东西，并把它们放进现在这座岛里（新生态铺几块新地块接在岛边上，新植物和新动物摆进去）：${text}` : text;
+        step(0, mode === 'edit' ? 'AI 正在改造这座岛……' : 'AI 正在按造物手册（SOP）设计配方……');
         const L = await app.ai.island(ask, mode === 'new' ? null : cv.layout(), cv.known());
-        const made = [...L.biomes.map((x) => '生态「' + x.name + '」'), ...L.plants.map((x) => '植物「' + x.name + '」'), ...L.creatures.map((x) => '动物「' + x.name + '」')];
-        msg.textContent = `「${L.name}」：${L.note}` + (made.length ? `　新创造：${made.join('、')}` : '');
-        if (!(await this.confirm((mode === 'new' ? `生成「${L.name}」会替换现在这座岛。` : '按 AI 的方案改造这座岛？这一步不能撤销。') + (made.length ? `\n新创造了 ${made.length} 样东西：${made.join('、')}` : ''), mode === 'new' ? '换成这座岛' : '放进岛里'))) { btn.disabled = false; return; }
-        this.closeModal(); app.hud?.setOpen(false);
-        cv.adopt(L);
-        await cv.loadLayout(L, mode !== 'new'); this.toast(made.length ? `新创造：${made.join('、')}（建造栏里带 ✦ 的就是）` : `「${L.name}」：${L.note}`);
+        const made = () => [...L.biomes.map((x) => '生态「' + x.name + '」'), ...L.plants.map((x) => '植物「' + x.name + '」'), ...L.creatures.map((x) => '动物「' + x.name + '」')];
+        let note = '';
+        if (made().length) {
+          step(1, '游戏按配方生成模型，和原有素材并排对比……'); await new Promise((r) => setTimeout(r, 30));
+          const v1 = await lineup(L), cap = (v) => '上排：' + v.labels.join(' · ') + (v.labels2.length ? '<br>下排：' + v.labels2.join(' · ') : '');
+          out.innerHTML = `<figure><img src="${v1.url}" alt="新素材对比图"><figcaption>${cap(v1)}</figcaption></figure>`;
+          if (review) {
+            step(2, 'AI 正在看图审图（对照原有素材和检查清单）……');
+            try {
+              const R = await app.ai.review(v1.url, [...v1.labels.map((x) => '上排·' + x), ...v1.labels2.map((x) => '下排·' + x)], { biomes: L.biomes, plants: L.plants, creatures: L.creatures });
+              Object.assign(L, { biomes: R.biomes, plants: R.plants, creatures: R.creatures });
+              const v2 = await lineup(L); note = `审图 ${R.score}/10：${R.notes}`;
+              out.innerHTML = `<figure><img src="${v1.url}" alt="初稿"><figcaption>初稿</figcaption></figure><figure><img src="${v2.url}" alt="按审图意见修改后"><figcaption>按审图意见修改后<br>${cap(v2)}</figcaption></figure>`;
+            } catch (e) { note = '审图跳过：' + aiError(e) + '（这个模型可能看不了图）'; }
+          }
+        }
+        msg.innerHTML = `<b>${'④'}</b> 「${L.name}」：${L.note}` + (made().length ? `<br>新创造：${made().join('、')}` : '') + (note ? `<br>${note}` : '');
+        const acts = document.createElement('div'); acts.className = 'rowb';
+        acts.innerHTML = `<button class="btn ghost" id="aiRedo">不满意，重新生成</button><button class="btn" id="aiOk">${mode === 'new' ? '换成这座岛' : '放进岛里'}</button>`;
+        out.appendChild(acts); btn.hidden = true;
+        acts.querySelector('#aiRedo').onclick = () => { out.innerHTML = ''; msg.textContent = ''; btn.hidden = false; btn.disabled = false; };
+        acts.querySelector('#aiOk').onclick = async () => {
+          this.closeModal(); app.hud?.setOpen(false);
+          const names = made(); cv.adopt(L);
+          await cv.loadLayout(L, mode !== 'new'); this.toast(names.length ? `新创造：${names.join('、')}（建造栏里「✦ AI 造物」）` : `「${L.name}」：${L.note}`);
+        };
       } catch (e) { msg.textContent = '没生成出来：' + aiError(e); btn.disabled = false; }
     };
+  }
+  /** 造物手册：AI 和人共用的美术 SOP */
+  openSOP() {
+    const sh = this.modal(`<header><h2>造物手册（SOP）</h2><button class="x" data-close>关闭</button></header>${sopHTML()}`);
+    sh.querySelector('[data-close]').onclick = () => this.closeModal();
   }
   /** 镜头设置页 */
   _camPanel() {
