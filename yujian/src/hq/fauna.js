@@ -3,6 +3,7 @@
 // 作息（env.hour，游戏里的钟点）：蝴蝶、蜜蜂、蜻蜓白天活动，夜里停在花上、芦苇上；林鸟清晨和傍晚最闹，夜里不飞；
 // 野兔和鹿晨昏最活跃，正午多半歇着；羊群夜里挤成一团不怎么动；螃蟹、青蛙夜里和黄昏更活跃；野鸭夜里漂着睡觉。
 import * as THREE from 'three';
+import { simplify } from './simplify.js';
 import * as L0 from './models-land.js';
 import * as BK from './blocky.js';
 // 体素主题：陆地动物换成方块造型（蝴蝶、蜜蜂、蜻蜓、林鸟太小，两套主题共用）
@@ -98,6 +99,8 @@ export class Fauna {
     return 1;
   }
   /** 会飞的小东西（蝴蝶、蜜蜂、蜻蜓、林鸟）每只两三千个三角面，离镜头远时只有一两个像素：远了就不画 */
+  /** 镜头很近时（特写）才用完整的飞虫模型 */
+  setFlyerDetail(hi) { if (this._flyHi === hi) return; this._flyHi = hi; for (const L of [this.bflyMeshes, this.birdMeshes, this.dflyMeshes, this.beeMeshes]) for (const b of L || []) if (b.lo) b.m.geometry = hi ? b.hi : b.lo; }
   setFlyers(on) { if (this._fly === on) return; this._fly = on; for (const L of [this.bflyMeshes, this.birdMeshes, this.dflyMeshes, this.beeMeshes]) for (const b of L || []) b.m.visible = on; }
   /** 物种数量：env.counts 里有就用它 */
   n(name, def) { const c = this.env.counts; return c && c[name] != null ? c[name] : def; }
@@ -264,7 +267,10 @@ export class Fauna {
       const g = geoOf(geo).clone(); if (!g.attributes.wing) g.setAttribute('wing', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count), 1));
       const anim = new Float32Array(per * 4); g.setAttribute('iAnim', new THREE.InstancedBufferAttribute(anim, 4));
       const m = new THREE.InstancedMesh(g, mat, per); m.frustumCulled = false; this.group.add(m);
-      meshes.push({ m, anim, attr: g.attributes.iAnim });
+      // 远处版本：同一份实例数据（iAnim）挂到简化几何上，镜头近时才换回完整模型
+      const src = geoOf(geo), lg = simplify(src, 7); let lo = null;
+      if (lg !== src) { lo = lg.clone(); if (!lo.attributes.wing) lo.setAttribute('wing', new THREE.BufferAttribute(new Float32Array(lo.attributes.position.count), 1)); lo.setAttribute('iAnim', g.attributes.iAnim); m.geometry = lo; }
+      meshes.push({ m, anim, attr: g.attributes.iAnim, hi: g, lo });
     }
     return meshes;
   }

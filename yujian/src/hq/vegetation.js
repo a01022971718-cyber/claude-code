@@ -54,7 +54,7 @@ export function conifer(seed = 1) {
   const deep = C(0x1d4632), mid = C(0x2f6b45), tip = C(0x6f9f52), under = C(0x14301f);
   for (let i = 0; i < tiers; i++) {
     const t = i / (tiers - 1), yb = 0.16 + t * 0.66 * H, th = 0.3 * (1 - t * 0.45), rad = 0.31 * (1 - t * 0.8) + 0.035;
-    const M = 16, pos = [], idx = [], rot = R() * 6.28;
+    const M = 12, pos = [], idx = [], rot = R() * 6.28;   // 每层 12 个尖（原来 16 个，远看一样）
     pos.push(0, yb + th, 0);                                           // 0 顶点
     for (let j = 0; j < M; j++) {                                      // 1..M 中圈（略外鼓）
       const a = rot + j / M * Math.PI * 2; pos.push(Math.cos(a) * rad * 0.62, yb + th * 0.42, Math.sin(a) * rad * 0.62);
@@ -105,20 +105,22 @@ export function broadleaf(seed = 1, kind = 'green', H = 0.85) {
     parts.push(paint(br, (x, y, z, nx, ny, nz, c) => { c.set(0x5b3d29).multiplyScalar(0.7); }));
   }
   const cy = H * 0.72, blobs = 8 + Math.floor(R() * 4), canopyR = H * 0.36;
+  // 树冠：原来是 8–11 个起伏的球叠在一起（每棵 1700 多个三角形，大半藏在里面看不见）。
+  // 现在只做一层外壳：从树冠中心往每个方向打一条射线，取它穿出这些球的最远点——轮廓和原来一样，三角形少了四倍多
+  const B = [];
   for (let i = 0; i < blobs; i++) {
     const a = R() * 6.28, d = i === 0 ? 0 : canopyR * (0.45 + R() * 0.35), yy = cy + (i === 0 ? canopyR * 0.15 : (R() - 0.35) * canopyR * 0.6);
-    const r = canopyR * (i === 0 ? 0.68 : 0.36 + R() * 0.18);
-    const s = new THREE.IcosahedronGeometry(r, 2), sp = s.attributes.position;
-    for (let k = 0; k < sp.count; k++) {
-      const x = sp.getX(k), y = sp.getY(k), z = sp.getZ(k), n = NZ.fbm3(x * 6 + seed, y * 6, z * 6 + i, 3);
-      const f = 1 + n * 0.4 + NZ.n3(x * 18, y * 18, z * 18) * 0.1;
-      sp.setXYZ(k, x * f, y * f * 0.88, z * f);
-    }
-    s.translate(Math.cos(a) * d, yy, Math.sin(a) * d);
-    s.computeVertexNormals();
-    parts.push(s);
+    B.push([Math.cos(a) * d, yy - cy, Math.sin(a) * d, canopyR * (i === 0 ? 0.68 : 0.36 + R() * 0.18)]);
   }
-  const canopy = merge(parts.slice(3).map((g) => { if (!g.attributes.color) paint(g, () => 0); return g; }));
+  const shell = new THREE.IcosahedronGeometry(1, 3), sp = shell.attributes.position;
+  for (let k = 0; k < sp.count; k++) {
+    const dx = sp.getX(k), dy = sp.getY(k), dz = sp.getZ(k); let t = canopyR * 0.4;
+    for (const [bx, by, bz, br] of B) { const p = dx * bx + dy * by + dz * bz, q = p * p - (bx * bx + by * by + bz * bz) + br * br; if (q >= 0) t = Math.max(t, p + Math.sqrt(q)); }
+    const n = NZ.fbm3(dx * 3 + seed, dy * 3, dz * 3, 3), f = t * (1 + n * 0.22 + NZ.n3(dx * 9, dy * 9, dz * 9) * 0.05);
+    sp.setXYZ(k, dx * f, cy + dy * f * 0.88, dz * f);
+  }
+  shell.computeVertexNormals();
+  const canopy = merge([paint(shell, () => 0)]);
   fluff(canopy, 0, cy, 0, 0.72, 0.3);
   paint(canopy, (x, y, z, nx, ny, nz, c) => {
     const up = THREE.MathUtils.clamp((y - cy) / canopyR * 0.5 + 0.5, 0, 1), out = Math.hypot(x, z, (y - cy) * 0.8) / canopyR;

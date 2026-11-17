@@ -34,6 +34,8 @@ import { toWorld, key, CORNERS, DIRS } from '../hex.js';
 import { GROUND } from '../ground.js';
 import { Sky } from '../sky.js';
 import { FX, landMaterial } from '../fx.js';
+// 草、麦子、花每帧最多画多少个三角形（按植被档位）。手机 GPU 处理比像素还小的三角形效率最低，这是帧率的第一道闸
+const FIELD_BUDGET = { ultra: 600000, high: 420000, mid: 280000, low: 160000 };
 import { QUALITY } from '../config.js';
 
 const CH = 4;                  // 区块边长（格）
@@ -484,6 +486,7 @@ export class HQView {
     // 细节调节：按最近的平均帧时间慢慢调 lodK（0.2–1）。目标是稳在 30 帧以上：超过 36ms 就减，低于 24ms 就加
     this.lodK ??= 1; this._ft = (this._ft ?? 0.02) * 0.95 + dt * 0.05;
     if (!this.loading) { if (this._ft > 0.036) this.lodK = Math.max(0.2, this.lodK - dt * 0.25); else if (this._ft < 0.024) this.lodK = Math.min(1, this.lodK + dt * 0.06); }
+    const fields = [];
     for (const ch of this.chunks.values()) {
       if (!ch.group) continue;
       const [q, r] = ch.ck.split(',').map(Number), [x, z] = toWorld((q + 0.5) * CH, (r + 0.5) * CH), far = Math.hypot(x - focus.x, z - focus.z) > bladeRange;
@@ -496,9 +499,13 @@ export class HQView {
       // 再乘上“细节调节”系数 lodK——帧时间超标时自动减草、有余量时加回来，分辨率和清晰度不动
       if (!far) {
         const d = Math.hypot(x - focus.x, z - focus.z), f = THREE.MathUtils.clamp(1.15 - (d - 5) / (bladeRange - 5), 0.22, 1) * THREE.MathUtils.clamp(13 / dist, 0.4, 1) * this.lodK;
-        for (const o of ch.group.children) if (o.name?.endsWith('-field') && o.geometry.userData.n) o.geometry.instanceCount = Math.max(1, Math.ceil(o.geometry.userData.n * Math.min(1, f)));
+        for (const o of ch.group.children) if (o.name?.endsWith('-field') && o.geometry.userData.n) { o.geometry.instanceCount = Math.max(1, Math.ceil(o.geometry.userData.n * Math.min(1, f))); fields.push(o); }
       }
     }
+    // 每帧硬预算：草、麦子、花加起来的三角形不超过本档上限，超了就按比例一起变稀（近处远处同比例，画面密度均匀）
+    { let sum = 0; for (const o of fields) sum += o.geometry.instanceCount * ((o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3);
+      const cap = FIELD_BUDGET[this.q.veg] ?? FIELD_BUDGET.high; this.stats.fieldTris = sum;
+      if (sum > cap) { const k = cap / sum; for (const o of fields) o.geometry.instanceCount = Math.max(1, Math.floor(o.geometry.instanceCount * k)); } }
     // 着色器预热：第一批区块和海洋生态就绪后，把所有材质编译一遍，避免第一次转镜头时卡顿
     if (!this.prewarmed && this.marine && !this.chunksDirty && this.stats.builds > 0) { this.prewarmed = true; try { this.renderer.compile(this.scene, this.camera); } catch { /* 不支持就算了 */ } }
     // 动物：区块建好一会儿以后再生成；远处的暂停
@@ -508,7 +515,7 @@ export class HQView {
       if (!ch.fauna) continue;
       const c = ch.fauna.env.center, near = Math.hypot(c.x - focus.x, c.z - focus.z) < (FAUNA_RANGE + dist * 0.3) * (this.q.viewK ?? 1);
       ch.fauna.group.visible = near;
-      const cp = this.camera.position; ch.fauna.setFlyers(Math.hypot(c.x - cp.x, c.z - cp.z, cp.y * 0.7) < (8 + 8 * this.lodK) * (this.q.viewK ?? 1));
+      const cp = this.camera.position, fd = Math.hypot(c.x - cp.x, c.z - cp.z, cp.y * 0.7); ch.fauna.setFlyers(fd < (8 + 8 * this.lodK) * (this.q.viewK ?? 1)); ch.fauna.setFlyerDetail(dist < 2.6);
       // 降频：离镜头 14 单位以外的动物隔一帧更新一次（时间步加倍，动作速度不变）
       ch.fauna.env.hour = this.hour;   // 各物种按钟点作息
       if (near) { const mid = Math.hypot(c.x - focus.x, c.z - focus.z) > 14; if (!mid) ch.fauna.update(dt, t); else if ((ch.tick = !ch.tick)) ch.fauna.update(dt * 2, t); }

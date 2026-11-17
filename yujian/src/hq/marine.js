@@ -2,6 +2,7 @@
 // 物理：鱼群用群体算法（分离/对齐/聚拢 + 避开岸、海底和海面 + 躲避海豚）；海豚跃出水面走抛物线；水母靠伞盖收缩产生推力、水的阻力减速；
 // 漂浮物按海面波浪做浮力和摇摆；海带/海草按波浪在水下的轨道运动摆动；入水处溅起水花（受重力）并荡开涟漪。
 import * as THREE from 'three';
+import { simplify } from './simplify.js';
 import * as M from './models-marine.js';
 import { GLSL_NOISE } from './noise.js';
 import { GLSL_WAVES, currentAt, G } from './waves.js';
@@ -80,7 +81,8 @@ export function marineMaterial({ mode = 'none', rough = 0.6, transparent = false
 const MEMO = new Map();
 const memo = (k, make) => { let r = MEMO.get(k); if (!r) MEMO.set(k, r = make()); return r; };
 function swarm(geo, mat, n) {
-  const g = geoOf(geo).clone();
+  // 海里的鱼、水母、珊瑚只有几厘米大，又隔着一层海水：用减面后的模型（原模型每只约 3000 个三角形）
+  const g = simplify(geoOf(geo), 10).clone();
   for (const a of ['bend', 'sway', 'rim', 'tent']) if (!g.attributes[a]) g.setAttribute(a, new THREE.BufferAttribute(new Float32Array(g.attributes.position.count), 1));
   const anim = new Float32Array(n * 4);
   g.setAttribute('iAnim', new THREE.InstancedBufferAttribute(anim, 4));
