@@ -202,6 +202,7 @@ export class CanvasHUD {
         <button class="c-card" data-n="starter"><b>样张岛</b><span>从高画质样张那座完整的岛开始</span></button>
         <button class="c-card" data-n="blank"><b>空白小岛</b><span>三块地，从零开始搭</span></button>
         <button class="c-card" data-n="ai"><b>AI 造岛</b><span>用一句话描述，AI 帮你设计一座岛</span></button>
+        <button class="c-card" data-n="studio"><b>造物台</b><span>自己（或让 AI）用方块造动物、植物、建筑，做新生态；保存后回到这里直接摆</span></button>
         <button class="c-card" data-n="blocks"><b>方块岛（试玩）</b><span>在方块组成的岛上自由建造：放、拆、吸取、剖切看屋里</span></button>
         <button class="c-card" data-n="sop"><b>美术圣经</b><span>以原版体素素材为标准：素体规则、原版拆解、配色方法</span></button>
       </div>
@@ -214,6 +215,7 @@ export class CanvasHUD {
       if (b.dataset.n === 'ai') return ui.openAIIsland();
       if (b.dataset.n === 'sop') return ui.openSOP();
       if (b.dataset.n === 'blocks') return enterBlocks();
+      if (b.dataset.n === 'studio') { try { localStorage.setItem('yujian_open_studio', '1'); } catch { /* */ } return enterBlocks(); }   // 方块岛载入后直接打开造物台
       if (!(await ui.confirm('换一座新岛会清空现在这座岛，确定吗？', '换新岛'))) return;
       cv.newWorld(b.dataset.n); this.setOpen(false); ui.toast(b.dataset.n === 'starter' ? '回到了样张岛' : '一座新的小岛');
     });

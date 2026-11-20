@@ -14,6 +14,9 @@ import * as THREE from 'three';
 import { sopHTML } from '../artsop.js';
 import { boxGeo, buildMake, animatePart, newMake, TEMPLATES, USES, BEHAVIORS, MOTIONS, loadMakes, saveMakes, bounds, mergedGeo } from './model.js';
 import { loadBiomes, saveBiomes, newBiome, plantOptions, plantKey, sanitizeBiome, biomePreview, groundColors } from './biome.js';
+import { AgentPanel, studioAgent } from '../aiagent.js';
+import { AIService, PROVIDERS } from '../ai.js';
+import { Game } from '../state.js';
 
 const K = 0.05;                       // 1 小格在造物台上 = 0.05 个世界单位（放大了看，好操作）
 const SWATCH = ['#ece5d6', '#f0e2c8', '#c9a07a', '#b0773f', '#8a5a30', '#4a3f38', '#1d1a1a', '#9aa0a8', '#6f747c', '#f4f6f8',
@@ -358,13 +361,16 @@ export class Studio {
       if (s === 'bopen') { const x = loadBiomes().find((y) => y.id === b.dataset.id); return x && this.openBiome(x); }
       if (s === 'bdrop') { if (!confirm('删除这个生态？岛上铺了它的地块会变回草地。')) return; saveBiomes(loadBiomes().filter((y) => y.id !== b.dataset.id)); return this.library(); }
       if (s === 'bundo') return this._bUndo();
-      if (s === 'close') { if (this.make && this.undoS.length && !confirm('还没保存，确定离开吗？')) return; return this.close(); }
+      // 返回：编辑造物时回到造物列表（不直接退出造物台）；在列表里才是关闭造物台
+      if (s === 'close') { if (this.make) { if (this.undoS.length && !confirm('还没保存，确定回到列表吗？')) return; return this.library(); } return this.close(); }
+      if (s === 'island') { if (this.make && this.undoS.length && !confirm('还没保存，确定离开吗？')) return; return this.app.goIsland?.(); }
+      if (s === 'aiset') return this._sheet('aiset'); if (s === 'aisetSave') return this._aiSave();
       if (s === 'undo') this.undo(); else if (s === 'redo') this.redo(); else if (s === 'play') this.togglePlay();
       else if (s === 'dup') this.dup(); else if (s === 'del') this.del(); else if (s === 'rx') this.rot(0); else if (s === 'ry') this.rot(1); else if (s === 'rz') this.rot(2); else if (s === 'tocur') this.moveToCur();
       else if (s === 'r90') this.rotGroup(); else if (s === 'big') this.scaleSel(1.25); else if (s === 'small') this.scaleSel(0.8); else if (s === 'none') { this._selOne(null); this._rebuild(); this._sync(); }
       else if (s === 'multi') { this.multiOn = !this.multiOn; if (this.multiOn) { this.tool = 'select'; this.toast('多选：点哪块选哪块，再点一次取消；按住选中的块拖动整组'); } this._sync(); }
       else if (s === 'all') this.selectAll(); else if (s === 'partSel') { this._sheet(null); this.selectPart(); } else if (s === 'partDup') { this._sheet(null); this.dupPart(); } else if (s === 'partMirror') { this._sheet(null); this.mirrorPart(); } else if (s === 'partDel') this.delPart();
-      else if (s === 'refine') this.refine();
+      else if (s === 'refine') this.openAgent('按美术圣经的审图清单检查现在这个造物：先 view_make 看数据和渲染图，找出比例、方块大小层次、颜色层次、对称、关节、眼睛等细节上的问题，然后改好（可以改几轮），最后告诉我改了什么。');
       else if (s === 'shade') { this.shade = !this.shade; this._sync(); } else if (s === 'sym') { this.sym = !this.sym; this._sync(); }
       else if (s === 'snap') { this.snap = this.snap === 1 ? 0.5 : this.snap === 0.5 ? 0.25 : this.snap === 0.25 ? 2 : 1; this._sync(); }
       else if (s === 'addPart') this.addPart(); else if (s === 'partSet') this._sheet('part'); else if (s === 'save') this._sheet('save');
@@ -374,7 +380,7 @@ export class Studio {
       else if (s === 'open') { const m = loadMakes().find((x) => x.id === b.dataset.id); if (m) this.edit(m); }
       else if (s === 'drop') { if (!confirm('删除这个造物？已经摆在岛上的也会消失。')) return; saveMakes(loadMakes().filter((x) => x.id !== b.dataset.id)); this.library(); }
       else if (s === 'lib') this.library();
-      else if (s === 'ai') this._sheet('ai');
+      else if (s === 'ai') this.openAgent();
       else if (s === 'aiGo') this._aiGo();
       else if (s === 'aiImgClear') { this.aiImg = null; this._sheet('ai'); }
       else if (b.dataset.ex) { this.el.querySelector('.s-aitext').value = b.dataset.ex; }
@@ -448,9 +454,17 @@ export class Studio {
         <div class="s-chips">${EX.map((t) => `<button class="b-cat" data-ex="${t}">${t}</button>`).join('')}</div>
         <button class="b-row s-aigo" data-s="baiGo"><b>生成</b><span>AI 配好地面、草花和植物（可以用你造的植物），然后你可以继续调</span></button>
         <p class="b-note s-aimsg"></p></div>`;
+    } else if (kind === 'aiset') {
+      const c = this._settings().ai || {}, e = (v) => String(v || '').replace(/[&"<>]/g, (m) => ({ '&': '&amp;', '"': '&quot;', '<': '&lt;', '>': '&gt;' }[m]));
+      sh.innerHTML = `<div class="b-card"><header><b>AI 设置</b><button class="b-x" data-s="sheetClose">取消</button></header>
+        <label>服务商<select name="prov">${PROVIDERS.map((p) => `<option value="${p.id}" ${p.id === (c.provider || 'anthropic') ? 'selected' : ''}>${p.name}</option>`).join('')}</select></label>
+        <label>API 密钥<input name="key" type="password" autocomplete="off" placeholder="sk-…" value="${e(c.key)}"></label>
+        <label>接口地址<input name="base" type="url" placeholder="留空用服务商默认地址" value="${e(c.baseURL)}"></label>
+        <label>模型<input name="model" type="text" placeholder="留空用默认模型" value="${e(c.model)}"></label>
+        <button class="b-row" data-s="aisetSave"><b>保存</b><span>和六边形岛「设置 → AI」是同一份；密钥只保存在这台设备上</span></button><p class="b-note s-aimsg"></p></div>`;
     } else if (kind === 'lib') {
       const list = loadMakes(), bl = loadBiomes();
-      sh.innerHTML = `<div class="b-card"><header><b>造物台</b><button class="b-x" data-s="close">关闭</button></header>
+      sh.innerHTML = `<div class="b-card"><header><b>造物台</b><button class="b-x" data-s="island">回到六边形岛</button><button class="b-x" data-s="close">去方块岛</button></header>
         <button class="b-row s-airow" data-s="ai"><b>✦ AI 帮我做</b><span>说一句话或给一张图，AI 直接搭出来，你再微调</span></button>
         <p class="b-note">也可以从空白开始，或拿一个模板改——形状、颜色、大小、数量、动作都不限。<button class="b-x" data-s="bible">看美术圣经</button></p>
         <div class="s-tpls">${Object.entries(TEMPLATES).map(([k, t]) => `<button class="b-row" data-s="tpl" data-t="${k}"><b>${t.name}</b></button>`).join('')}</div>
@@ -482,6 +496,22 @@ export class Studio {
       else { m.id = 'mk' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36); this.edit(m); this.undoS = ['{}']; }
       this.showRefine = true; this._sync(); this.toast(`「${m.name}」做好了：${m.parts.reduce((s, p) => s + p.boxes.length, 0)} 块、${m.parts.length} 个部件。觉得哪里不对可以点「再精修一遍」，或直接动手改`, 4200);
     } catch (e) { const { aiError } = await import('../ai.js'); msg.textContent = '没做出来：' + aiError(e); btn.disabled = false; }
+  }
+  // ---------------- AI 自主代理 ----------------
+  /** 打开「AI 帮我做」：AI 拿着这个造物的编辑权限，自己写、看渲染图、改，直到满意。goal 给了就直接开始 */
+  openAgent(goal = null) {
+    if (this.agentP) { this.agentP.minimize(false); if (goal && !this.agentP.running) this.agentP.start(goal); return; }
+    this.agentP = new AgentPanel(this.el, { ai: this.app.ai, title: '✦ AI 帮我做',
+      intro: 'AI 拿着这个造物的编辑权限自己动手：先搭第一版，看渲染图，对照美术圣经找问题，再改，直到满意。造什么都行，形状、颜色、大小不限；可以附一张参考图。在已有造物上打开，就是让它改这个。',
+      placeholder: '比如：一只圆滚滚的橘猫，竖着尖耳朵，长尾巴', examples: ['一只圆滚滚的橘猫，竖着尖耳朵，长尾巴', '会发光的蓝色蘑菇，伞盖上有白点', '一座两层的木头小灯塔，红白条纹', '长着翅膀的小飞鱼，银蓝色', '一只背上长着小树的乌龟'],
+      mk: () => studioAgent(this), onClose: () => { this.agentP = null; }, onSettings: () => this._sheet('aiset') });
+    if (goal) this.agentP.start(goal);
+  }
+  _settings() { try { const g = new Game(); g.load(); return g.s?.settings || {}; } catch { return {}; } }
+  _aiSave() {
+    const f = this.el.querySelector('.s-sheet'), ai = { provider: f.querySelector('[name=prov]').value, key: f.querySelector('[name=key]').value.trim(), baseURL: f.querySelector('[name=base]').value.trim(), model: f.querySelector('[name=model]').value.trim() };
+    try { const g = new Game(); g.load(); g.s.settings.ai = ai; g.save(true); this.app.ai = new AIService(g.s.settings); if (this.agentP) this.agentP.ai = this.app.ai; this._sheet(null); this.toast(this.app.ai.ready ? 'AI 设置好了，可以开始了' : '还缺密钥或模型名', 2400); }
+    catch (e) { const m = f.querySelector('.s-aimsg'); if (m) m.textContent = '保存失败：' + (e.message || e); }
   }
   library() { this._closeBiome(); this.make = null; this.showRefine = false; for (const m of [...this.boxes.children]) { this.boxes.remove(m); m.geometry.dispose(); } this._selOne(null); this._sync(); this._sheet('lib'); }
 

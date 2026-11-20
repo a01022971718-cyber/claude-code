@@ -13,6 +13,7 @@ import * as BK from './blocky.js';
 import { faunaMaterial } from './fauna.js';
 import { G } from './waves.js';
 import { rng } from './noise.js';
+import { fitBounds } from './cull.js';
 
 const V3 = THREE.Vector3, TAU = Math.PI * 2;
 const DIRS6 = [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]];
@@ -253,7 +254,7 @@ export class Wildlife {
       this.e.set(b.pitch, b.yaw, b.roll, 'YXZ'); this.q.setFromEuler(this.e);
       im.setMatrixAt(b.i, this.m4.compose(b.p, this.q, new V3(2.8 * sx, 2.8, 2.8)));
     }
-    im.instanceMatrix.needsUpdate = true; im.geometry.attributes.iAnim.needsUpdate = true;
+    im.instanceMatrix.needsUpdate = true; im.geometry.attributes.iAnim.needsUpdate = true; fitBounds(im, 0.3);
   }
 
   // ---- 蝙蝠：黄昏和黎明各飞一阵 ----
@@ -281,7 +282,7 @@ export class Wildlife {
       this.e.set(-b.v.y * 0.4, Math.atan2(b.v.x, b.v.z), 0, 'YXZ'); this.q.setFromEuler(this.e);
       im.setMatrixAt(b.i, this.m4.compose(vis ? b.p : new V3(0, -50, 0), this.q, new V3(2.4, 2.4, 2.4)));
     }
-    im.instanceMatrix.needsUpdate = true; im.geometry.attributes.iAnim.needsUpdate = true;
+    im.instanceMatrix.needsUpdate = true; im.geometry.attributes.iAnim.needsUpdate = true; fitBounds(im, 0.3);
   }
 
   // ---- 跃鱼 ----

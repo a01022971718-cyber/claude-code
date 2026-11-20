@@ -11,6 +11,7 @@ import { U, GLSL_CAUSTIC } from './materials.js';
 import { LAYER_FX } from './pipeline.js';
 import { rng, makeNoise } from './noise.js';
 import { DIRS } from '../hex.js';
+import { fitBounds, inView, throttle } from './cull.js';
 
 const NZB = makeNoise(4242);
 
@@ -215,7 +216,7 @@ class School {
       this.q.setFromEuler(this.e);
       this.mesh.setMatrixAt(i, this.m4.compose(this.v.set(P[i * 3], P[i * 3 + 1], P[i * 3 + 2]), this.q, this.s));
     }
-    this.mesh.instanceMatrix.needsUpdate = true;
+    this.mesh.instanceMatrix.needsUpdate = true; fitBounds(this.mesh, 0.15);
   }
 }
 
@@ -291,7 +292,7 @@ export class Marine {
       anim.set([i * 1.7, 2 + (i % 5) * 0.2, 0, 0], i * 4);
       if (it.tint) mesh.setColorAt(i, new THREE.Color(...it.tint));
     });
-    mesh.castShadow = castShadow; mesh.computeBoundingSphere(); this.habitat.add(mesh);
+    mesh.castShadow = castShadow; fitBounds(mesh, 0.3); this.habitat.add(mesh);   // 珊瑚、海带：按实例位置算包围球，画面外整组不画
     return mesh;
   }
   _reef() {
@@ -426,7 +427,7 @@ export class Marine {
 
   update(dt, t) {
     this.predators = this.dolphins.list.map((d) => ({ x: d.x, y: d.y, z: d.z }));
-    for (const s of this.schools) s.update(dt, t);
+    for (const s of this.schools) { const b = s.mesh.boundingSphere; throttle(s, !b || inView(b.center.x, b.center.y, b.center.z, b.radius), dt, (d) => s.update(d, t)); }   // 画面外的鱼群降频
     this._updTurtles(dt, t); this._updDolphins(dt, t); this._updWhale(dt, t); this._updJellies(dt, t); this._updFloaters(dt, t);
     this.splash.update(dt);
   }
@@ -487,7 +488,7 @@ export class Marine {
       e.set(-d.pitch, Math.atan2(fx, fz), 0); q.setFromEuler(e);
       D.mesh.setMatrixAt(i, m4.compose(new V3(d.x, d.y, d.z), q, sc));
     });
-    D.mesh.instanceMatrix.needsUpdate = true;
+    D.mesh.instanceMatrix.needsUpdate = true; fitBounds(D.mesh, 0.4);
   }
   _updWhale(dt, t) {
     const W = this.whale; W.t = (W.t + dt) % 70;
@@ -511,7 +512,7 @@ export class Marine {
     if (k < 22) W.tailSplash = false;
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion().setFromEuler(new THREE.Euler(-pitch, Math.PI / 2, 0, 'YXZ'));
     W.mesh.setMatrixAt(0, m4.compose(new V3(W.x, y, W.z), q, new V3(1, 1, 1)));
-    W.mesh.instanceMatrix.needsUpdate = true;
+    W.mesh.instanceMatrix.needsUpdate = true; fitBounds(W.mesh, 1.2);
   }
   _updJellies(dt, t) {
     const J = this.jellies, m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), sc = new V3();
@@ -529,7 +530,7 @@ export class Marine {
       e.set(Math.sin(t * 0.3 + i) * 0.15, i, Math.cos(t * 0.27 + i) * 0.15); q.setFromEuler(e);
       J.mesh.setMatrixAt(i, m4.compose(j.p, q, sc.setScalar(j.s)));
     });
-    J.mesh.instanceMatrix.needsUpdate = true;
+    J.mesh.instanceMatrix.needsUpdate = true; fitBounds(J.mesh, 0.2);
   }
   _updFloaters(dt, t) {
     const up = new V3(0, 1, 0), n = new V3(), q = new THREE.Quaternion(), qy = new THREE.Quaternion();

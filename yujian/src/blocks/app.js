@@ -69,6 +69,7 @@ export class BlockApp {
     if (Array.isArray(o?.hot) && o.hot.length === 9) { this.hot = o.hot.map((x) => (BLOCKS[x] ? x : ID.grass)); this.cur = this.hot[this.slot]; this._renderHot(); }
     const c = o?.cam; this.rig.focus.set(c?.x ?? SX * S / 2, 0, c?.z ?? SZ * S / 2); this.rig.setView({ dist: c?.dist ?? 26, pitch: c?.pitch ?? 0.78, yaw: c?.yaw ?? -0.6 });
     this.ready = true; this.hint('点下面的方块开始建造；双指转动、缩放镜头', 3200);
+    try { if (localStorage.getItem('yujian_open_studio') === '1') { localStorage.removeItem('yujian_open_studio'); this.studio.open(); } } catch { /* */ }   // 从六边形岛点「造物台」进来的
     requestAnimationFrame((t) => this.loop(t));
   }
   resize() {
@@ -303,7 +304,7 @@ export class BlockApp {
       else if (a === 'studio') { this._menu(false); this.studio.open(); }
       else if (a === 'newNatural' || a === 'newFlat') { if (!confirm('新建一座岛会替换现在这座，确定吗？')) return; a === 'newNatural' ? this.world.genNatural(1 + Math.floor(Math.random() * 999)) : this.world.genFlat(); this.undoStack = []; this.redoStack = []; this._menu(false); this._dirty(); }
       else if (a === 'fps') { this.fps.show = !this.fps.show; h.querySelector('.b-fps').hidden = !this.fps.show; this._menu(false); }
-      else if (a === 'back') { this.save().finally(() => { try { localStorage.setItem(MODE_KEY, 'island'); } catch { /* */ } location.reload(); }); }
+      else if (a === 'back') this.goIsland();
     });
     for (const ev of ['pointerdown', 'wheel']) h.addEventListener(ev, (e) => { if (e.target.closest('button,input,.b-bar,.b-menu,.b-panel,.b-hot')) e.stopPropagation(); });
     h.querySelector('.b-search').addEventListener('input', () => this._renderBar());
@@ -318,6 +319,8 @@ export class BlockApp {
     const ids = BLOCKS.filter((b) => b && (q ? b.name.includes(q) : this.cat === 'all' || b.cat === this.cat)).map((b) => b.id);
     h.querySelector('.b-items').innerHTML = ids.map((id) => `<button class="b-item ${id === this.cur ? 'on' : ''}" data-block="${id}" title="${BLOCKS[id].name}"><img src="${this._icon(id)}" alt=""><i>${BLOCKS[id].name}</i></button>`).join('');
   }
+  /** 回到六边形岛（方块岛自动保存） */
+  goIsland() { this.save().finally(() => { try { localStorage.setItem(MODE_KEY, 'island'); } catch { /* */ } location.reload(); }); }
   _syncUndo() { this.hud.querySelector('[data-a="undo"]').disabled = !this.undoStack.length; this.hud.querySelector('[data-a="redo"]').disabled = !this.redoStack.length; }
   _menu(on) {
     const m = this.hud.querySelector('.b-menu'); m.hidden = !on; if (!on) return;

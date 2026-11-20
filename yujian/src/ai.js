@@ -103,11 +103,6 @@ const MAKE_SYSTEM = `你是一款治愈系体素海岛游戏的造物师。玩�
 总块数 10–90 块：大块定体型，中块做四肢和结构，小块做眼睛、鼻子、斑点、果子、窗户。不要用一堆一样大的小方块堆形状。
 颜色任意（不必限于色板），但每个部位一组颜色、整体 3–5 种主色，不要整只一个颜色；眼睛一般用深色加一点白高光。
 用中文起名。`;
-const MAKE_EXAMPLE = { name: '毛团兽', use: 'creature', behavior: 'walk', size: 1, parts: [
-  { name: '身体', pivot: [0, 0, 0], motion: 'none', axis: 'x', amp: 1, speed: 1, phase: 0, boxes: [[-2.3, 8.6, -4.9], [2.3, 8.6, -4.9], [-2.3, 8.6, 0], [2.3, 8.6, 0], [-2.3, 8.6, 4.9], [2.3, 8.6, 4.9], [-2.3, 12.6, -4.9], [2.3, 12.6, -4.9], [-2.3, 12.6, 0], [2.3, 12.6, 0], [-2.3, 12.6, 4.9], [2.3, 12.6, 4.9]].map((p, i) => ({ p, s: [5.6 + (i % 2) * 0.8, 5.6, 5.6], r: [0, 0, 0], c: '#ece5d6', shade: true })) },
-  { name: '头', pivot: [0, 11, 7], motion: 'swing', axis: 'x', amp: 0.4, speed: 0.6, phase: 0, boxes: [{ p: [0, 11.4, 10.2], s: [5.2, 5.2, 5.8], r: [0, 0, 0], c: '#4a3f38', shade: false }, { p: [0, 14.3, 9.6], s: [5.6, 2.2, 4.6], r: [0, 0, 0], c: '#ece5d6', shade: true }, { p: [3.7, 12.3, 9], s: [2.4, 1.4, 1.8], r: [0, 0, -17], c: '#3f3530', shade: false }, { p: [-3.7, 12.3, 9], s: [2.4, 1.4, 1.8], r: [0, 0, 17], c: '#3f3530', shade: false }, { p: [1.5, 12.2, 13.2], s: [0.9, 1.1, 0.5], r: [0, 0, 0], c: '#f2ece0', shade: false }, { p: [-1.5, 12.2, 13.2], s: [0.9, 1.1, 0.5], r: [0, 0, 0], c: '#f2ece0', shade: false }] },
-  ...[['左前腿', 2.4, 4.4, 0], ['右前腿', -2.4, 4.4, 0.5], ['左后腿', 2.4, -4.4, 0.5], ['右后腿', -2.4, -4.4, 0]].map(([name, x, z, phase]) => ({ name, pivot: [x, 7, z], motion: 'walk', axis: 'x', amp: 1, speed: 1, phase, boxes: [{ p: [x, 3.6, z], s: [2.2, 7.2, 2.2], r: [0, 0, 0], c: '#3b332e', shade: false }] })),
-] };
 const stripMake = (m) => ({ name: m.name, use: m.use, behavior: m.behavior, size: m.size, parts: m.parts.map((p) => ({ name: p.name, pivot: p.pivot, motion: p.motion, axis: p.axis, amp: p.amp, speed: p.speed, phase: p.phase, boxes: p.boxes.map((b) => ({ p: b.p, s: b.s, r: b.r, c: b.c, shade: !!b.shade })) })) });
 const ISLAND_SYSTEM = `你是一款治愈系六边形海岛游戏的美术设计师兼关卡设计师。你不只是用现有素材搭岛，更要**创造游戏里原本没有的新东西**：
 新的生态（地块类型：自己的地面颜色、起伏、草和花、长什么植物）、新的植物（按形态和配色设计）、新的动物（按体型、腿、头、耳、角、尾、翅膀、花纹、颜色、习性设计）。
@@ -215,8 +210,8 @@ export class AIService {
   /** AI 造物：一句话（可附一张参考图、可在现有造物上改）→ 造物台格式的造物（部件 + 任意大小的长方块 + 颜色 + 动作）。
    *  image：data:image/...;base64,...（可选）；base：要修改的现有造物（可选） */
   async make(prompt, image = null, base = null) {
-    const ex = JSON.stringify(MAKE_EXAMPLE);
-    let text = `范例（原版风格的四足小兽，照它的格式、比例和配色方法，不要照抄内容）：${ex}\n\n`;
+    // 不给固定范例（给了范例，模型会照着做出差不多的东西）；只给规则、尺寸参考和美术圣经，造型全由模型自己想
+    let text = '';
     if (base) text += `现在的造物（JSON）：${JSON.stringify(stripMake(base))}\n请在它的基础上按要求修改，没提到的地方保留：${prompt}`;
     else text += `请创造：${prompt}`;
     if (image) text += '\n参考附带的图片：抓住它的整体形状、部位和配色，用体素长方块重新搭出来（不需要还原细节）。';
@@ -262,6 +257,64 @@ export class AIService {
     const { text: out } = await this._ask({ max_tokens: 4000, system: BIOME_SYSTEM + '\n\n' + sopPrompt(), output_config: { effort: 'medium', format: { type: 'json_schema', schema: BIOME_REFINE_SCHEMA } }, messages: [{ role: 'user', content }] });
     let d; try { d = JSON.parse(out.replace(/^\s*```(?:json)?/i, '').replace(/```\s*$/, '')); } catch { throw new Error('精修结果读不出来，再试一次'); }
     return { data: d, notes: String(d.notes || '').slice(0, 80) };
+  }
+  // ---------------- AI 自主代理（工具调用循环） ----------------
+  // 给模型一组“游戏权限”（工具）。每一步：模型想 → 调工具 → 游戏执行、把结果（文字 + 截图）交回 → 模型再想……直到它不再调工具（做完了）。
+  // 对话历史按服务商各存一份原样格式（Claude：内容块原样追加，不改不删；兼容接口：assistant.tool_calls + tool 消息）。
+  /** 开一局：system 是这局的规则，goal 是玩家的心愿 */
+  agentInit(system, goal) {
+    const st = this.prov.kind === 'anthropic' ? { kind: 'anthropic', system, msgs: [] } : { kind: 'openai', msgs: [{ role: 'system', content: system }], noImages: false };
+    this.agentSay(st, goal); return st;
+  }
+  /** 玩家说一句（goal 是文字，或 { text, image }：附一张参考图） */
+  agentSay(st, goal) {
+    const text = typeof goal === 'string' ? goal : goal.text, img = typeof goal === 'string' ? null : goal.image;
+    if (!img) { st.msgs.push({ role: 'user', content: text }); return; }
+    st.msgs.push({ role: 'user', content: st.kind === 'anthropic' ? [{ type: 'image', source: { type: 'base64', media_type: img.slice(5, img.indexOf(';')), data: img.split(',')[1] } }, { type: 'text', text: text + '\n（附了一张参考图）' }]
+      : [{ type: 'text', text: text + '\n（附了一张参考图）' }, { type: 'image_url', image_url: { url: img } }] });
+  }
+  /** 走一步：返回 { text（模型说的话）, calls:[{ id, name, input }] }；calls 为空 = 模型认为做完了 */
+  async agentStep(st, tools, signal) {
+    if (st.kind === 'anthropic') {
+      const model = this.model, fb = FALLBACK_OK.has(model);
+      const res = await this.client().beta.messages.create({
+        model, max_tokens: 16000, system: st.system, tools: tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.schema })), messages: st.msgs,
+        output_config: { effort: 'medium' }, cache_control: { type: 'ephemeral' },   // 自动缓存：每一步只为新增的内容付全价
+        ...(fb ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' } : {}),
+      }, { signal });
+      if (res.stop_reason === 'refusal') throw new Error('模型拒绝了这个请求' + (res.stop_details?.explanation ? '：' + res.stop_details.explanation : ''));
+      if (res.stop_reason === 'max_tokens') throw new Error('模型这一步写得太长被截断了，换个说法或分几次让它做');
+      st.msgs.push({ role: 'assistant', content: res.content });   // 原样追加（包括思考块），历史不改不删
+      const text = res.content.filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
+      return { text, calls: res.content.filter((b) => b.type === 'tool_use').map((b) => ({ id: b.id, name: b.name, input: b.input || {} })) };
+    }
+    const base = (this.cfg.baseURL || this.prov.base).replace(/\/+$/, ''), headers = { 'Content-Type': 'application/json' };
+    if (this.cfg.key) headers.Authorization = 'Bearer ' + this.cfg.key;
+    const send = async () => {
+      const body = { model: this.model, messages: st.msgs, tools: tools.map((t) => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.schema } })), tool_choice: 'auto', max_tokens: 8000 };
+      let res; try { res = await fetch(base + '/chat/completions', { method: 'POST', headers, body: JSON.stringify(body), signal }); }
+      catch (e) { if (signal?.aborted) throw e; throw new HttpError(0, '连不上服务器（网络不通、地址不对，或这家服务商不允许从浏览器直接访问，需要走代理地址）'); }
+      const data = await res.json().catch(() => null);
+      return { res, data };
+    };
+    let { res, data } = await send();
+    // 看不了图的模型：把截图去掉再试一次，之后这局都不发图
+    if (!res.ok && !st.noImages && st.msgs.some((m) => Array.isArray(m.content))) { st.noImages = true; st.msgs = st.msgs.map((m) => (Array.isArray(m.content) ? { ...m, content: m.content.filter((c) => c.type === 'text').map((c) => c.text).join('\n') || '（截图略）' } : m)); ({ res, data } = await send()); }
+    if (!res.ok) throw new HttpError(res.status, data?.error?.message || data?.message || `服务器返回 ${res.status}`);
+    const msg = data?.choices?.[0]?.message || {}, calls = (msg.tool_calls || []).map((c) => { let input = {}; try { input = JSON.parse(c.function?.arguments || '{}'); } catch { input = { _bad: c.function?.arguments }; } return { id: c.id, name: c.function?.name, input }; });
+    st.msgs.push({ role: 'assistant', content: msg.content || '', ...(msg.tool_calls?.length ? { tool_calls: msg.tool_calls } : {}) });
+    return { text: typeof msg.content === 'string' ? msg.content.trim() : '', calls };
+  }
+  /** 把这一步所有工具的结果交回（同一条消息里）。r: { id, ok, text, image?（data URL） } */
+  agentResults(st, results) {
+    if (st.kind === 'anthropic') {
+      st.msgs.push({ role: 'user', content: results.map((r) => ({ type: 'tool_result', tool_use_id: r.id, ...(r.ok ? {} : { is_error: true }),
+        content: r.image ? [{ type: 'image', source: { type: 'base64', media_type: r.image.slice(5, r.image.indexOf(';')), data: r.image.split(',')[1] } }, { type: 'text', text: r.text }] : r.text })) });
+      return;
+    }
+    for (const r of results) st.msgs.push({ role: 'tool', tool_call_id: r.id, content: (r.ok ? '' : '出错：') + r.text });
+    const imgs = st.noImages ? [] : results.filter((r) => r.image);
+    if (imgs.length) st.msgs.push({ role: 'user', content: [{ type: 'text', text: '上面工具返回的画面：' }, ...imgs.map((r) => ({ type: 'image_url', image_url: { url: r.image } }))] });
   }
   /** 岛民说话：ctx = { name, doing, hour, weather } → 一句话 */
   async villagerLine(ctx) {
@@ -344,3 +397,6 @@ export const CANNED = {
   sit: ['火边最暖和了。', '今天的晚霞真好看。', '明天也是好天气吧。'],
   idle: ['睡得真香。', '先伸个懒腰。', '今天干点什么好呢？'],
 };
+
+// 给 AI 自主代理用：造物、生态的数据格式和规则
+export { MAKE_SCHEMA, BIOME_SCHEMA, MAKE_SYSTEM, BIOME_SYSTEM, stripMake };

@@ -507,3 +507,40 @@ body { background: var(--haze); color: var(--ink); font-family: var(--font); fon
 .s-bbtns { flex-direction: row !important; flex-wrap: wrap; gap: 6px !important; }
 .s-bsw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
 @media (orientation: portrait) { .s-bpanel { left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); width: auto; top: auto; height: 44vh; } }
+/* AI 自主代理面板：横屏停在右边，竖屏是底部抽屉；收起后顶部一个小药丸，点开继续看 */
+.agent { position: fixed; z-index: 60; right: max(12px, env(safe-area-inset-right)); top: max(12px, env(safe-area-inset-top)); bottom: max(12px, env(safe-area-inset-bottom)); width: min(400px, 46vw); display: flex; flex-direction: column; background: #fffaf0; color: #17313b; border-radius: 18px; box-shadow: 0 10px 40px rgba(0,0,0,.28); pointer-events: auto; overflow: hidden; font-size: 13px; }
+.agent[hidden] { display: none; }
+.agent header { display: flex; align-items: center; gap: 6px; padding: 10px 12px; background: #17313b; color: #fffaf0; }
+.agent header b { font-size: 15px; white-space: nowrap; }
+.agent .ag-st { flex: 1; font-size: 12px; opacity: .8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-b { border: 0; border-radius: 999px; padding: 6px 12px; background: #e9f1f2; color: #17313b; font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.agent header .ag-b { background: rgba(255,255,255,.14); color: #fffaf0; padding: 5px 10px; }
+.ag-b.go { background: linear-gradient(135deg, #f6d27a, #e8a24a); color: #3a2a10; }
+.ag-b.ghost { background: transparent; border: 1px solid #c9d6d8; }
+.ag-b[hidden] { display: none; }
+.ag-main { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.ag-input[hidden], .ag-log[hidden], .ag-bible[hidden] { display: none; }
+.ag-note { margin: 0 0 6px; font-size: 12px; color: #4a5f66; line-height: 1.5; }
+.agent textarea { width: 100%; box-sizing: border-box; border: 1px solid #c9d6d8; border-radius: 12px; padding: 8px 10px; font: inherit; resize: vertical; background: #fff; color: #17313b; }
+.ag-img { display: block; margin: 6px 0; font-size: 12px; color: #2f6f7a; cursor: pointer; }
+.ag-img img { height: 40px; border-radius: 6px; vertical-align: middle; margin-right: 6px; }
+.ag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.ag-chips button { border: 0; border-radius: 999px; padding: 5px 10px; background: #eef3ee; color: #2b4a38; font: inherit; font-size: 12px; cursor: pointer; text-align: left; }
+.ag-row { display: flex; justify-content: space-between; gap: 8px; }
+.ag-msg { margin: 6px 0 0; font-size: 12px; color: #b4472f; }
+.ag-log { display: flex; flex-direction: column; gap: 6px; }
+.ag-log > div { line-height: 1.5; word-break: break-word; }
+.ag-goal { background: #17313b; color: #fffaf0; border-radius: 12px; padding: 6px 10px; align-self: flex-end; max-width: 90%; }
+.ag-think { background: #f1ebdc; border-radius: 12px; padding: 6px 10px; }
+.ag-call { font-weight: 600; color: #2f6f7a; }
+.ag-res { font-size: 12px; color: #4a5f66; }
+.ag-err { font-size: 12px; color: #b4472f; }
+.ag-note { font-size: 12px; }
+.ag-log img { display: block; margin-top: 4px; max-width: 100%; border-radius: 10px; cursor: zoom-in; }
+.ag-log img:not(.big) { max-height: 120px; }
+.ag-bible .ag-sop { font-size: 12px; }
+.agent footer { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; padding: 8px 12px; border-top: 1px solid #e3e6e0; }
+.agent footer:not(:has(.ag-b:not([hidden]))) { display: none; }
+.agent-pill { position: fixed; z-index: 60; left: 50%; transform: translateX(-50%); top: max(12px, env(safe-area-inset-top)); border: 0; border-radius: 999px; padding: 8px 16px; background: linear-gradient(135deg, #f6d27a, #e8a24a); color: #3a2a10; font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,.25); pointer-events: auto; max-width: 80vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agent-pill[hidden] { display: none; }
+@media (orientation: portrait) { .agent { left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); width: auto; top: auto; height: 56vh; } }

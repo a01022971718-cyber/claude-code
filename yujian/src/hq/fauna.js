@@ -19,6 +19,7 @@ import { GLSL_NOISE } from './noise.js';
 import { U } from './materials.js';
 import { G } from './waves.js';
 import { rng } from './noise.js';
+import { fitBounds } from './cull.js';
 
 const V3 = THREE.Vector3;
 const geoOf = (r) => (r && r.geometry) || r;
@@ -318,7 +319,7 @@ export class Fauna {
       e.set(0, b.yaw, 0); q.setFromEuler(e);
       b.bm.m.setMatrixAt(b.i, m4.compose(b.p, q, sc));
     }
-    for (const bm of this.bflyMeshes) { bm.m.instanceMatrix.needsUpdate = true; bm.attr.needsUpdate = true; }
+    for (const bm of this.bflyMeshes) { bm.m.instanceMatrix.needsUpdate = true; bm.attr.needsUpdate = true; fitBounds(bm.m, 0.15); }
   }
   // ---------- 蜜蜂：在花之间来回，每朵停一下；天暖才出来，夜里停在花上过夜 ----------
   _bees() {
@@ -351,7 +352,7 @@ export class Fauna {
       q.setFromAxisAngle(up, b.yaw);
       bm.m.setMatrixAt(b.i, m4.compose(b.p, q, sc));
     }
-    bm.m.instanceMatrix.needsUpdate = true; bm.attr.needsUpdate = true;
+    bm.m.instanceMatrix.needsUpdate = true; bm.attr.needsUpdate = true; fitBounds(bm.m, 0.15);
   }
   _dragonflies() {
     const water = !!(this.env.pond || this.env.riverPts?.length);
@@ -383,7 +384,7 @@ export class Fauna {
       q.setFromAxisAngle(new V3(0, 1, 0), d.yaw);
       D.m.setMatrixAt(d.i, m4.compose(d.p, q, sc));
     }
-    D.m.instanceMatrix.needsUpdate = true;
+    D.m.instanceMatrix.needsUpdate = true; fitBounds(D.m, 0.15);
   }
   _songbirds() {
     const kinds = ['robin', 'tit', 'finch'];
@@ -408,7 +409,7 @@ export class Fauna {
       q.setFromAxisAngle(new V3(0, 1, 0), b.yaw);
       b.bm.m.setMatrixAt(b.i, m4.compose(b.p, q, sc));
     }
-    for (const bm of this.birdMeshes) { bm.m.instanceMatrix.needsUpdate = true; bm.attr.needsUpdate = true; }
+    for (const bm of this.birdMeshes) { bm.m.instanceMatrix.needsUpdate = true; bm.attr.needsUpdate = true; fitBounds(bm.m, 0.15); }
   }
 
   // ---------- 池塘：野鸭、青蛙 ----------

@@ -37,6 +37,7 @@ import { FX, landMaterial } from '../fx.js';
 // 草、麦子、花每帧最多画多少个三角形（按植被档位）。手机 GPU 处理比像素还小的三角形效率最低，这是帧率的第一道闸
 const FIELD_BUDGET = { ultra: 600000, high: 420000, mid: 280000, low: 160000 };
 import { QUALITY } from '../config.js';
+import { updateView, inView, throttle } from './cull.js';
 
 const CH = 4;                  // 区块边长（格）
 const SB = 32, SB_SEG = 56;    // 海底方块边长（世界单位）和细分（0.57 单位一格）；大块 = 少绘制次数
@@ -75,7 +76,8 @@ export class HQView {
     this.q = cfg;
     const r = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
     r.toneMapping = THREE.ACESFilmicToneMapping;
-    r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
+    // 阴影过滤：极致档用柔和阴影（采样多），其余用普通 PCF（手机上每个像素省一半以上的阴影采样）
+    r.shadowMap.enabled = true; r.shadowMap.type = (this.q.shadow || 0) >= 4096 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     r.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.q.pixelRatio));
     this.resScale = 1;
     this.scene = new THREE.Scene();
@@ -139,13 +141,16 @@ export class HQView {
     const on = q.shadow > 0, s = this.atmo.sun.shadow;
     if (r.shadowMap.enabled !== on) { r.shadowMap.enabled = on; this.atmo.sun.castShadow = on; this.scene.traverse((m) => { if (m.material) [].concat(m.material).forEach((x) => { x.needsUpdate = true; }); }); }
     if (on && s.mapSize.x !== q.shadow) { s.mapSize.set(q.shadow, q.shadow); s.map?.dispose(); s.map = null; }
+    const type = (q.shadow || 0) >= 4096 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+    if (r.shadowMap.type !== type) { r.shadowMap.type = type; this.scene.traverse((m) => { if (m.material) [].concat(m.material).forEach((x) => { x.needsUpdate = true; }); }); }
+    this.shadowDirty = true;
   }
   /** 动态分辨率：在渲染精度上再乘一个 0.85–1 的系数（调用方随后要 resize） */
   setResScale(k) { this.resScale = k; this.renderer.setPixelRatio(this._pr()); }
   /** 渲染精度：设置值、屏幕像素比取小，再受“像素预算”限制——高分屏上原生渲染的像素数是 2 倍渲染的两三倍，肉眼几乎分不出，
    *  帧率却差一大截。预算内的画面再经过自适应锐化，观感接近原生 */
   _pr() {
-    const w = this.w || innerWidth, h = this.h || innerHeight, budget = { 4096: 2.4e6, 2048: 2.0e6, 1024: 1.3e6 }[this.q.shadow] || 1.6e6;
+    const w = this.w || innerWidth, h = this.h || innerHeight, budget = { 4096: 2.1e6, 2048: 1.7e6, 1024: 1.2e6 }[this.q.shadow] || 1.4e6;
     let pr = Math.min(window.devicePixelRatio || 1, this.q.pixelRatio);
     pr = Math.min(pr, Math.sqrt(budget / (w * h)));
     return Math.max(1, pr) * (this.resScale ?? 1);
@@ -456,6 +461,7 @@ export class HQView {
   }
   update(dt, focus, dist) {
     this.dt = dt; this.focus.copy(focus); this.dist = dist;
+    updateView(this.camera);   // 这一帧的镜头视锥：画面外的东西不画、降频更新
     U.uTime.value += dt;
     const t = U.uTime.value;
     // 升起的地块
@@ -532,7 +538,8 @@ export class HQView {
       const cp = this.camera.position, fd = Math.hypot(c.x - cp.x, c.z - cp.z, cp.y * 0.7); ch.fauna.setFlyers(fd < (8 + 8 * this.lodK) * (this.q.viewK ?? 1)); ch.fauna.setFlyerDetail(dist < 2.6);
       // 降频：离镜头 14 单位以外的动物隔一帧更新一次（时间步加倍，动作速度不变）
       ch.fauna.env.hour = this.hour;   // 各物种按钟点作息
-      if (near) { const mid = Math.hypot(c.x - focus.x, c.z - focus.z) > 14; if (!mid) ch.fauna.update(dt, t); else if ((ch.tick = !ch.tick)) ch.fauna.update(dt * 2, t); }
+      // 画面外的区块：动物每 4 帧动一次；画面里但离得远的隔一帧动一次
+      if (near) { const seen = inView(c.x, 0.5, c.z, CH * 1.1), mid = Math.hypot(c.x - focus.x, c.z - focus.z) > 14; if (!seen) throttle(ch, false, dt, (d) => ch.fauna.update(d, t)); else if (!mid) ch.fauna.update(dt, t); else if ((ch.tick = !ch.tick)) ch.fauna.update(dt * 2, t); }
     }
     // 海底
     this._seabedTick(this.seabed.size ? 4 : 40);
@@ -550,9 +557,10 @@ export class HQView {
     }
     // 镜头相关
     this.atmo.follow(focus.x, focus.z, THREE.MathUtils.clamp(dist * 0.62, 8, 26));
-    // 阴影缓存：阴影贴图不用每帧重画——每 3 帧一次；镜头挪动（阴影范围变了）、时间变了、地块在重建时立即重画
-    { const s = this.atmo.sun, key = s.position.x * 31 + s.position.y * 17 + s.position.z + s.shadow.camera.right * 7; s.shadow.autoUpdate = false;
-      if (key !== this._shKey || this.chunksDirty || this.rising.length || (this._shN = (this._shN || 0) + 1) % 3 === 0) { s.shadow.needsUpdate = true; this._shKey = key; } }
+    // 阴影缓存：阴影贴图画一次就一直用，只有这些时候才重画——阴影范围换档 / 镜头挪出一格（范围的 1/4）、太阳转过约 0.15°、
+    // 地块在重建或升起、摆放 / 删除了东西。会动的动物不画进阴影贴图（它们脚下是每帧跟着走的软圆影子），所以缓存不会“留残影”
+    { const s = this.atmo.sun, d = this.atmo.dir, c = this.atmo.center, key = [c.x, c.z, s.shadow.camera.right, Math.round(d.x * 400), Math.round(d.y * 400), Math.round(d.z * 400)].join(); s.shadow.autoUpdate = false;
+      if (key !== this._shKey || this.chunksDirty || this.rising.length || this.shadowDirty) { s.shadow.needsUpdate = true; this._shKey = key; this.shadowDirty = false; this.stats.shadowRenders = (this.stats.shadowRenders || 0) + 1; } }
     if (this.waterDirty && !this.chunksDirty) { this.waterDirty = false; this._falls(); }
     const mist = this.fallMist || [];
     this.fx.setEmitters({ falls: mist.length ? mist : [[0, -50, 0]], fire: this.fireAt || [0, -50, 0], night: this.nightK > 0.4 ? this.nightK : 0, dark: this.nightK, pollen: [focus.x - 1, 0, focus.z + 0.3], flies: [focus.x - 0.6, 0, focus.z - 0.1] });
@@ -567,7 +575,7 @@ export class HQView {
     if (this.q.ao && !this.chunksDirty) { this.macro ||= new MacroLayer(this); this.macro.update(focus, dist); this.pipe.opts.macro = Math.max(0, Math.min(1, (4.2 - dist) / 2.8)); }   // 特写的微距草地和浅景深（极致、高清档）
     // 动物、海龟、海鸥、村民、岸边的鸟：全岛合批（同一部件一次绘制）
     // 动物和小件：屏幕上高度不到 40 像素（约 0.15 单位高）换简化模型
-    this.batcher.sync([this.faunaRoot, this.marine?.group, this.gulls.group, this.villagers.group, this.wild.group, this.creatures.group, this.items.makeRoot], this.camera, (11 + 10 * this.lodK) * (this.q.viewK ?? 1), this.ppuDist(260 / (0.55 + 0.45 * this.lodK)));
+    this.batcher.sync([this.faunaRoot, this.marine?.group, this.gulls.group, this.villagers.group, this.wild.group, this.creatures.group, this.items.makeRoot], this.camera, (11 + 10 * this.lodK) * (this.q.viewK ?? 1), this.ppuDist(260 / (0.55 + 0.45 * this.lodK)), (x, z) => this.terrain.heightAt(x, z));
     // 营火：离镜头最近的那一处冒火苗和炊烟
     let bestF = null, bd = 1e9; for (const f of this.fires.values()) { const d = Math.hypot(f[0] - focus.x, f[2] - focus.z); if (d < bd) { bd = d; bestF = f; } }
     this.fireAt = bestF;
@@ -625,7 +633,7 @@ export class HQView {
     const [c, r] = this._islandShape();
     this.gulls.center.copy(c); this.gulls.radius = Math.max(4, r + 1.5);
     this.marine = new Marine({ scene: this.scene, terrain: this.terrain, ocean: this.ocean, sceneDepth: this.pipe.sceneDepth, center: c, zones: 'noise', radius: Math.max(3, r) });
-    this.seagrass = bladeField('seagrass', this.marine.seagrassBlades()); this.scene.add(this.seagrass);
+    this.seagrass = bladeField('seagrass', this.marine.seagrassBlades(), { cull: true }); this.scene.add(this.seagrass);
     this.marineAt = this.landChanged;
     this._seaLife();
     if (this.w) this.resize(this.w, this.h);
@@ -635,7 +643,7 @@ export class HQView {
     const [c, r] = this._islandShape();
     const blades = this.marine.rebuild(c, Math.max(3, r));
     this.scene.remove(this.seagrass); this.seagrass.geometry.dispose();
-    this.seagrass = bladeField('seagrass', blades); this.scene.add(this.seagrass);
+    this.seagrass = bladeField('seagrass', blades, { cull: true }); this.scene.add(this.seagrass);
     this.gulls.center.copy(c); this.gulls.radius = Math.max(4, r + 1.5);
     this._seaLife();
   }

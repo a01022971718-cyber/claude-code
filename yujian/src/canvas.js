@@ -284,6 +284,43 @@ export class CanvasMode {
   }
   /** 下一块草地发现稀有生态的机会（界面上的小提示用） */
   nextChance() { return chance(this.s.disc, { hour: this.view.sky.hour }); }
+
+  // ---------- 给 AI 代理用的操作：直接改岛（不走“发现稀有生态”、提示和音效）；整局可以一次撤销 ----------
+  agentSnapshot() { return JSON.stringify({ tiles: this.s.tiles, items: this.s.items, sea: this.s.sea, seq: this.s.seq, unlocked: this.s.unlocked }); }
+  agentRestore(snap) { Object.assign(this.s, JSON.parse(snap)); this.undo = []; this.save(); this.syncAll(); this.view.setSea?.(this.s.sea); }
+  /** list: [{ q, r, type }]，type 为 sea 表示挖掉变成海 */
+  agentSetTiles(list) {
+    const v = this.view, out = { set: 0, removed: 0, bad: [] };
+    for (const t of (list || []).slice(0, 240)) {
+      const q = Math.round(+t.q), r = Math.round(+t.r), type = String(t.type ?? t.t ?? '').trim();
+      if (!Number.isFinite(q) || !Number.isFinite(r) || Math.abs(q) > 40 || Math.abs(r) > 40) { out.bad.push(`坐标 ${t.q},${t.r}`); continue; }
+      const cur = this.tileAt(q, r);
+      if (!type || type === 'sea' || type === 'none') { if (cur) { v.removeTile(q, r); this.s.tiles.splice(this.s.tiles.indexOf(cur), 1); out.removed++; } continue; }
+      if (!TYPES[type]) { out.bad.push(`地块类型 ${type}`); continue; }
+      if (cur && cur[2] === type) continue;
+      if (cur) { v.removeTile(q, r); this.s.tiles.splice(this.s.tiles.indexOf(cur), 1); }
+      this.s.tiles.push([q, r, type]); v.setTile({ q, r, t: type }, true); out.set++;
+      if (RARE[type] && !this.s.unlocked.includes(type)) this.s.unlocked.push(type);
+    }
+    if (out.removed || out.set) { v.items?.prune?.(); this.s.items = this.s.items.filter((it) => v.items?.items.has(it.id)); }
+    this.app.rig.bounds = this.bounds(); this.save(); return out;
+  }
+  /** 摆一个东西，成功返回它的编号，失败返回原因（文字） */
+  agentPlace(k, x, z, ry = null) {
+    const def = findItem(k); if (!def) return `没有这种东西：${k}`;
+    if (def.tile || def.sea || def.event || def.hour !== undefined) return `${k} 不是可以摆放的物件`;
+    const land = this.view.terrain.heightAt(x, z) != null;
+    if (def.water && land) return `${def.name}要放在海面上（紧挨着岛的海里）`;
+    if (!def.water && !land) return `${def.name}要放在岛上`;
+    if (!def.animal && !def.creature && this.view.items.hit(x, z, (def.r ?? 0.1) * 0.6)) return '这里已经有东西了';
+    const big = def.prop === 'lighthouse' || def.prop === 'windmill' || def.prop === 'bellTower';
+    const it = { id: this.s.seq++, k: def.id, x: +x.toFixed(3), z: +z.toFixed(3), ry: +(ry ?? Math.random() * 6.28).toFixed(2), s: big ? 1 : +(0.9 + Math.random() * 0.2).toFixed(2) };
+    if (!this.view.items.add(it)) return def.note || (def.animal || def.creature ? `${def.name}在这里待不住` : '这里放不下');
+    this.s.items.push(it); return it.id;
+  }
+  agentRemove(pred) { const ids = this.s.items.filter(pred).map((it) => it.id); for (const id of ids) this.view.items.remove(id, true); this.s.items = this.s.items.filter((it) => !ids.includes(it.id)); this.save(); return ids.length; }
+  agentClear() { this.s.tiles = []; this.s.items = []; this.save(); this.syncAll(); }
+  agentSave() { this.save(); }
   rememberCam() { const r = this.app.rig; this.s.cam = { x: +r.focus.x.toFixed(2), z: +r.focus.z.toFixed(2), yaw: +r.target.yaw.toFixed(3), pitch: +r.target.pitch.toFixed(3), dist: +r.target.dist.toFixed(2) }; this.save(); }
 }
 export { THREE, GROUND };

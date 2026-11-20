@@ -78,14 +78,14 @@ export class ItemLayer {
     const g = new THREE.Group(), m = new THREE.Mesh(pr.geometry, v.mats.prop); m.castShadow = m.receiveShadow = true; g.add(m);
     if (pr.parts) for (const [name, part] of Object.entries(pr.parts)) {
       const geo = part.geometry.clone(), pv = part.pivot || [0, 0, 0]; geo.translate(-pv[0], -pv[1], -pv[2]);
-      const pm = new THREE.Mesh(geo, v.mats.prop); pm.position.fromArray(pv); pm.castShadow = true; g.add(pm);
+      const pm = new THREE.Mesh(geo, v.mats.prop); pm.position.fromArray(pv); pm.castShadow = false; g.add(pm);   // 会转的风叶、会摆的钟不画进阴影缓存
       this.anim.push({ id: it.id, name, m: pm });
     }
     if (def.prop === 'lighthouse') this._beam(g, pr.anchors.lamp || [0, 1.6, 0], it.id);
     g.scale.setScalar((def.s || 1) * (it.s || 1)); g.rotation.y = it.ry || 0;
     if (def.water) { g.position.set(it.x, 0, it.z); this.pendingFloat.push(g); }
     else g.position.set(it.x, y - 0.01, it.z);
-    this.group.add(g); this.objs.set(it.id, g);
+    this.group.add(g); this.objs.set(it.id, g); v.shadowDirty = true;
     if (def.fire) v.fires.set(it.id, [it.x + (pr.anchors.fire?.[0] || 0), y + (pr.anchors.fire?.[1] || 0.02), it.z + (pr.anchors.fire?.[2] || 0)]);
     return true;
   }
@@ -149,7 +149,7 @@ export class ItemLayer {
     const it = this.items.get(id); if (!it) return null;
     this.items.delete(id);
     const def = findItem(it.k), g = this.objs.get(id);
-    if (g) { g.removeFromParent(); this.objs.delete(id); this.makes = this.makes.filter((c) => c.id !== id); const m = this.view.marine; if (m) m.floaters = m.floaters.filter((f) => f.obj !== g); }
+    if (g) { g.removeFromParent(); this.objs.delete(id); this.view.shadowDirty = true; this.makes = this.makes.filter((c) => c.id !== id); const m = this.view.marine; if (m) m.floaters = m.floaters.filter((f) => f.obj !== g); }
     this.anim = this.anim.filter((a) => a.id !== id);
     this.view.fires.delete(id);
     if (def?.kit && !quiet) this._rebuildPlants();

@@ -56,10 +56,14 @@ export class Atmosphere {
     this.preset = null;
   }
   /** 阴影范围跟着镜头：以 (x,z) 为中心、半边长 half */
+  /** 阴影范围跟着镜头：范围按档位跳（小幅缩放不变），中心按范围的 1/4 对齐（小幅平移不变）——阴影贴图只在这两样变了时才需要重画 */
   follow(x, z, half) {
-    this.center.set(Math.round(x * 4) / 4, 0, Math.round(z * 4) / 4);
+    const need = half * 1.15; let h = this._half || 0;
+    if (!(h >= need && h <= need * 1.7)) h = [6, 8, 10, 13, 17, 22, 28, 36].find((s) => s >= need) || 36;
+    this._half = h; const snap = h / 4;
+    this.center.set(Math.round(x / snap) * snap, 0, Math.round(z / snap) * snap);
     const c = this.sun.shadow.camera;
-    if (Math.abs(c.right - half) > 0.01) { c.left = -half; c.right = half; c.top = half; c.bottom = -half; c.far = 60 + half * 2; c.updateProjectionMatrix(); }
+    if (Math.abs(c.right - h) > 0.01) { c.left = -h; c.right = h; c.top = h; c.bottom = -h; c.far = 60 + h * 2; c.updateProjectionMatrix(); }
     this.sun.position.copy(this.center).addScaledVector(this.dir, 40); this.sun.target.position.copy(this.center);
   }
   /** bake=false 时不重烘环境光照（连续调时间时节流用） */

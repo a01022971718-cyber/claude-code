@@ -50,7 +50,7 @@ export class PerfMonitor {
     rig.focus.set(saved.x, 0, saved.z); rig.setView(saved); rig.locked = false; this.benching = false; app.ui.hud(true);
     const s = app.game.s.settings, v = app.view;
     return {
-      版本: 'v0.27', 画面: v.kind === 'hq' ? '高画质' : '低多边形', 档位: s.quality, 自定义: JSON.stringify(s.gfx || {}), 模式: app.canvasMode ? '自由画布' : '经营',
+      版本: 'v0.28', 画面: v.kind === 'hq' ? '高画质' : '低多边形', 档位: s.quality, 自定义: JSON.stringify(s.gfx || {}), 模式: app.canvasMode ? '自由画布' : '经营',
       平均帧率: +st.fps.toFixed(1), 低帧1: +st.low1.toFixed(1), 帧时间中位: +st.ms50.toFixed(1), 帧时间95: +st.ms95.toFixed(1), 帧时间99: +st.ms99.toFixed(1),
       绘制调用峰值: maxCalls, 三角面峰值: maxTris, 帧率上限: app.fpsCap(false), 分辨率系数: v.resScale ?? 1, 细节系数: +(v.lodK ?? 1).toFixed(2), 加载毫秒: app.loadMs ?? 0, 地块: v.terrain?.tiles?.length ?? 0, 区块: v.chunks?.size ?? 0,
       渲染遍数: this.passes(), 三角面明细: this.breakdown(),

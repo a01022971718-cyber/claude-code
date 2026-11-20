@@ -5,7 +5,7 @@ import { key, DIRS, hexDist, toWorld, fromWorld, disk, SQ3 } from './hex.js';
 import { mulberry32, hash3 } from './geo.js';
 import { store, analytics } from './services.js';
 
-export const DEFAULT_SETTINGS = { sound: true, music: true, quality: 'ultra', autoQuality: true, timeMode: 'real', fixedHour: 15, gameplay: false };
+export const DEFAULT_SETTINGS = { sound: true, music: true, quality: 'ultra', autoQuality: true, timeMode: 'real', fixedHour: 15, gameplay: false, dynres: true };
 
 export function landmarkDef(i) {
   if (i < LANDMARKS.length) return LANDMARKS[i];

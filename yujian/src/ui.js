@@ -1,7 +1,7 @@
 // 界面层：资源栏、目标、手牌、委托、设置、模拟广告、提示。全部是 DOM，叠在 3D 画布上面。
 import { TILE, RES, RES_NAME, DAILY, QUALITY, gfx } from './config.js';
 import { CAM_ICON } from './camdock.js';
-import { lineup } from './forgeview.js';
+import { AgentPanel, islandAgent } from './aiagent.js';
 import { registerMakes } from './make/register.js';
 import { sopHTML } from './artsop.js';
 import { aiError, PROVIDERS } from './ai.js';
@@ -185,7 +185,7 @@ export class UI {
     else body = `
       <div class="rowb"><button class="btn ghost" id="setBench">性能测试</button><button class="btn ghost" id="setExport">查看埋点数据</button>${app.canvasMode ? '' : '<button class="btn ghost danger" id="setReset">重新开始</button>'}</div>
       ${app.debug ? `<div class="dbg"><b>调试</b><button data-d="give">+10 资源</button><button data-d="skip">快进 4 小时</button><button data-d="day">进入下一天</button><button data-d="coupon">+2 卡券</button></div>` : ''}
-      <p class="ver">屿见 v0.27 · 存档只保存在这台设备的浏览器里</p>`;
+      <p class="ver">屿见 v0.28 · 存档只保存在这台设备的浏览器里</p>`;
     const tabs = [['basic', '基础'], ['gfx', '画面'], ['cam', '镜头'], ['ai', 'AI'], ['other', '其他']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('');
     const sh = this.modal(`<header><h2>设置</h2><button class="x" data-close>关闭</button></header><nav class="stabs">${tabs}</nav><div class="set">${body}</div>`, tab === 'gfx' || tab === 'cam' ? 'wide gfxsheet' : '');
     sh.addEventListener('click', (e) => e.stopPropagation());
@@ -238,95 +238,18 @@ export class UI {
       <p class="note" id="aiOut"></p>
       <p class="note">密钥只保存在这台设备的浏览器里。正式上线给玩家用时，请在自己的服务器上转发请求（填“代理地址”、不填密钥），不要把密钥放进客户端。</p></div>`;
   }
-  /** AI 造岛：输入一句话描述 → 生成一座新岛 */
+  /** AI 造岛：交给 AI 自主代理——它拿着这座岛的操作权限，自己看、自己动手、截图检查、不满意自己改 */
   openAIIsland() {
     const app = this.app;
-    if (!app.ai.ready) { this.toast('先在 设置 → AI 里选服务商、填 API 密钥'); return this.openSettings('ai'); }
-    const EX = { new: ['长满发光蘑菇的夜光森林岛，住着会飞的小萤兽', '珊瑚色沙地和水晶树的梦幻海岛', '冰雪苔原上的极光小岛，有长毛的雪团兽', '巨大的伞形树和紫色草原，住着长耳跳跳兽'],
-      edit: ['在东边加一片沙滩和一条小船', '把森林扩大一倍，加几只鹿', '加一个营地，旁边种菜地和麦田', '在岛中间开一条流向大海的溪流'],
-      create: ['创造一种会发光的蓝色蘑菇林生态', '创造三种奇怪又可爱的小动物住在草地上', '创造一种开满彩虹花的仙人掌沙漠', '创造在海边游来游去的贝壳小兽'] };
-    let mode = 'new';
-    const sh = this.modal(`<header><h2>AI 造岛</h2><button class="x" data-close>关闭</button></header>
-      <div class="aiform"><div class="aimode"><button data-m="new" class="on">生成新岛</button><button data-m="create">创造新物种</button><button data-m="edit">改造这座岛</button></div>
-      <label><span id="aiQ">想要一座什么样的岛？</span><textarea id="aiPrompt" rows="3"></textarea></label>
-      <div class="aichips"></div>
-      <label class="aichk"><input type="checkbox" id="aiReview" ${(() => { try { return localStorage.getItem('yujian_ai_review') === '0' ? '' : 'checked'; } catch { return 'checked'; } })()}> AI 审图：生成后把对比图给 AI 看，按清单打分并修改（模型要能看图）</label>
-      ${(() => { const c = app.canvasMode?.s.custom || {}, n = (c.plants?.length || 0) + (c.creatures?.length || 0); return n ? `<button class="btn ghost aiup" id="aiUp">把以前 AI 造的 ${n} 个物种按新方法重做</button>` : ''; })()}
-      <div class="rowb"><button class="btn ghost" id="aiSop">美术圣经</button><button class="btn" id="aiGo">生成</button></div><p class="note aimsg" id="aiMsg"></p><div id="aiOut" class="aiout"></div>
-      <p class="note">流程：① AI 按美术圣经设计配方 → ② 游戏用原有素材的笔法生成模型 → ③ AI 看对比图审图、修改 → ④ 你确认后放进岛里。用的是「设置 → AI」里选的服务商（${app.ai.prov.name}）。</p></div>`);
-    const setMode = (m) => {
-      mode = m; sh.querySelectorAll('[data-m]').forEach((b) => b.classList.toggle('on', b.dataset.m === m));
-      sh.querySelector('#aiQ').textContent = m === 'new' ? '想要一座什么样的岛？（AI 会创造新的生态、植物和动物）' : m === 'create' ? '想创造什么新东西？（生态、植物、动物，造好后放进这座岛，也会出现在建造栏里）' : '想怎么改现在的岛？';
-      sh.querySelector('#aiPrompt').placeholder = '比如：' + EX[m][0];
-      sh.querySelector('.aichips').innerHTML = EX[m].map((t) => `<button data-ex="${t}">${t}</button>`).join('');
-      sh.querySelector('#aiMsg').textContent = m === 'new' ? '生成会替换现在这座岛，需要等十几秒到一分钟。' : m === 'create' ? 'AI 设计出新物种的造型配方，游戏现场生成 3D 模型，放进这座岛，并加到建造栏（名字前带 ✦）。' : 'AI 会在现在的岛上按你说的改，没提到的地方尽量保留。';
-    };
-    setMode('new');
-    sh.addEventListener('click', (e) => { e.stopPropagation(); const m = e.target.closest('[data-m]'); if (m) setMode(m.dataset.m); const ex = e.target.closest('[data-ex]'); if (ex) sh.querySelector('#aiPrompt').value = ex.dataset.ex; });
-    sh.querySelector('[data-close]').onclick = () => this.closeModal();
-    sh.querySelector('#aiSop').onclick = () => this.openSOP();
-    const up = sh.querySelector('#aiUp');
-    if (up) up.onclick = async () => {
-      const msg = sh.querySelector('#aiMsg'); up.disabled = true;
-      try { const n = await app.canvasMode.upgradeOld(app.ai, (k, t, name) => { msg.textContent = `重做中（${k} / ${t}）：${name}`; }); msg.textContent = `重做了 ${n} 个物种，岛上的已经换成新的；在建造栏「✦ 我造的」里，也能到造物台继续改。`; up.remove(); }
-      catch (e) { msg.textContent = '重做失败：' + aiError(e); up.disabled = false; }
-    };
-    sh.querySelector('#aiGo').onclick = async () => {
-      const text = sh.querySelector('#aiPrompt').value.trim(), msg = sh.querySelector('#aiMsg'), btn = sh.querySelector('#aiGo'), out = sh.querySelector('#aiOut');
-      if (!text) { msg.textContent = '先写一句描述，或点一个例子'; return; }
-      const review = sh.querySelector('#aiReview').checked; try { localStorage.setItem('yujian_ai_review', review ? '1' : '0'); } catch {}
-      btn.disabled = true; out.innerHTML = '';
-      const step = (k, t) => { msg.innerHTML = `<b>${'①②③④'[k]}</b> ${t}`; };
-      try {
-        const cv = app.canvasMode, ask = mode === 'create' ? `请创造这些新东西，并把它们放进现在这座岛里（新生态铺几块新地块接在岛边上，新植物和新动物摆进去）：${text}` : text;
-        step(0, mode === 'edit' ? 'AI 正在改造这座岛……' : 'AI 正在按美术圣经设计配方……');
-        const L = await app.ai.island(ask, mode === 'new' ? null : cv.layout(), cv.known());
-        // 新植物、新动物：逐个交给 AI 造物，按造物台的方式（部件 + 大小不同的长方块 + 每部位一组颜色）搭出来
-        L.makes = [];
-        const specs = [...L.plants.map((r) => ['plant', r]), ...L.creatures.map((r) => ['creature', r])];
-        if (specs.length) {
-          const { makeFromRecipe, pool, storeMakes } = await import('./make/aimake.js'); let n = 0;
-          step(1, `AI 正在搭新物种（0 / ${specs.length}）……`);
-          const { out, errs } = await pool(specs, 3, async ([kind, r]) => { const m = await makeFromRecipe(app.ai, r, kind); step(1, `AI 正在搭新物种（${++n} / ${specs.length}）……`); return m; });
-          L.makes = out.filter(Boolean); if (!L.makes.length && errs.length) throw errs[0];
-          storeMakes(L.makes); registerMakes();
-          // 新动物按设定的栖息地和数量住进岛里
-          const land = new Set(L.tiles.map(([q, r]) => q + ',' + r)), NB = [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]];
-          for (const m of L.makes) if (m.use === 'creature') {
-            const hab = m.habitat || 'land', cand = hab === 'sea' || m.behavior === 'swim' ? L.tiles.flatMap(([q, r]) => NB.map(([a, b]) => [q + a, r + b])).filter(([q, r]) => !land.has(q + ',' + r)) : L.tiles.filter((t) => hab === 'land' || t[2] === hab).map(([q, r]) => [q, r]);
-            const pool2 = cand.length ? cand : L.tiles.map(([q, r]) => [q, r]);
-            for (let i = 0; i < Math.min(6, m.count || 3); i++) { const [q, r] = pool2[Math.floor(Math.random() * pool2.length)]; L.items.push({ k: m.name, q, r }); }
-          }
-          L.plants = []; L.creatures = [];
-        }
-        const made = () => [...L.biomes.map((x) => '生态「' + x.name + '」'), ...L.makes.map((x) => (x.use === 'plant' ? '植物「' : '动物「') + x.name + '」')];
-        let note = '';
-        if (made().length) {
-          step(2, '和原有素材并排对比……'); await new Promise((r) => setTimeout(r, 30));
-          const v1 = await lineup(L), cap = (v) => '上排：' + v.labels.join(' · ') + (v.labels2.length ? '<br>下排：' + v.labels2.join(' · ') : '');
-          out.innerHTML = `<figure><img src="${v1.url}" alt="新素材对比图"><figcaption>${cap(v1)}</figcaption></figure>`;
-          if (review) {
-            step(3, 'AI 正在看图审图（对照原有素材和美术圣经）……');
-            try {
-              const R = await app.ai.review(v1.url, [...v1.labels.map((x) => '上排·' + x), ...v1.labels2.map((x) => '下排·' + x)], { biomes: L.biomes, plants: L.plants, creatures: L.creatures });
-              L.biomes = R.biomes;   // 生态按审图意见改；新物种的意见写在下面，不满意可以到造物台里让 AI 再改
-              const v2 = await lineup(L); note = `审图 ${R.score}/10：${R.notes}`;
-              out.innerHTML = `<figure><img src="${v1.url}" alt="初稿"><figcaption>初稿</figcaption></figure><figure><img src="${v2.url}" alt="按审图意见修改后"><figcaption>按审图意见修改后<br>${cap(v2)}</figcaption></figure>`;
-            } catch (e) { note = '审图跳过：' + aiError(e) + '（这个模型可能看不了图）'; }
-          }
-        }
-        msg.innerHTML = `<b>${'④'}</b> 「${L.name}」：${L.note}` + (made().length ? `<br>新创造：${made().join('、')}` : '') + (note ? `<br>${note}` : '');
-        const acts = document.createElement('div'); acts.className = 'rowb';
-        acts.innerHTML = `<button class="btn ghost" id="aiRedo">不满意，重新生成</button><button class="btn" id="aiOk">${mode === 'new' ? '换成这座岛' : '放进岛里'}</button>`;
-        out.appendChild(acts); btn.hidden = true;
-        acts.querySelector('#aiRedo').onclick = () => { out.innerHTML = ''; msg.textContent = ''; btn.hidden = false; btn.disabled = false; };
-        acts.querySelector('#aiOk').onclick = async () => {
-          this.closeModal(); app.hud?.setOpen(false);
-          const names = made(); cv.adopt(L);
-          await cv.loadLayout(L, mode !== 'new'); this.toast(names.length ? `新创造：${names.join('、')}（建造栏「✦ 我造的」里；也能在方块岛的造物台里继续改）` : `「${L.name}」：${L.note}`);
-        };
-      } catch (e) { msg.textContent = '没生成出来：' + aiError(e); btn.disabled = false; }
-    };
+    if (this.agent) { this.agent.minimize(false); return; }
+    app.hud?.setOpen?.(false); this.closeModal?.();
+    this.agent = new AgentPanel(document.getElementById('app') || document.body, {
+      ai: app.ai, title: '✦ AI 造岛',
+      intro: `说一句你想要的，AI 会拿着这座岛的操作权限自己动手：看岛、铺地块、摆东西、用方块造游戏里没有的新东西、设计新生态，每做完一批截图看效果，不满意自己改。可以「收起」看它干活，随时「停止」；做完能继续提要求，也能一键撤销。用的是「设置 → AI」里的 ${app.ai.prov.name}。`,
+      placeholder: '比如：在东边加一片樱花林和一座小茶屋，旁边有条小溪',
+      examples: ['造一座长满发光蘑菇的夜光森林岛，住着会飞的小萤兽', '在岛的东边加一片沙滩、一个小码头和两条小船', '把这座岛改成秋天：树变成红黄色，加一片麦田和稻草人', '创造三种奇怪又可爱的小动物住在草地上', '造一座冰雪苔原上的极光小岛，有长毛的雪团兽'],
+      mk: () => islandAgent(app), onClose: () => { this.agent = null; }, onSettings: () => { this.agent?.minimize(true); this.openSettings('ai'); },
+    });
   }
   /** 造物手册：AI 和人共用的美术 SOP */
   openSOP() {
@@ -359,12 +282,12 @@ export class UI {
     return `
       <div class="grow gpre"><div class="gl"><b>美术主题</b><small>经典：低多边形手作风；体素：一格一格的方块世界（树、动物、岩石、山都是方块）。切换后重新载入</small></div><div class="gseg">${[['classic', '经典'], ['voxel', '体素']].map(([k, l]) => `<button data-theme="${k}" class="${STYLE.theme === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
       <div class="grow gpre"><div class="gl"><b>画质预设${custom ? '<em>自定义</em>' : ''}</b><small>每一档都是清晰画面，区别在阴影、光影、植被和生物的细节</small></div><div class="gseg">${presets}</div></div>
-      <div class="grow"><div class="gl"><b>帧率</b><small>自动：撑不住 60 帧时稳定在 30 帧；高刷只对 90/120Hz 屏幕有用</small></div><div class="gseg">${[['auto', '自动'], ['30', '30'], ['60', '60'], ['120', '高刷']].map(([k, l]) => `<button data-fps="${k}" class="${fps === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+      <div class="grow"><div class="gl"><b>帧率</b><small>自动：保 60 帧，先自动降渲染精度，精度降到底还不够才稳在 30 帧；高刷只对 90/120Hz 屏幕有用</small></div><div class="gseg">${[['auto', '自动'], ['30', '30'], ['60', '60'], ['120', '高刷']].map(([k, l]) => `<button data-fps="${k}" class="${fps === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
       <h3>清晰度</h3>
       ${row('res', '渲染精度', `越高越清晰、越耗电；总像素有上限，超出的部分靠锐化补 · 现在 ${Math.round(innerWidth * pr)}×${Math.round(innerHeight * pr)}`, [[1.5, '标准'], [2, '高'], [2.5, '超高'], [4, '最高']])}
       ${row('aa', '抗锯齿', '让边缘更平滑', [[false, '关'], [true, '开']])}
       ${row('sharpen', '锐化', '让细节更清楚', [[0, '关'], [0.35, '标准'], [0.6, '强']])}
-      <label class="sw"><span>动态分辨率<small>帧率不够时自动把渲染精度降一点（最低 85%），够了再升回去</small></span><input type="checkbox" id="set_dynres" ${st.dynres ? 'checked' : ''}><i></i></label>
+      <label class="sw"><span>动态分辨率<small>帧率不够时自动降低渲染精度（最低 60%，再加锐化），够了再升回去——用一点清晰度换稳定 60 帧</small></span><input type="checkbox" id="set_dynres" ${st.dynres !== false ? 'checked' : ''}><i></i></label>
       <h3>光影</h3>
       ${row('shadow', '阴影', '影子的清晰度', [[0, '关'], [1024, '低'], [2048, '中'], [4096, '高']])}
       ${row('ao', '环境光遮蔽', '树下、岩缝、墙角的柔和暗部', [[false, '关'], [true, '开']])}
@@ -373,7 +296,7 @@ export class UI {
       <h3>场景细节</h3>
       ${row('veg', '植被密度', '草、花、树的数量（改了会重新生成）', [['low', '低'], ['mid', '中'], ['high', '高'], ['ultra', '极高']])}
       ${row('life', '生物数量', '岛上动物的多少（改了会重新生成）', [[0.5, '少'], [0.7, '中'], [1, '多']])}
-      ${row('view', '视距', '多远以外不画草叶和动物', [['near', '近'], ['mid', '中'], ['far', '远']])}
+      ${row('view', '渲染范围', '只画画面里的东西，画面外的一律不画、动物降频；再按这一档决定画多远：眼前 = 只画镜头附近这一片（最省），全岛 = 远处的草和动物也画', [['near', '眼前'], ['mid', '适中'], ['far', '全岛']])}
       <h3>其他</h3>
       <label class="sw"><span>自动调整画质<small>持续卡顿时自动降一档预设</small></span><input type="checkbox" id="set_auto" ${st.autoQuality ? 'checked' : ''}><i></i></label>
       <label class="sw"><span>省电模式<small>不操作 8 秒后降到 30 帧</small></span><input type="checkbox" id="set_powerSave" ${st.powerSave ? 'checked' : ''}><i></i></label>

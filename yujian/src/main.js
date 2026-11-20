@@ -270,19 +270,25 @@ class App {
     const p = this.perf, st = this.game.s.settings;
     if (!p.armed || this.mode === 'cut' || this.perfMon.benching || this.saving || this.view.loading || document.hidden) { p.t = 0; p.n = 0; return; }
     if (p.settle > 0) { p.settle -= dt; return; }
+    // 动态分辨率（默认开）：保 60 帧优先——每 2 秒看一次，帧率不够就把渲染精度降一点（最低 60%），连续够了再升回去。
+    // 像游戏主机那样用清晰度换流畅，而不是一卡就锁 30 帧
+    const v = this.view, cap = this.fpsCap(false);
+    if (st.dynres !== false && v.setResScale) {
+      p.rt = (p.rt || 0) + dt; p.rn = (p.rn || 0) + 1;
+      if (p.rt >= 2) {
+        const f2 = p.rn / p.rt, r = v.resScale ?? 1; p.rt = 0; p.rn = 0;
+        if (f2 < cap * 0.9 && r > 0.6) { v.setResScale(Math.max(0.6, r - (f2 < cap * 0.7 ? 0.12 : 0.06))); this.resize(); p.settle = 1; p.t = 0; p.n = 0; return; }
+        if (f2 >= cap * 0.97 && r < 1) { p.good = (p.good || 0) + 1; if (p.good >= 2) { p.good = 0; v.setResScale(Math.min(1, r + 0.05)); this.resize(); p.settle = 1; p.t = 0; p.n = 0; return; } } else p.good = 0;
+      }
+    }
     p.t += dt; p.n++;
     if (p.t < 5) return;
     const fps = p.n / p.t; p.t = 0; p.n = 0;
     analytics.track('fps', { fps: Math.round(fps), q: st.quality });
-    // 帧节奏：不锁帧时平均不到 50，就稳定锁在 30
+    // 帧节奏：精度已经降到底（或关了动态分辨率）还不到 48 帧，才稳定锁在 30（每帧间隔一致，比 25–50ms 来回跳顺）
     this.pace ||= { lock30: false };
-    if (!this.pace.lock30 && fps < 50 && (st.fps ?? 'auto') === 'auto') { this.pace.lock30 = true; p.low = 0; p.settle = 3; return; }
-    // 动态分辨率（设置里打开才用，默认关，保证清晰）：达不到目标帧率时把渲染精度降一点（最低 85%），宽裕时升回去
-    const v = this.view, cap = this.fpsCap(false);
-    if (st.dynres && v.setResScale) {
-      if (fps < cap * 0.9) { const r = v.resScale ?? 1; if (r > 0.86) { v.setResScale(Math.max(0.85, r - 0.075)); this.resize(); p.settle = 4; return; } }
-      else if ((v.resScale ?? 1) < 1 && fps >= cap * 0.98) { p.good = (p.good || 0) + 1; if (p.good >= 2) { p.good = 0; v.setResScale(Math.min(1, v.resScale + 0.075)); this.resize(); p.settle = 4; return; } } else p.good = 0;
-    }
+    const floor = st.dynres === false || (v.resScale ?? 1) <= 0.61;
+    if (!this.pace.lock30 && floor && fps < 48 && (st.fps ?? 'auto') === 'auto') { this.pace.lock30 = true; p.low = 0; p.settle = 3; return; }
     if (!st.autoQuality || this.forceQ) return;   // 手动选了档位：帧节奏和分辨率照常自动，档位不动
     p.low = fps < 24 ? p.low + 1 : 0;
     if (p.low < 2) return;
