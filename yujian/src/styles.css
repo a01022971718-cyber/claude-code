@@ -484,3 +484,11 @@ body { background: var(--haze); color: var(--ink); font-family: var(--font); fon
 .s-side[hidden] { display: none !important; }
 .b-hot .b-pill { white-space: nowrap; flex: none; }
 @media (orientation: portrait) { .s-tools { top: 104px !important; } }
+/* 造物台：✦ 再精修一遍（AI 做完后出现在顶部中间）、部件设置里的部件操作、AI 面板三种模式换行 */
+.s-refine { position: absolute; left: 50%; transform: translateX(-50%); top: 60px; background: linear-gradient(135deg, #f6d27a, #e8a24a) !important; color: #3a2a10 !important; font-weight: 600; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+.s-refine[hidden] { display: none; }
+.s-refine:disabled { opacity: .85; }
+@media (orientation: portrait) { .s-refine { top: 104px; } }
+.s-partops { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.s-partops .b-pill { background: #e9f1f2; color: #17313b; }
+.s-mode { flex-wrap: wrap; row-gap: 0; }

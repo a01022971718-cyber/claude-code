@@ -4,11 +4,14 @@
 //  - 添加：点一块的某个面，在那个面外面接一块（和选中块一样大）；点台面，在台面上放一块。
 //  - 上色：点或划过方块涂上当前颜色（“色组”开着时，同色的块自动交错几级深浅）。擦除：点或划过删掉。
 //  - 长按任意方块：吸取它的颜色。左右对称（默认开）：在一边加、改、删，另一边跟着变。
+//  - 多选：开「多选」后点哪块选哪块（再点取消）；也可以「全选」「选中整个部件」。选中一组后拖动整组移动，
+//    侧栏可以整组复制、转 90°、放大缩小、删除、上色。部件可以整个复制、镜像到另一侧。
+//  - ✦ 精修：AI 看着造物的渲染图，按美术圣经的审图清单检查后自己改一轮（不满意可以撤销）。
 //  - 部件：方块属于当前部件；每个部件有关节点和动作（走路摆、来回摆、扇动、旋转、浮动、随风摆、伸缩），点“播放”预览。
 //  - 保存后进“我的造物”，回到六边形岛建造栏「✦ 我造的」里直接摆放。
 import * as THREE from 'three';
 import { sopHTML } from '../artsop.js';
-import { boxGeo, buildMake, animatePart, newMake, TEMPLATES, USES, BEHAVIORS, MOTIONS, loadMakes, saveMakes, bounds } from './model.js';
+import { boxGeo, buildMake, animatePart, newMake, TEMPLATES, USES, BEHAVIORS, MOTIONS, loadMakes, saveMakes, bounds, mergedGeo } from './model.js';
 
 const K = 0.05;                       // 1 小格在造物台上 = 0.05 个世界单位（放大了看，好操作）
 const SWATCH = ['#ece5d6', '#f0e2c8', '#c9a07a', '#b0773f', '#8a5a30', '#4a3f38', '#1d1a1a', '#9aa0a8', '#6f747c', '#f4f6f8',
@@ -33,7 +36,10 @@ export class Studio {
     this.handles.visible = false;
     this.selBox = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)), new THREE.LineBasicMaterial({ color: 0xffffff, depthTest: false, transparent: true }));
     this.selBox.renderOrder = 9; this.selBox.visible = false; this.stage.add(this.selBox);
-    this.preview = null; this.undoS = []; this.redoS = []; this.sel = null; this.ray = new THREE.Raycaster();
+    this.preview = null; this.undoS = []; this.redoS = []; this.sel = null; this.selSet = []; this.multiOn = false; this.ray = new THREE.Raycaster();
+    // 多选时每块的描边（一份线段几何，选中变化时重建）
+    this.lines = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xffe08a, depthTest: false, transparent: true }));
+    this.lines.renderOrder = 9; this.lines.visible = false; this.stage.add(this.lines);
   }
 
   // ---------------- 进出 ----------------
@@ -55,10 +61,10 @@ export class Studio {
     Object.assign(r, { minDist: s.minDist, maxDist: s.maxDist, lookY: s.lookY, bounds: s.bounds, heightAt: s.heightAt }); r.focus.copy(s.focus); r.setView({ dist: s.dist, pitch: s.pitch, yaw: s.yaw });
   }
   edit(make) {
-    this.make = JSON.parse(JSON.stringify(make)); this.cur = 0; this.sel = null; this.undoS = []; this.redoS = [];
+    this.make = JSON.parse(JSON.stringify(make)); this.cur = 0; this._selOne(null); this.undoS = []; this.redoS = [];
     let k = 1; for (const p of this.make.parts) for (const b of p.boxes) b.k ??= k++; this.nextK = k + 100;
     for (const p of this.make.parts) for (const b of p.boxes) if (b.pair == null) { const m = this._findMirror(b, p); if (m) { b.pair = m.k; m.pair = b.k; } }
-    this.el.querySelector('.s-name').value = this.make.name || '新造物';
+    this.el.querySelector('.s-name').value = this.make.name || '新造物'; this.showRefine = false;
     this._rebuild(); this._sheet(null); this._sync();
     // 镜头框住整个造物：看向它的中心，距离按最大边长算
     const bb = bounds(this.make), sz = Math.max(8, bb.max.y - Math.min(0, bb.min.y), bb.max.x - bb.min.x, bb.max.z - bb.min.z); this.app.rig.lookY = this.center.y + Math.max(4, (bb.max.y + Math.max(0, bb.min.y)) / 2) * K; this.app.rig.setView({ dist: Math.max(2.2, sz * K * 3.6), pitch: 0.38 });
@@ -74,18 +80,35 @@ export class Studio {
     this._syncSel();
   }
   _syncSel() {
-    const b = this.sel; this.handles.visible = this.selBox.visible = !!b && this.tool === 'select' && !this.play;
-    if (!b) return;
+    const b = this.sel, G = this.grp, show = !!b && this.tool === 'select' && !this.play;
+    this.handles.visible = show && !G && !this.multiOn; this.selBox.visible = show; this._outline(show && G ? G : null);   // 多选模式只管选，不显示改大小的手柄（免得点到手柄上）
+    const el = this.el?.querySelector('.s-size');
+    if (!show) return;
+    if (G) {   // 一组：外面一个总框（不跟块转），每块再描一圈边
+      const bb = this._bb(G); this.selBox.position.set(...[0, 1, 2].map((i) => (bb.min[i] + bb.max[i]) / 2)); this.selBox.quaternion.identity(); this.selBox.scale.set(...[0, 1, 2].map((i) => bb.max[i] - bb.min[i] + 0.4));
+      if (el) el.textContent = `已选 ${G.length} 块`; return;
+    }
     // 选框和手柄跟着方块的旋转走：转过角度的块，手柄也沿它自己的长宽高方向
     const q = this._rotQ(b); this.selBox.position.fromArray(b.p); this.selBox.quaternion.copy(q); this.selBox.scale.set(b.s[0] + 0.15, b.s[1] + 0.15, b.s[2] + 0.15);
     const r = Math.max(0.55, Math.min(1.1, Math.min(...b.s) * 0.25));
     for (const h of this.handles.children) { const { ax, s } = h.userData.handle, v = new THREE.Vector3(); v.setComponent(ax, s * (b.s[ax] / 2 + r * 1.6)); v.applyQuaternion(q).add(new THREE.Vector3(...b.p)); h.position.copy(v); h.scale.setScalar(r); }
-    const el = this.el?.querySelector('.s-size'); if (el) el.textContent = b.s.map((v) => +v.toFixed(2)).join(' × ');
+    if (el) el.textContent = b.s.map((v) => +v.toFixed(2)).join(' × ');
+  }
+  /** 多选描边：每块 12 条棱（跟着块的旋转） */
+  _outline(list) {
+    this.lines.visible = !!list; if (!list) return;
+    const E = [[0, 1], [1, 3], [3, 2], [2, 0], [4, 5], [5, 7], [7, 6], [6, 4], [0, 4], [1, 5], [2, 6], [3, 7]], pos = new Float32Array(list.length * 24 * 3), v = new THREE.Vector3(); let o = 0;
+    for (const b of list) {
+      const q = this._rotQ(b), c = [];
+      for (let i = 0; i < 8; i++) c.push(v.set((i & 1 ? 0.5 : -0.5) * (b.s[0] + 0.1), (i & 2 ? 0.5 : -0.5) * (b.s[1] + 0.1), (i & 4 ? 0.5 : -0.5) * (b.s[2] + 0.1)).applyQuaternion(q).add(new THREE.Vector3(...b.p)).toArray());
+      for (const [a, z] of E) { pos.set(c[a], o); pos.set(c[z], o + 3); o += 6; }
+    }
+    this.lines.geometry.dispose(); this.lines.geometry = new THREE.BufferGeometry(); this.lines.geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   }
 
   // ---------------- 拾取与编辑 ----------------
   _hit(cx, cy, withHandles = true) {
-    this.ray.ray.copy(this.app.rig.ray(cx, cy).ray);
+    this.ray.ray.copy(this.app.rig.ray(cx, cy).ray); this.stage.updateMatrixWorld();   // 刚重建的方块还没渲染过，先更新位置矩阵再拾取
     if (withHandles && this.handles.visible) { const h = this.ray.intersectObjects(this.handles.children, false)[0]; if (h) return { handle: h.object.userData.handle }; }
     const hit = this.ray.intersectObjects(this.boxes.children, false)[0];
     if (hit) { const n = hit.face.normal.clone().transformDirection(hit.object.matrixWorld).applyQuaternion(this.stage.quaternion.clone().invert()); const ax = [0, 1, 2].reduce((a, i) => (Math.abs(n.getComponent(i)) > Math.abs(n.getComponent(a)) ? i : a), 0), sn = Math.sign(n.getComponent(ax)); return { box: hit.object.userData.b, part: hit.object.userData.pi, ax, sn }; }
@@ -108,15 +131,42 @@ export class Studio {
   _pairOf(b) { if (!this.sym || b.pair == null) return null; for (const p of this.make.parts) for (const o of p.boxes) if (o.k === b.pair) return o; return null; }
   _mirrorTo(b, o) { o.p = [-b.p[0], b.p[1], b.p[2]]; o.s = [...b.s]; o.r = [b.r[0], -b.r[1], -b.r[2]]; o.c = b.c; o.shade = b.shade; }
   _snapshot() { this.undoS.push(JSON.stringify(this.make)); if (this.undoS.length > 60) this.undoS.shift(); this.redoS.length = 0; }
-  undo() { const s = this.undoS.pop(); if (!s) return; this.redoS.push(JSON.stringify(this.make)); this.make = JSON.parse(s); this.sel = null; this._rebuild(); this._sync(); }
-  redo() { const s = this.redoS.pop(); if (!s) return; this.undoS.push(JSON.stringify(this.make)); this.make = JSON.parse(s); this.sel = null; this._rebuild(); this._sync(); }
+  undo() { const s = this.undoS.pop(); if (!s) return; this.redoS.push(JSON.stringify(this.make)); this.make = JSON.parse(s); this._selOne(null); this._rebuild(); this._sync(); }
+  redo() { const s = this.redoS.pop(); if (!s) return; this.undoS.push(JSON.stringify(this.make)); this.make = JSON.parse(s); this._selOne(null); this._rebuild(); this._sync(); }
+  // ---- 选择（单块 / 一组） ----
+  get grp() { return this.selSet.length > 1 ? this.selSet : null; }
+  _selOne(b) { this.sel = b || null; this.selSet = b ? [b] : []; }
+  _selList(list) { this.selSet = [...new Set(list)]; this.sel = this.selSet[this.selSet.length - 1] || null; }
+  _toggle(b) { const i = this.selSet.indexOf(b); if (i >= 0) { this.selSet.splice(i, 1); this.sel = this.selSet[this.selSet.length - 1] || null; } else { this.selSet.push(b); this.sel = b; } }
+  _byK(k) { for (const p of this.make.parts) for (const o of p.boxes) if (o.k === k) return o; return null; }
+  _partOf(b) { return this.make.parts.findIndex((p) => p.boxes.includes(b)); }
+  /** 一组块的外框（小格，不算旋转） */
+  _bb(list) { const mn = [Infinity, Infinity, Infinity], mx = [-Infinity, -Infinity, -Infinity]; for (const b of list) for (let i = 0; i < 3; i++) { mn[i] = Math.min(mn[i], b.p[i] - b.s[i] / 2); mx[i] = Math.max(mx[i], b.p[i] + b.s[i] / 2); } return { min: mn, max: mx }; }
+  /** 整组操作怎么做：
+   *  - 选中的块和它们的对称块都在组里（或者没开对称）→ 整组当一个刚体改（左右挪、转了以后对称关系重新配）；
+   *  - 只选了一边、开着对称 → 只改选中的这一边，对面的镜像跟着变 */
+  _plan(list = this.selSet) {
+    const set = new Set(list), rigid = !this.sym || list.every((b) => { const o = this._pairOf(b); return !o || set.has(o); });
+    return { rigid, work: rigid ? [...list] : list.filter((b) => { const o = this._pairOf(b); return !(o && set.has(o) && b.p[0] < 0); }) };
+  }
+  _moved(plan) { const m = new Set(plan.work); if (!plan.rigid) for (const b of plan.work) { const o = this._pairOf(b); if (o) m.add(o); } return m; }
+  /** 整个部件的块都被改到了 → 这个部件的关节点也跟着走 */
+  _fullParts(set) { return this.make.parts.filter((p) => p.boxes.length && p.boxes.every((b) => set.has(b))); }
+  _after(plan, breaksSym) { if (!plan.rigid) { for (const b of plan.work) { const o = this._pairOf(b); if (o) this._mirrorTo(b, o); } } else if (breaksSym) this._repair(plan.work); }
+  /** 刚体改动可能打破左右对称：解开这些块原来的对称关系，再按新位置重新找镜像 */
+  _repair(list) {
+    for (const b of list) { if (b.pair == null) continue; const o = this._byK(b.pair); if (o && o.pair === b.k) o.pair = null; b.pair = null; }
+    for (const p of this.make.parts) for (const b of p.boxes) if (b.pair == null && list.includes(b)) { const m = this._findMirror(b, p); if (m) { b.pair = m.k; m.pair = b.k; } }
+  }
+  _r2(v) { return Math.round(v * 100) / 100; }
+
   _addBox(p, s, part = this.cur) {
     const P = this.make.parts[part], b = { k: this.nextK++, p, s, r: [0, 0, 0], c: this.color, shade: this.shade ? 1 : 0 };
     P.boxes.push(b);
     if (this.sym && Math.abs(p[0]) > 0.01) { const o = { ...b, k: this.nextK++, p: [-p[0], p[1], p[2]], s: [...s], r: [0, 0, 0] }; b.pair = o.k; o.pair = b.k; P.boxes.push(o); }
     return b;
   }
-  _remove(b) { const o = this._pairOf(b); for (const p of this.make.parts) p.boxes = p.boxes.filter((x) => x !== b && x !== o); if (this.sel === b || this.sel === o) this.sel = null; }
+  _remove(b) { const o = this._pairOf(b); for (const p of this.make.parts) p.boxes = p.boxes.filter((x) => x !== b && x !== o); this.selSet = this.selSet.filter((x) => x !== b && x !== o); if (this.sel === b || this.sel === o) this.sel = this.selSet[this.selSet.length - 1] || null; }
   _paint(b) { if (b.c === this.color && !!b.shade === this.shade) return false; b.c = this.color; b.shade = this.shade ? 1 : 0; const o = this._pairOf(b); if (o) { o.c = b.c; o.shade = b.shade; } return true; }
 
   down(e) {
@@ -125,7 +175,12 @@ export class Studio {
     clearTimeout(this._lp);
     this._lp = setTimeout(() => { const st = this.st; if (!st || st.moved || !st.h?.box) return; this.setColor(st.h.box.c); this.shade = !!st.h.box.shade; this._sync(); this.toast('吸取了颜色'); navigator.vibrate?.(15); st.cancel = true; }, 480);
     if (this.tool === 'select' && h?.handle && this.sel) { this._snapshot(); const dir = new THREE.Vector3().setComponent(h.handle.ax, 1).applyQuaternion(this._rotQ(this.sel)); this.st.resize = { ...h.handle, s0: this.sel.s[h.handle.ax], p0: [...this.sel.p], dir, v: this._dirPx(this.sel.p, dir) }; }
-    else if (this.tool === 'select' && h?.box) { if (this.sel !== h.box) { this.sel = h.box; this.cur = h.part; this._rebuild(); this._sync(); } this.st.drag = { b: h.box, p0: [...h.box.p] }; }
+    else if (this.tool === 'select' && h?.box) {
+      const inG = !!this.grp && this.selSet.includes(h.box);
+      if (inG) { this.st.drag = { group: true, b: h.box, p0: [...h.box.p] }; if (this.multiOn) this.st.toggle = h.box; }   // 按住组里的块拖 = 整组移动；点一下（多选时）= 从组里去掉
+      else if (this.multiOn) this.st.toggle = h.box;   // 多选：松手时加进组
+      else { if (this.sel !== h.box || this.grp) { this._selOne(h.box); this.cur = h.part; this._rebuild(); this._sync(); } this.st.drag = { b: h.box, p0: [...h.box.p] }; }
+    }
   }
   move(e) {
     const st = this.st; if (!st || st.cancel) return;
@@ -140,7 +195,16 @@ export class Studio {
     }
     if (st.drag) {
       const D = st.drag;
-      if (D.ax == null) { let best = 1, bv = 0; for (const ax of [0, 1, 2]) { const [vx, vy] = this._axisPx(D.p0, ax), l = Math.hypot(vx, vy) || 1, c = Math.abs((dx * vx + dy * vy) / (l * Math.hypot(dx, dy))); if (c > bv) { bv = c; best = ax; } } D.ax = best; D.v = this._axisPx(D.p0, best); this._snapshot(); }
+      if (D.ax == null) {
+        let best = 1, bv = 0; for (const ax of [0, 1, 2]) { const [vx, vy] = this._axisPx(D.p0, ax), l = Math.hypot(vx, vy) || 1, c = Math.abs((dx * vx + dy * vy) / (l * Math.hypot(dx, dy))); if (c > bv) { bv = c; best = ax; } } D.ax = best; D.v = this._axisPx(D.p0, best); this._snapshot();
+        if (D.group) { D.plan = this._plan(); D.p0s = D.plan.work.map((x) => [...x.p]); D.full = this._fullParts(this._moved(D.plan)); D.pv0 = D.full.map((p) => [...(p.pivot || [0, 0, 0])]); D.minY = Math.min(...D.plan.work.map((x) => x.p[1] - x.s[1] / 2)); }
+      }
+      if (D.group) {   // 整组沿同一根轴移动，整个被选中的部件连关节点一起走
+        const [vx, vy] = D.v, L2 = vx * vx + vy * vy || 1; let d = this._q((dx * vx + dy * vy) / L2); if (D.ax === 1) d = Math.max(d, -D.minY);
+        D.plan.work.forEach((x, i) => { x.p = [...D.p0s[i]]; x.p[D.ax] += d; });
+        D.full.forEach((p, i) => { p.pivot = [...D.pv0[i]]; p.pivot[D.ax] += d; });
+        this._after(D.plan, false); this._rebuild(); return;
+      }
       const [vx, vy] = D.v, L2 = vx * vx + vy * vy || 1, d = this._q((dx * vx + dy * vy) / L2), b = D.b;
       b.p = [...D.p0]; b.p[D.ax] += d; if (D.ax === 1) b.p[1] = Math.max(b.s[1] / 2 - 0.0001, b.p[1]);
       const o = this._pairOf(b); if (o) this._mirrorTo(b, o);
@@ -154,14 +218,19 @@ export class Studio {
   }
   up(e, cancel) {
     clearTimeout(this._lp); const st = this.st; this.st = null; if (!st || st.cancel || cancel) return;
-    if (st.moved) { this._sync(); return; }
+    if (st.moved) { if (st.drag?.group && st.drag.plan?.rigid && st.drag.ax === 0) this._repair(st.drag.plan.work); this._sync(); return; }
     const h = e ? this._hit(e.clientX, e.clientY) : null;
-    if (this.tool === 'select') { if (!h?.box && !h?.handle) { this.sel = null; this._rebuild(); this._sync(); } return; }
+    if (this.tool === 'select') {
+      if (st.toggle) { this._toggle(st.toggle); if (h?.part != null) this.cur = h.part; this._rebuild(); this._sync(); }
+      else if (!h?.box && !h?.handle) { this._selOne(null); this._rebuild(); this._sync(); }
+      else if (h?.box && this.grp && this.selSet.includes(h.box)) { this._selOne(h.box); this.cur = h.part; this._rebuild(); this._sync(); }   // 点组里的一块：只选它
+      return;
+    }
     if (this.tool === 'add') {
       if (!h || h.handle) return; this._snapshot();
       const s = this.sel ? [...this.sel.s] : [4, 4, 4];
-      if (h.box) { const p = [...h.box.p]; p[h.ax] += h.sn * (h.box.s[h.ax] / 2 + s[h.ax] / 2); this.sel = this._addBox(p, s, h.part); this.cur = h.part; }
-      else this.sel = this._addBox([this._q(h.p[0]), s[1] / 2, this._q(h.p[2])], s);
+      if (h.box) { const p = [...h.box.p]; p[h.ax] += h.sn * (h.box.s[h.ax] / 2 + s[h.ax] / 2); this._selOne(this._addBox(p, s, h.part)); this.cur = h.part; }
+      else this._selOne(this._addBox([this._q(h.p[0]), s[1] / 2, this._q(h.p[2])], s));
       this._rebuild(); this._sync(); return;
     }
     if (!h?.box) return;
@@ -170,16 +239,76 @@ export class Studio {
     this._rebuild(); this._sync();
   }
 
-  // ---------------- 选中块的操作 ----------------
-  dup() { const b = this.sel; if (!b) return; this._snapshot(); const p = [...b.p]; p[1] += b.s[1]; const n = this._addBox(p, [...b.s]); n.c = b.c; n.r = [...b.r]; n.shade = b.shade; const o = this._pairOf(n); if (o) this._mirrorTo(n, o); this.sel = n; this._rebuild(); this._sync(); }
-  rot(ax) { const b = this.sel; if (!b) return; this._snapshot(); b.r[ax] = ((+b.r[ax] || 0) + 15) % 360; const o = this._pairOf(b); if (o) this._mirrorTo(b, o); this._rebuild(); }
-  del() { const b = this.sel; if (!b) return; this._snapshot(); this._remove(b); this._rebuild(); this._sync(); }
-  setColor(c) { this.color = c; if (this.sel && this.tool === 'select') { this._snapshot(); this._paint(this.sel); this._rebuild(); } this._sync(); }
+  // ---------------- 选中块（或一组）的操作 ----------------
+  /** 复制：单块往上摞一块；一组整组往上摞（复制出来的块之间保留对称关系；只选了一边时对面也跟着多一份） */
+  dup() {
+    const L = this.selSet; if (!L.length) return; this._snapshot();
+    const plan = this._plan(L), bb = this._bb([...this._moved(plan)]), dy = this._r2(bb.max[1] - bb.min[1]), map = new Map(), out = [];
+    for (const b of plan.work) { const n = { ...JSON.parse(JSON.stringify(b)), k: this.nextK++, pair: null }; n.p[1] += dy; this.make.parts[this._partOf(b)].boxes.push(n); map.set(b.k, n); out.push(n); }
+    if (plan.rigid) { for (const b of plan.work) if (b.pair != null && map.has(b.pair)) map.get(b.k).pair = map.get(b.pair).k; }
+    else for (const n of out) { if (!this.sym || Math.abs(n.p[0]) < 0.01) continue; const o = { ...n, k: this.nextK++, p: [-n.p[0], n.p[1], n.p[2]], s: [...n.s], r: [n.r[0], -n.r[1], -n.r[2]] }; n.pair = o.k; o.pair = n.k; this.make.parts[this._partOf(n)].boxes.push(o); }
+    this._selList(out); this._rebuild(); this._sync();
+  }
+  rot(ax) { const b = this.sel; if (!b || this.grp) return; this._snapshot(); b.r[ax] = ((+b.r[ax] || 0) + 15) % 360; const o = this._pairOf(b); if (o) this._mirrorTo(b, o); this._rebuild(); }
+  /** 一组绕竖直轴转 90°（位置绕组的中心转，每块自己的朝向也转；整个被选中的部件，关节点一起转） */
+  rotGroup() {
+    const L = this.selSet; if (L.length < 2) return; this._snapshot();
+    const plan = this._plan(L), bb = this._bb(plan.work), cx = (bb.min[0] + bb.max[0]) / 2, cz = (bb.min[2] + bb.max[2]) / 2, full = this._fullParts(this._moved(plan));
+    const turn = (p) => [this._r2(cx + (p[2] - cz)), p[1], this._r2(cz - (p[0] - cx))];
+    for (const b of plan.work) { b.p = turn(b.p); b.r = [b.r[0] || 0, (((+b.r[1] || 0) + 90 + 180) % 360) - 180, b.r[2] || 0]; }
+    for (const p of full) p.pivot = turn(p.pivot || [0, 0, 0]);
+    this._after(plan, true); this._rebuild(); this._sync();
+  }
+  /** 放大 / 缩小：单块按自己的中心；一组按组的中心（全选时按脚底中心，脚底仍贴着台面）；整个被选中的部件，关节点一起缩放 */
+  scaleSel(f) {
+    const L = this.selSet; if (!L.length) return; this._snapshot();
+    const plan = this._plan(L), moved = this._moved(plan), total = this.make.parts.reduce((n, p) => n + p.boxes.length, 0), whole = moved.size === total;
+    const bb = this._bb(plan.rigid ? [...moved] : plan.work), a = [0, 1, 2].map((i) => (bb.min[i] + bb.max[i]) / 2); if (whole) a[1] = bb.min[1];
+    const sc = (p) => p.map((v, i) => this._r2(a[i] + (v - a[i]) * f));
+    for (const b of plan.work) { b.p = sc(b.p); b.s = b.s.map((v) => Math.max(0.25, this._r2(v * f))); }
+    for (const p of this._fullParts(moved)) p.pivot = sc(p.pivot || [0, 0, 0]);
+    this._after(plan, Math.abs(a[0]) > 0.01); this._rebuild(); this._sync();
+  }
+  del() { const L = [...this.selSet]; if (!L.length) return; this._snapshot(); for (const b of L) this._remove(b); this._selOne(null); this._rebuild(); this._sync(); }
+  setColor(c) { this.color = c; if (this.selSet.length && this.tool === 'select') { this._snapshot(); for (const b of this.selSet) this._paint(b); this._rebuild(); } this._sync(); }
+  selectAll() { if (!this.make) return; this.tool = 'select'; this._selList(this.make.parts.flatMap((p) => p.boxes)); this._rebuild(); this._sync(); }
+  selectPart() { const P = this.make?.parts[this.cur]; if (!P?.boxes.length) return; this.tool = 'select'; this._selList(P.boxes); this._rebuild(); this._sync(); }
 
   // ---------------- 部件 ----------------
-  addPart() { this._snapshot(); const pv = this.sel ? [...this.sel.p] : [0, 0, 0]; this.make.parts.push({ name: '部件' + (this.make.parts.length + 1), pivot: pv, boxes: [], motion: 'none', axis: 'x', amp: 1, speed: 1, phase: 0, seed: this.make.parts.length }); this.cur = this.make.parts.length - 1; this.sel = null; this._rebuild(); this._sync(); this.toast('新部件：接下来添加的方块都属于它'); }
+  addPart() { this._snapshot(); const pv = this.sel ? [...this.sel.p] : [0, 0, 0]; this.make.parts.push({ name: '部件' + (this.make.parts.length + 1), pivot: pv, boxes: [], motion: 'none', axis: 'x', amp: 1, speed: 1, phase: 0, seed: this.make.parts.length }); this.cur = this.make.parts.length - 1; this._selOne(null); this._rebuild(); this._sync(); this.toast('新部件：接下来添加的方块都属于它'); }
   /** 把选中的块（和对称块）挪到当前部件 */
-  moveToCur() { const b = this.sel; if (!b) return; this._snapshot(); const o = this._pairOf(b); for (const p of this.make.parts) p.boxes = p.boxes.filter((x) => x !== b && x !== o); this.make.parts[this.cur].boxes.push(b); if (o) this.make.parts[this.cur].boxes.push(o); this._rebuild(); this._sync(); }
+  moveToCur() {
+    const L = this.selSet; if (!L.length) return; this._snapshot();
+    const set = new Set(L); if (this.sym) for (const b of L) { const o = this._pairOf(b); if (o) set.add(o); }
+    for (const p of this.make.parts) p.boxes = p.boxes.filter((x) => !set.has(x)); this.make.parts[this.cur].boxes.push(...set); this._rebuild(); this._sync();
+  }
+  /** 复制整个部件（连动作设置），放在旁边，并选中它方便拖到想要的位置 */
+  dupPart() {
+    const P = this.make.parts[this.cur]; if (!P?.boxes.length) return; this._snapshot();
+    const bb = this._bb(P.boxes), dx = this._r2(bb.max[0] - bb.min[0] + 1), map = new Map(), n = JSON.parse(JSON.stringify(P));
+    n.name = this._uniqName(P.name); n.seed = this.make.parts.length; n.pivot = [(P.pivot || [0, 0, 0])[0] + dx, (P.pivot || [0, 0, 0])[1], (P.pivot || [0, 0, 0])[2]];
+    n.boxes.forEach((b) => { map.set(b.k, this.nextK++); b.p[0] += dx; });
+    n.boxes.forEach((b) => { b.pair = b.pair != null && map.has(b.pair) ? map.get(b.pair) : null; b.k = map.get(b.k); });
+    this.make.parts.push(n); this.cur = this.make.parts.length - 1; this._selList(n.boxes); this._rebuild(); this._sync(); this.toast('复制了「' + P.name + '」，拖动它放到想要的位置');
+  }
+  /** 镜像到另一侧：左腿 → 右腿、左翅 → 右翅（关节点、朝向一起翻过去，动作节拍错开半拍） */
+  mirrorPart() {
+    const P = this.make.parts[this.cur]; if (!P?.boxes.length) return;
+    const bb = this._bb(P.boxes); if (Math.abs(bb.min[0] + bb.max[0]) < 0.02) { this.toast('这个部件在正中间，不用镜像'); return; }
+    this._snapshot();
+    const n = JSON.parse(JSON.stringify(P)), pv = P.pivot || [0, 0, 0], map = new Map();
+    n.name = (/左/.test(P.name) ? P.name.replace(/左/g, '右') : /右/.test(P.name) ? P.name.replace(/右/g, '左') : P.name + '镜像').slice(0, 8);
+    n.name = this._uniqName(n.name); n.seed = this.make.parts.length; n.pivot = [-pv[0], pv[1], pv[2]]; n.phase = ((+P.phase || 0) + 0.5) % 1;
+    n.boxes.forEach((b) => { map.set(b.k, this.nextK++); b.p = [-b.p[0], b.p[1], b.p[2]]; b.r = [b.r?.[0] || 0, -(b.r?.[1] || 0), -(b.r?.[2] || 0)]; });
+    n.boxes.forEach((b) => { b.pair = b.pair != null && map.has(b.pair) ? map.get(b.pair) : null; b.k = map.get(b.k); });
+    this.make.parts.push(n); this.cur = this.make.parts.length - 1; this._selList(n.boxes); this._rebuild(); this._sync(); this.toast(`镜像出了「${n.name}」`);
+  }
+  _uniqName(n) { const has = (x) => this.make.parts.some((p) => p.name === x); if (!has(n)) return n; const base = n.replace(/\d+$/, '').slice(0, 7); for (let i = 2; ; i++) { const x = base + i; if (!has(x)) return x; } }
+  delPart() {
+    if (this.make.parts.length < 2) { this.toast('至少要留一个部件'); return; }
+    const P = this.make.parts[this.cur]; if (P.boxes.length && !confirm(`删除部件「${P.name}」和它的 ${P.boxes.length} 块？`)) return;
+    this._snapshot(); this.make.parts.splice(this.cur, 1); this.cur = 0; this._selOne(null); this._rebuild(); this._sync(); this._sheet(null);
+  }
 
   // ---------------- 预览动作 ----------------
   togglePlay() { this.play ? this._stopPlay() : this._startPlay(); this._sync(); }
@@ -204,11 +333,11 @@ export class Studio {
     el.innerHTML = `
       <div class="s-top"><button class="b-pill" data-s="close">‹ 返回</button><input class="s-name" maxlength="10" aria-label="造物名字"><button class="b-pill s-ai" data-s="ai">✦ AI 帮我做</button><button class="b-pill" data-s="play">播放动作</button><button class="b-pill s-save" data-s="save">保存</button></div>
       <div class="s-tools">${[['look', '浏览'], ['select', '选择'], ['add', '添加'], ['paint', '上色'], ['erase', '擦除']].map(([k, n]) => `<button class="b-pill" data-tool="${k}">${n}</button>`).join('')}<div class="b-gap"></div><button class="b-pill" data-s="undo">撤销</button><button class="b-pill" data-s="redo">重做</button></div>
-      <div class="s-side"><b class="s-size">未选中</b><button class="b-pill" data-s="dup">复制</button><button class="b-pill" data-s="rx">转 X</button><button class="b-pill" data-s="ry">转 Y</button><button class="b-pill" data-s="rz">转 Z</button><button class="b-pill" data-s="del">删除</button><button class="b-pill" data-s="tocur">归到当前部件</button></div>
+      <div class="s-side"></div><button class="b-pill s-refine" data-s="refine" hidden>✦ 再精修一遍</button>
       <div class="s-bottom">
         <div class="s-row s-parts"></div>
         <div class="s-row s-colors">${SWATCH.map((c) => `<button class="s-sw" data-c="${c}" style="background:${c}"></button>`).join('')}<label class="s-sw s-custom" title="自定义颜色"><input type="color" class="s-pick" value="#c9a07a">＋</label></div>
-        <div class="s-row s-opts"><button class="b-cat" data-s="shade">色组</button><button class="b-cat" data-s="sym">左右对称</button><button class="b-cat" data-s="snap">吸附 1</button></div>
+        <div class="s-row s-opts"><button class="b-cat" data-s="multi">多选</button><button class="b-cat" data-s="all">全选</button><button class="b-cat" data-s="shade">色组</button><button class="b-cat" data-s="sym">左右对称</button><button class="b-cat" data-s="snap">吸附 1</button></div>
       </div>
       <div class="s-sheet" hidden></div><div class="b-hint s-toast" hidden></div>`;
     this.app.ui.appendChild(el);
@@ -221,6 +350,10 @@ export class Studio {
       if (s === 'close') { if (this.make && this.undoS.length && !confirm('还没保存，确定离开吗？')) return; return this.close(); }
       if (s === 'undo') this.undo(); else if (s === 'redo') this.redo(); else if (s === 'play') this.togglePlay();
       else if (s === 'dup') this.dup(); else if (s === 'del') this.del(); else if (s === 'rx') this.rot(0); else if (s === 'ry') this.rot(1); else if (s === 'rz') this.rot(2); else if (s === 'tocur') this.moveToCur();
+      else if (s === 'r90') this.rotGroup(); else if (s === 'big') this.scaleSel(1.25); else if (s === 'small') this.scaleSel(0.8); else if (s === 'none') { this._selOne(null); this._rebuild(); this._sync(); }
+      else if (s === 'multi') { this.multiOn = !this.multiOn; if (this.multiOn) { this.tool = 'select'; this.toast('多选：点哪块选哪块，再点一次取消；按住选中的块拖动整组'); } this._sync(); }
+      else if (s === 'all') this.selectAll(); else if (s === 'partSel') { this._sheet(null); this.selectPart(); } else if (s === 'partDup') { this._sheet(null); this.dupPart(); } else if (s === 'partMirror') { this._sheet(null); this.mirrorPart(); } else if (s === 'partDel') this.delPart();
+      else if (s === 'refine') this.refine();
       else if (s === 'shade') { this.shade = !this.shade; this._sync(); } else if (s === 'sym') { this.sym = !this.sym; this._sync(); }
       else if (s === 'snap') { this.snap = this.snap === 1 ? 0.5 : this.snap === 0.5 ? 0.25 : this.snap === 0.25 ? 2 : 1; this._sync(); }
       else if (s === 'addPart') this.addPart(); else if (s === 'partSet') this._sheet('part'); else if (s === 'save') this._sheet('save');
@@ -252,8 +385,17 @@ export class Studio {
     el.querySelector('[data-s="play"]').classList.toggle('on', this.play);
     el.querySelectorAll('.s-sw[data-c]').forEach((b) => b.classList.toggle('on', b.dataset.c === this.color));
     el.querySelector('[data-s="undo"]').disabled = !this.undoS.length; el.querySelector('[data-s="redo"]').disabled = !this.redoS.length;
-    el.querySelector('.s-side').hidden = !this.sel || this.tool !== 'select';
-    if (this.make) el.querySelector('.s-parts').innerHTML = this.make.parts.map((p, i) => `<button class="b-cat ${i === this.cur ? 'on' : ''}" data-part="${i}">${p.name}${p.motion && p.motion !== 'none' ? ' ·' + MOTIONS[p.motion].slice(0, 2) : ''}</button>`).join('') + '<button class="b-cat" data-s="addPart">＋部件</button><button class="b-cat" data-s="partSet">部件设置</button>';
+    el.querySelector('[data-s="multi"]').classList.toggle('on', this.multiOn);
+    const side = el.querySelector('.s-side'), G = this.grp, mode = !this.sel || this.tool !== 'select' ? '' : G ? 'g' : '1';
+    side.hidden = !mode;
+    if (side.dataset.mode !== mode) {   // 单块和一组的操作不一样
+      side.dataset.mode = mode;
+      const B = (k, n) => `<button class="b-pill" data-s="${k}">${n}</button>`;
+      side.innerHTML = '<b class="s-size"></b>' + (mode === 'g' ? B('dup', '整组复制') + B('r90', '转 90°') + B('big', '放大') + B('small', '缩小') + B('del', '删除') + B('tocur', '归到当前部件') + B('none', '取消选择')
+        : B('dup', '复制') + B('rx', '转 X') + B('ry', '转 Y') + B('rz', '转 Z') + B('big', '放大') + B('small', '缩小') + B('del', '删除') + B('tocur', '归到当前部件'));
+    }
+    const rf = el.querySelector('.s-refine'); rf.hidden = !this.make || !this.showRefine || this.play; rf.disabled = !!this.refining; rf.textContent = this.refining ? '✦ AI 正在看图检查……' : '✦ 再精修一遍';
+    if (this.make) el.querySelector('.s-parts').innerHTML = this.make.parts.map((p, i) => `<button class="b-cat ${i === this.cur ? 'on' : ''}" data-part="${i}">${p.name}${p.motion && p.motion !== 'none' ? ' ·' + MOTIONS[p.motion].slice(0, 2) : ''}</button>`).join('') + '<button class="b-cat" data-s="addPart">＋部件</button><button class="b-cat" data-s="partSel">选中整个部件</button><button class="b-cat" data-s="partSet">部件设置</button>';
     this._syncSel();
   }
   _sheet(kind) {
@@ -268,7 +410,8 @@ export class Studio {
         <label>快慢<input type="range" name="p_speed" min="0.2" max="2.5" step="0.1" value="${P.speed ?? 1}"></label>
         <label>节拍错开<input type="range" name="p_phase" min="0" max="1" step="0.25" value="${P.phase ?? 0}"></label>
         <label>关节点${this.sel ? '' : '（先选中一块）'}<select name="p_pivot" ${this.sel ? '' : 'disabled'}><option value="">保持不变</option><option value="top">放在选中块的顶部</option><option value="mid">放在选中块的中心</option><option value="bottom">放在选中块的底部</option></select></label>
-        <p class="b-note">部件绕关节点动：腿的关节放在腿顶部，翅膀放在靠身体那一侧，头放在脖子处。点上面的“播放动作”看效果。</p></div>`;
+        <div class="s-partops"><button class="b-pill" data-s="partSel">选中整个部件</button><button class="b-pill" data-s="partDup">复制部件</button><button class="b-pill" data-s="partMirror">镜像到另一侧</button><button class="b-pill" data-s="partDel">删除部件</button></div>
+        <p class="b-note">部件绕关节点动：腿的关节放在腿顶部，翅膀放在靠身体那一侧，头放在脖子处。点上面的“播放动作”看效果。做好一条腿，用“镜像到另一侧”就有了另一条。</p></div>`;
     } else if (kind === 'save') {
       const m = this.make, opt = (o, v) => Object.entries(o).map(([k, n]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${n}</option>`).join('');
       sh.innerHTML = `<div class="b-card"><header><b>保存造物</b><button class="b-x" data-s="sheetClose">取消</button></header>
@@ -279,7 +422,7 @@ export class Studio {
     } else if (kind === 'ai') {
       const EX = ['一只圆滚滚的橘猫，竖着尖耳朵，长尾巴', '会发光的蓝色蘑菇，伞盖上有白点', '一座两层的木头小灯塔，红白条纹', '长着翅膀的小飞鱼，银蓝色', '樱花色的大伞树，树干弯弯的', '一只背上长着小树的乌龟'];
       sh.innerHTML = `<div class="b-card"><header><b>✦ AI 帮我做</b><button class="b-x" data-s="${this.make ? 'sheetClose' : 'lib'}">${this.make ? '取消' : '返回'}</button></header>
-        ${this.make ? `<div class="s-mode"><label><input type="radio" name="aimode" value="new" checked> 做一个新的</label><label><input type="radio" name="aimode" value="edit"> 改现在这个「${this.make.name}」</label></div>` : ''}
+        ${this.make ? `<div class="s-mode"><label><input type="radio" name="aimode" value="new" checked> 做一个新的</label><label><input type="radio" name="aimode" value="edit"> 改现在这个「${this.make.name}」</label><label><input type="radio" name="aimode" value="refine"> 精修现在这个（AI 看图检查，自己改一轮）</label></div>` : ''}
         <label>想要什么？<textarea class="s-aitext" rows="3" placeholder="比如：${EX[0]}"></textarea></label>
         <div class="s-chips">${EX.map((t) => `<button class="b-cat" data-ex="${t}">${t}</button>`).join('')}</div>
         <label class="s-img">${this.aiImg ? `<img src="${this.aiImg}" alt="参考图"><button class="b-x" data-s="aiImgClear">去掉图片</button>` : '＋ 附一张参考图（可选）'}<input type="file" accept="image/*" class="s-file" hidden></label>
@@ -305,15 +448,43 @@ export class Studio {
   async _aiGo() {
     const sh = this.el.querySelector('.s-sheet'), msg = sh.querySelector('.s-aimsg'), text = sh.querySelector('.s-aitext').value.trim(), btn = sh.querySelector('.s-aigo');
     const ai = this.app.ai; if (!ai?.ready) { msg.textContent = '还没配置 AI：回到六边形岛，在「设置 → AI」里选服务商、填 API 密钥。'; return; }
+    const mode = sh.querySelector('input[name=aimode]:checked')?.value;
+    if (mode === 'refine' && this.make) { this._sheet(null); return this.refine(text); }
     if (!text && !this.aiImg) { msg.textContent = '先写一句想要什么，或附一张图'; return; }
-    const edit = sh.querySelector('input[name=aimode]:checked')?.value === 'edit' && this.make;
+    const edit = mode === 'edit' && this.make;
     btn.disabled = true; msg.textContent = edit ? 'AI 正在改……' : 'AI 正在搭……';
     try {
       const m = await ai.make(text || '照着图片做一个', this.aiImg, edit ? this.make : null);
       if (edit) { this._snapshot(); m.id = this.make.id; const keep = this.undoS; this.edit(m); this.undoS = keep; }
       else { m.id = 'mk' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36); this.edit(m); this.undoS = ['{}']; }
-      this._sync(); this.toast(`「${m.name}」做好了：${m.parts.reduce((s, p) => s + p.boxes.length, 0)} 块、${m.parts.length} 个部件。可以继续改，满意了点保存`, 3600);
+      this.showRefine = true; this._sync(); this.toast(`「${m.name}」做好了：${m.parts.reduce((s, p) => s + p.boxes.length, 0)} 块、${m.parts.length} 个部件。觉得哪里不对可以点「再精修一遍」，或直接动手改`, 4200);
     } catch (e) { const { aiError } = await import('../ai.js'); msg.textContent = '没做出来：' + aiError(e); btn.disabled = false; }
   }
-  library() { this.make = null; for (const m of [...this.boxes.children]) { this.boxes.remove(m); m.geometry.dispose(); } this.sel = null; this._sync(); this._sheet('lib'); }
+  library() { this.make = null; this.showRefine = false; for (const m of [...this.boxes.children]) { this.boxes.remove(m); m.geometry.dispose(); } this._selOne(null); this._sync(); this._sheet('lib'); }
+
+  // ---------------- ✦ 精修：AI 看图检查后改一轮 ----------------
+  /** 造物的两张渲染图（斜前方 + 正侧面）拼成一张，给视觉模型看 */
+  async _snapMake() {
+    try {
+      const { thumb, thumbMaterial } = await import('../thumbs.js'), g = mergedGeo(this.make); if (!g) return null;
+      const views = [thumb(new THREE.Mesh(g, thumbMaterial()), { w: 512, h: 512, pitch: 0.38, yaw: -0.6, bg: 0xe6eef0 }), thumb(new THREE.Mesh(g, thumbMaterial()), { w: 512, h: 512, pitch: 0.12, yaw: Math.PI / 2, bg: 0xe6eef0 })];
+      g.dispose();
+      const imgs = await Promise.all(views.map((u) => new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = u; })));
+      if (imgs.some((i) => !i)) return null;
+      const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 512; const c = cv.getContext('2d'); c.drawImage(imgs[0], 0, 0); c.drawImage(imgs[1], 512, 0);
+      return cv.toDataURL('image/jpeg', 0.85);
+    } catch { return null; }
+  }
+  /** wish：玩家额外的要求（可选） */
+  async refine(wish = '') {
+    const ai = this.app.ai; if (!this.make) return;
+    if (!ai?.ready) { this.toast('还没配置 AI：回到六边形岛，在「设置 → AI」里选服务商、填 API 密钥', 3200); return; }
+    if (this.refining) return; this.refining = true; this._stopPlay(); this._sync();
+    try {
+      const img = await this._snapMake(), { make, notes } = await ai.refine(this.make, img, wish);
+      this._snapshot(); const keep = this.undoS; make.id = this.make.id; this.edit(make); this.undoS = keep; this.showRefine = true;
+      this.toast('精修完成：' + (notes || '按美术圣经检查并改好了') + '（不满意可以撤销）', 4800);
+    } catch (e) { const { aiError } = await import('../ai.js'); this.toast('精修没成功：' + aiError(e), 3600); }
+    finally { this.refining = false; this._sync(); }
+  }
 }

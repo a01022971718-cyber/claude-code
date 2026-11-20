@@ -88,6 +88,8 @@ const MAKE_SCHEMA = { type: 'object', additionalProperties: false, required: ['n
         boxes: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['p', 's', 'r', 'c', 'shade'], properties: { p: V3, s: V3, r: V3, c: { type: 'string', description: '#rrggbb' }, shade: { type: 'boolean', description: '大面积（毛、叶、石）开，小点缀关' } } } } } } },
   },
 };
+/** 精修：在造物的结构上多一句修改说明 */
+const REFINE_SCHEMA = { ...MAKE_SCHEMA, required: [...MAKE_SCHEMA.required, 'notes'], properties: { ...MAKE_SCHEMA.properties, notes: { type: 'string', description: '60 字以内中文：看出的主要问题和改了什么' } } };
 const MAKE_SYSTEM = `你是一款治愈系体素海岛游戏的造物师。玩家描述（或给一张图）想要的东西，你用“部件 + 长方块”把它搭出来，游戏会自动加圆角、底部压暗、深浅交错的原版手感。
 坐标和单位：1 小格；y 向上，脚底 / 底面在 y = 0；正面朝 +z；左右对称的东西以 x = 0 为中线。p 是长方块中心，s 是长宽高（可以是小数，最小 0.5），r 是旋转角度（度）。
 尺寸参考：一只羊约高 17、长 16；兔子约高 9；一棵树约高 30–40；小屋约宽 16 高 18（建筑把 size 设成 1.5–3）。
@@ -220,6 +222,22 @@ export class AIService {
     });
     let d; try { d = JSON.parse(out.replace(/^\s*```(?:json)?/i, '').replace(/```\s*$/, '')); } catch { throw new Error('模型返回的造物读不出来，再试一次'); }
     return sanitizeMake(d);
+  }
+  /** ✦ 精修：AI 看着造物的渲染图（斜前方 + 正侧面），按美术圣经的审图清单检查，自己改一轮。
+   *  image：渲染图 data URL（可为空：只看 JSON）；wish：玩家额外的要求（可选）。返回 { make, notes } */
+  async refine(make, image = null, wish = '') {
+    let text = `${image ? '图里是造物「' + make.name + '」的渲染：左边斜前方、右边正侧面（正面朝左边那张图的左下方向）。' : ''}它的 JSON：${JSON.stringify(stripMake(make))}
+请像美术组长审稿一样逐条检查：${CHECKLIST.map((c, i) => `(${i + 1}) ${c}`).join(' ')}；另外看：有没有悬空、离谱穿插的块；该左右对称的地方是否对称；关节点是否在连接处、动作是否合理；眼睛等小细节有没有、看不看得见。
+然后返回改好的完整造物：保留它是什么、名字、用途和整体设计，只修正问题、补上缺的细节和深浅层次；没问题的地方原样保留。notes 用 60 字以内中文说看出了什么问题、改了什么。`;
+    if (wish) text += `\n玩家另外的要求：${wish}`;
+    const content = image ? [{ type: 'image', source: { type: 'base64', media_type: image.slice(5, image.indexOf(';')), data: image.split(',')[1] } }, { type: 'text', text }] : text;
+    const { text: out } = await this._ask({
+      max_tokens: 16000, system: MAKE_SYSTEM + '\n\n' + sopPrompt(),
+      output_config: { effort: 'medium', format: { type: 'json_schema', schema: REFINE_SCHEMA } },
+      messages: [{ role: 'user', content }],
+    });
+    let d; try { d = JSON.parse(out.replace(/^\s*```(?:json)?/i, '').replace(/```\s*$/, '')); } catch { throw new Error('精修结果读不出来，再试一次'); }
+    return { make: sanitizeMake(d), notes: String(d.notes || '').slice(0, 80) };
   }
   /** 岛民说话：ctx = { name, doing, hour, weather } → 一句话 */
   async villagerLine(ctx) {

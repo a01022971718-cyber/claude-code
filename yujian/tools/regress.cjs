@@ -13,6 +13,7 @@ const CASES = [
   { name: '方块岛·点放、划动摆一排、按住拆、选取、蓝图存取放', file: 'blocks-build.js', query: 'mode=blocks', check: (r) => r.placeOne === 1 && r.row >= 8 && r.holdBreak === -1 && r.picked === 1 && r.bp.length === 1 && r.make.length === 1 && r.copied > 100 },
   { name: '造物台·添加、上色、拖手柄改大小、保存', file: 'studio-edit.js', query: 'mode=blocks', check: (r) => r.added >= 1 && r.s1 > r.s0 && r.saved.length === 1 },
   { name: '造物台·转过角度的块沿自身方向改大小', file: 'studio-rotate.js', query: 'mode=blocks', check: (r) => r.s[0] > 4 && Math.abs(Math.abs(r.dp[0]) - Math.abs(r.dp[2])) < 0.3 && Math.abs(r.dp[0]) > 0.5 },
+  { name: '造物台·多选、整组拖动缩放旋转、部件复制镜像、✦ 精修（模拟回复）', file: 'studio-multi.js', query: 'mode=blocks', check: (r) => r.groupMove.n === 6 && r.groupMove.dys.length === 1 && r.groupMove.dys[0] > 0 && r.groupMove.pivotDy === r.groupMove.dys[0] && r.scale.earS > 2.4 && r.scale.sym && r.rot.moved && r.mirror.parts === 1 && r.mirror.name.startsWith('右前腿') && r.mirror.pivotX < 0 && r.dup === 2 && r.multi === 2 && Math.abs(r.minY) < 0.01 && r.refine.btnShown && r.refine.img && r.refine.hasNotes && r.refine.added === 1 && r.refine.schemaNotes },
   { name: '造物台·AI 帮我做（模拟回复）与在当前造物上修改', file: 'studio-ai.js', query: 'mode=blocks', check: (r) => r.boxes > 10 && r.sysHasBible && r.editHasBase && r.saved === 1 },
 ];
 (async () => {
