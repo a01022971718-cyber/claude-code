@@ -458,3 +458,28 @@ body { background: var(--haze); color: var(--ink); font-family: var(--font); fon
 .b-panel b { font: 12px ui-monospace, monospace; color: #f7e7b8; padding: 0 4px; }
 .b-tools { bottom: 70px !important; }
 .b-cut { bottom: 70px !important; }
+/* ---- 手机适配（竖屏、矮横屏） ---- */
+.b-hot { left: max(8px, env(safe-area-inset-left)) !important; right: max(8px, env(safe-area-inset-right)); transform: none !important; max-width: none !important; justify-content: center; }
+.b-hot .b-slots { flex: 0 1 auto; min-width: 0; }
+.b-bar { width: min(560px, calc(100% - 24px)) !important; }
+.b-panel { max-width: calc(100% - 24px) !important; }
+@media (orientation: portrait) {
+  .b-cut { top: auto !important; bottom: 76px !important; height: 38vh; }
+  .b-slot { width: 38px; height: 38px; } .b-slot img { width: 28px; height: 28px; margin-top: 3px; }
+  .b-hot { gap: 4px; padding: 4px; } .b-hot .b-pill { min-width: 0; padding: 6px 8px; }
+  .s-bottom { left: max(12px, env(safe-area-inset-left)) !important; }
+  .s-tools { bottom: 150px !important; }
+  .s-top { flex-wrap: wrap; } .s-name { flex-basis: 100%; max-width: none; order: 5; }
+  .s-side { top: 104px !important; }
+}
+.s-side { bottom: 140px; overflow-y: auto; scrollbar-width: none; }
+.s-side::-webkit-scrollbar { display: none; }
+@media (max-height: 430px) {
+  .s-side { display: grid !important; grid-template-columns: 1fr 1fr; align-content: start; gap: 4px; }
+  .s-side .s-size { grid-column: 1 / -1; }
+  .s-side .b-pill, .s-tools .b-pill { padding: 5px 8px; min-width: 0; font-size: 12px; }
+  .s-tools { gap: 4px; }
+}
+.s-side[hidden] { display: none !important; }
+.b-hot .b-pill { white-space: nowrap; flex: none; }
+@media (orientation: portrait) { .s-tools { top: 104px !important; } }

@@ -76,9 +76,10 @@ export class Studio {
   _syncSel() {
     const b = this.sel; this.handles.visible = this.selBox.visible = !!b && this.tool === 'select' && !this.play;
     if (!b) return;
-    this.selBox.position.fromArray(b.p); this.selBox.scale.set(b.s[0] + 0.15, b.s[1] + 0.15, b.s[2] + 0.15);
+    // 选框和手柄跟着方块的旋转走：转过角度的块，手柄也沿它自己的长宽高方向
+    const q = this._rotQ(b); this.selBox.position.fromArray(b.p); this.selBox.quaternion.copy(q); this.selBox.scale.set(b.s[0] + 0.15, b.s[1] + 0.15, b.s[2] + 0.15);
     const r = Math.max(0.55, Math.min(1.1, Math.min(...b.s) * 0.25));
-    for (const h of this.handles.children) { const { ax, s } = h.userData.handle, p = [...b.p]; p[ax] += s * (b.s[ax] / 2 + r * 1.6); h.position.fromArray(p); h.scale.setScalar(r); }
+    for (const h of this.handles.children) { const { ax, s } = h.userData.handle, v = new THREE.Vector3(); v.setComponent(ax, s * (b.s[ax] / 2 + r * 1.6)); v.applyQuaternion(q).add(new THREE.Vector3(...b.p)); h.position.copy(v); h.scale.setScalar(r); }
     const el = this.el?.querySelector('.s-size'); if (el) el.textContent = b.s.map((v) => +v.toFixed(2)).join(' × ');
   }
 
@@ -91,6 +92,12 @@ export class Studio {
     const st = this.ray.intersectObject(this.top, false)[0];
     if (st) { const p = this.stage.worldToLocal(st.point.clone()); return { stage: true, p: [p.x, Math.max(0, p.y), p.z] }; }
     return null;
+  }
+  _rotQ(b) { const r = (b.r || [0, 0, 0]).map((a) => THREE.MathUtils.degToRad(+a || 0)); return new THREE.Quaternion().setFromEuler(new THREE.Euler(r[0], r[1], r[2], 'YXZ')); }
+  /** 屏幕上沿某个方向（造物坐标里的单位向量）走 1 小格对应多少像素 */
+  _dirPx(p, dir) {
+    const a = this.stage.localToWorld(new THREE.Vector3(...p)), b = this.stage.localToWorld(new THREE.Vector3(...p).add(dir));
+    const pa = this.app.rig.project(a.x, a.y, a.z), pb = this.app.rig.project(b.x, b.y, b.z); return [pb[0] - pa[0], pb[1] - pa[1]];
   }
   /** 屏幕上沿某个轴走 1 小格对应多少像素（向量） */
   _axisPx(p, ax) {
@@ -117,7 +124,7 @@ export class Studio {
     this.st = { x0: e.clientX, y0: e.clientY, moved: false, h, did: false };
     clearTimeout(this._lp);
     this._lp = setTimeout(() => { const st = this.st; if (!st || st.moved || !st.h?.box) return; this.setColor(st.h.box.c); this.shade = !!st.h.box.shade; this._sync(); this.toast('吸取了颜色'); navigator.vibrate?.(15); st.cancel = true; }, 480);
-    if (this.tool === 'select' && h?.handle && this.sel) { this._snapshot(); this.st.resize = { ...h.handle, s0: this.sel.s[h.handle.ax], p0: this.sel.p[h.handle.ax], v: this._axisPx(this.sel.p, h.handle.ax) }; }
+    if (this.tool === 'select' && h?.handle && this.sel) { this._snapshot(); const dir = new THREE.Vector3().setComponent(h.handle.ax, 1).applyQuaternion(this._rotQ(this.sel)); this.st.resize = { ...h.handle, s0: this.sel.s[h.handle.ax], p0: [...this.sel.p], dir, v: this._dirPx(this.sel.p, dir) }; }
     else if (this.tool === 'select' && h?.box) { if (this.sel !== h.box) { this.sel = h.box; this.cur = h.part; this._rebuild(); this._sync(); } this.st.drag = { b: h.box, p0: [...h.box.p] }; }
   }
   move(e) {
@@ -128,7 +135,7 @@ export class Studio {
     if (st.resize && this.sel) {
       const R = st.resize, [vx, vy] = R.v, L2 = vx * vx + vy * vy || 1, d = (dx * vx + dy * vy) / L2;
       const ns = Math.max(this.snap, this._q(R.s0 + R.s * d)), dd = R.s * (ns - R.s0), b = this.sel;
-      b.s[R.ax] = ns; b.p[R.ax] = R.p0 + dd / 2; const o = this._pairOf(b); if (o) this._mirrorTo(b, o);
+      b.s[R.ax] = ns; b.p = R.p0.map((v, i) => v + R.dir.getComponent(i) * dd / 2); const o = this._pairOf(b); if (o) this._mirrorTo(b, o);   // 沿块自己的方向长，对面那一面不动
       this._rebuild(); return;
     }
     if (st.drag) {
