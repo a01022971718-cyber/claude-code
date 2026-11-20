@@ -232,7 +232,7 @@ const voxelWheat = () => voxelParts([[0.09, 0, 0.7, 0], [0.22, 0.66, 0.85, 1], [
 
 /** 实例化的小草类材质。kind: grass | flower | wheat */
 function bladeMaterial(kind) {
-  const vox = STYLE.blocky && kind !== 'seagrass';
+  const vox = STYLE.blocky;
   const m = new THREE.MeshStandardMaterial({ vertexColors: false, roughness: kind === 'wheat' ? 0.7 : 0.9, metalness: 0, side: vox ? THREE.FrontSide : THREE.DoubleSide, envMapIntensity: 0.8 });
   m.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, U);
@@ -246,7 +246,7 @@ function bladeMaterial(kind) {
       .replace('#include <beginnormal_vertex>', vox ? 'vec3 objectNormal = vec3(normal.x * cos(iPos.w) - normal.z * sin(iPos.w), normal.y, normal.x * sin(iPos.w) + normal.z * cos(iPos.w));' : 'vec3 objectNormal = normalize(vec3(sin(iPos.w) * 0.25, 1.0, cos(iPos.w) * 0.25));')
       .replace('#include <begin_vertex>', /* glsl */`
         float hgt = iShape.x, wid = iShape.y, lean = iShape.z, ph = iShape.w;
-        ${vox && kind === 'grass' ? 'hgt *= 0.72; wid *= 1.5;' : vox ? 'wid *= 1.15;' : ''}
+        ${vox && kind === 'grass' ? 'hgt *= 0.72; wid *= 1.5;' : vox && kind === 'seagrass' ? 'hgt *= 0.85; wid *= 1.4;' : vox ? 'wid *= 1.15;' : ''}
         vec3 transformed = vec3(position.x * wid, position.y * hgt, position.z * wid);
         float ca = cos(iPos.w), sa = sin(iPos.w);
         transformed = vec3(transformed.x * ca - transformed.z * sa, transformed.y, transformed.x * sa + transformed.z * ca);
@@ -287,8 +287,8 @@ function bladeMaterial(kind) {
 const BLADE_MATS = {};
 /** list: [{x,y,z, h, w, lean, rot, tint:[r,g,b], tint2:[r,g,b]}]；cull: 按实例范围做视锥剔除（游戏里分区块用） */
 export function bladeField(kind, list, { cull = false } = {}) {
-  const vox = STYLE.blocky && kind !== 'seagrass';
-  const g = vox ? (kind === 'grass' ? voxelBlade() : kind === 'flower' ? voxelFlower() : voxelWheat()) : kind === 'grass' || kind === 'seagrass' ? bladeGeometry() : kind === 'flower' ? flowerGeometry() : wheatGeometry();
+  const vox = STYLE.blocky;
+  const g = vox ? (kind === 'grass' || kind === 'seagrass' ? voxelBlade() : kind === 'flower' ? voxelFlower() : voxelWheat()) : kind === 'grass' || kind === 'seagrass' ? bladeGeometry() : kind === 'flower' ? flowerGeometry() : wheatGeometry();
   // 打乱顺序（固定种子）：远处只画前一部分实例时，草是均匀变稀，而不是整块消失
   if (list.length > 64) { list = list.slice(); let sd = (list.length * 2654435761) >>> 0; for (let i = list.length - 1; i > 0; i--) { sd = (sd * 1664525 + 1013904223) >>> 0; const j = sd % (i + 1), t = list[i]; list[i] = list[j]; list[j] = t; } }
   const n = list.length, P = new Float32Array(n * 4), S = new Float32Array(n * 4), T = new Float32Array(n * 3), T2 = new Float32Array(n * 3);
@@ -299,7 +299,7 @@ export function bladeField(kind, list, { cull = false } = {}) {
   g.setAttribute('iPos', new THREE.InstancedBufferAttribute(P, 4)); g.setAttribute('iShape', new THREE.InstancedBufferAttribute(S, 4));
   g.setAttribute('iTint', new THREE.InstancedBufferAttribute(T, 3)); g.setAttribute('iTint2', new THREE.InstancedBufferAttribute(T2, 3));
   // 体素主题：方块草茎比细草叶粗、占地大，用更少的实例就能铺满（实例顺序已打乱，取前面一部分是均匀变稀）
-  const keep = vox ? Math.ceil(n * (kind === 'grass' ? 0.5 : kind === 'flower' ? 0.55 : 0.6)) : n;
+  const keep = vox ? Math.ceil(n * (kind === 'grass' || kind === 'seagrass' ? 0.5 : kind === 'flower' ? 0.55 : 0.6)) : n;
   g.instanceCount = keep; g.userData.n = keep;
   if (cull && n) {
     // 按实例位置算包围球，区块不在画面里时整块跳过

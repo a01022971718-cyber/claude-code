@@ -362,3 +362,239 @@ export function lowBroad(kind = 'green', voxel = false) {
   const crown = voxel ? new THREE.BoxGeometry(0.5, 0.36, 0.5).translate(0, 0.62, 0) : new THREE.IcosahedronGeometry(0.32, 0).scale(1, 0.85, 1).translate(0, 0.64, 0);
   const g = mergeGeometries([lowPaint(new THREE.CylinderGeometry(0.025, 0.04, 0.5, 5).translate(0, 0.25, 0), 0x5b3d29, 0), lowPaint(crown, c, 0.85)], false); g.computeBoundingSphere(); return g;
 }
+
+// ================= 体素主题：建筑和道具（和 props.js 同名、同尺寸、同锚点；换成大小不同、颜色不同的方块） =================
+const WD = [0x8a5a3c, 0x7a4e33, 0x96643f, 0x84553a].map(col), WDK = col(0x5e3b25), CUT = col(0xd9a66b), DOORW = col(0x6b4026);
+const STRAW = [0xc9a15a, 0xd8b56a, 0xb8904a, 0xe3c27e].map(col), STONE = [0x8d8a85, 0x9a9792, 0x7d7a76, 0xa5a19a].map(col);
+const PLASTER = [0xeee6d6, 0xe6ddca, 0xf2ece0].map(col), RED = [0xb8432f, 0xa83a28, 0xc24e36].map(col), SLATE = [0x51627a, 0x5a6b84, 0x485870].map(col);
+const GLASS = col(0x34404c), LAMPC = col(0xffe08a), IRON = col(0x2f3438), CANVAS = [0xe9dfc8, 0xf1e8d4, 0xded2b8].map(col);
+/** 从一组颜色里挑一个，再上下浮一点（同一种材料的方块深浅不一） */
+const tone = (R, a, k = 0.12) => a[Math.floor(R() * a.length)].clone().multiplyScalar(1 - k / 2 + R() * k);
+/** 平板方块（不倒角，少三角面）：小零件、木板、窗、门 */
+const pl = (w, h, d, x, y, z, c, o = {}) => rbox(w, h, d, x, y, z, c, { seg: 0, ao: 0.08, ...o });
+/** 四坡阶梯屋顶：一层层收小的板 */
+function stepRoof(P, R, pal, { w, d, y, h = 0.06, n = 5, dw = 0.12, dd = dw, z = 0, seg = 1 }) {
+  for (let L = 0; L < n; L++) P.push(rbox(Math.max(0.04, w - L * dw), h, Math.max(0.04, d - L * dd), 0, y + L * h + h / 2, z, tone(R, pal, 0.1), { seg, r: 0.18, ao: 0.28 }));
+  return y + n * h;
+}
+
+/** 茅屋：石台基 + 竖木板墙（深色角柱）+ 木门、侧窗 + 一层层收小的茅草顶 + 石烟囱 */
+export function vStrawHut(seed = 1) {
+  const R = rng(seed * 61 + 3), P = [], W = 0.46, D = 0.42, y0 = 0.05, WH = 0.27;
+  P.push(rbox(0.54, y0, 0.5, 0, y0 / 2, 0, STONE[2], { seg: 1, r: 0.2, ao: 0.3 }));
+  P.push(rbox(W, WH, D, 0, y0 + WH / 2, 0, WD[0], { seg: 1, r: 0.05, ao: 0.22 }));
+  // 墙面竖木板：深浅交错
+  for (let i = 0; i < 6; i++) for (const s of [-1, 1]) P.push(pl(W / 6 - 0.004, WH - 0.02, 0.008, -W / 2 + (i + 0.5) * (W / 6), y0 + WH / 2, s * (D / 2 + 0.003), tone(R, WD, 0.2), { ao: 0.2 }));
+  for (let i = 0; i < 5; i++) for (const s of [-1, 1]) P.push(pl(0.008, WH - 0.02, D / 5 - 0.004, s * (W / 2 + 0.003), y0 + WH / 2, -D / 2 + (i + 0.5) * (D / 5), tone(R, WD, 0.2), { ao: 0.2 }));
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) P.push(pl(0.05, WH + 0.03, 0.05, sx * W / 2, y0 + WH / 2 + 0.01, sz * D / 2, WDK, { ao: 0.25 }));
+  P.push(pl(W + 0.04, 0.035, D + 0.04, 0, y0 + WH, 0, WDK, { ao: 0 }));
+  // 门 + 门框 + 门把；门前一块踏石
+  P.push(pl(0.14, 0.21, 0.01, 0, y0 + 0.105, D / 2 + 0.009, WDK, { ao: 0 }), pl(0.1, 0.18, 0.012, 0, y0 + 0.09, D / 2 + 0.014, DOORW, { ao: 0.15 }), pl(0.012, 0.012, 0.01, 0.03, y0 + 0.09, D / 2 + 0.022, 0xd9b44a, { ao: 0 }));
+  P.push(pl(0.16, 0.025, 0.07, 0, 0.0125, D / 2 + 0.06, STONE[1], { ao: 0.2 }));
+  // 两侧小窗：深色框 + 玻璃 + 浅色窗台
+  for (const s of [-1, 1]) P.push(pl(0.012, 0.1, 0.11, s * (W / 2 + 0.008), y0 + 0.16, 0, WDK, { ao: 0 }), pl(0.012, 0.072, 0.082, s * (W / 2 + 0.012), y0 + 0.16, 0, GLASS, { ao: 0 }), pl(0.024, 0.014, 0.13, s * (W / 2 + 0.012), y0 + 0.105, 0, CUT, { ao: 0 }));
+  // 茅草顶：檐口一圈深色，往上一层层收小，表面撒几簇亮一点的草
+  const ry = y0 + WH + 0.02;
+  P.push(pl(0.68, 0.022, 0.62, 0, ry, 0, STRAW[2].clone().multiplyScalar(0.72), { ao: 0 }));
+  const top = stepRoof(P, R, STRAW, { w: 0.66, d: 0.6, y: ry, h: 0.065, n: 5, dw: 0.13, dd: 0.12 });
+  for (let i = 0; i < 10; i++) { const L = Math.floor(R() * 4), hw = (0.66 - L * 0.13) / 2, hd = (0.6 - L * 0.12) / 2, side = R() < 0.5; P.push(rbox(0.035, 0.022, 0.035, side ? (R() < 0.5 ? -1 : 1) * hw * 0.92 : (R() - 0.5) * hw * 1.6, ry + L * 0.065 + 0.07, side ? (R() - 0.5) * hd * 1.6 : (R() < 0.5 ? -1 : 1) * hd * 0.92, STRAW[3], { seg: 1, r: 0.3, ao: 0 })); }
+  P.push(rbox(0.12, 0.035, 0.12, 0, top + 0.012, 0, STRAW[2].clone().multiplyScalar(0.85), { seg: 1, r: 0.3, ao: 0.1 }));
+  P.push(pl(0.07, 0.2, 0.07, 0.15, top - 0.06, -0.13, STONE[0], { ao: 0.2 }), pl(0.09, 0.025, 0.09, 0.15, top + 0.05, -0.13, STONE[2], { ao: 0 }));
+  return { geometry: merge(P), anchors: { door: [0, 0, 0.29] } };
+}
+/** 营火：一圈大小不一的石头 + 炭灰 + 四根斜靠成尖顶的方木 + 几颗火星 */
+export function vCampfire(seed = 1) {
+  const R = rng(seed * 43 + 1), P = [];
+  for (let i = 0; i < 9; i++) { const a = (i / 9) * Math.PI * 2 + R() * 0.2, s = 0.05 + R() * 0.025; P.push(rbox(s, 0.035 + R() * 0.02, s * 1.1, Math.cos(a) * 0.13, 0.02, Math.sin(a) * 0.13, tone(R, STONE, 0.2), { seg: 1, r: 0.3, ao: 0.3, ry: -a })); }
+  P.push(pl(0.17, 0.012, 0.17, 0, 0.006, 0, 0x2a2522, { ao: 0 }));
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2 + 0.4, g = rbox(0.028, 0.15, 0.028, 0, 0, 0, tone(R, WD, 0.2), { seg: 1, r: 0.2, ao: 0.3 });
+    g.rotateZ(0.55); g.translate(0.05, 0.065, 0); g.rotateY(-a); P.push(g);
+  }
+  for (let i = 0; i < 6; i++) P.push(pl(0.016 + R() * 0.01, 0.014, 0.016 + R() * 0.01, (R() - 0.5) * 0.07, 0.018, (R() - 0.5) * 0.07, [0xff8a3a, 0xe8502a, 0xffc04a][i % 3], { ao: 0 }));
+  return { geometry: merge(P), anchors: { fire: [0, 0.02, 0] } };
+}
+/** 柴堆：三层方木（截面是浅色年轮）+ 两头的木桩 */
+export function vWoodPile(seed = 1) {
+  const R = rng(seed * 29 + 7), P = [];
+  [[3, 0], [2, 1], [1, 2]].forEach(([n, r]) => {
+    for (let j = 0; j < n; j++) {
+      const y = 0.028 + r * 0.047, z = (j - (n - 1) / 2) * 0.068, x = (R() - 0.5) * 0.02, L = 0.27 + R() * 0.03;
+      P.push(rbox(L, 0.05, 0.05, x, y, z, tone(R, WD, 0.2), { seg: 1, r: 0.25, ao: 0.18 }));
+      for (const s of [-1, 1]) P.push(pl(0.006, 0.04, 0.04, x + s * (L / 2 + 0.002), y, z, CUT.clone().multiplyScalar(0.9 + R() * 0.15), { ao: 0 }));
+    }
+  });
+  for (const s of [-1, 1]) for (const t of [-1, 1]) P.push(pl(0.022, 0.15, 0.022, s * 0.16, 0.075, t * 0.075, WDK, { ao: 0.2 }));
+  return { geometry: merge(P), anchors: {} };
+}
+/** 原木凳：一根横放的方木 + 两头浅色截面 + 两块垫石 */
+export function vLogSeat(seed = 1) {
+  const R = rng(seed * 17 + 5), P = [pl(0.07, 0.03, 0.07, -0.1, 0.015, 0, STONE[2], { ao: 0.2 }), pl(0.07, 0.03, 0.07, 0.1, 0.015, 0, STONE[0], { ao: 0.2 })];
+  P.push(rbox(0.3, 0.085, 0.085, 0, 0.072, 0, tone(R, WD, 0.15), { seg: 1, r: 0.25, ao: 0.2 }), pl(0.22, 0.008, 0.06, 0, 0.115, 0, CUT.clone().multiplyScalar(0.85), { ao: 0 }));
+  for (const s of [-1, 1]) P.push(pl(0.006, 0.07, 0.07, s * 0.152, 0.072, 0, CUT, { ao: 0 }));
+  return { geometry: merge(P), anchors: {} };
+}
+/** 篱笆：四根带帽的方桩 + 两道横木（每段深浅、高低略有不同） */
+export function vFence(seed = 1) {
+  const R = rng(seed * 23 + 9), P = [], X = [-0.39, -0.13, 0.13, 0.39];
+  for (const x of X) P.push(rbox(0.045, 0.2, 0.045, x, 0.1, 0, tone(R, WD, 0.2), { seg: 1, r: 0.2, ao: 0.28 }), pl(0.056, 0.016, 0.056, x, 0.206, 0, WDK, { ao: 0 }));
+  for (const y of [0.075, 0.15]) for (let i = 0; i < 3; i++) P.push(pl(0.27, 0.03, 0.022, (X[i] + X[i + 1]) / 2, y + (R() - 0.5) * 0.01, 0.026, tone(R, WD, 0.22), { ao: 0.1 }));
+  return { geometry: merge(P), anchors: {} };
+}
+/** 路牌：方木杆 + 两块指向不同方向的箭头牌（牌上几道深色“字”） */
+export function vSignpost(seed = 1) {
+  const R = rng(seed * 31 + 3), P = [rbox(0.075, 0.03, 0.075, 0, 0.015, 0, STONE[1], { seg: 1, r: 0.25, ao: 0.25 }), rbox(0.036, 0.4, 0.036, 0, 0.2, 0, WD[1], { seg: 1, r: 0.15, ao: 0.25 }), pl(0.046, 0.02, 0.046, 0, 0.405, 0, WDK, { ao: 0 })];
+  [[0.33, 0.5, 0xe9dfc8], [0.25, -1.0, 0xc8a070]].forEach(([y, a, c]) => {
+    const B = [pl(0.14, 0.046, 0.016, 0.085, y, 0.026, c, { ao: 0.1 }), pl(0.026, 0.034, 0.016, 0.168, y, 0.026, c, { ao: 0 }), pl(0.014, 0.018, 0.016, 0.188, y, 0.026, c, { ao: 0 })];
+    for (let i = 0; i < 2; i++) B.push(pl(0.05 + R() * 0.04, 0.006, 0.004, 0.08, y + (i ? -0.009 : 0.009), 0.036, 0x4a3a2e, { ao: 0 }));
+    for (const g of B) { g.rotateY(a); P.push(g); }
+  });
+  return { geometry: merge(P), anchors: {} };
+}
+/** 小木船（原点在水线，船头朝 +z）：一节节木船身，越往船头越窄、越翘；彩色船舷、两条横坐板、两支桨 */
+export function vRowBoat(seed = 1) {
+  const R = rng(seed * 37 + 11), P = [], rim = seed % 2 ? RED[0] : col(0x4f7fb0);
+  const SEC = [[-0.24, 0.092], [-0.18, 0.116], [-0.12, 0.128], [-0.06, 0.132], [0, 0.13], [0.06, 0.122], [0.12, 0.104], [0.18, 0.076], [0.232, 0.042]];
+  for (const [z, hw] of SEC) {
+    const up = Math.max(0, z - 0.08) * 0.32, c = tone(R, WD, 0.14);
+    P.push(pl(Math.max(0.03, hw * 2 - 0.03), 0.02, 0.06, 0, -0.042 + Math.max(0, z - 0.12) * 0.35, z, c.clone().multiplyScalar(0.8), { ao: 0 }));
+    for (const s of [-1, 1]) P.push(pl(0.022, 0.1, 0.06, s * (hw - 0.011), 0.008 + up, z, c, { ao: 0.25 }), pl(0.026, 0.016, 0.06, s * (hw - 0.011), 0.066 + up, z, rim, { ao: 0 }));
+  }
+  P.push(pl(0.19, 0.1, 0.02, 0, 0.01, -0.272, tone(R, WD), { ao: 0.25 }), pl(0.2, 0.016, 0.024, 0, 0.066, -0.272, rim, { ao: 0 }));
+  P.push(pl(0.03, 0.13, 0.03, 0, 0.045, 0.262, WDK, { ao: 0.1 }));
+  P.push(pl(0.17, 0.01, 0.4, 0, -0.026, -0.01, WD[2].clone().multiplyScalar(1.1), { ao: 0 }));
+  P.push(pl(0.24, 0.016, 0.05, 0, 0.036, -0.08, CUT, { ao: 0.1 }), pl(0.22, 0.016, 0.05, 0, 0.036, 0.08, CUT, { ao: 0.1 }));
+  for (const s of [-1, 1]) P.push(pl(0.3, 0.012, 0.012, s * 0.13, 0.062, -0.02, CUT.clone().multiplyScalar(0.92), { ao: 0 }), pl(0.07, 0.006, 0.036, s * 0.25, 0.05, -0.02, WD[2], { ao: 0 }));
+  return { geometry: merge(P), anchors: {} };
+}
+/** 浮标：红白相间的方块段 + 顶上一盏小灯 */
+export function vBuoy() {
+  return merge([pl(0.1, 0.04, 0.1, 0, -0.04, 0, RED[0], { ao: 0.2 }), rbox(0.088, 0.04, 0.088, 0, 0, 0, 0xf2efe8, { seg: 1, r: 0.2, ao: 0.1 }), rbox(0.076, 0.04, 0.076, 0, 0.04, 0, RED[1], { seg: 1, r: 0.2, ao: 0.1 }), pl(0.02, 0.03, 0.02, 0, 0.075, 0, IRON, { ao: 0 }), pl(0.032, 0.03, 0.032, 0, 0.1, 0, LAMPC, { ao: 0 })]);
+}
+/** 物资木箱 */
+export function vSupplyCrate(seed = 1) {
+  const R = rng(seed * 13 + 1), P = [pl(0.15, 0.14, 0.15, 0, 0.03, 0, tone(R, WD), { ao: 0.2 })];
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) P.push(pl(0.022, 0.15, 0.022, sx * 0.072, 0.03, sz * 0.072, WDK, { ao: 0 }));
+  for (const y of [-0.035, 0.095]) P.push(pl(0.158, 0.02, 0.158, 0, y, 0, WDK, { ao: 0 }));
+  for (const s of [-1, 1]) P.push(pl(0.02, 0.17, 0.006, 0, 0.03, s * 0.077, CUT, { ao: 0, rz: 0.78 }));
+  return { geometry: merge(P), anchors: {} };
+}
+/** 灯塔：岩石底座 + 红白相间、逐段收小的方塔 + 观景台栏杆 + 发光的灯室 + 阶梯红顶；塔前一间白墙红顶的守塔小屋 */
+export function vLighthouse(seed = 1) {
+  const R = rng(seed * 53 + 17), P = [], cells = [], v = 0.11;
+  for (let i = -3; i <= 3; i++) for (let k = -3; k <= 3; k++) {
+    const d = Math.hypot(i, k) + (R() - 0.5) * 0.6; if (d > 3.4) continue;
+    cells.push({ i, j: 0, k, s: v * 0.99, x: i * v, y: v / 2, z: k * v, c: (R() < 0.18 ? MOSS[Math.floor(R() * 2)] : ROCK[Math.floor(R() * 4)]).clone().multiplyScalar(0.9 + R() * 0.14) });
+  }
+  P.push(...gridCubes(cells));
+  let y = v;
+  for (let k = 0; k < 9; k++) {
+    const w = 0.36 - k * 0.012, h = 0.16, red = Math.floor(k / 2) % 2 === 1;
+    P.push(rbox(w, h, w, 0, y + h / 2, 0, tone(R, red ? RED : PLASTER, 0.08), { seg: 1, r: 0.06, ao: k ? 0.1 : 0.3 }));
+    if (k && red !== (Math.floor((k - 1) / 2) % 2 === 1)) P.push(pl(w + 0.02, 0.018, w + 0.02, 0, y, 0, STONE[2], { ao: 0 }));
+    if (k === 2 || k === 5) P.push(pl(0.045, 0.065, 0.01, 0, y + h / 2, w / 2 + 0.004, GLASS, { ao: 0 }));
+    if (k === 4 || k === 7) for (const s of [-1, 1]) P.push(pl(0.01, 0.065, 0.045, s * (w / 2 + 0.004), y + h / 2, 0, GLASS, { ao: 0 }));
+    y += h;
+  }
+  // 观景台：平台 + 栏杆柱 + 一圈扶手
+  P.push(pl(0.46, 0.04, 0.46, 0, y + 0.02, 0, STONE[2], { ao: 0.2 })); y += 0.04;
+  for (const a of [-1, 0, 1]) for (const s of [-1, 1]) P.push(pl(0.014, 0.06, 0.014, a * 0.215, y + 0.03, s * 0.215, IRON, { ao: 0 }), pl(0.014, 0.06, 0.014, s * 0.215, y + 0.03, a * 0.215, IRON, { ao: 0 }));
+  for (const s of [-1, 1]) P.push(pl(0.44, 0.012, 0.012, 0, y + 0.06, s * 0.215, IRON, { ao: 0 }), pl(0.012, 0.012, 0.44, s * 0.215, y + 0.06, 0, IRON, { ao: 0 }));
+  // 灯室：亮黄方块 + 四根深色角柱；阶梯红顶 + 金色尖
+  const lampY = y + 0.085;
+  P.push(rbox(0.19, 0.16, 0.19, 0, lampY, 0, LAMPC, { seg: 1, r: 0.1, ao: 0 }));
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) P.push(pl(0.022, 0.17, 0.022, sx * 0.1, lampY, sz * 0.1, IRON, { ao: 0 }));
+  const top = stepRoof(P, R, RED, { w: 0.3, d: 0.3, y: y + 0.17, h: 0.05, n: 3, dw: 0.09 });
+  P.push(pl(0.04, 0.05, 0.04, 0, top + 0.025, 0, IRON, { ao: 0 }), pl(0.03, 0.03, 0.03, 0, top + 0.065, 0, 0xd9b44a, { ao: 0 }));
+  // 守塔小屋
+  const hz = 0.3;
+  P.push(rbox(0.3, 0.2, 0.18, 0, v + 0.1, hz, PLASTER[0], { seg: 1, r: 0.08, ao: 0.25 }));
+  stepRoof(P, R, RED, { w: 0.34, d: 0.22, y: v + 0.2, h: 0.04, n: 3, dw: 0.09, dd: 0.06, z: hz });
+  P.push(pl(0.1, 0.15, 0.01, 0, v + 0.075, hz + 0.093, WDK, { ao: 0 }), pl(0.075, 0.13, 0.012, 0, v + 0.065, hz + 0.097, 0x4f6f9a, { ao: 0.15 }));
+  for (const s of [-1, 1]) P.push(pl(0.05, 0.05, 0.01, s * 0.09, v + 0.12, hz + 0.093, GLASS, { ao: 0 }));
+  P.push(pl(0.12, 0.03, 0.06, 0, v + 0.015, hz + 0.12, STONE[1], { ao: 0.2 }));
+  return { geometry: merge(P), anchors: { lamp: [0, lampY, 0], door: [0, 0, 0.46] } };
+}
+/** 风车：石台 + 白墙深色木柱的方塔（逐段收小）+ 阶梯红顶 + 伸出的木轴；风叶单独成件（四片方格帆） */
+export function vWindmill(seed = 1) {
+  const R = rng(seed * 71 + 13), P = [], HUB = [0, 1.05, 0.44];
+  P.push(rbox(0.74, 0.08, 0.74, 0, 0.04, 0, STONE[2], { seg: 1, r: 0.15, ao: 0.3 }));
+  let y = 0.08;
+  for (let k = 0; k < 6; k++) {
+    const w = 0.6 - k * 0.03, h = 0.14;
+    P.push(rbox(w, h, w, 0, y + h / 2, 0, tone(R, PLASTER, 0.06), { seg: 1, r: 0.04, ao: k ? 0.08 : 0.3 }));
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) P.push(pl(0.04, h, 0.04, sx * w / 2, y + h / 2, sz * w / 2, WDK, { ao: 0.1 }));
+    if (k === 2 || k === 4) P.push(pl(w + 0.012, 0.024, w + 0.012, 0, y, 0, WDK, { ao: 0 }));
+    y += h;
+  }
+  P.push(pl(0.16, 0.23, 0.01, 0, 0.08 + 0.115, 0.3 + 0.004, WDK, { ao: 0 }), pl(0.12, 0.2, 0.012, 0, 0.08 + 0.1, 0.3 + 0.009, DOORW, { ao: 0.15 }));
+  P.push(pl(0.09, 0.09, 0.01, 0, 0.58, 0.27 + 0.004, WDK, { ao: 0 }), pl(0.065, 0.065, 0.012, 0, 0.58, 0.27 + 0.008, GLASS, { ao: 0 }), pl(0.11, 0.014, 0.03, 0, 0.53, 0.28, CUT, { ao: 0 }));
+  for (const s of [-1, 1]) P.push(pl(0.01, 0.07, 0.06, s * (0.255 + 0.004), 0.72, 0, GLASS, { ao: 0 }));
+  const top = stepRoof(P, R, RED, { w: 0.56, d: 0.6, y, h: 0.065, n: 5, dw: 0.1, z: 0.02 });
+  P.push(pl(0.03, 0.07, 0.03, 0, top + 0.035, 0.02, WDK, { ao: 0 }));
+  P.push(pl(0.05, 0.05, 0.2, HUB[0], HUB[1], HUB[2] - 0.1, WDK, { ao: 0 }));
+  // 风叶：轮毂 + 四支桨臂，每支一片帆布 + 几道横格木条（世界坐标，绕 pivot 转）
+  const S = [rbox(0.085, 0.085, 0.06, 0, 0, 0, WDK, { seg: 1, r: 0.2, ao: 0 })];
+  for (let a = 0; a < 4; a++) {
+    const A = [pl(0.03, 0.5, 0.024, 0, 0.29, 0, WDK, { ao: 0 }), pl(0.13, 0.36, 0.008, 0.075, 0.34, -0.012, tone(R, CANVAS, 0.08), { ao: 0 }), pl(0.012, 0.37, 0.014, 0.143, 0.34, 0.002, WD[0], { ao: 0 })];
+    for (let i = 0; i < 4; i++) A.push(pl(0.15, 0.012, 0.014, 0.07, 0.18 + i * 0.106, 0.002, WD[0], { ao: 0 }));
+    const g = merge(A); g.rotateZ(a * Math.PI / 2 + 0.3); S.push(g);
+  }
+  const sails = merge(S); sails.translate(HUB[0], HUB[1], HUB[2]); sails.computeBoundingBox();
+  return { geometry: merge(P), anchors: { door: [0, 0, 0.46], hub: HUB }, parts: { sails: { geometry: sails, pivot: HUB } } };
+}
+/** 钟楼：石块砌的方塔（转角石浅一点）+ 木门、窄窗 + 四根石柱的开敞钟室 + 阶梯石板顶；铜钟单独成件（会摆） */
+export function vBellTower(seed = 1) {
+  const R = rng(seed * 47 + 19), P = [], cells = [], v = 0.1, PV = [0, 1.125, 0];
+  for (let j = 0; j < 9; j++) for (let i = -2; i <= 2; i++) for (let k = -2; k <= 2; k++) {
+    const corner = Math.abs(i) === 2 && Math.abs(k) === 2, c = corner ? STONE[3] : j < 2 && R() < 0.15 ? MOSS[0] : STONE[Math.floor(R() * 3)];
+    cells.push({ i, j, k, s: v, x: i * v, y: j * v + v / 2, z: k * v, c: c.clone().multiplyScalar(0.9 + R() * 0.14) });
+  }
+  P.push(...gridCubes(cells));
+  const F = 0.25;
+  P.push(pl(0.12, 0.22, 0.01, 0, 0.11, F + 0.004, WDK, { ao: 0 }), pl(0.09, 0.19, 0.012, 0, 0.095, F + 0.008, DOORW, { ao: 0.15 }));
+  P.push(pl(0.03, 0.1, 0.01, 0, 0.56, F + 0.004, GLASS, { ao: 0 }));
+  for (const s of [-1, 1]) P.push(pl(0.01, 0.1, 0.03, s * (F + 0.004), 0.66, 0, GLASS, { ao: 0 }));
+  P.push(pl(0.56, 0.04, 0.56, 0, 0.92, 0, STONE[2], { ao: 0.2 }));
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) P.push(rbox(0.1, 0.3, 0.1, sx * 0.2, 1.09, sz * 0.2, tone(R, STONE, 0.1), { seg: 1, r: 0.12, ao: 0.15 }));
+  for (const s of [-1, 1]) P.push(pl(0.5, 0.05, 0.1, 0, 1.215, s * 0.2, STONE[1], { ao: 0.1 }), pl(0.1, 0.05, 0.5, s * 0.2, 1.215, 0, STONE[1], { ao: 0.1 }));
+  P.push(pl(0.42, 0.03, 0.04, 0, 1.165, 0, WDK, { ao: 0 }));
+  P.push(pl(0.56, 0.04, 0.56, 0, 1.26, 0, STONE[2], { ao: 0.1 }));
+  const top = stepRoof(P, R, SLATE, { w: 0.5, d: 0.5, y: 1.28, h: 0.055, n: 5, dw: 0.1 });
+  P.push(pl(0.02, 0.05, 0.02, 0, top + 0.025, 0, 0xd9b44a, { ao: 0 }));
+  const BR = [0xc0903a, 0xa87a30, 0x8a6228].map(col), B = [pl(0.05, 0.025, 0.03, 0, 0.012, 0, WDK, { ao: 0 }), rbox(0.05, 0.03, 0.05, 0, -0.005, 0, BR[0], { seg: 1, r: 0.2, ao: 0 }), rbox(0.09, 0.07, 0.09, 0, -0.05, 0, BR[0], { seg: 1, r: 0.15, ao: 0.1 }), rbox(0.12, 0.05, 0.12, 0, -0.105, 0, BR[1], { seg: 1, r: 0.15, ao: 0.1 }), pl(0.15, 0.022, 0.15, 0, -0.14, 0, BR[2], { ao: 0 }), pl(0.02, 0.03, 0.02, 0, -0.165, 0, IRON, { ao: 0 })];
+  const bell = merge(B); bell.translate(PV[0], PV[1], PV[2]); bell.computeBoundingBox();
+  return { geometry: merge(P), anchors: { door: [0, 0, 0.4] }, parts: { bell: { geometry: bell, pivot: PV } } };
+}
+// ================= 体素主题：海边和夜里的小动物（鹬、白鹭、燕鸥、蝙蝠），和 models-land.js 同尺寸、同部件 =================
+/** 部件 → { geometry, parts }（部件几何在模型坐标里，pivot 是关节点） */
+function rigParts(parts) { const geometry = mergeGeometries(Object.values(parts).map((p) => p.geometry), false); geometry.computeBoundingSphere(); return { geometry, parts }; }
+/** 鹬：褐背白肚的小方身子、细长黑嘴、两根细腿 */
+export function vSandpiper() {
+  const b = 0x9a7a5a, body = merge([rbox(0.012, 0.01, 0.022, 0, 0.019, 0, b, { seg: 1, r: 0.25, ao: 0.15 }), box(0.01, 0.004, 0.016, 0, 0.0145, 0.002, 0xf2eee6, { seg: 0, ao: 0 }), box(0.0125, 0.004, 0.012, 0, 0.0215, -0.003, 0x7a5f44, { seg: 0, ao: 0 }), rbox(0.009, 0.009, 0.009, 0, 0.026, 0.012, b, { seg: 1, r: 0.3, ao: 0 }), box(0.002, 0.002, 0.011, 0, 0.025, 0.021, 0x2a2420, { seg: 0, ao: 0 }), box(0.0095, 0.002, 0.002, 0, 0.0275, 0.0145, 0x1d1a1a, { seg: 0, ao: 0 }), box(0.008, 0.003, 0.006, 0, 0.021, -0.0125, 0x6a5a48, { seg: 0, ao: 0 })]);
+  const parts = { body: { geometry: body } };
+  for (const [k, s] of [['legL', 1], ['legR', -1]]) parts[k] = { geometry: box(0.0018, 0.0166, 0.0018, s * 0.0032, 0.0083, 0.001, 0x3a3028, { seg: 0, ao: 0 }), pivot: [s * 0.0032, 0.0166, 0.001] };
+  return rigParts(parts);
+}
+/** 白鹭：白方身子、分节的长脖子（会低头）、黄嘴、两根细长黑腿 */
+export function vEgret() {
+  const W = 0xf6f6f2, body = merge([rbox(0.022, 0.024, 0.05, 0, 0.059, -0.005, W, { seg: 1, r: 0.25, ao: 0.15 }), box(0.016, 0.006, 0.014, 0, 0.064, -0.033, 0xe8e8e2, { seg: 0, ao: 0 })]);
+  const neck = merge([box(0.008, 0.026, 0.008, 0, 0.077, 0.02, W, { seg: 0, ao: 0.05 }), box(0.008, 0.016, 0.008, 0, 0.095, 0.028, W, { seg: 0, ao: 0 }), rbox(0.012, 0.012, 0.016, 0, 0.104, 0.036, W, { seg: 1, r: 0.3, ao: 0 }), box(0.004, 0.004, 0.02, 0, 0.103, 0.053, 0xe8c040, { seg: 0, ao: 0 }), box(0.013, 0.002, 0.002, 0, 0.106, 0.04, 0x1d1a1a, { seg: 0, ao: 0 })]);
+  const parts = { body: { geometry: body }, neck: { geometry: neck, pivot: [0, 0.064, 0.017] } };
+  for (const [k, s] of [['legL', 1], ['legR', -1]]) parts[k] = { geometry: merge([box(0.003, 0.054, 0.003, s * 0.005, 0.028, -0.002, 0x2a2420, { seg: 0, ao: 0 }), box(0.006, 0.002, 0.01, s * 0.005, 0.001, 0.003, 0x2a2420, { seg: 0, ao: 0 })]), pivot: [s * 0.005, 0.054, -0.002] };
+  return rigParts(parts);
+}
+/** 燕鸥：白身子黑头顶、红嘴、分叉尾；翅膀三段（翅尖灰） */
+export function vTern() {
+  const P = [[0.012, 0.01, 0.04, 0, 0.004, 0, 0xf4f4f0, 0], [0.011, 0.006, 0.012, 0, 0.009, 0.016, 0x1d1a1a, 0], [0.003, 0.003, 0.012, 0, 0.006, 0.028, 0xe0502a, 0]];
+  for (const s of [-1, 1]) P.push([0.004, 0.002, 0.014, s * 0.004, 0.004, -0.027, 0xe8e8e4, 0], [0.024, 0.002, 0.016, s * 0.016, 0.006, 0, 0xe0e4e8, 1], [0.022, 0.002, 0.011, s * 0.036, 0.006, -0.004, 0xd0d4da, 1], [0.008, 0.0021, 0.008, s * 0.043, 0.006, -0.008, 0x8a8e94, 1]);
+  return { geometry: flyer(P) };
+}
+/** 蝙蝠：深褐方身子、两只尖耳朵；翅膀两段 */
+export function vBat() {
+  const P = [[0.008, 0.007, 0.016, 0, 0.002, 0, 0x3a2e2a, 0], [0.007, 0.006, 0.006, 0, 0.003, 0.009, 0x3a2e2a, 0]];
+  for (const s of [-1, 1]) P.push([0.002, 0.003, 0.002, s * 0.002, 0.0072, 0.009, 0x2a2220, 0], [0.018, 0.0015, 0.014, s * 0.013, 0.002, -0.001, 0x2a2220, 1], [0.008, 0.0015, 0.008, s * 0.022, 0.002, -0.004, 0x241c1a, 1]);
+  return { geometry: flyer(P) };
+}
+// 给体素海洋生物（vmarine.js）用的几个底层工具
+export { rbox, merge, gridCubes, tone, paint };

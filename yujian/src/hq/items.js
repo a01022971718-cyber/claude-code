@@ -10,6 +10,7 @@ import { LAYER_FX } from './pipeline.js';
 import { MAKES } from '../make/register.js';
 import { simplify } from './simplify.js';
 import { partGeo, animatePart, HEX_UNIT } from '../make/model.js';
+import { STYLE, vBuoy } from './blocky.js';
 
 // 我的造物：每个造物的部件几何只生成一次，摆多少个都共用（还会被统一合批）
 const MAKE_GEO = new Map();
@@ -20,6 +21,7 @@ function makeGeos(mk) { const k = mk.id + ':' + JSON.stringify(mk).length; let g
 let BUOY = null;
 function buoyGeo() {
   if (BUOY) return BUOY;
+  if (STYLE.blocky) return (BUOY = vBuoy());
   const parts = [new THREE.CylinderGeometry(0.035, 0.05, 0.12, 14), new THREE.SphereGeometry(0.036, 14, 8).translate(0, 0.06, 0)].map((g) => g.toNonIndexed());
   let n = 0; for (const g of parts) n += g.attributes.position.count;
   const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = new Float32Array(n * 3); let o = 0;

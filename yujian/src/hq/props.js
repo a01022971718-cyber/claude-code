@@ -5,6 +5,7 @@
 //   单位：六边形地块外接圆半径 = 1；原点在模型底部中心，正面朝 +z。
 import * as THREE from 'three';
 import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import * as VX from './blocky.js';
 
 /* ============================================================
  * 配色（sRGB 十六进制 → three 自动转成线性）
@@ -333,6 +334,7 @@ function logGeom(len, rad, seed, o = {}) {
  * 1. 茅草屋
  * ============================================================ */
 export function strawHut(seed = 1) {
+  if (VX.STYLE.blocky) return VX.vStrawHut(seed);   // 体素主题：同尺寸、同锚点的方块版
   const rnd = mulberry32(seed * 101 + 7);
   const sd = seed * 3.1;
   const parts = [];
@@ -480,6 +482,7 @@ export function strawHut(seed = 1) {
  * 2. 营火（不含火焰）
  * ============================================================ */
 export function campfire(seed = 1) {
+  if (VX.STYLE.blocky) return VX.vCampfire(seed);   // 体素主题：同尺寸、同锚点的方块版
   const rnd = mulberry32(seed * 211 + 5);
   const parts = [];
   const NS = 9, RING = 0.117;
@@ -542,6 +545,7 @@ export function campfire(seed = 1) {
  * 3. 原木坐凳
  * ============================================================ */
 export function logSeat(seed = 1) {
+  if (VX.STYLE.blocky) return VX.vLogSeat(seed);   // 体素主题：同尺寸、同锚点的方块版
   const rnd = mulberry32(seed * 313 + 11);
   const parts = [];
   const rad = 0.062, len = 0.32, cy = 0.088, top = 0.046;
@@ -584,6 +588,7 @@ export function logSeat(seed = 1) {
  * 4. 柴堆
  * ============================================================ */
 export function woodPile(seed = 1) {
+  if (VX.STYLE.blocky) return VX.vWoodPile(seed);   // 体素主题：同尺寸、同锚点的方块版
   const rnd = mulberry32(seed * 419 + 13);
   const parts = [];
   const rows = [4, 3, 4, 3], D = 0.0475, dy = 0.0412;
@@ -633,6 +638,7 @@ function archGeom(w, h, depth, bev, cs = 8, bs = 1) {
 }
 
 export function lighthouse(seed = 1) {
+  if (VX.STYLE.blocky) return VX.vLighthouse(seed);   // 体素主题：同尺寸、同锚点的方块版
   const rnd = mulberry32(seed * 523 + 17);
   const sd = seed * 2.3;
   const parts = [];
@@ -853,6 +859,7 @@ export function lighthouse(seed = 1) {
  * 6. 小木船（原点在水线，船底 y≈-0.05，船头朝 +z）
  * ============================================================ */
 export function rowBoat(seed = 1) {
+  if (VX.STYLE.blocky) return VX.vRowBoat(seed);   // 体素主题：同尺寸、同锚点的方块版
   const rnd = mulberry32(seed * 631 + 19);
   const sd = seed * 1.7;
   const parts = [];
@@ -968,6 +975,7 @@ export function rowBoat(seed = 1) {
  * 7. 木栅栏
  * ============================================================ */
 export function fence(seed = 1) {
+  if (VX.STYLE.blocky) return VX.vFence(seed);   // 体素主题：同尺寸、同锚点的方块版
   const rnd = mulberry32(seed * 733 + 23);
   const parts = [];
   const px = [-0.34, 0, 0.34], posts = [];
@@ -1014,6 +1022,7 @@ export function fence(seed = 1) {
  * 8. 木路牌
  * ============================================================ */
 export function signpost(seed = 1) {
+  if (VX.STYLE.blocky) return VX.vSignpost(seed);   // 体素主题：同尺寸、同锚点的方块版
   const rnd = mulberry32(seed * 839 + 29);
   const parts = [];
   const H = 0.4, PR = 0.0185;
@@ -1206,6 +1215,7 @@ function solidBox(w, h, d, col, seed = 0, nz = 0.12) {
  *    返回 { geometry, anchors: { door, hub }, parts: { sails: { geometry(世界坐标), pivot } } }
  * ============================================================ */
 export function windmill(seed = 1) {
+  if (VX.STYLE.blocky) return VX.vWindmill(seed);   // 体素主题：同尺寸、同锚点的方块版
   const rnd = mulberry32(seed * 719 + 31);
   const sd = seed * 2.9;
   const parts = [];
@@ -1505,6 +1515,7 @@ export function windmill(seed = 1) {
  *    返回 { geometry, anchors: { door }, parts: { bell: { geometry(世界坐标), pivot } } }
  * ============================================================ */
 export function bellTower(seed = 1) {
+  if (VX.STYLE.blocky) return VX.vBellTower(seed);   // 体素主题：同尺寸、同锚点的方块版
   const rnd = mulberry32(seed * 911 + 5);
   const sd = seed * 1.9;
   const parts = [];
@@ -1760,6 +1771,7 @@ function limbGeom(a, b, r0, r1, seg, rows) {
   return between(g, a, b);
 }
 export function villager(seed = 1, opts = {}) {
+  if (VX.STYLE.blocky) return { ...VX.villager(seed, opts), anchors: {} };
   const rnd = mulberry32(seed * 977 + 41);
   const sd = seed * 3.7;
   const toCol = (v, def) => (v instanceof THREE.Color ? v.clone() : new THREE.Color(v ?? def));
@@ -1919,6 +1931,7 @@ export function villager(seed = 1, opts = {}) {
  * 10. 漂浮的补给木箱（原点在水线，箱体 y≈-0.04..0.1，约 0.14 见方）
  * ============================================================ */
 export function supplyCrate(seed = 1) {
+  if (VX.STYLE.blocky) return VX.vSupplyCrate(seed);   // 体素主题：同尺寸、同锚点的方块版
   const rnd = mulberry32(seed * 1237 + 53);
   const sd = seed * 4.3;
   const parts = [];

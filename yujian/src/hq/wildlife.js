@@ -9,6 +9,7 @@
 import * as THREE from 'three';
 import * as L from './models-land.js';
 import * as M from './models-marine.js';
+import * as BK from './blocky.js';
 import { faunaMaterial } from './fauna.js';
 import { G } from './waves.js';
 import { rng } from './noise.js';
@@ -21,7 +22,8 @@ function geos() {
   if (GEO) return GEO;
   const parts = (r) => { const o = {}; for (const [k, p] of Object.entries(r.parts)) { const g = p.geometry.clone(), v = p.pivot || [0, 0, 0]; g.translate(-v[0], -v[1], -v[2]); g.userData.shared = true; o[k] = { g, pivot: v }; } return o; };
   const flyer = (r) => { const g = r.geometry; if (!g.attributes.wing) g.setAttribute('wing', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count), 1)); return g; };
-  GEO = { piper: parts(L.sandpiper(1)), egret: parts(L.egret(1)), tern: flyer(L.tern(1)), bat: flyer(L.bat(1)), fish: M.fish(5, 'sardine').geometry };
+  const V = BK.STYLE.blocky;   // 体素主题：方块版
+  GEO = { piper: parts(V ? BK.vSandpiper() : L.sandpiper(1)), egret: parts(V ? BK.vEgret() : L.egret(1)), tern: flyer(V ? BK.vTern() : L.tern(1)), bat: flyer(V ? BK.vBat() : L.bat(1)), fish: M.fish(5, 'sardine').geometry };
   return GEO;
 }
 let MATS = null;

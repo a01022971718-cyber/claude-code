@@ -6,6 +6,8 @@
 //   坐标：y 向上，头/正面朝 +z；游泳动物原点在身体中心，固着生物原点在底部中心（底面 y=0）。
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import * as VM from './vmarine.js';
+import { STYLE } from './blocky.js';
 
 /* ============================================================
  * 基础：数学 / 噪声 / 随机
@@ -461,6 +463,7 @@ function fishBuild(key) {
   return g;
 }
 export function fish(seed = 1, species = 'tang') {
+  if (STYLE.blocky) return VM.vFish(seed, species);   // 体素主题
   const key = FISH[species] ? species : 'tang';
   return { geometry: fishBuild(key) };
 }
@@ -476,6 +479,7 @@ function turtleOutline(th) {
   return (1 / Math.sqrt((s / a) ** 2 + (c / b) ** 2)) * (1 + 0.05 * Math.pow(Math.max(0, -c), 4));
 }
 export function turtle(seed = 1) {
+  if (STYLE.blocky) return VM.vTurtle(seed);   // 体素主题
   const rng = rngOf(seed, 3);
   const seeds = SC_SEEDS.map(([x, z]) => [x + (rng() - 0.5) * 0.02, z + (rng() - 0.5) * 0.02, rng()]);
   const COLS = 48, H = 0.2;
@@ -622,6 +626,7 @@ function foilHalf(side, root, hs, chordFn, thick, sweepFn, rise, cols = 8, nR = 
   return limb({ root, dir: V3(side, 0, 0), up: side > 0 ? Y : V3(0, -1, 0), len: hs, rings, bendVec: V3(0, 1, 0), bendAmt: rise, cols });
 }
 export function dolphin(seed = 1) {
+  if (STYLE.blocky) return VM.vDolphin(seed);   // 体素主题
   const LB = 0.88, zAt = (t) => 0.5 - t * LB;
   const R = [[0, 0, 0, -0.018], [0.012, 0.01, 0.011, -0.019], [0.05, 0.021, 0.025, -0.02], [0.1, 0.028, 0.033, -0.021], [0.14, 0.036, 0.04, -0.016],
     [0.18, 0.062, 0.054, -0.003], [0.24, 0.088, 0.07, 0.006], [0.32, 0.108, 0.082, 0.01], [0.42, 0.118, 0.088, 0.012], [0.52, 0.114, 0.084, 0.01],
@@ -679,6 +684,7 @@ export function dolphin(seed = 1) {
  * 座头鲸
  * ============================================================ */
 export function whale(seed = 1) {
+  if (STYLE.blocky) return VM.vWhale(seed);   // 体素主题
   const rng = rngOf(seed, 5);
   const LB = 0.84, zAt = (t) => 0.5 - t * LB;
   const R = [[0, 0, 0, -0.012], [0.015, 0.02, 0.032, -0.015], [0.05, 0.045, 0.068, -0.017], [0.1, 0.068, 0.09, -0.013], [0.17, 0.088, 0.103, -0.008],
@@ -783,6 +789,7 @@ export function whale(seed = 1) {
  * 水母
  * ============================================================ */
 export function jelly(seed = 1) {
+  if (STYLE.blocky) return VM.vJelly(seed);   // 体素主题
   const rng = rngOf(seed, 7);
   const outer = [[0, 0.33], [0.08, 0.327], [0.16, 0.315], [0.24, 0.29], [0.32, 0.25], [0.39, 0.195], [0.44, 0.13], [0.475, 0.075], [0.495, 0.035], [0.5, 0.018]];
   const inner = [[0.495, 0.005], [0.45, 0.03], [0.4, 0.08], [0.32, 0.13], [0.22, 0.165], [0.11, 0.18], [0, 0.185]];
@@ -875,6 +882,7 @@ const CORAL_PAL = {
   pink: [0x9a3a62, 0xe0709a, 0xfbd0e0], purple: [0x5e2f8e, 0x9a5bd0, 0xe0c4f8], orange: [0xb24a14, 0xee8a2a, 0xffdc90],
 };
 export function branchCoral(seed = 1, color = 'pink') {
+  if (STYLE.blocky) return VM.vBranchCoral(seed, color);   // 体素主题
   const rng = rngOf(seed, 11);
   const pal = (CORAL_PAL[color] || CORAL_PAL.pink).map(hx);
   const segs = [];
@@ -942,6 +950,7 @@ export function branchCoral(seed = 1, color = 'pink') {
 }
 
 export function brainCoral(seed = 1) {
+  if (STYLE.blocky) return VM.vBrainCoral(seed);   // 体素主题
   const rng = rngOf(seed, 13);
   const Hq = 0.62, NR = 26, prof = [];
   for (let j = 0; j < NR; j++) { const a = (j / (NR - 1)) * (Math.PI / 2); prof.push([Math.sin(a), Hq * Math.cos(a) + 0.05]); }
@@ -974,6 +983,7 @@ export function brainCoral(seed = 1) {
 }
 
 export function tableCoral(seed = 1) {
+  if (STYLE.blocky) return VM.vTableCoral(seed);   // 体素主题
   const rng = rngOf(seed, 17);
   const teal = rng() < 0.5;
   const PY = 0.55;
@@ -1012,6 +1022,7 @@ export function tableCoral(seed = 1) {
 }
 
 export function seaFan(seed = 1) {
+  if (STYLE.blocky) return VM.vSeaFan(seed);   // 体素主题
   const rng = rngOf(seed, 19);
   const segs = [], nodes = [];
   const base = V3(0, 0.12, 0);
@@ -1075,6 +1086,7 @@ export function seaFan(seed = 1) {
 }
 
 export function anemone(seed = 1) {
+  if (STYLE.blocky) return VM.vAnemone(seed);   // 体素主题
   const rng = rngOf(seed, 23);
   const prof = [[0, 0], [0.26, 0], [0.3, 0.04], [0.28, 0.15], [0.27, 0.28], [0.31, 0.36], [0.36, 0.4], [0.3, 0.405], [0.2, 0.395], [0.12, 0.385], [0.07, 0.4], [0.04, 0.39], [0, 0.375]];
   const col = lathe(prof, 24);
@@ -1118,6 +1130,7 @@ export function anemone(seed = 1) {
 }
 
 export function kelp(seed = 1, h = 1.2) {
+  if (STYLE.blocky) return VM.vKelp(seed, h);   // 体素主题
   const rng = rngOf(seed, 29);
   const kk = h / 1.2;
   const Ht = h * 0.96;
@@ -1188,6 +1201,7 @@ export function kelp(seed = 1, h = 1.2) {
  * 海星 / 海胆
  * ============================================================ */
 export function starfish(seed = 1) {
+  if (STYLE.blocky) return VM.vStarfish(seed);   // 体素主题
   const rng = rngOf(seed, 31);
   const purple = rng() < 0.4;
   const out = (a) => 0.28 + 0.72 * Math.pow(Math.abs(Math.cos(2.5 * a)), 1.5);
@@ -1224,6 +1238,7 @@ export function starfish(seed = 1) {
 }
 
 export function seaUrchin(seed = 1) {
+  if (STYLE.blocky) return VM.vSeaUrchin(seed);   // 体素主题
   const rng = rngOf(seed, 37);
   const RB = 0.4;
   const body = ellipsoid(RB, RB * 0.86, RB, 14, 9);

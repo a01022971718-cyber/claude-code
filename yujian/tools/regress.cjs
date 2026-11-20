@@ -8,6 +8,7 @@ const CASES = [
   { name: '六边形岛·经典主题能正常渲染', file: 'island-classic.js', query: 'debug=1', check: (r) => Array.isArray(r) && r.length === 0 },
   { name: '六边形岛·AI 造岛（模拟回复）：新物种按造物台格式生成并住进岛里', file: 'ai-island.js', query: 'debug=1&style=blocky&q=smooth', check: (r) => r.makes.length === 2 && r.items.length >= 1 && r.biomePlants[0][0]?.startsWith('mk_') },
   { name: '六边形岛·体素近景：草花麦为体素、近景草层分帧重建不卡顿', file: 'island-voxel-close.js', query: 'debug=1&style=blocky&q=ultra', check: (r) => r.tris < 400000 && r.worstSliceMs < 20 },
+  { name: '六边形岛·体素主题的建筑、小船浮标、海洋生物都是方块版', file: 'island-voxel-world.js', query: 'debug=1&style=blocky&q=high', check: (r) => r.placed >= 8 && r.propTris < 40000 && r.marine && r.marine.fish && r.marine.dolphin && r.marine.jelly && r.marine.habitat !== false },
   { name: '六边形岛·放东西有反馈、竖屏撤销擦除不被遮挡', file: 'island-feedback.js', query: 'style=blocky', vw: 390, vh: 844, check: (r) => r.fxActive >= 1 && r.bl[3] < r.strip[1] },
   { name: '方块岛·点放、划动摆一排、按住拆、选取、蓝图存取放', file: 'blocks-build.js', query: 'mode=blocks', check: (r) => r.placeOne === 1 && r.row >= 8 && r.holdBreak === -1 && r.picked === 1 && r.bp.length === 1 && r.make.length === 1 && r.copied > 100 },
   { name: '造物台·添加、上色、拖手柄改大小、保存', file: 'studio-edit.js', query: 'mode=blocks', check: (r) => r.added >= 1 && r.s1 > r.s0 && r.saved.length === 1 },

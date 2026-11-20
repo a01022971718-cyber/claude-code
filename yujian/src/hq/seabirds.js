@@ -2,6 +2,8 @@
 // 样张和游戏共用；游戏里盘旋中心和半径跟着岛的大小变。
 import * as THREE from 'three';
 import { propMaterial } from './materials.js';
+import { STYLE } from './blocky.js';
+import { vGullBody, vGullWing } from './vmarine.js';
 
 function setColor(g, hex, tipAt, tipHex) {
   const p = g.attributes.position, c = new Float32Array(p.count * 3), a = new THREE.Color(hex), b = tipHex ? new THREE.Color(tipHex) : a;
@@ -12,6 +14,7 @@ function setColor(g, hex, tipAt, tipHex) {
 /** 一只海鸥（Group：身体 + 左右翅膀，翅膀绕身体中轴转） */
 let GEO = null;
 export function gullModel(mat) {
+  if (!GEO && STYLE.blocky) GEO = { body: vGullBody(), wingG: vGullWing() };   // 体素主题：方块海鸥
   if (!GEO) {
     const body = new THREE.CapsuleGeometry(0.025, 0.07, 3, 6).rotateX(Math.PI / 2); setColor(body, 0xf4f4f0);
     const wingG = new THREE.BufferGeometry();

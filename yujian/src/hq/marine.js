@@ -83,7 +83,7 @@ const MEMO = new Map();
 const memo = (k, make) => { let r = MEMO.get(k); if (!r) MEMO.set(k, r = make()); return r; };
 function swarm(geo, mat, n) {
   // 海里的鱼、水母、珊瑚只有几厘米大，又隔着一层海水：用减面后的模型（原模型每只约 3000 个三角形）
-  const g = simplify(geoOf(geo), STYLE.blocky ? 5 : 7).clone();
+  const src = geoOf(geo), g = (src.userData.vox ? src : simplify(src, STYLE.blocky ? 5 : 7)).clone();   // 体素模型本来就省，不再减面
   for (const a of ['bend', 'sway', 'rim', 'tent']) if (!g.attributes[a]) g.setAttribute(a, new THREE.BufferAttribute(new Float32Array(g.attributes.position.count), 1));
   const anim = new Float32Array(n * 4);
   g.setAttribute('iAnim', new THREE.InstancedBufferAttribute(anim, 4));
