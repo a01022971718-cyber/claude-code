@@ -440,3 +440,21 @@ body { background: var(--haze); color: var(--ink); font-family: var(--font); fon
 .s-sheet textarea { padding: 8px 10px; border-radius: 10px; border: 1px solid #e0d6c0; font-size: 14px; color: #17313b; resize: vertical; }
 .s-img { flex-direction: row !important; align-items: center; gap: 8px; padding: 8px 10px; border: 1.5px dashed #d6c7a6; border-radius: 12px; color: #6a5a40 !important; cursor: pointer; }
 .s-img img { height: 56px; border-radius: 8px; }
+/* 方块岛：快捷栏 + 背包 + 框选 / 放蓝图面板 */
+.b-hot { position: absolute; left: 50%; transform: translateX(-50%); bottom: max(8px, env(safe-area-inset-bottom)); display: flex; gap: 6px; align-items: center; background: rgba(23,49,59,.78); border-radius: 16px; padding: 5px 6px; backdrop-filter: blur(8px); max-width: calc(100% - 180px); }
+.b-slots { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.b-slots::-webkit-scrollbar { display: none; }
+.b-slot { flex: none; width: 44px; height: 44px; border-radius: 10px; background: rgba(255,255,255,.06); border: 2px solid transparent; position: relative; padding: 0; }
+.b-slot img { width: 32px; height: 32px; margin-top: 4px; }
+.b-slot i { position: absolute; right: 3px; bottom: 1px; font-size: 9px; font-style: normal; opacity: .6; }
+.b-slot.on { border-color: #f7e7b8; background: rgba(247,231,184,.2); }
+.b-bar { bottom: 66px !important; left: 50% !important; right: auto !important; transform: translateX(-50%); width: min(560px, calc(100% - 180px)); }
+.b-bar[hidden] { display: none; }
+.b-bagh { display: flex; gap: 6px; margin-bottom: 5px; }
+.b-search { flex: 1; min-width: 0; padding: 5px 10px; border-radius: 999px; border: 0; background: rgba(255,250,240,.92); color: #17313b; }
+.b-items { flex-wrap: wrap; max-height: 132px; overflow-y: auto; }
+.b-panel { position: absolute; left: 50%; transform: translateX(-50%); top: 52px; display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; align-items: center; max-width: calc(100% - 180px); background: rgba(23,49,59,.8); border-radius: 14px; padding: 6px 8px; pointer-events: auto; }
+.b-panel[hidden] { display: none; }
+.b-panel b { font: 12px ui-monospace, monospace; color: #f7e7b8; padding: 0 4px; }
+.b-tools { bottom: 70px !important; }
+.b-cut { bottom: 70px !important; }

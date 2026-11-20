@@ -20,7 +20,7 @@ const hash = (n) => { let h = (n * 2654435761) >>> 0; h ^= h >>> 15; h = Math.im
 /** 一块长方块 → 带“原版手感”的几何（以部件关节点为原点） */
 export function boxGeo(b, i, pivot = [0, 0, 0]) {
   const [w, h, d] = b.s.map((v) => Math.max(0.25, +v || 1)), m = Math.min(w, h, d);
-  const seg = m >= 3 ? 2 : m >= 1.5 ? 1 : 0, rad = m * (m >= 3 ? 0.22 : 0.3);
+  const seg = b.seg != null ? b.seg : m >= 3 ? 2 : m >= 1.5 ? 1 : 0, rad = b.seg != null ? Math.min(m * 0.22, 3) : m * (m >= 3 ? 0.22 : 0.3);   // 蓝图转来的大块用一段圆角（面少）
   let g = seg ? new RoundedBoxGeometry(w, h, d, seg, Math.min(rad, m / 2 - 0.01)) : new THREE.BoxGeometry(w, h, d);
   if (g.index) g = g.toNonIndexed(); g.deleteAttribute('uv');
   const base = new THREE.Color(b.c || '#c9a07a'), t = new THREE.Color(), p = g.attributes.position, n = p.count, col = new Float32Array(n * 3);
