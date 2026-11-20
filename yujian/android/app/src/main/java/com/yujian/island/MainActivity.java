@@ -14,6 +14,8 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.WebChromeClient;
+import android.webkit.ValueCallback;
 import androidx.webkit.WebViewAssetLoader;
 
 /**
@@ -26,6 +28,8 @@ import androidx.webkit.WebViewAssetLoader;
 public class MainActivity extends Activity {
   private static final String HOST = "appassets.androidplatform.net";
   private WebView web;
+  private ValueCallback<Uri[]> fileCb;
+  private static final int PICK = 41;
 
   @Override
   protected void onCreate(Bundle state) {
@@ -57,10 +61,28 @@ public class MainActivity extends Activity {
         return true;
       }
     });
+    // WebChromeClient：① 网页里的确认 / 提示对话框（confirm / alert）能弹出来——没有它，confirm 直接当“取消”，
+    //   造物台“还没保存，确定回到列表吗？”永远是取消，看起来就是卡死、返回不了；② 选文件（上传参考图）能打开相册
+    web.setWebChromeClient(new WebChromeClient() {
+      @Override
+      public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> cb, FileChooserParams params) {
+        if (fileCb != null) fileCb.onReceiveValue(null);
+        fileCb = cb;
+        try { Intent it = params.createIntent(); it.addCategory(Intent.CATEGORY_OPENABLE); startActivityForResult(Intent.createChooser(it, "选一张图片"), PICK); }
+        catch (Exception e) { fileCb = null; cb.onReceiveValue(null); return false; }
+        return true;
+      }
+    });
     setContentView(web);
     immersive();
     if (state != null) web.restoreState(state);
     if (web.getUrl() == null) web.loadUrl("https://" + HOST + "/assets/index.html");
+  }
+
+  @Override
+  protected void onActivityResult(int req, int res, Intent data) {
+    super.onActivityResult(req, res, data);
+    if (req == PICK && fileCb != null) { fileCb.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(res, data)); fileCb = null; }
   }
 
   /** 沉浸式全屏：隐藏状态栏和导航栏，从边缘滑动可临时呼出 */

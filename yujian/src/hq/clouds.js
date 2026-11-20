@@ -14,7 +14,7 @@ function cloudGeometry(seed = 7, n = 16) {
     const a = (c / n) * Math.PI * 2 + (R() - 0.5) * 0.3, d = 130 + R() * 60, s = 9 + R() * 12, h = 6 + R() * 14;
     const cx = Math.cos(a) * d, cz = Math.sin(a) * d, puffs = 5 + Math.floor(R() * 5);
     for (let i = 0; i < puffs; i++) {
-      const r = s * (0.35 + R() * 0.4), g = new THREE.IcosahedronGeometry(r, 2);
+      const r = s * (0.35 + R() * 0.4), g = new THREE.IcosahedronGeometry(r, 1);   // 远处的云一团只有几十个像素：80 个面就够（原来 320）
       // 沿切线方向排开、中间高两头低；底部压平
       const u = (i / (puffs - 1) - 0.5) * 2, ox = -Math.sin(a) * u * s * 1.3, oz = Math.cos(a) * u * s * 1.3, oy = (1 - u * u) * s * 0.35 + R() * s * 0.15;
       g.scale(1.2, 0.75, 1); g.translate(cx + ox + (R() - 0.5) * s * 0.4, h + oy, cz + oz + (R() - 0.5) * s * 0.4);

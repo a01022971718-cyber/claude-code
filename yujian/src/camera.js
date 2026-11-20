@@ -182,10 +182,13 @@ export class CameraRig {
     this.dom.setPointerCapture?.(e.pointerId);
     this._ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
     this.onInput?.(); this.orbit = 0;
-    const orbit = this.free && (e.button === 2 || (e.button === 1 && !this.builder) || e.shiftKey);
-    if (this._ptrs.size === 1 && !orbit && e.button !== 1 && this.builder?.active(e)) { this._drag = { builder: true, x0: e.clientX, y0: e.clientY, t0: performance.now(), moved: false, px: e.clientX, py: e.clientY, slop: 8 }; this.builder.down(e); this.vel.set(0, 0); this.yawVel = 0; this.fly = null; return; }
+    // 单手操作（默认）：手指单指拖动 = 转视角（左右转、上下改俯角）；两指 = 平移 + 张合缩放
+    const touchRot = e.pointerType === 'touch' && this.oneRotate !== false && this._ptrs.size === 1;
+    const orbit = touchRot || (this.free && (e.button === 2 || (e.button === 1 && !this.builder) || e.shiftKey));
+    // 建造工具要接管就先给它（手指落在方块、手柄上），不要的才是转视角
+    if (this._ptrs.size === 1 && (!orbit || touchRot) && e.button !== 1 && this.builder?.active(e)) { this._drag = { builder: true, x0: e.clientX, y0: e.clientY, t0: performance.now(), moved: false, px: e.clientX, py: e.clientY, slop: 8 }; this.builder.down(e); this.vel.set(0, 0); this.yawVel = 0; this.fly = null; return; }
     if (this._ptrs.size === 1) {
-      this._drag = { x0: e.clientX, y0: e.clientY, t0: performance.now(), moved: false, orbit, px: e.clientX, py: e.clientY, slop: e.pointerType === 'mouse' ? 6 : 10 };
+      this._drag = { x0: e.clientX, y0: e.clientY, t0: performance.now(), moved: false, orbit, touchRot, px: e.clientX, py: e.clientY, slop: e.pointerType === 'mouse' ? 6 : 10 };
       this._trail = [];
     } else if (this._ptrs.size === 2) {
       if (this._drag?.builder) { this.builder.up(null, true); this._drag = null; }   // 第二根手指落下：取消这一笔，改成双指操作镜头
@@ -220,7 +223,7 @@ export class CameraRig {
     if (!G.mode) {
       const ax = a.x - G.a0.x, ay = a.y - G.a0.y, bx = b.x - G.b0.x, by = b.y - G.b0.y, la = Math.hypot(ax, ay), lb = Math.hypot(bx, by);
       // 两根手指的事件是一根一根到的：等两指都动了再看方向；只有一指在动（另一指按住不动）就是缩放
-      if (la > CLASSIFY * 0.6 && lb > CLASSIFY * 0.6) G.mode = (ax * bx + ay * by) / (la * lb) > 0.5 ? 'orbit' : 'pinch';
+      if (la > CLASSIFY * 0.6 && lb > CLASSIFY * 0.6) G.mode = this.oneRotate !== false ? 'pinch' : (ax * bx + ay * by) / (la * lb) > 0.5 ? 'orbit' : 'pinch';   // 单手模式：两指同向拖 = 平移
       else if (Math.max(la, lb) > CLASSIFY * 2.2) G.mode = 'pinch';
       else return;   // 还没判定：先不动，避免一上来就误缩放
     }
@@ -257,12 +260,12 @@ export class CameraRig {
       this._drag = null; this._g2 = null;
       if (now - (this._rotT || 0) > 60) this.yawVel = 0;   // 停住再松手：不继续转
       if (dr?.moved && !dr.orbit) { const [vx, vz] = this._fitVel(); this.vel.set(vx, vz).clampLength(0, 40); }
-      const isTap = !cancel && dr && !dr.moved && !dr.orbit && now - dr.t0 < 600 && !this.locked && now - this._lastMulti > 300;
+      const isTap = !cancel && dr && !dr.moved && (!dr.orbit || dr.touchRot) && now - dr.t0 < 600 && !this.locked && now - this._lastMulti > 300;
       if (isTap) {
         this.vel.set(0, 0);
         const L = this._lastTap;
         if (L && now - L.t < 320 && Math.hypot(L.x - e.clientX, L.y - e.clientY) < 30 && this.onDoubleTap?.(e.clientX, e.clientY)) this._lastTap = null;
-        else { this._lastTap = { t: now, x: e.clientX, y: e.clientY }; this.onTap?.(e.clientX, e.clientY); }
+        else { this._lastTap = { t: now, x: e.clientX, y: e.clientY }; if (!this.builder?.tap?.(e)) this.onTap?.(e.clientX, e.clientY); }   // 建造工具没接管的轻点（比如造物台在台面上点一下加块）
       }
     } else if (this._ptrs.size === 1) {
       this._lastMulti = now; this._g2 = null;

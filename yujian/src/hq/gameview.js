@@ -317,7 +317,7 @@ export class HQView {
       // 只有树投影：灌木、石头、菜苗、芦苇、睡莲的影子几乎看不见，却要再画一遍
       if (!SHADOW_KITS.has(name) && !K[name]?.shadow) g.traverse((o) => { o.castShadow = false; });
       // 树的远近分级（LOD）：同一批树再做一份几十个三角面的简化版，远处的区块显示简化版、不投影
-      if (K[name + 'Lo']) { const t = name === 'bush' ? 'bush' : 'tree'; g.name = t + '-hi'; const lo = instanced(K[name + 'Lo'], items, mat); lo.name = t + '-lo'; lo.visible = false; lo.traverse((o) => { o.castShadow = false; }); grp.add(lo); }
+      if (K[name + 'Lo']) { const t = name === 'bush' || name === 'crop' ? 'bush' : 'tree'; g.name = t + '-hi'; const lo = instanced(K[name + 'Lo'], items, mat); lo.name = t + '-lo'; lo.visible = false; lo.traverse((o) => { o.castShadow = false; }); grp.add(lo); }
     }
     for (const [b, list] of Object.entries(blades)) if (list.length) { const m = bladeField(b, list, { cull: true }); m.geometry.userData.owned = true; grp.add(m); }
     const peaks = [];
@@ -503,7 +503,9 @@ export class HQView {
     for (const ch of this.chunks.values()) {
       if (!ch.group) continue;
       const [q, r] = ch.ck.split(',').map(Number), [x, z] = toWorld((q + 0.5) * CH, (r + 0.5) * CH), far = Math.hypot(x - focus.x, z - focus.z) > bladeRange;
-      if (ch.far !== far) { ch.far = far; for (const o of ch.group.children) if (o.name?.endsWith('-field')) o.visible = !far; }
+      // 看不清就不画：草叶宽约 0.015、花头约 0.03，在屏幕上不到 0.7 个像素时整片不画（地面本身就是草色）；麦穗成片是金色质感，更远才收
+      { const cp0 = this.camera.position, pp = this.ppu(Math.hypot(x - cp0.x, z - cp0.z, cp0.y - 0.45)), tiny = { grass: pp * 0.015 < 0.7, flower: pp * 0.03 < 0.8, wheat: pp * 0.04 < 0.6 };
+        for (const o of ch.group.children) if (o.name?.endsWith('-field')) { const k = o.name.slice(0, -6), v = !far && !tiny[k]; if (o.visible !== v) o.visible = v; } ch.far = far; }
       // 树：离镜头近的区块用完整的树，远的换简化版；切换距离跟细节系数走（帧时间超标时更早换）
       // 按到镜头的真实距离算（全岛俯瞰时远处的树在屏幕上只有十几个像素，用简化版看不出差别）
       // 按“在屏幕上占多少像素”分级（人眼看不出差别的就画简单的）：ppu = 这个距离上一个单位长度占多少个屏幕像素
@@ -520,6 +522,7 @@ export class HQView {
       // 草叶分级：近处全画，越远画得越少（实例顺序是打乱的，所以是均匀变稀）；镜头拉远时整体再减；
       // 再乘上“细节调节”系数 lodK——帧时间超标时自动减草、有余量时加回来，分辨率和清晰度不动
       if (!far) {
+        // （上面已经按屏幕大小决定了每片草叶显不显示）
         // 第一视觉（草叶在屏幕上清楚可见）满密度，往外随屏幕大小递减：一根草叶宽约 0.006，远到不足半个像素时只留三成撑住颜色
         const d = Math.hypot(x - focus.x, z - focus.z), seen = THREE.MathUtils.clamp((ppu * 0.006 - 0.5) / 1.3, 0.3, 1), f = THREE.MathUtils.clamp(1.15 - (d - 5) / (bladeRange - 5), 0.22, 1) * THREE.MathUtils.clamp(13 / dist, 0.4, 1) * this.lodK * seen;
         for (const o of ch.group.children) if (o.name?.endsWith('-field') && o.geometry.userData.n) { o.geometry.instanceCount = Math.max(1, Math.ceil(o.geometry.userData.n * Math.min(1, f))); fields.push(o); }
@@ -547,6 +550,7 @@ export class HQView {
     // 海底
     this._seabedTick(this.seabed.size ? 4 : 40);
     // 岸边浪花场 + 海面中心：岛变了或镜头走远了就重算
+    this.ocean.setDetail?.(this.ppu(dist) * 1.6 < 70);   // 最短的浪（1.6 单位）在屏幕上不到 70 像素：海面网格稀一倍
     const sc = this.ocean.shore, moved = Math.hypot(focus.x - sc.cx, focus.z - sc.cz) > 9;
     if ((this.landChanged && now() - this.landChanged > 200 && this.landChanged !== this.shoreAt) || moved) {
       this.shoreAt = this.landChanged;
@@ -556,10 +560,12 @@ export class HQView {
     if (this.terrain.tiles.length) {
       if (!this.marine) this._makeMarine();
       else if (this.landChanged && this.landChanged !== this.marineAt && now() - this.landChanged > 1500 && !this.rising.length) { this.marineAt = this.landChanged; this._rebuildMarine(); }
+      // 水下的东西隔着海水：在屏幕上太小就整组不画——海草叶不到 1 个像素、珊瑚不到 4 个像素、鱼不到 3 个像素
+      { const pf = this.ppu(dist); if (this.seagrass) this.seagrass.visible = pf * 0.015 > 1; this.marine.habitat.visible = pf * 0.12 > 4; for (const sc of this.marine.schools) sc.mesh.visible = pf * 0.12 * (sc.scale || 1) / 2 > 3; }
       this.marine.lodCam = { pos: this.camera.position, fishD: this.ppuDist(20 / 0.12) };   // 鱼长约 0.12：不到 20 像素换远景版
       this.marine.update(dt, t);
       // 珊瑚、海带只画镜头附近的：镜头挪了 0.8 个单位、拉远拉近了一成，或者过了半秒，重新挑一次
-      { const hk = this._habK || (this._habK = { x: 1e9, z: 0, d: 0, t: 0 }); if (Math.hypot(focus.x - hk.x, focus.z - hk.z) > 0.8 || Math.abs(dist - hk.d) > hk.d * 0.1 || now() - hk.t > 500) { Object.assign(hk, { x: focus.x, z: focus.z, d: dist, t: now() }); this.marine.cullHabitat(focus.x, focus.z, THREE.MathUtils.clamp(dist * 1.2 + 5, 7, 24) * (this.q.viewK ?? 1), this.camera.position, this.ppuDist(22 / 0.12)); } }   // 珊瑚约 0.12 大：不到 22 像素换减面版
+      { const hk = this._habK || (this._habK = { x: 1e9, z: 0, d: 0, t: 0 }); if (Math.hypot(focus.x - hk.x, focus.z - hk.z) > 0.8 || Math.abs(dist - hk.d) > hk.d * 0.1 || now() - hk.t > 500) { Object.assign(hk, { x: focus.x, z: focus.z, d: dist, t: now() }); this.marine.cullHabitat(focus.x, focus.z, THREE.MathUtils.clamp(dist * 0.9 + 4, 6, 16) * (this.q.viewK ?? 1), this.camera.position, this.ppuDist(22 / 0.12)); } }   // 珊瑚约 0.12 大：不到 22 像素换减面版
     }
     // 镜头相关
     this.atmo.follow(focus.x, focus.z, THREE.MathUtils.clamp(dist * 0.62, 8, 26));

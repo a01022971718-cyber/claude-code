@@ -65,9 +65,10 @@ export function makeShoreField(terrain, size = 384, span = 72, cx = 0, cz = 0, o
  *  每圈的段数按“角向间距 ≈ 径向间距”来定（各向同性）：中心 3 个单位内每格约 0.1（最短的浪 1.6 个单位，够细），往外每圈间距按 3.4% 增长、段数 185；
  *  原来每圈固定 300 段，角向比径向细好几倍，中心一个单位内就有上万个顶点（还常被岛压在下面）。顶点数少一半，看起来一样。
  *  相邻两圈段数不同时按角度“拉链式”缝合，不留缝 */
-function radialGrid() {
-  const radii = []; let r = 0.1; while (r < 3) { radii.push(r); r += 0.1; } while (r < 900 && radii.length < 420) { radii.push(r); r *= 1.034; }
-  const segsAt = (rr) => Math.max(8, Math.min(185, Math.round((2 * Math.PI * rr) / Math.max(0.1, rr * 0.034))));
+function radialGrid(k = 1) {
+  // k：疏密倍数（1 = 镜头近时；镜头拉远时用 2，间距加倍）。离中心 25 个单位以外的海面在屏幕上只剩一小条，用很粗的格子（每圈 48 段、间距按 15% 增长）
+  const st = 0.1 * k, g1 = 1 + 0.034 * k, dense = 25, radii = []; let r = st; while (r < 3) { radii.push(r); r += st; } while (r < dense) { radii.push(r); r *= g1; } while (r < 900) { radii.push(r); r *= 1.15; }
+  const maxS = Math.round(185 / k), segsAt = (rr) => (rr >= dense ? 48 : Math.max(8, Math.min(maxS, Math.round((2 * Math.PI * rr) / Math.max(st, rr * (g1 - 1))))));
   const pos = [0, 0, 0], idx = [], starts = [], ns = [];
   for (const rr of radii) { const n = segsAt(rr); starts.push(pos.length / 3); ns.push(n); for (let j = 0; j < n; j++) { const a = (j / n) * Math.PI * 2; pos.push(Math.cos(a) * rr, 0, Math.sin(a) * rr); } }
   for (let j = 0; j < ns[0]; j++) idx.push(0, starts[0] + (j + 1) % ns[0], starts[0] + j);
@@ -234,7 +235,8 @@ export class Ocean {
       uRipples: { value: Array.from({ length: 10 }, () => new THREE.Vector4()) },
     };
     this.material = new THREE.ShaderMaterial({ uniforms: this.uniforms, vertexShader: VERT, fragmentShader: FRAG, depthWrite: true });
-    this.mesh = new THREE.Mesh(radialGrid(), this.material);
+    this.geoHi = radialGrid(1); this.geoLo = radialGrid(2);
+    this.mesh = new THREE.Mesh(this.geoHi, this.material);
     this.mesh.frustumCulled = false; this.mesh.name = 'ocean';
   }
   /** 在 (x,z) 激起一圈涟漪 */
@@ -248,6 +250,8 @@ export class Ocean {
   /** 浮力：海面在 (x,z) 的高度和法线（含近岸衰减） */
   surfaceAt(x, z) { const s = this.shoreAt(x, z); return waveAt(x, z, U.uTime.value, 1 - THREE.MathUtils.smoothstep(s, 0.55, 0.98)); }
   /** 游戏里：岛变大或镜头移远后，重算离岸场（以 (cx,cz) 为中心），海面网格也挪过去 */
+  /** 镜头拉远（单个浪在屏幕上很小）时换稀一倍的海面网格 */
+  setDetail(far) { const g = far ? this.geoLo : this.geoHi; if (this.mesh.geometry !== g) this.mesh.geometry = g; }
   recenter(cx, cz) {
     makeShoreField(this.terrain, this.shore.size, this.shore.span, cx, cz, this.shore);
     this.uniforms.uShoreC.value.set(cx, cz);

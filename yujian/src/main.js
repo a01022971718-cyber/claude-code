@@ -174,7 +174,7 @@ class App {
   /** 镜头设置：视野（窄/标准/广）、缩放联动俯角、转动灵敏度 */
   applyCam() {
     const c = (this.game.s.settings.cam ||= { fov: 'std', autoTilt: true, sens: 1 }), r = this.rig;
-    r.fovKey = c.fov; r.autoTilt = c.autoTilt !== false; r.sens = c.sens || 1; r.updateFov(true);
+    r.fovKey = c.fov; r.autoTilt = c.autoTilt !== false; r.sens = c.sens || 1; r.oneRotate = c.oneRotate !== false; r.updateFov(true);
   }
   setCam(k, v) { this.game.s.settings.cam = { ...(this.game.s.settings.cam || {}), [k]: v }; this.game.save(); this.applyCam(); }
   /** 岛的中心和半径（预设机位用） */

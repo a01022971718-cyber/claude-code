@@ -165,7 +165,7 @@ export function islandAgent(app) {
 
 // ================= 造物台 =================
 const STUDIO_RULES = `你在造物台里帮玩家用方块搭东西（动物、植物、建筑、摆件，任何想象的东西）。你有这个造物的编辑权限：view_make 看它现在的数据和渲染图；set_make 把它改成你写的版本（改完会自动给你看渲染图）。
-怎么做：先想清楚它长什么样（整体轮廓、各部位、配色），写第一版；看渲染图，对照美术圣经的审图清单找问题（比例、方块大小层次、颜色层次、左右对称、关节、眼睛等细节），再改，直到满意（一般 2–4 轮）。造型、颜色、大小、数量都不限，不要套模板，按玩家说的自己设计。做完后停止调用工具，用一两句话说说做了什么。
+怎么做：先写出“特征清单”（一眼能认出它的 3–5 个特征和它真实的颜色），按清单写第一版；看渲染图时先问“不说名字，别人能认出这是什么吗？颜色像真的吗？”，看渲染图，对照美术圣经的审图清单找问题（比例、方块大小层次、颜色层次、左右对称、关节、眼睛等细节），再改，直到满意（一般 2–4 轮）。造型、颜色、大小、数量都不限，不要套模板，按玩家说的自己设计。做完后停止调用工具，用一两句话说说做了什么。
 `;
 export function studioAgent(studio) {
   const tools = [
@@ -230,7 +230,14 @@ export class AgentPanel {
     });
     for (const ev of ['pointerdown', 'wheel', 'touchstart']) { el.addEventListener(ev, (e) => e.stopPropagation(), { passive: true }); }
     this.pill.addEventListener('click', (e) => { e.stopPropagation(); this.minimize(false); });
-    $('.ag-img input').addEventListener('change', (e) => { const f = e.target.files?.[0]; if (!f) return; const url = URL.createObjectURL(f), i = new Image(); i.onload = () => { const k = Math.min(1, 768 / Math.max(i.width, i.height)), c = document.createElement('canvas'); c.width = Math.round(i.width * k); c.height = Math.round(i.height * k); c.getContext('2d').drawImage(i, 0, 0, c.width, c.height); this.img = c.toDataURL('image/jpeg', 0.85); URL.revokeObjectURL(url); $('.ag-img').innerHTML = `<img src="${this.img}" alt="参考图"> 已附参考图（点这里换一张）<input type="file" accept="image/*" hidden>`; $('.ag-img input').addEventListener('change', (ev) => { e.target.files = ev.target.files; }); }; i.src = url; });
+    const onPick = (e) => {
+      const f = e.target.files?.[0]; if (!f) return; const url = URL.createObjectURL(f), i = new Image();
+      i.onerror = () => { URL.revokeObjectURL(url); $('.ag-msg').textContent = '这张图读不出来，换一张试试'; };
+      i.onload = () => { const k = Math.min(1, 768 / Math.max(i.width, i.height)), c = document.createElement('canvas'); c.width = Math.round(i.width * k); c.height = Math.round(i.height * k); c.getContext('2d').drawImage(i, 0, 0, c.width, c.height); this.img = c.toDataURL('image/jpeg', 0.85); URL.revokeObjectURL(url);
+        $('.ag-img').innerHTML = `<img src="${this.img}" alt="参考图"> 已附参考图（点这里换一张）<input type="file" accept="image/*" hidden>`; $('.ag-img input').addEventListener('change', onPick); };
+      i.src = url;
+    };
+    $('.ag-img input').addEventListener('change', onPick);
     this.pill.addEventListener('pointerdown', (e) => e.stopPropagation());
   }
   minimize(on) { this.el.hidden = on; this.pill.hidden = !on; }

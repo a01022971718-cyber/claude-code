@@ -54,7 +54,7 @@ export class BlockApp {
     // AI：用六边形岛「设置 → AI」里配好的服务商和密钥
     try { const gm = new Game(); gm.load(); this.ai = new AIService(gm.s?.settings || {}); } catch { this.ai = new AIService({}); }
     this.studio = new Studio(this);
-    rig.builder = { active: () => (this.studio.on ? !!this.studio.make && this.studio.tool !== 'look' : this.tool !== 'look'), down: (e) => (this.studio.on ? this.studio.down(e) : this._down(e)), move: (e) => (this.studio.on ? this.studio.move(e) : this._move(e)), up: (e, c) => (this.studio.on ? this.studio.up(e, c) : this._up(e, c)) };
+    rig.builder = { tap: (e) => (this.studio.on && this.studio.make ? this.studio.tapEmpty(e) : false), active: (e) => (this.studio.on ? !!this.studio.make && this.studio.tool !== 'look' && this.studio.wantsPointer(e) : this.tool !== 'look'), down: (e) => (this.studio.on ? this.studio.down(e) : this._down(e)), move: (e) => (this.studio.on ? this.studio.move(e) : this._move(e)), up: (e, c) => (this.studio.on ? this.studio.up(e, c) : this._up(e, c)) };
     this._buildHUD();
     addEventListener('resize', () => this.resize()); this.resize();
     addEventListener('visibilitychange', () => { if (document.hidden) this.save(); });

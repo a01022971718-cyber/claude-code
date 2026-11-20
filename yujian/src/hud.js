@@ -164,12 +164,12 @@ export class CanvasHUD {
     const rig = this.app.rig, el = this.root.querySelector('.c-tut'), txt = el.querySelector('span');
     const touch = matchMedia('(pointer: coarse)').matches;
     const steps = [
-      { t: touch ? '单指拖动，看看整座岛' : '按住鼠标拖动，看看整座岛', pos: 'top', done: (b) => Math.hypot(rig.focus.x - b.x, rig.focus.z - b.z) > 1.2 },
-      { t: touch ? '两指一起左右拖动转视角，上下拖动改俯角' : '按住右键拖动，换个角度看', pos: 'top', done: (b) => Math.abs(rig.target.yaw - b.yaw) > 0.45 || Math.abs(rig.target.pitch - b.pitch) > 0.25 },
+      { t: touch ? '单指拖动，转着看看整座岛' : '按住右键拖动，转着看看整座岛', pos: 'top', done: (b) => Math.abs(rig.target.yaw - b.yaw) > 0.45 || Math.abs(rig.target.pitch - b.pitch) > 0.25 },
+      { t: touch ? '两指拖动移动，张开 / 捏合拉近拉远' : '按住左键拖动移动，滚轮拉近拉远', pos: 'top', done: (b) => Math.hypot(rig.focus.x - b.x, rig.focus.z - b.z) > 1.2 || Math.abs(rig.target.dist - b.dist) > 2 },
       { t: '点右下角「建造」→「岛屿」，在海面上加一块地', pos: 'br', done: (b) => cv.s.tiles.length > b.tiles },
     ];
     let k = cv.s.tut || 0, base = null;
-    const show = () => { const st = steps[k]; txt.textContent = st.t; el.dataset.pos = st.pos; el.hidden = false; el.classList.remove('in'); void el.offsetWidth; el.classList.add('in'); base = { x: rig.focus.x, z: rig.focus.z, yaw: rig.target.yaw, pitch: rig.target.pitch, tiles: cv.s.tiles.length }; if (st.pos === 'br') this.root.querySelector('.c-fab').classList.add('flash'); };
+    const show = () => { const st = steps[k]; txt.textContent = st.t; el.dataset.pos = st.pos; el.hidden = false; el.classList.remove('in'); void el.offsetWidth; el.classList.add('in'); base = { x: rig.focus.x, z: rig.focus.z, yaw: rig.target.yaw, pitch: rig.target.pitch, dist: rig.target.dist, tiles: cv.s.tiles.length }; if (st.pos === 'br') this.root.querySelector('.c-fab').classList.add('flash'); };
     show();
     clearInterval(this._tut);
     this._tut = setInterval(() => {

@@ -185,7 +185,7 @@ export class UI {
     else body = `
       <div class="rowb"><button class="btn ghost" id="setBench">性能测试</button><button class="btn ghost" id="setExport">查看埋点数据</button>${app.canvasMode ? '' : '<button class="btn ghost danger" id="setReset">重新开始</button>'}</div>
       ${app.debug ? `<div class="dbg"><b>调试</b><button data-d="give">+10 资源</button><button data-d="skip">快进 4 小时</button><button data-d="day">进入下一天</button><button data-d="coupon">+2 卡券</button></div>` : ''}
-      <p class="ver">屿见 v0.29 · 存档只保存在这台设备的浏览器里</p>`;
+      <p class="ver">屿见 v0.30 · 存档只保存在这台设备的浏览器里</p>`;
     const tabs = [['basic', '基础'], ['gfx', '画面'], ['cam', '镜头'], ['ai', 'AI'], ['other', '其他']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('');
     const sh = this.modal(`<header><h2>设置</h2><button class="x" data-close>关闭</button></header><nav class="stabs">${tabs}</nav><div class="set">${body}</div>`, tab === 'gfx' || tab === 'cam' ? 'wide gfxsheet' : '');
     sh.addEventListener('click', (e) => e.stopPropagation());
@@ -263,9 +263,10 @@ export class UI {
     return `<div class="gfx">
       ${row('fov', '视野', '画面能装下多大范围；拉近时会自动再放宽一点', [['narrow', '窄'], ['std', '标准'], ['wide', '广']], c.fov || 'std')}
       ${row('autoTilt', '缩放时自动调俯角', '拉近时镜头慢慢放低成侧视，拉远时抬高成俯瞰；手动调的角度会保留', [[true, '开'], [false, '关']], c.autoTilt !== false)}
-      ${row('sens', '转动灵敏度', '双指拖动、右键拖动转视角的快慢', [[0.7, '慢'], [1, '中'], [1.4, '快']], c.sens || 1)}
+      ${row('oneRotate', '单指拖动', '单手操作：单指拖动转视角（两指平移、张合缩放）；或者单指平移（两指转视角）', [[true, '转视角'], [false, '平移']], c.oneRotate !== false)}
+      ${row('sens', '转动灵敏度', '拖动转视角的快慢', [[0.7, '慢'], [1, '中'], [1.4, '快']], c.sens || 1)}
       <div class="camhelp"><b>操作</b>${touch
-        ? '<p>单指拖动：移动</p><p>双指一起左右拖：转视角　上下拖：改俯角</p><p>双指张开 / 捏合：拉近 / 拉远（同时扭转可旋转）</p><p>双击：飞到那里</p>'
+        ? (c.oneRotate !== false ? '<p>单指拖动：转视角（左右转、上下改俯角）</p><p>双指拖动：移动　双指张开 / 捏合：拉近 / 拉远</p><p>双击：飞到那里</p>' : '<p>单指拖动：移动</p><p>双指一起左右拖：转视角　上下拖：改俯角</p><p>双指张开 / 捏合：拉近 / 拉远（同时扭转可旋转）</p><p>双击：飞到那里</p>')
         : '<p>左键拖动：移动　右键拖动：转视角、改俯角　滚轮：缩放</p><p>键盘：WASD 移动　Q/E 旋转　R/F 抬高/放低　+/- 缩放</p><p>双击：飞到那里</p>'}
         <p>右上角的镜头按钮里有预设机位（俯瞰、斜看、平视、特写）、环绕和复位。</p></div></div>`;
   }

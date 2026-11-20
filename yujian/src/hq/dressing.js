@@ -51,9 +51,11 @@ export function kit() {
     broadLo: [BK.lowBroad('green', BK.STYLE.blocky), BK.lowBroad('lime', BK.STYLE.blocky), BK.lowBroad('green', BK.STYLE.blocky), BK.lowBroad('autumn', BK.STYLE.blocky), BK.lowBroad('blossom', BK.STYLE.blocky)],
     // 灌木远景版（离得稍远、灌木在屏幕上只有十几个像素时用）：体素主题是同形状的大方块版，经典主题是减面版
     bushLo: BK.STYLE.blocky ? [BK.voxelBush(1, 'green', 0.05), BK.voxelBush(2, 'lime', 0.05), BK.voxelBush(3, 'green', 0.05)] : null,
+    cropLo: BK.STYLE.blocky ? [BK.voxelBush(21, 'lime', 0.05), BK.voxelBush(22, 'green', 0.05), BK.voxelBush(23, 'lime', 0.05)] : null,   // 菜苗远景版（原来没有：一块菜地几十棵、每棵 372 个面）
     wrack: [L.wrack(1).geometry, L.wrack(2).geometry], drift: [L.driftwood(1).geometry, L.driftwood(2).geometry], shell: [L.shells(1).geometry, L.shells(2).geometry],
   };
   if (!KIT.bushLo) KIT.bushLo = KIT.bush.map((g) => simplify(g, 8));
+  if (!KIT.cropLo) KIT.cropLo = KIT.crop.map((g) => simplify(g, 8));
   return KIT;
 }
 

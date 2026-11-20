@@ -122,6 +122,9 @@ export class Studio {
     if (st) { const p = this.stage.worldToLocal(st.point.clone()); return { stage: true, p: [p.x, Math.max(0, p.y), p.z] }; }
     return null;
   }
+  /** 单手操作：手指落在方块或手柄上才交给编辑，落在空处就是转视角（轻点空处照常：加块、取消选择） */
+  wantsPointer(e) { if (this.play || this.biome) return false; const h = this._hit(e.clientX, e.clientY); return !!(h && (h.box || h.handle)); }
+  tapEmpty(e) { if (!this.make || this.play || this.tool === 'look') return false; this.down(e); this.up(e); return true; }
   _rotQ(b) { const r = (b.r || [0, 0, 0]).map((a) => THREE.MathUtils.degToRad(+a || 0)); return new THREE.Quaternion().setFromEuler(new THREE.Euler(r[0], r[1], r[2], 'YXZ')); }
   /** 屏幕上沿某个方向（造物坐标里的单位向量）走 1 小格对应多少像素 */
   _dirPx(p, dir) {
