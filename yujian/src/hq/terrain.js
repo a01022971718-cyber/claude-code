@@ -5,7 +5,8 @@ import { makeNoise } from './noise.js';
 import { LandField } from './landfield.js';
 
 const NZ = makeNoise(20261115);
-const SUB = 18;                         // 每个三角扇区的细分数
+const SUB_HI = 18;                      // 每个三角扇区的细分数（近处）；远处用 SUB_LO（1/9 的三角形，顶点是近处版本的子集，接缝对得上）
+export const SUB_LO = 6;
 const INR = Math.sqrt(3) / 2;           // 六边形内切圆半径
 export const SEA_FLOOR = -2.4;
 
@@ -346,7 +347,7 @@ export class Terrain {
   }
 
   /** 一块地的顶面（带法线），坐标为世界坐标 */
-  tileTop(t) {
+  tileTop(t, SUB = SUB_HI) {
     const pos = [], colr = [], surf = [], idx = [], surfT = (TYPES[t.t] || TYPES.meadow).surf;
     for (let s = 0; s < 6; s++) {
       const a = CORNERS[s], b = CORNERS[(s + 1) % 6], base = pos.length / 3, k = (s + 1) % 6;

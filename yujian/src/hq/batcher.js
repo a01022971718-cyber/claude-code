@@ -10,7 +10,7 @@ export class Batcher {
   constructor(scene) { this.scene = scene; this.batches = new Map(); this.count = 0; }
   /** roots：要合批的子树（只收里面的普通网格，实例化网格原样保留） */
   /** cam / maxD（可选）：只画在镜头视野内、离镜头 maxD 以内的（远处的小动物只有几个像素，画了也看不清，却很费三角面） */
-  sync(roots, cam = null, maxD = Infinity) {
+  sync(roots, cam = null, maxD = Infinity, loD = LO_D) {
     const by = new Map();
     if (cam) { this._pv ||= new THREE.Matrix4(); this._fr ||= new THREE.Frustum(); this._sp ||= new THREE.Sphere(new THREE.Vector3(), 0.35); this._pv.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); this._fr.setFromProjectionMatrix(this._pv); }
     const cp = cam?.position, fr = this._fr, sp = this._sp, md2 = maxD * maxD;
@@ -34,7 +34,7 @@ export class Batcher {
         const g0 = L[0].geometry, lg = triCount(g0) > 150 ? simplify(g0, 9) : g0;
         if (lg !== g0) { const lo = new THREE.InstancedMesh(lg, L[0].material, cap); lo.name = im.name + ':lo'; lo.frustumCulled = false; lo.castShadow = im.castShadow; lo.receiveShadow = true; lo.userData.noBatch = true; this.scene.add(lo); b.lo = lo; }
       }
-      const im = b.im, lo = b.lo, lo2 = LO_D * LO_D; let c = 0, cl = 0;
+      const im = b.im, lo = b.lo, lo2 = loD * loD; let c = 0, cl = 0;
       for (const o of L) {
         // 占位自己或祖先本来就是隐藏的（比如远处暂停的动物群）：不画
         let vis = o.userData.batchVis ?? true, p = o.parent; while (p && vis) { if (!p.visible) vis = false; p = p.parent; }

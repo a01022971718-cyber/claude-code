@@ -7,7 +7,7 @@
 //  - 陆地动物按区块生成，数量由区块里的地块类型决定，离镜头远的区块暂停更新。
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { Terrain, mergeColored } from './terrain.js';
+import { Terrain, mergeColored, SUB_LO } from './terrain.js';
 import { terrainMaterial, propMaterial, foliageMaterial, U } from './materials.js';
 import { instanced, bladeField } from './vegetation.js';
 import { ribbon, streamMaterial } from './streams.js';
@@ -162,11 +162,16 @@ export class HQView {
   }
   setQuality() { /* 由 setConfig 代替 */ }
 
+  /** 距离 d 处，一个单位长度在屏幕上占多少像素（按实际渲染的像素算） */
+  ppu(d) { const h = this.renderer.domElement.height || 720, f = Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2); return h / (2 * Math.max(0.05, d) * f); }
+  /** 反过来：一个单位占 px 像素时的距离 */
+  ppuDist(px) { const h = this.renderer.domElement.height || 720, f = Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2); return h / (2 * px * f); }
   // ---------------- 地块 ----------------
   _ck(q, r) { return Math.floor(q / CH) + ',' + Math.floor(r / CH); }
   _chunk(ck) { let ch = this.chunks.get(ck); if (!ch) { ch = { ck, keys: new Set(), group: null, dirty: true, fauna: null, faunaSig: null, faunaAt: 0 }; this.chunks.set(ck, ch); } return ch; }
   _invalidate(rec, { top = false, rock = false, dress = false } = {}) {
     if (top && rec.top) { rec.top.dispose(); rec.top = null; }
+    if (top && rec.topLo) { rec.topLo.dispose(); rec.topLo = null; }
     if (rock && rec.rock) { rec.rock.dispose(); rec.rock = null; }
     if (rock) rec.rockDone = false;
     if (dress && rec.dress) { for (const m of rec.dress.meshes) if (!m.shared) m.geo.dispose(); for (const w of rec.dress.water || []) w.geo.dispose(); rec.dress = null; }
@@ -236,6 +241,7 @@ export class HQView {
   _ensure(rec) {
     const T = this.terrain, tt = rec.tt;
     if (!rec.top) rec.top = T.tileTop(tt);
+    if (!rec.topLo) rec.topLo = T.tileTop(tt, SUB_LO);   // 远处用的粗版地面（三角形 1/9）
     if (!rec.rockDone) { rec.rock = T.tileRock(tt); rec.rockDone = true; }
     if (!rec.dress) {
       rec.dress = dressTile(T, tt, { grass: this.q.grass ?? 0.4, flowers: this.q.flowers ?? 0.5, trees: this.q.trees ?? 1 });
@@ -287,16 +293,17 @@ export class HQView {
   }
   /** 把若干地块的缓存合并进一个组 */
   _fill(grp, recs, withBlades = true) {
-    const tops = [], rocks = [], inst = {}, blades = { grass: [], flower: [], wheat: [] }, meshes = [];
+    const tops = [], topsLo = [], rocks = [], inst = {}, blades = { grass: [], flower: [], wheat: [] }, meshes = [];
     for (const r of recs) {
-      tops.push(r.top); if (r.rock) rocks.push(r.rock);
+      tops.push(r.top); if (r.topLo) topsLo.push(r.topLo); if (r.rock) rocks.push(r.rock);
       const d = r.dress;
       for (const [kk, items] of Object.entries(d.inst)) { const [name, v] = kk.split(':'); const L = inst[name] ||= []; for (const it of items) L.push({ ...it, v: +v }); }
       if (withBlades) for (const b of ['grass', 'flower', 'wheat']) { const src = d.blades[b]; for (let i = 0; i < src.length; i++) blades[b].push(src[i]); }
       meshes.push(...d.meshes);
     }
     const M = this.mats, own = (geo, src) => { if (!src.includes(geo)) geo.userData.owned = true; return geo; };
-    if (tops.length) { const geo = own(mergeColored(tops), tops), m = new THREE.Mesh(geo, M.terrain); m.castShadow = m.receiveShadow = true; grp.add(m); }
+    if (tops.length) { const geo = own(mergeColored(tops), tops), m = new THREE.Mesh(geo, M.terrain); m.name = 'land-hi'; m.castShadow = m.receiveShadow = true; grp.add(m); }
+    if (topsLo.length === tops.length && tops.length) { const geo = own(mergeColored(topsLo), topsLo), m = new THREE.Mesh(geo, M.terrain); m.name = 'land-lo'; m.visible = false; m.castShadow = m.receiveShadow = true; grp.add(m); }
     if (rocks.length) { const geo = own(mergeColored(rocks), rocks), m = new THREE.Mesh(geo, M.terrain); m.castShadow = m.receiveShadow = true; grp.add(m); }
     const K = kit();
     for (const [name, items] of Object.entries(inst)) {
@@ -344,7 +351,7 @@ export class HQView {
     const recs = [...ch.keys].map((k) => this.rec.get(k)).filter((r) => r && !r.hidden);
     for (const r of recs) this._ensure(r);
     const old = ch.group;
-    ch.group = recs.length ? this._fill(new THREE.Group(), recs) : null; ch.treeNear = null; ch.far = null;
+    ch.group = recs.length ? this._fill(new THREE.Group(), recs) : null; ch.treeNear = null; ch.landNear = null; ch.far = null;
     if (ch.group) this.root.add(ch.group);
     if (old) { this.root.remove(old); this._disposeGroup(old); }
     // 升完的地块：区块重建好以后再撤掉它单独的网格，中间不会闪一下
@@ -493,12 +500,19 @@ export class HQView {
       if (ch.far !== far) { ch.far = far; for (const o of ch.group.children) if (o.name?.endsWith('-field')) o.visible = !far; }
       // 树：离镜头近的区块用完整的树，远的换简化版；切换距离跟细节系数走（帧时间超标时更早换）
       // 按到镜头的真实距离算（全岛俯瞰时远处的树在屏幕上只有十几个像素，用简化版看不出差别）
-      const cp = this.camera.position, treeNear = Math.hypot(x - cp.x, z - cp.z, cp.y * 0.6) < (11 + 9 * this.lodK) * (this.q.viewK ?? 1);
+      // 按“在屏幕上占多少像素”分级（人眼看不出差别的就画简单的）：ppu = 这个距离上一个单位长度占多少个屏幕像素
+      const cp = this.camera.position, ppu = this.ppu(Math.hypot(x - cp.x, z - cp.z, cp.y - 0.45)), detail = (0.55 + 0.45 * this.lodK) * (this.q.viewK ?? 1);
+      // 树：完整树冠的一个三角形边长约 0.05，小于 4 像素就换简化树
+      const treeNear = ppu * detail > 80;
       if (ch.treeNear !== treeNear) { ch.treeNear = treeNear; for (const o of ch.group.children) { if (o.name === 'tree-hi') o.visible = treeNear; else if (o.name === 'tree-lo') o.visible = !treeNear; } }
+      // 地面：细地面一个三角形边长约 0.032，小于 4 像素就换粗地面（粗地面边长约 0.1）
+      const landNear = ppu * detail > 125;
+      if (ch.landNear !== landNear) { ch.landNear = landNear; for (const o of ch.group.children) { if (o.name === 'land-hi') o.visible = landNear || !ch.group.children.some((c) => c.name === 'land-lo'); else if (o.name === 'land-lo') o.visible = !landNear; } }
       // 草叶分级：近处全画，越远画得越少（实例顺序是打乱的，所以是均匀变稀）；镜头拉远时整体再减；
       // 再乘上“细节调节”系数 lodK——帧时间超标时自动减草、有余量时加回来，分辨率和清晰度不动
       if (!far) {
-        const d = Math.hypot(x - focus.x, z - focus.z), f = THREE.MathUtils.clamp(1.15 - (d - 5) / (bladeRange - 5), 0.22, 1) * THREE.MathUtils.clamp(13 / dist, 0.4, 1) * this.lodK;
+        // 第一视觉（草叶在屏幕上清楚可见）满密度，往外随屏幕大小递减：一根草叶宽约 0.006，远到不足半个像素时只留三成撑住颜色
+        const d = Math.hypot(x - focus.x, z - focus.z), seen = THREE.MathUtils.clamp((ppu * 0.006 - 0.5) / 1.3, 0.3, 1), f = THREE.MathUtils.clamp(1.15 - (d - 5) / (bladeRange - 5), 0.22, 1) * THREE.MathUtils.clamp(13 / dist, 0.4, 1) * this.lodK * seen;
         for (const o of ch.group.children) if (o.name?.endsWith('-field') && o.geometry.userData.n) { o.geometry.instanceCount = Math.max(1, Math.ceil(o.geometry.userData.n * Math.min(1, f))); fields.push(o); }
       }
     }
@@ -552,7 +566,8 @@ export class HQView {
     this.skyLayer.update(dt, focus, this.gulls.center, Math.max(3, this.gulls.radius - 1.5));   // 地平线的云、清晨海雾
     if (this.q.ao && !this.chunksDirty) { this.macro ||= new MacroLayer(this); this.macro.update(focus, dist); this.pipe.opts.macro = Math.max(0, Math.min(1, (4.2 - dist) / 2.8)); }   // 特写的微距草地和浅景深（极致、高清档）
     // 动物、海龟、海鸥、村民、岸边的鸟：全岛合批（同一部件一次绘制）
-    this.batcher.sync([this.faunaRoot, this.marine?.group, this.gulls.group, this.villagers.group, this.wild.group, this.creatures.group], this.camera, (11 + 10 * this.lodK) * (this.q.viewK ?? 1));
+    // 动物和小件：屏幕上高度不到 40 像素（约 0.15 单位高）换简化模型
+    this.batcher.sync([this.faunaRoot, this.marine?.group, this.gulls.group, this.villagers.group, this.wild.group, this.creatures.group], this.camera, (11 + 10 * this.lodK) * (this.q.viewK ?? 1), this.ppuDist(260 / (0.55 + 0.45 * this.lodK)));
     // 营火：离镜头最近的那一处冒火苗和炊烟
     let bestF = null, bd = 1e9; for (const f of this.fires.values()) { const d = Math.hypot(f[0] - focus.x, f[2] - focus.z); if (d < bd) { bd = d; bestF = f; } }
     this.fireAt = bestF;
@@ -678,7 +693,7 @@ export class HQView {
   }
   disposePreview(g) {
     this._disposeGroup(g);
-    const rec = g.userData.rec; if (rec) { rec.top.dispose(); rec.rock?.dispose(); for (const m of rec.dress.meshes) if (!m.shared) m.geo.dispose(); }
+    const rec = g.userData.rec; if (rec) { rec.top.dispose(); rec.topLo?.dispose(); rec.rock?.dispose(); for (const m of rec.dress.meshes) if (!m.shared) m.geo.dispose(); }
   }
 }
 
