@@ -70,7 +70,6 @@ export class Studio {
     for (const m of [...this.boxes.children]) { this.boxes.remove(m); m.geometry.dispose(); }
     this.make.parts.forEach((p, pi) => p.boxes.forEach((b, bi) => {
       const m = new THREE.Mesh(boxGeo(b, bi + (p.seed || 0) * 101), this.mat); m.castShadow = m.receiveShadow = true; m.userData = { b, pi }; this.boxes.add(m);
-      if (pi !== this.cur && this.make.parts.length > 1) m.material = this._dim ||= this.mat.clone(), this._dim.transparent = true, this._dim.opacity = 0.55;
     }));
     this._syncSel();
   }
@@ -196,7 +195,7 @@ export class Studio {
     this.el?.remove();
     const el = this.el = document.createElement('div'); el.className = 'studio';
     el.innerHTML = `
-      <div class="s-top"><button class="b-pill" data-s="close">‹ 返回</button><input class="s-name" maxlength="10" aria-label="造物名字"><button class="b-pill" data-s="play">播放动作</button><button class="b-pill s-save" data-s="save">保存</button></div>
+      <div class="s-top"><button class="b-pill" data-s="close">‹ 返回</button><input class="s-name" maxlength="10" aria-label="造物名字"><button class="b-pill s-ai" data-s="ai">✦ AI 帮我做</button><button class="b-pill" data-s="play">播放动作</button><button class="b-pill s-save" data-s="save">保存</button></div>
       <div class="s-tools">${[['look', '浏览'], ['select', '选择'], ['add', '添加'], ['paint', '上色'], ['erase', '擦除']].map(([k, n]) => `<button class="b-pill" data-tool="${k}">${n}</button>`).join('')}<div class="b-gap"></div><button class="b-pill" data-s="undo">撤销</button><button class="b-pill" data-s="redo">重做</button></div>
       <div class="s-side"><b class="s-size">未选中</b><button class="b-pill" data-s="dup">复制</button><button class="b-pill" data-s="rx">转 X</button><button class="b-pill" data-s="ry">转 Y</button><button class="b-pill" data-s="rz">转 Z</button><button class="b-pill" data-s="del">删除</button><button class="b-pill" data-s="tocur">归到当前部件</button></div>
       <div class="s-bottom">
@@ -224,6 +223,10 @@ export class Studio {
       else if (s === 'open') { const m = loadMakes().find((x) => x.id === b.dataset.id); if (m) this.edit(m); }
       else if (s === 'drop') { if (!confirm('删除这个造物？已经摆在岛上的也会消失。')) return; saveMakes(loadMakes().filter((x) => x.id !== b.dataset.id)); this.library(); }
       else if (s === 'lib') this.library();
+      else if (s === 'ai') this._sheet('ai');
+      else if (s === 'aiGo') this._aiGo();
+      else if (s === 'aiImgClear') { this.aiImg = null; this._sheet('ai'); }
+      else if (b.dataset.ex) { this.el.querySelector('.s-aitext').value = b.dataset.ex; }
       else if (s === 'bible') { const sh = this.el.querySelector('.s-sheet'); sh.innerHTML = `<div class="b-card"><header><b>体素美术圣经</b><button class="b-x" data-s="lib">返回</button></header>${sopHTML()}</div>`; }
     });
     for (const ev of ['pointerdown', 'wheel']) el.addEventListener(ev, (e) => { if (e.target.closest('button,input,label,select,.s-sheet,.s-bottom')) e.stopPropagation(); });
@@ -266,14 +269,44 @@ export class Studio {
         <label>行为（动物 / 生物）<select name="beh">${opt(BEHAVIORS, m.behavior || 'still')}</select></label>
         <label>在岛上的大小<input type="range" name="size" min="0.3" max="4" step="0.1" value="${m.size ?? 1}"></label>
         <button class="b-row" data-s="doSave"><b>保存</b><span>保存后在六边形岛建造栏「✦ 我造的」里摆放</span></button></div>`;
+    } else if (kind === 'ai') {
+      const EX = ['一只圆滚滚的橘猫，竖着尖耳朵，长尾巴', '会发光的蓝色蘑菇，伞盖上有白点', '一座两层的木头小灯塔，红白条纹', '长着翅膀的小飞鱼，银蓝色', '樱花色的大伞树，树干弯弯的', '一只背上长着小树的乌龟'];
+      sh.innerHTML = `<div class="b-card"><header><b>✦ AI 帮我做</b><button class="b-x" data-s="${this.make ? 'sheetClose' : 'lib'}">${this.make ? '取消' : '返回'}</button></header>
+        ${this.make ? `<div class="s-mode"><label><input type="radio" name="aimode" value="new" checked> 做一个新的</label><label><input type="radio" name="aimode" value="edit"> 改现在这个「${this.make.name}」</label></div>` : ''}
+        <label>想要什么？<textarea class="s-aitext" rows="3" placeholder="比如：${EX[0]}"></textarea></label>
+        <div class="s-chips">${EX.map((t) => `<button class="b-cat" data-ex="${t}">${t}</button>`).join('')}</div>
+        <label class="s-img">${this.aiImg ? `<img src="${this.aiImg}" alt="参考图"><button class="b-x" data-s="aiImgClear">去掉图片</button>` : '＋ 附一张参考图（可选）'}<input type="file" accept="image/*" class="s-file" hidden></label>
+        <button class="b-row s-aigo" data-s="aiGo"><b>生成</b><span>AI 按美术圣经搭出来（十几秒到一分钟），然后你可以继续改</span></button>
+        <p class="b-note s-aimsg"></p></div>`;
+      sh.querySelector('.s-file')?.addEventListener('change', (e) => { const f = e.target.files?.[0]; if (f) this._loadImg(f); });
     } else if (kind === 'lib') {
       const list = loadMakes();
       sh.innerHTML = `<div class="b-card"><header><b>造物台</b><button class="b-x" data-s="close">关闭</button></header>
-        <p class="b-note">从空白开始，或拿一个模板改——形状、颜色、大小、数量、动作都不限。<button class="b-x" data-s="bible">看美术圣经</button></p>
+        <button class="b-row s-airow" data-s="ai"><b>✦ AI 帮我做</b><span>说一句话或给一张图，AI 直接搭出来，你再微调</span></button>
+        <p class="b-note">也可以从空白开始，或拿一个模板改——形状、颜色、大小、数量、动作都不限。<button class="b-x" data-s="bible">看美术圣经</button></p>
         <div class="s-tpls">${Object.entries(TEMPLATES).map(([k, t]) => `<button class="b-row" data-s="tpl" data-t="${k}"><b>${t.name}</b></button>`).join('')}</div>
         <b>我的造物（${list.length}）</b>
         ${list.map((m) => `<div class="s-lib"><button class="b-row" data-s="open" data-id="${m.id}"><b>${m.name}</b><span>${USES[m.use] || ''} · ${m.parts.reduce((s, p) => s + p.boxes.length, 0)} 块</span></button><button class="b-x" data-s="drop" data-id="${m.id}">删除</button></div>`).join('') || '<p class="b-note">还没有。</p>'}</div>`;
     }
+  }
+  /** 参考图：缩到最长边 768 再给 AI（省流量、省额度） */
+  _loadImg(file) {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => { const k = Math.min(1, 768 / Math.max(img.width, img.height)), c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); this.aiImg = c.toDataURL('image/jpeg', 0.85); URL.revokeObjectURL(url); this._sheet('ai'); };
+    img.src = url;
+  }
+  async _aiGo() {
+    const sh = this.el.querySelector('.s-sheet'), msg = sh.querySelector('.s-aimsg'), text = sh.querySelector('.s-aitext').value.trim(), btn = sh.querySelector('.s-aigo');
+    const ai = this.app.ai; if (!ai?.ready) { msg.textContent = '还没配置 AI：回到六边形岛，在「设置 → AI」里选服务商、填 API 密钥。'; return; }
+    if (!text && !this.aiImg) { msg.textContent = '先写一句想要什么，或附一张图'; return; }
+    const edit = sh.querySelector('input[name=aimode]:checked')?.value === 'edit' && this.make;
+    btn.disabled = true; msg.textContent = edit ? 'AI 正在改……' : 'AI 正在搭……';
+    try {
+      const m = await ai.make(text || '照着图片做一个', this.aiImg, edit ? this.make : null);
+      if (edit) { this._snapshot(); m.id = this.make.id; const keep = this.undoS; this.edit(m); this.undoS = keep; }
+      else { m.id = 'mk' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36); this.edit(m); this.undoS = ['{}']; }
+      this._sync(); this.toast(`「${m.name}」做好了：${m.parts.reduce((s, p) => s + p.boxes.length, 0)} 块、${m.parts.length} 个部件。可以继续改，满意了点保存`, 3600);
+    } catch (e) { const { aiError } = await import('../ai.js'); msg.textContent = '没做出来：' + aiError(e); btn.disabled = false; }
   }
   library() { this.make = null; for (const m of [...this.boxes.children]) { this.boxes.remove(m); m.geometry.dispose(); } this.sel = null; this._sync(); this._sheet('lib'); }
 }

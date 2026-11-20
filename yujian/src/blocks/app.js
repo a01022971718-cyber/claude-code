@@ -11,6 +11,8 @@ import { World, SX, SY, SZ, CS, CX, CY, CZ, SEA } from './world.js';
 import { BLOCKS, CATS, ID } from './defs.js';
 import { meshChunk, blockMaterial } from './mesher.js';
 import { Studio } from '../make/studio.js';
+import { Game } from '../state.js';
+import { AIService } from '../ai.js';
 
 const S = 0.25;                 // 一格方块 = 0.25 个世界单位（和六边形岛的镜头尺度一致）
 const MODE_KEY = 'yujian_mode';
@@ -45,6 +47,8 @@ export class BlockApp {
     rig.bounds = { minX: 0, maxX: SX * S, minZ: 0, maxZ: SZ * S };
     rig.heightAt = (x, z) => this.world.top(Math.floor(x / S), Math.floor(z / S)) * S;
     // 拿着笔时单指交给建造（造物台打开时交给造物台）
+    // AI：用六边形岛「设置 → AI」里配好的服务商和密钥
+    try { const gm = new Game(); gm.load(); this.ai = new AIService(gm.s?.settings || {}); } catch { this.ai = new AIService({}); }
     this.studio = new Studio(this);
     rig.builder = { active: () => (this.studio.on ? !!this.studio.make && this.studio.tool !== 'look' : this.tool !== 'look'), down: (e) => (this.studio.on ? this.studio.down(e) : this._down(e)), move: (e) => (this.studio.on ? this.studio.move(e) : this._move(e)), up: (e, c) => (this.studio.on ? this.studio.up(e, c) : this._up(e, c)) };
     this._buildHUD();

@@ -431,3 +431,12 @@ body { background: var(--haze); color: var(--ink); font-family: var(--font); fon
 .s-tpls .b-row { margin: 0; align-items: center; }
 .s-lib { display: flex; gap: 6px; align-items: center; }
 .s-lib .b-row { flex: 1; }
+.s-ai { background: linear-gradient(135deg, #7a6aa8, #4f8fb8) !important; color: #fff !important; font-weight: 700; }
+.s-airow { background: linear-gradient(135deg, #ece4f6, #dcecf4) !important; }
+.s-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.s-chips .b-cat { background: #efe6d2; color: #17313b; }
+.s-mode { display: flex; gap: 14px; font-size: 13px; color: #17313b; }
+.s-mode label { flex-direction: row !important; align-items: center; margin: 4px 0 !important; color: #17313b !important; }
+.s-sheet textarea { padding: 8px 10px; border-radius: 10px; border: 1px solid #e0d6c0; font-size: 14px; color: #17313b; resize: vertical; }
+.s-img { flex-direction: row !important; align-items: center; gap: 8px; padding: 8px 10px; border: 1.5px dashed #d6c7a6; border-radius: 12px; color: #6a5a40 !important; cursor: pointer; }
+.s-img img { height: 56px; border-radius: 8px; }

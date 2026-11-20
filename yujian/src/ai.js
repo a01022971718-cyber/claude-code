@@ -79,6 +79,28 @@ const ISLAND_SCHEMA = {
 };
 const REVIEW_SCHEMA = { type: 'object', additionalProperties: false, required: ['score', 'notes', 'biomes', 'plants', 'creatures'],
   properties: { score: { type: 'integer', description: '1–10' }, notes: { type: 'string', description: '最重要的问题，60 字以内' }, biomes: ISLAND_SCHEMA.properties.biomes, plants: ISLAND_SCHEMA.properties.plants, creatures: ISLAND_SCHEMA.properties.creatures } };
+const V3 = { type: 'array', items: { type: 'number' }, description: '[x, y, z]' };
+const MAKE_SCHEMA = { type: 'object', additionalProperties: false, required: ['name', 'use', 'behavior', 'size', 'parts'],
+  properties: {
+    name: { type: 'string', description: '2–6 个汉字' }, use: { type: 'string', enum: ['creature', 'plant', 'prop'] }, behavior: { type: 'string', enum: ['walk', 'hop', 'fly', 'swim', 'float', 'still'] }, size: { type: 'number', description: '在岛上的缩放，0.3–4，一般 1；建筑 1.5–3' },
+    parts: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['name', 'pivot', 'motion', 'axis', 'amp', 'speed', 'phase', 'boxes'],
+      properties: { name: { type: 'string' }, pivot: V3, motion: { type: 'string', enum: ['none', 'walk', 'swing', 'flap', 'spin', 'bob', 'sway', 'pulse'] }, axis: { type: 'string', enum: ['x', 'y', 'z'] }, amp: { type: 'number' }, speed: { type: 'number' }, phase: { type: 'number', description: '0–1，成对的腿 / 翅膀错开 0.5' },
+        boxes: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['p', 's', 'r', 'c', 'shade'], properties: { p: V3, s: V3, r: V3, c: { type: 'string', description: '#rrggbb' }, shade: { type: 'boolean', description: '大面积（毛、叶、石）开，小点缀关' } } } } } } },
+  },
+};
+const MAKE_SYSTEM = `你是一款治愈系体素海岛游戏的造物师。玩家描述（或给一张图）想要的东西，你用“部件 + 长方块”把它搭出来，游戏会自动加圆角、底部压暗、深浅交错的原版手感。
+坐标和单位：1 小格；y 向上，脚底 / 底面在 y = 0；正面朝 +z；左右对称的东西以 x = 0 为中线。p 是长方块中心，s 是长宽高（可以是小数，最小 0.5），r 是旋转角度（度）。
+尺寸参考：一只羊约高 17、长 16；兔子约高 9；一棵树约高 30–40；小屋约宽 16 高 18（建筑把 size 设成 1.5–3）。
+部件：会动的部位各成一个部件（腿、头、尾巴、翅膀、树冠、花头……），pivot 是关节点，放在连接处（腿顶、翅根、脖子、树干顶）；不动的部件 motion 用 none。走的动物腿用 walk，左右、前后成对错开 phase 0.5；翅膀 flap 绕 z 轴；树冠 sway。
+总块数 10–90 块：大块定体型，中块做四肢和结构，小块做眼睛、鼻子、斑点、果子、窗户。不要用一堆一样大的小方块堆形状。
+颜色任意（不必限于色板），但每个部位一组颜色、整体 3–5 种主色，不要整只一个颜色；眼睛一般用深色加一点白高光。
+用中文起名。`;
+const MAKE_EXAMPLE = { name: '毛团兽', use: 'creature', behavior: 'walk', size: 1, parts: [
+  { name: '身体', pivot: [0, 0, 0], motion: 'none', axis: 'x', amp: 1, speed: 1, phase: 0, boxes: [[-2.3, 8.6, -4.9], [2.3, 8.6, -4.9], [-2.3, 8.6, 0], [2.3, 8.6, 0], [-2.3, 8.6, 4.9], [2.3, 8.6, 4.9], [-2.3, 12.6, -4.9], [2.3, 12.6, -4.9], [-2.3, 12.6, 0], [2.3, 12.6, 0], [-2.3, 12.6, 4.9], [2.3, 12.6, 4.9]].map((p, i) => ({ p, s: [5.6 + (i % 2) * 0.8, 5.6, 5.6], r: [0, 0, 0], c: '#ece5d6', shade: true })) },
+  { name: '头', pivot: [0, 11, 7], motion: 'swing', axis: 'x', amp: 0.4, speed: 0.6, phase: 0, boxes: [{ p: [0, 11.4, 10.2], s: [5.2, 5.2, 5.8], r: [0, 0, 0], c: '#4a3f38', shade: false }, { p: [0, 14.3, 9.6], s: [5.6, 2.2, 4.6], r: [0, 0, 0], c: '#ece5d6', shade: true }, { p: [3.7, 12.3, 9], s: [2.4, 1.4, 1.8], r: [0, 0, -17], c: '#3f3530', shade: false }, { p: [-3.7, 12.3, 9], s: [2.4, 1.4, 1.8], r: [0, 0, 17], c: '#3f3530', shade: false }, { p: [1.5, 12.2, 13.2], s: [0.9, 1.1, 0.5], r: [0, 0, 0], c: '#f2ece0', shade: false }, { p: [-1.5, 12.2, 13.2], s: [0.9, 1.1, 0.5], r: [0, 0, 0], c: '#f2ece0', shade: false }] },
+  ...[['左前腿', 2.4, 4.4, 0], ['右前腿', -2.4, 4.4, 0.5], ['左后腿', 2.4, -4.4, 0.5], ['右后腿', -2.4, -4.4, 0]].map(([name, x, z, phase]) => ({ name, pivot: [x, 7, z], motion: 'walk', axis: 'x', amp: 1, speed: 1, phase, boxes: [{ p: [x, 3.6, z], s: [2.2, 7.2, 2.2], r: [0, 0, 0], c: '#3b332e', shade: false }] })),
+] };
+const stripMake = (m) => ({ name: m.name, use: m.use, behavior: m.behavior, size: m.size, parts: m.parts.map((p) => ({ name: p.name, pivot: p.pivot, motion: p.motion, axis: p.axis, amp: p.amp, speed: p.speed, phase: p.phase, boxes: p.boxes.map((b) => ({ p: b.p, s: b.s, r: b.r, c: b.c, shade: !!b.shade })) })) });
 const ISLAND_SYSTEM = `你是一款治愈系六边形海岛游戏的美术设计师兼关卡设计师。你不只是用现有素材搭岛，更要**创造游戏里原本没有的新东西**：
 新的生态（地块类型：自己的地面颜色、起伏、草和花、长什么植物）、新的植物（按形态和配色设计）、新的动物（按体型、腿、头、耳、角、尾、翅膀、花纹、颜色、习性设计）。
 游戏会按你给的配方现场生成 3D 模型。
@@ -182,6 +204,23 @@ export class AIService {
     const keep = (a, b) => a.map((x) => b.find((y) => y.name === x.name) || x);
     return { score: Math.round(num(d.score, 1, 10, 6)), notes: String(d.notes || '').slice(0, 80), biomes: keep(design.biomes, fixed.biomes), plants: keep(design.plants, fixed.plants), creatures: keep(design.creatures, fixed.creatures) };
   }
+  /** AI 造物：一句话（可附一张参考图、可在现有造物上改）→ 造物台格式的造物（部件 + 任意大小的长方块 + 颜色 + 动作）。
+   *  image：data:image/...;base64,...（可选）；base：要修改的现有造物（可选） */
+  async make(prompt, image = null, base = null) {
+    const ex = JSON.stringify(MAKE_EXAMPLE);
+    let text = `范例（原版风格的四足小兽，照它的格式、比例和配色方法，不要照抄内容）：${ex}\n\n`;
+    if (base) text += `现在的造物（JSON）：${JSON.stringify(stripMake(base))}\n请在它的基础上按要求修改，没提到的地方保留：${prompt}`;
+    else text += `请创造：${prompt}`;
+    if (image) text += '\n参考附带的图片：抓住它的整体形状、部位和配色，用体素长方块重新搭出来（不需要还原细节）。';
+    const content = image ? [{ type: 'image', source: { type: 'base64', media_type: image.slice(5, image.indexOf(';')), data: image.split(',')[1] } }, { type: 'text', text }] : text;
+    const { text: out } = await this._ask({
+      max_tokens: 16000, system: MAKE_SYSTEM + '\n\n' + sopPrompt(),
+      output_config: { effort: 'medium', format: { type: 'json_schema', schema: MAKE_SCHEMA } },
+      messages: [{ role: 'user', content }],
+    });
+    let d; try { d = JSON.parse(out.replace(/^\s*```(?:json)?/i, '').replace(/```\s*$/, '')); } catch { throw new Error('模型返回的造物读不出来，再试一次'); }
+    return sanitizeMake(d);
+  }
   /** 岛民说话：ctx = { name, doing, hour, weather } → 一句话 */
   async villagerLine(ctx) {
     const { text } = await this._ask({
@@ -214,6 +253,19 @@ const pick = (v, list, def) => (list.includes(v) ? v : def);
 const nm = (v, def) => String(v || def).replace(/[\s"'<>]/g, '').slice(0, 8) || def;
 /** 模型给的结果做一遍清洗：造物配方的数值夹在合理范围里、颜色和枚举都合法；布局去重、限量、物件必须落在地块上。
  *  known：以前造过的东西的名字，布局里可以引用 */
+/** AI 造物清洗：数值夹在合理范围、颜色合法、块数限量（不吸色板，颜色由 AI 自由配） */
+export function sanitizeMake(d) {
+  const v3 = (a, lo, hi, def) => [0, 1, 2].map((i) => num(Array.isArray(a) ? a[i] : NaN, lo, hi, def[i]));
+  const hex = (c) => (typeof c === 'string' && /^#?[0-9a-fA-F]{6}$/.test(c.trim()) ? '#' + c.trim().replace('#', '') : '#c9a07a');
+  let total = 0;
+  const parts = (d.parts || []).slice(0, 14).map((p, i) => ({
+    name: String(p.name || '部件' + (i + 1)).slice(0, 8), pivot: v3(p.pivot, -60, 120, [0, 0, 0]), motion: pick(p.motion, ['none', 'walk', 'swing', 'flap', 'spin', 'bob', 'sway', 'pulse'], 'none'), axis: pick(p.axis, ['x', 'y', 'z'], 'x'),
+    amp: num(p.amp, 0.1, 2, 1), speed: num(p.speed, 0.1, 3, 1), phase: num(p.phase, 0, 1, 0), seed: i,
+    boxes: (p.boxes || []).filter(() => total++ < 160).map((b) => ({ p: v3(b.p, -60, 120, [0, 2, 0]), s: v3(b.s, 0.5, 60, [2, 2, 2]), r: v3(b.r, -180, 180, [0, 0, 0]), c: hex(b.c), shade: b.shade ? 1 : 0 })),
+  })).filter((p) => p.boxes.length);
+  if (!parts.length) throw new Error('模型没有给出任何方块，再试一次');
+  return { name: String(d.name || 'AI造物').slice(0, 10), use: pick(d.use, ['creature', 'plant', 'prop'], 'prop'), behavior: pick(d.behavior, ['walk', 'hop', 'fly', 'swim', 'float', 'still'], 'still'), size: num(d.size, 0.3, 4, 1), parts };
+}
 export function sanitizeDesign(d) {
   const biomes = (d.biomes || []).slice(0, 3).map((b, i) => ({ name: nm(b.name, '新生态' + (i + 1)), colors: ((m) => [m, shade(m, -0.07), shade(m, 0.07)])(hexOk((b.colors || [])[0], '#8cc043')), height: num(b.height, 0.36, 0.5, 0.45), roughness: num(b.roughness, 0, 1, 0.3),
     grass: num(b.grass, 0, 1, 0.6), grassColor: hexOk(b.grassColor, '#8cc043'), flowers: num(b.flowers, 0, 1, 0.2), flowerColors: (b.flowerColors || []).slice(0, 5).map((c) => hexOk(c, '#f2c45a')), plants: (b.plants || []).slice(0, 5).map((p) => ({ name: nm(p.name, ''), density: num(p.density, 0, 1, 0.5) })) }));
