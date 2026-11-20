@@ -9,11 +9,13 @@ const CASES = [
   { name: '六边形岛·AI 造岛（模拟回复）：新物种按造物台格式生成并住进岛里', file: 'ai-island.js', query: 'debug=1&style=blocky&q=smooth', check: (r) => r.makes.length === 2 && r.items.length >= 1 && r.biomePlants[0][0]?.startsWith('mk_') },
   { name: '六边形岛·体素近景：草花麦为体素、近景草层分帧重建不卡顿', file: 'island-voxel-close.js', query: 'debug=1&style=blocky&q=ultra', check: (r) => r.tris < 400000 && r.worstSliceMs < 20 },
   { name: '六边形岛·体素主题的建筑、小船浮标、海洋生物都是方块版', file: 'island-voxel-world.js', query: 'debug=1&style=blocky&q=high', check: (r) => r.placed >= 8 && r.propTris < 40000 && r.marine && r.marine.fish && r.marine.dolphin && r.marine.jelly && r.marine.habitat !== false },
+  { name: '六边形岛·造物台做的生态进地块栏「✦ 我造的」，能铺、按配方长植物', file: 'island-mybiome.js', query: 'debug=1&style=blocky&q=high', check: (r) => r.chip && r.named && r.placed >= 2 && r.after === 0 },
   { name: '六边形岛·放东西有反馈、竖屏撤销擦除不被遮挡', file: 'island-feedback.js', query: 'style=blocky', vw: 390, vh: 844, check: (r) => r.fxActive >= 1 && r.bl[3] < r.strip[1] },
   { name: '方块岛·点放、划动摆一排、按住拆、选取、蓝图存取放', file: 'blocks-build.js', query: 'mode=blocks', check: (r) => r.placeOne === 1 && r.row >= 8 && r.holdBreak === -1 && r.picked === 1 && r.bp.length === 1 && r.make.length === 1 && r.copied > 100 },
   { name: '造物台·添加、上色、拖手柄改大小、保存', file: 'studio-edit.js', query: 'mode=blocks', check: (r) => r.added >= 1 && r.s1 > r.s0 && r.saved.length === 1 },
   { name: '造物台·转过角度的块沿自身方向改大小', file: 'studio-rotate.js', query: 'mode=blocks', check: (r) => r.s[0] > 4 && Math.abs(Math.abs(r.dp[0]) - Math.abs(r.dp[2])) < 0.3 && Math.abs(r.dp[0]) > 0.5 },
   { name: '造物台·多选、整组拖动缩放旋转、部件复制镜像、✦ 精修（模拟回复）', file: 'studio-multi.js', query: 'mode=blocks', check: (r) => r.groupMove.n === 6 && r.groupMove.dys.length === 1 && r.groupMove.dys[0] > 0 && r.groupMove.pivotDy === r.groupMove.dys[0] && r.scale.earS > 2.4 && r.scale.sym && r.rot.moved && r.mirror.parts === 1 && r.mirror.name.startsWith('右前腿') && r.mirror.pivotX < 0 && r.dup === 2 && r.multi === 2 && Math.abs(r.minY) < 0.01 && r.refine.btnShown && r.refine.img && r.refine.hasNotes && r.refine.added === 1 && r.refine.schemaNotes },
+  { name: '造物台·生态：新建、调颜色和植物、保存；AI 配生态、看图精修、撤回（模拟回复）', file: 'studio-biome.js', query: 'mode=blocks', check: (r) => r.mode && r.panel && r.plants1 > r.plants0 + 5 && r.colors[0] === '#c8a060' && r.saved[0] === '金秋松林' && r.ai.name === '蓝月苔原' && r.ai.plants.join() === '石头,松树' && r.ai.listsPlants && r.ai.refineShown && r.refine.img && r.refine.notes && r.refine.fc === 3 && r.refine.undoBtn && r.refine.undone && r.lib.length === 2 },
   { name: '造物台·AI 帮我做（模拟回复）与在当前造物上修改', file: 'studio-ai.js', query: 'mode=blocks', check: (r) => r.boxes > 10 && r.sysHasBible && r.editHasBase && r.saved === 1 },
 ];
 (async () => {

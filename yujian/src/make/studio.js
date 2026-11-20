@@ -7,11 +7,13 @@
 //  - 多选：开「多选」后点哪块选哪块（再点取消）；也可以「全选」「选中整个部件」。选中一组后拖动整组移动，
 //    侧栏可以整组复制、转 90°、放大缩小、删除、上色。部件可以整个复制、镜像到另一侧。
 //  - ✦ 精修：AI 看着造物的渲染图，按美术圣经的审图清单检查后自己改一轮（不满意可以撤销）。
+//  - 生态：自己定一种新地块（地面颜色、起伏、草花、长什么植物），台面上实时预览一块地；AI 也能一句话配一个，再看图精修。
 //  - 部件：方块属于当前部件；每个部件有关节点和动作（走路摆、来回摆、扇动、旋转、浮动、随风摆、伸缩），点“播放”预览。
 //  - 保存后进“我的造物”，回到六边形岛建造栏「✦ 我造的」里直接摆放。
 import * as THREE from 'three';
 import { sopHTML } from '../artsop.js';
 import { boxGeo, buildMake, animatePart, newMake, TEMPLATES, USES, BEHAVIORS, MOTIONS, loadMakes, saveMakes, bounds, mergedGeo } from './model.js';
+import { loadBiomes, saveBiomes, newBiome, plantOptions, plantKey, sanitizeBiome, biomePreview, groundColors } from './biome.js';
 
 const K = 0.05;                       // 1 小格在造物台上 = 0.05 个世界单位（放大了看，好操作）
 const SWATCH = ['#ece5d6', '#f0e2c8', '#c9a07a', '#b0773f', '#8a5a30', '#4a3f38', '#1d1a1a', '#9aa0a8', '#6f747c', '#f4f6f8',
@@ -56,18 +58,19 @@ export class Studio {
     if (make) this.edit(make); else this.library();
   }
   close() {
-    const a = this.app, r = a.rig, s = this.saved; this.on = false; this._stopPlay();
+    const a = this.app, r = a.rig, s = this.saved; this.on = false; this._stopPlay(); this._closeBiome();
     a.root.visible = true; a.sea.visible = true; a.floor.visible = true; a.hud.hidden = false; this.stage.visible = false; this.el?.remove(); this.el = null;
     Object.assign(r, { minDist: s.minDist, maxDist: s.maxDist, lookY: s.lookY, bounds: s.bounds, heightAt: s.heightAt }); r.focus.copy(s.focus); r.setView({ dist: s.dist, pitch: s.pitch, yaw: s.yaw });
   }
   edit(make) {
+    this._closeBiome();
     this.make = JSON.parse(JSON.stringify(make)); this.cur = 0; this._selOne(null); this.undoS = []; this.redoS = [];
     let k = 1; for (const p of this.make.parts) for (const b of p.boxes) b.k ??= k++; this.nextK = k + 100;
     for (const p of this.make.parts) for (const b of p.boxes) if (b.pair == null) { const m = this._findMirror(b, p); if (m) { b.pair = m.k; m.pair = b.k; } }
     this.el.querySelector('.s-name').value = this.make.name || '新造物'; this.showRefine = false;
     this._rebuild(); this._sheet(null); this._sync();
     // 镜头框住整个造物：看向它的中心，距离按最大边长算
-    const bb = bounds(this.make), sz = Math.max(8, bb.max.y - Math.min(0, bb.min.y), bb.max.x - bb.min.x, bb.max.z - bb.min.z); this.app.rig.lookY = this.center.y + Math.max(4, (bb.max.y + Math.max(0, bb.min.y)) / 2) * K; this.app.rig.setView({ dist: Math.max(2.2, sz * K * 3.6), pitch: 0.38 });
+    const bb = bounds(this.make), sz = Math.max(8, bb.max.y - Math.min(0, bb.min.y), bb.max.x - bb.min.x, bb.max.z - bb.min.z); this._look(Math.max(4, (bb.max.y + Math.max(0, bb.min.y)) / 2) * K); this.app.rig.setView({ dist: Math.max(2.2, sz * K * 3.6), pitch: 0.38 });
   }
   _findMirror(b, p) { if (Math.abs(b.p[0]) < 0.01) return null; return p.boxes.find((o) => o !== b && o.pair == null && Math.abs(o.p[0] + b.p[0]) < 0.01 && Math.abs(o.p[1] - b.p[1]) < 0.01 && Math.abs(o.p[2] - b.p[2]) < 0.01 && o.s.every((v, i) => Math.abs(v - b.s[i]) < 0.01)); }
 
@@ -347,6 +350,14 @@ export class Studio {
       if (b.dataset.c) return this.setColor(b.dataset.c);
       if (b.dataset.part != null) { this.cur = +b.dataset.part; this.sel = null; this._rebuild(); return this._sync(); }
       const s = b.dataset.s;
+      if (this.biome && (s === 'close' || s === 'save' || s === 'ai' || s === 'refine')) {   // 生态模式下顶部按钮的意思不一样
+        if (s === 'close') { if (this.bDirty && !confirm('生态还没保存，确定离开吗？')) return; return this.library(); }
+        if (s === 'save') return this.saveBiome(); if (s === 'ai') return this._sheet('bai'); return this.refineBiome();
+      }
+      if (s === 'bnew') return this.openBiome(newBiome()); if (s === 'bai') return this._sheet('bai'); if (s === 'baiGo') return this._bAiGo(); if (s === 'bsave') return this.saveBiome();
+      if (s === 'bopen') { const x = loadBiomes().find((y) => y.id === b.dataset.id); return x && this.openBiome(x); }
+      if (s === 'bdrop') { if (!confirm('删除这个生态？岛上铺了它的地块会变回草地。')) return; saveBiomes(loadBiomes().filter((y) => y.id !== b.dataset.id)); return this.library(); }
+      if (s === 'bundo') return this._bUndo();
       if (s === 'close') { if (this.make && this.undoS.length && !confirm('还没保存，确定离开吗？')) return; return this.close(); }
       if (s === 'undo') this.undo(); else if (s === 'redo') this.redo(); else if (s === 'play') this.togglePlay();
       else if (s === 'dup') this.dup(); else if (s === 'del') this.del(); else if (s === 'rx') this.rot(0); else if (s === 'ry') this.rot(1); else if (s === 'rz') this.rot(2); else if (s === 'tocur') this.moveToCur();
@@ -369,7 +380,7 @@ export class Studio {
       else if (b.dataset.ex) { this.el.querySelector('.s-aitext').value = b.dataset.ex; }
       else if (s === 'bible') { const sh = this.el.querySelector('.s-sheet'); sh.innerHTML = `<div class="b-card"><header><b>体素美术圣经</b><button class="b-x" data-s="lib">返回</button></header>${sopHTML()}</div>`; }
     });
-    for (const ev of ['pointerdown', 'wheel']) el.addEventListener(ev, (e) => { if (e.target.closest('button,input,label,select,.s-sheet,.s-bottom')) e.stopPropagation(); });
+    for (const ev of ['pointerdown', 'wheel']) el.addEventListener(ev, (e) => { if (e.target.closest('button,input,label,select,.s-sheet,.s-bottom,.s-bpanel')) e.stopPropagation(); });
     el.querySelector('.s-pick').addEventListener('input', (e) => this.setColor(e.target.value));
     el.querySelector('.s-sheet').addEventListener('input', (e) => {
       const f = e.target, P = this.make?.parts[this.cur]; if (!P || !f.name?.startsWith('p_')) return;
@@ -394,7 +405,7 @@ export class Studio {
       side.innerHTML = '<b class="s-size"></b>' + (mode === 'g' ? B('dup', '整组复制') + B('r90', '转 90°') + B('big', '放大') + B('small', '缩小') + B('del', '删除') + B('tocur', '归到当前部件') + B('none', '取消选择')
         : B('dup', '复制') + B('rx', '转 X') + B('ry', '转 Y') + B('rz', '转 Z') + B('big', '放大') + B('small', '缩小') + B('del', '删除') + B('tocur', '归到当前部件'));
     }
-    const rf = el.querySelector('.s-refine'); rf.hidden = !this.make || !this.showRefine || this.play; rf.disabled = !!this.refining; rf.textContent = this.refining ? '✦ AI 正在看图检查……' : '✦ 再精修一遍';
+    const rf = el.querySelector('.s-refine'); rf.hidden = !(this.make || this.biome) || !this.showRefine || this.play; rf.disabled = !!this.refining; rf.textContent = this.refining ? '✦ AI 正在看图检查……' : '✦ 再精修一遍';
     if (this.make) el.querySelector('.s-parts').innerHTML = this.make.parts.map((p, i) => `<button class="b-cat ${i === this.cur ? 'on' : ''}" data-part="${i}">${p.name}${p.motion && p.motion !== 'none' ? ' ·' + MOTIONS[p.motion].slice(0, 2) : ''}</button>`).join('') + '<button class="b-cat" data-s="addPart">＋部件</button><button class="b-cat" data-s="partSel">选中整个部件</button><button class="b-cat" data-s="partSet">部件设置</button>';
     this._syncSel();
   }
@@ -429,14 +440,26 @@ export class Studio {
         <button class="b-row s-aigo" data-s="aiGo"><b>生成</b><span>AI 按美术圣经搭出来（十几秒到一分钟），然后你可以继续改</span></button>
         <p class="b-note s-aimsg"></p></div>`;
       sh.querySelector('.s-file')?.addEventListener('change', (e) => { const f = e.target.files?.[0]; if (f) this._loadImg(f); });
+    } else if (kind === 'bai') {
+      const EX = ['秋天的林间空地，地上铺满橙红色落叶', '月光下的蓝色苔原，开着白色小花', '海边的椰林沙地', '樱花盛开的小山坡', '长满芦苇的湿地', '石头很多的高山草甸'];
+      sh.innerHTML = `<div class="b-card"><header><b>✦ AI 配一个生态</b><button class="b-x" data-s="${this.biome ? 'sheetClose' : 'lib'}">${this.biome ? '取消' : '返回'}</button></header>
+        ${this.biome ? `<div class="s-mode"><label><input type="radio" name="bmode" value="new" checked> 配一个新的</label><label><input type="radio" name="bmode" value="edit"> 改现在这个「${this.biome.name}」</label><label><input type="radio" name="bmode" value="refine"> 精修现在这个（AI 看预览图检查，自己改一轮）</label></div>` : ''}
+        <label>想要什么样的地方？<textarea class="s-aitext" rows="3" placeholder="比如：${EX[0]}"></textarea></label>
+        <div class="s-chips">${EX.map((t) => `<button class="b-cat" data-ex="${t}">${t}</button>`).join('')}</div>
+        <button class="b-row s-aigo" data-s="baiGo"><b>生成</b><span>AI 配好地面、草花和植物（可以用你造的植物），然后你可以继续调</span></button>
+        <p class="b-note s-aimsg"></p></div>`;
     } else if (kind === 'lib') {
-      const list = loadMakes();
+      const list = loadMakes(), bl = loadBiomes();
       sh.innerHTML = `<div class="b-card"><header><b>造物台</b><button class="b-x" data-s="close">关闭</button></header>
         <button class="b-row s-airow" data-s="ai"><b>✦ AI 帮我做</b><span>说一句话或给一张图，AI 直接搭出来，你再微调</span></button>
         <p class="b-note">也可以从空白开始，或拿一个模板改——形状、颜色、大小、数量、动作都不限。<button class="b-x" data-s="bible">看美术圣经</button></p>
         <div class="s-tpls">${Object.entries(TEMPLATES).map(([k, t]) => `<button class="b-row" data-s="tpl" data-t="${k}"><b>${t.name}</b></button>`).join('')}</div>
         <b>我的造物（${list.length}）</b>
-        ${list.map((m) => `<div class="s-lib"><button class="b-row" data-s="open" data-id="${m.id}"><b>${m.name}</b><span>${USES[m.use] || ''} · ${m.parts.reduce((s, p) => s + p.boxes.length, 0)} 块</span></button><button class="b-x" data-s="drop" data-id="${m.id}">删除</button></div>`).join('') || '<p class="b-note">还没有。</p>'}</div>`;
+        ${list.map((m) => `<div class="s-lib"><button class="b-row" data-s="open" data-id="${m.id}"><b>${m.name}</b><span>${USES[m.use] || ''} · ${m.parts.reduce((s, p) => s + p.boxes.length, 0)} 块</span></button><button class="b-x" data-s="drop" data-id="${m.id}">删除</button></div>`).join('') || '<p class="b-note">还没有。</p>'}
+        <b>我的生态（${bl.length}）</b>
+        <p class="b-note">生态是一种新地块：地面颜色、起伏、草和花、长什么植物（可以用我造的植物）。保存后在六边形岛地块栏「✦ 我造的」里直接铺。</p>
+        <div class="s-tpls"><button class="b-row" data-s="bnew"><b>＋ 新生态</b></button><button class="b-row s-airow" data-s="bai"><b>✦ AI 配一个生态</b></button></div>
+        ${bl.map((x) => `<div class="s-lib"><button class="b-row" data-s="bopen" data-id="${x.id}"><b><i class="s-bsw" style="background:${x.colors[0]}"></i>${x.name}</b><span>${x.plants.map((p) => p.name).join('、') || '只有草和花'}</span></button><button class="b-x" data-s="bdrop" data-id="${x.id}">删除</button></div>`).join('')}</div>`;
     }
   }
   /** 参考图：缩到最长边 768 再给 AI（省流量、省额度） */
@@ -460,7 +483,7 @@ export class Studio {
       this.showRefine = true; this._sync(); this.toast(`「${m.name}」做好了：${m.parts.reduce((s, p) => s + p.boxes.length, 0)} 块、${m.parts.length} 个部件。觉得哪里不对可以点「再精修一遍」，或直接动手改`, 4200);
     } catch (e) { const { aiError } = await import('../ai.js'); msg.textContent = '没做出来：' + aiError(e); btn.disabled = false; }
   }
-  library() { this.make = null; this.showRefine = false; for (const m of [...this.boxes.children]) { this.boxes.remove(m); m.geometry.dispose(); } this._selOne(null); this._sync(); this._sheet('lib'); }
+  library() { this._closeBiome(); this.make = null; this.showRefine = false; for (const m of [...this.boxes.children]) { this.boxes.remove(m); m.geometry.dispose(); } this._selOne(null); this._sync(); this._sheet('lib'); }
 
   // ---------------- ✦ 精修：AI 看图检查后改一轮 ----------------
   /** 造物的两张渲染图（斜前方 + 正侧面）拼成一张，给视觉模型看 */
@@ -484,6 +507,92 @@ export class Studio {
       const img = await this._snapMake(), { make, notes } = await ai.refine(this.make, img, wish);
       this._snapshot(); const keep = this.undoS; make.id = this.make.id; this.edit(make); this.undoS = keep; this.showRefine = true;
       this.toast('精修完成：' + (notes || '按美术圣经检查并改好了') + '（不满意可以撤销）', 4800);
+    } catch (e) { const { aiError } = await import('../ai.js'); this.toast('精修没成功：' + aiError(e), 3600); }
+    finally { this.refining = false; this._sync(); }
+  }
+
+  // ---------------- 生态 ----------------
+  openBiome(b) {
+    this._closeBiome(); this._stopPlay(); this.make = null; for (const m of [...this.boxes.children]) { this.boxes.remove(m); m.geometry.dispose(); } this._selOne(null);
+    this.biome = JSON.parse(JSON.stringify(b)); while (this.biome.flowerColors.length < 3) this.biome.flowerColors.push(['#f2c45a', '#f080a8', '#f4f0e8'][this.biome.flowerColors.length]);
+    this.bPrev = null; this.bDirty = false; this.showRefine = false;
+    this.el.classList.add('s-bmode'); this._sheet(null); this.el.querySelector('.s-name').value = this.biome.name;
+    this._bPanel(); this._bPreview();
+    // 镜头：横屏时把预览让到面板左边（焦点往镜头右方挪），竖屏面板在下面，预览往上让
+    const r = this.app.rig, yaw = -0.65, portrait = innerHeight > innerWidth, k = portrait ? 0 : 1.15;
+    this._look(portrait ? -0.75 : 0.3); r.focus.set(this.center.x + Math.cos(yaw) * k, 0, this.center.z - Math.sin(yaw) * k); r.maxDist = 14; r.setView({ dist: portrait ? 11 : 6.4, pitch: 0.62, yaw });
+    this._sync();
+  }
+  _closeBiome() {
+    if (!this.biome) return; this.biome = null; this.el?.classList.remove('s-bmode'); this.el?.querySelector('.s-bpanel')?.remove(); this.app.rig.focus.set(this.center.x, 0, this.center.z); this._look(0.4); this.app.rig.maxDist = 8;
+    if (this.bview) { this.stage.remove(this.bview); this.bview.userData.dispose?.(); this.bview = null; }
+  }
+  /** 镜头注视点的高度（相机每帧会把它拉向 heightAt，所以两个一起设） */
+  _look(dy) { const r = this.app.rig, y = this.center.y + dy; r.lookY = y; r.heightAt = () => y; }
+  /** 台面上的预览：一块六边形地（岛上 1 个单位 = 台面 30 小格） */
+  _bPreview() {
+    if (this.bview) { this.stage.remove(this.bview); this.bview.userData.dispose?.(); }
+    this.bview = biomePreview(this.biome); this.bview.scale.setScalar(30); this.stage.add(this.bview);
+  }
+  _bPanel() {
+    this.el.querySelector('.s-bpanel')?.remove();
+    const B = this.biome, opts = this.bOpts = plantOptions(), den = (o) => B.plants.find((p) => plantKey(p) === plantKey(o))?.density ?? 0;
+    const R = (n, lab, lo, hi, st, v) => `<label>${lab}<input type="range" name="${n}" min="${lo}" max="${hi}" step="${st}" value="${v}"></label>`, C = (n, v, t = '') => `<input type="color" name="${n}" value="${v}" title="${t}">`;
+    const el = document.createElement('div'); el.className = 's-bpanel';
+    el.innerHTML = `<div class="s-bsec"><b>地面</b><div class="s-brow"><span>颜色</span>${C('c0', B.colors[0], '主色')}${C('c1', B.colors[1], '暗斑')}${C('c2', B.colors[2], '亮斑')}<i>主色 · 暗斑 · 亮斑</i></div>
+        ${R('roughness', '起伏', 0, 1, 0.05, B.roughness)}${R('height', '地势（低洼 → 高地）', 0.36, 0.5, 0.01, B.height)}</div>
+      <div class="s-bsec"><b>草</b>${R('grass', '多少', 0, 1, 0.05, B.grass)}<div class="s-brow"><span>颜色</span>${C('grassColor', B.grassColor)}</div></div>
+      <div class="s-bsec"><b>花</b>${R('flowers', '多少', 0, 1, 0.05, B.flowers)}<div class="s-brow"><span>颜色</span>${B.flowerColors.slice(0, 3).map((c, i) => C('fc' + i, c)).join('')}</div></div>
+      <div class="s-bsec"><b>长什么植物</b><p class="b-note">拖到 0 就不长；最右边是长满。</p>${opts.map((o) => R('pl_' + plantKey(o), o.name + (o.mine ? ' ✦' : ''), 0, 1, 0.05, den(o))).join('')}</div>
+      <div class="s-bsec s-bbtns"><button class="b-pill" data-s="bai">✦ AI 帮我配</button>${this.bPrev ? '<button class="b-pill" data-s="bundo">撤回 AI 修改</button>' : ''}<button class="b-pill s-save" data-s="bsave">保存</button></div>`;
+    el.addEventListener('input', (e) => this._bInput(e));
+    this.el.appendChild(el);
+  }
+  _bInput(e) {
+    const f = e.target, B = this.biome, n = f.name; if (!n || !B) return;
+    if (n === 'c0') { B.colors = groundColors(f.value); const P = this.el.querySelector('.s-bpanel'); P.querySelector('[name=c1]').value = B.colors[1]; P.querySelector('[name=c2]').value = B.colors[2]; }
+    else if (n === 'c1' || n === 'c2') B.colors[+n[1]] = f.value;
+    else if (['roughness', 'height', 'grass', 'flowers'].includes(n)) B[n] = +f.value;
+    else if (n === 'grassColor') B.grassColor = f.value;
+    else if (n.startsWith('fc')) B.flowerColors[+n.slice(2)] = f.value;
+    else if (n.startsWith('pl_')) {
+      const key = n.slice(3), o = this.bOpts.find((x) => plantKey(x) === key), i = B.plants.findIndex((p) => plantKey(p) === key), d = +f.value;
+      if (d <= 0) { if (i >= 0) B.plants.splice(i, 1); } else if (i >= 0) B.plants[i].density = d; else if (o) B.plants.push({ id: o.id, ...(o.v != null ? { v: o.v } : {}), ...(o.s ? { s: o.s } : {}), name: o.name, density: d });
+    }
+    this.bDirty = true; clearTimeout(this._bt); this._bt = setTimeout(() => this.biome && this._bPreview(), 120);   // 拖滑条时别每一下都重建
+  }
+  saveBiome() {
+    const B = this.biome; if (!B) return false; B.name = (this.el.querySelector('.s-name').value || '新生态').trim().replace(/[\s"'<>]/g, '').slice(0, 8) || '新生态';
+    const list = loadBiomes(), i = list.findIndex((x) => x.id === B.id), clean = JSON.parse(JSON.stringify(B));
+    if (i >= 0) list[i] = clean; else list.unshift(clean);
+    if (!saveBiomes(list)) { this.toast('保存失败：本机存储空间不够'); return false; }
+    this.bDirty = false; this.toast(`「${B.name}」已保存。回到六边形岛，地块栏「✦ 我造的」里可以直接铺`, 3200); return true;
+  }
+  _bApply(b) { this.bPrev = JSON.parse(JSON.stringify(this.biome)); const id = this.biome.id; Object.assign(this.biome, b, { id }); while (this.biome.flowerColors.length < 3) this.biome.flowerColors.push(this.biome.flowerColors[0]); this.el.querySelector('.s-name').value = this.biome.name; this.bDirty = true; this._bPanel(); this._bPreview(); }
+  _bUndo() { if (!this.bPrev) return; this.biome = this.bPrev; this.bPrev = null; this.el.querySelector('.s-name').value = this.biome.name; this._bPanel(); this._bPreview(); this.toast('已撤回 AI 的修改'); }
+  async _bAiGo() {
+    const sh = this.el.querySelector('.s-sheet'), msg = sh.querySelector('.s-aimsg'), text = sh.querySelector('.s-aitext').value.trim(), btn = sh.querySelector('.s-aigo'), ai = this.app.ai;
+    if (!ai?.ready) { msg.textContent = '还没配置 AI：回到六边形岛，在「设置 → AI」里选服务商、填 API 密钥。'; return; }
+    const mode = (this.biome && sh.querySelector('input[name=bmode]:checked')?.value) || 'new';
+    if (mode === 'refine') { this._sheet(null); return this.refineBiome(text); }
+    if (!text) { msg.textContent = '先写一句想要什么样的地方'; return; }
+    btn.disabled = true; msg.textContent = 'AI 正在配……';
+    try {
+      const opts = plantOptions(), b = sanitizeBiome(await ai.biome(text, opts.map((o) => o.name), mode === 'edit' ? this.biome : null), opts);
+      if (mode === 'edit') { this._bApply(b); this._sheet(null); } else { this.openBiome({ ...b, id: newBiome().id }); this.bDirty = true; }
+      this.showRefine = true; this._sync(); this.toast(`「${b.name}」配好了。觉得哪里不对可以点「再精修一遍」，或直接拖滑条调；满意了点保存`, 4200);
+    } catch (e) { const { aiError } = await import('../ai.js'); msg.textContent = '没配出来：' + aiError(e); btn.disabled = false; }
+  }
+  /** ✦ 精修生态：AI 看预览图（和岛上一块地一样）检查后改一轮 */
+  async refineBiome(wish = '') {
+    const ai = this.app.ai; if (!this.biome) return;
+    if (!ai?.ready) { this.toast('还没配置 AI：回到六边形岛，在「设置 → AI」里选服务商、填 API 密钥', 3200); return; }
+    if (this.refining) return; this.refining = true; this._sync();
+    try {
+      let img = null; try { const { thumb } = await import('../thumbs.js'), g = biomePreview(this.biome); img = thumb(g, { w: 768, h: 512, pitch: 0.6, yaw: -0.6, bg: 0xe6eef0 }); g.userData.dispose?.(); } catch { img = null; }
+      const opts = plantOptions(), { data, notes } = await ai.refineBiome(this.biome, img, opts.map((o) => o.name), wish);
+      this._bApply(sanitizeBiome(data, opts)); this.showRefine = true;
+      this.toast('精修完成：' + (notes || '按美术圣经检查并改好了') + '（不满意点「撤回 AI 修改」）', 4800);
     } catch (e) { const { aiError } = await import('../ai.js'); this.toast('精修没成功：' + aiError(e), 3600); }
     finally { this.refining = false; this._sync(); }
   }

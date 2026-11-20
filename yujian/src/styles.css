@@ -492,3 +492,18 @@ body { background: var(--haze); color: var(--ink); font-family: var(--font); fon
 .s-partops { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
 .s-partops .b-pill { background: #e9f1f2; color: #17313b; }
 .s-mode { flex-wrap: wrap; row-gap: 0; }
+/* 造物台 · 生态：左边台面上预览一块地，右边（竖屏在下面）是调色和滑条面板 */
+.studio.s-bmode .s-tools, .studio.s-bmode .s-side, .studio.s-bmode .s-bottom, .studio.s-bmode [data-s="play"] { display: none !important; }
+.s-bpanel { position: absolute; right: max(12px, env(safe-area-inset-right)); top: 60px; bottom: max(10px, env(safe-area-inset-bottom)); width: min(300px, 44vw); overflow-y: auto; background: rgba(23,49,59,.84); border-radius: 16px; padding: 10px 12px; backdrop-filter: blur(8px); pointer-events: auto; display: flex; flex-direction: column; gap: 10px; scrollbar-width: none; }
+.s-bpanel::-webkit-scrollbar { display: none; }
+.s-bsec { display: flex; flex-direction: column; gap: 4px; }
+.s-bsec > b { font-size: 13px; color: #ffe6b0; }
+.s-bpanel label { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; }
+.s-bpanel input[type=range] { flex: 1; max-width: 150px; accent-color: #f2c45a; }
+.s-bpanel .b-note { margin: 0; font-size: 11px; opacity: .75; }
+.s-brow { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.s-brow i { font-style: normal; font-size: 11px; opacity: .7; }
+.s-brow input[type=color] { width: 34px; height: 26px; border: 0; padding: 0; background: none; border-radius: 6px; cursor: pointer; }
+.s-bbtns { flex-direction: row !important; flex-wrap: wrap; gap: 6px !important; }
+.s-bsw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+@media (orientation: portrait) { .s-bpanel { left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); width: auto; top: auto; height: 44vh; } }

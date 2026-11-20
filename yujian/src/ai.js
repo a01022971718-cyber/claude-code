@@ -77,6 +77,12 @@ const ISLAND_SCHEMA = {
   required: ['name', 'note', 'biomes', 'plants', 'creatures', 'tiles', 'items', 'sea', 'hour'],
   additionalProperties: false,
 };
+// 造物台的「生态」：和 AI 造岛里的新生态同一个结构；精修多一句修改说明
+const BIOME_SCHEMA = ISLAND_SCHEMA.properties.biomes.items;
+const BIOME_REFINE_SCHEMA = { ...BIOME_SCHEMA, required: [...BIOME_SCHEMA.required, 'notes'], properties: { ...BIOME_SCHEMA.properties, notes: { type: 'string', description: '60 字以内中文：看出的主要问题和改了什么' } } };
+const BIOME_SYSTEM = `你是一款治愈系体素海岛游戏的美术设计师，负责设计“生态”——一种六边形地块：地面三种颜色（主色、暗斑、亮斑，同一色相、暗斑暗一点、亮斑亮一点）、起伏、地势高低、草和花的多少与颜色、长哪些植物各多少。
+好的生态一眼能认出是什么地方（比如“秋天的林间空地”“月光下的蓝色苔原”），颜色和谐、和游戏原有的草地、森林、花田放在一起不突兀；草色要和地面搭，花色 2–4 种；植物 1–4 种，密度 0–1（0.1 稀疏点缀，0.4 成片，0.8 茂密）。名字 2–6 个汉字。`;
+const stripBiome = (b) => ({ name: b.name, colors: b.colors, height: b.height, roughness: b.roughness, grass: b.grass, grassColor: b.grassColor, flowers: b.flowers, flowerColors: b.flowerColors, plants: (b.plants || []).map((p) => ({ name: p.name, density: p.density })) });
 const REVIEW_SCHEMA = { type: 'object', additionalProperties: false, required: ['score', 'notes', 'biomes', 'plants', 'creatures'],
   properties: { score: { type: 'integer', description: '1–10' }, notes: { type: 'string', description: '最重要的问题，60 字以内' }, biomes: ISLAND_SCHEMA.properties.biomes, plants: ISLAND_SCHEMA.properties.plants, creatures: ISLAND_SCHEMA.properties.creatures } };
 const V3 = { type: 'array', items: { type: 'number' }, description: '[x, y, z]' };
@@ -238,6 +244,24 @@ export class AIService {
     });
     let d; try { d = JSON.parse(out.replace(/^\s*```(?:json)?/i, '').replace(/```\s*$/, '')); } catch { throw new Error('精修结果读不出来，再试一次'); }
     return { make: sanitizeMake(d), notes: String(d.notes || '').slice(0, 80) };
+  }
+  /** 造物台的生态：一句话 → 生态配方（植物只能从 plantNames 里选）。base：要修改的现有生态（可选）。返回未清洗的数据，由 biome.js 的 sanitizeBiome 对上植物 */
+  async biome(prompt, plantNames, base = null) {
+    let text = `可以长的植物（只能用这些名字）：${plantNames.join('、')}。\n`;
+    text += base ? `现在的生态（JSON）：${JSON.stringify(stripBiome(base))}\n请在它的基础上按要求修改，没提到的地方保留：${prompt}` : `请设计：${prompt}`;
+    const { text: out } = await this._ask({ max_tokens: 4000, system: BIOME_SYSTEM + '\n\n' + sopPrompt(), output_config: { effort: 'medium', format: { type: 'json_schema', schema: BIOME_SCHEMA } }, messages: [{ role: 'user', content: text }] });
+    try { return JSON.parse(out.replace(/^\s*```(?:json)?/i, '').replace(/```\s*$/, '')); } catch { throw new Error('模型返回的生态读不出来，再试一次'); }
+  }
+  /** ✦ 精修生态：看着预览图（一块地的样子）检查后改一轮。返回 { data（未清洗）, notes } */
+  async refineBiome(b, image, plantNames, wish = '') {
+    let text = `${image ? '图里是生态「' + b.name + '」的预览：一块六边形地，上面的草、花、植物和岛上一块地一样多。' : ''}它的配方（JSON）：${JSON.stringify(stripBiome(b))}
+可以长的植物（只能用这些名字）：${plantNames.join('、')}。
+请像美术组长审稿一样检查：地面三种颜色是否同一色相、深浅合适；草色和地面搭不搭；花色是否和谐、多少合适；植物的种类和疏密是否像这个地方；整体和游戏原有的草地、森林放在一起会不会突兀。然后返回改好的完整配方（名字和整体设想保留，只修正问题）；notes 用 60 字以内中文说看出了什么、改了什么。`;
+    if (wish) text += `\n玩家另外的要求：${wish}`;
+    const content = image ? [{ type: 'image', source: { type: 'base64', media_type: image.slice(5, image.indexOf(';')), data: image.split(',')[1] } }, { type: 'text', text }] : text;
+    const { text: out } = await this._ask({ max_tokens: 4000, system: BIOME_SYSTEM + '\n\n' + sopPrompt(), output_config: { effort: 'medium', format: { type: 'json_schema', schema: BIOME_REFINE_SCHEMA } }, messages: [{ role: 'user', content }] });
+    let d; try { d = JSON.parse(out.replace(/^\s*```(?:json)?/i, '').replace(/```\s*$/, '')); } catch { throw new Error('精修结果读不出来，再试一次'); }
+    return { data: d, notes: String(d.notes || '').slice(0, 80) };
   }
   /** 岛民说话：ctx = { name, doing, hour, weather } → 一句话 */
   async villagerLine(ctx) {

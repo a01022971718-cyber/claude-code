@@ -35,7 +35,7 @@ export function kit() {
     stump: [stump],
     ...(BK.STYLE.blocky ? {   // 方块风格原型：体素树和灌木
       con: [1, 2, 3, 4, 5].map((s) => BK.voxelConifer(s)),
-      broad: [BK.voxelTree(3, 'green'), BK.voxelTree(7, 'lime'), BK.voxelTree(9, 'green'), BK.voxelTree(13, 'autumn'), BK.voxelTree(17, 'green')],
+      broad: [BK.voxelTree(3, 'green'), BK.voxelTree(7, 'lime'), BK.voxelTree(9, 'green'), BK.voxelTree(13, 'autumn'), BK.voxelTree(17, 'blossom')],
       bush: [BK.voxelBush(1, 'green'), BK.voxelBush(2, 'lime'), BK.voxelBush(3, 'green')],
       rock: [1, 2, 3, 4, 5, 6, 7, 8].map((s) => BK.voxelRock(s, s % 4, s < 7 ? 1 : 0)),
       palm: [BK.voxelPalm(1, 0.95), BK.voxelPalm(2, 1.1)],
@@ -47,7 +47,7 @@ export function kit() {
     } : {}),
     // 远处用的简化树：每个变体一份（和高精度树一一对应），远近切换由画面按区块决定
     conLo: (() => { const g = BK.lowConifer(BK.STYLE.blocky); return [g, g, g, g, g]; })(),
-    broadLo: [BK.lowBroad('green', BK.STYLE.blocky), BK.lowBroad('lime', BK.STYLE.blocky), BK.lowBroad('green', BK.STYLE.blocky), BK.lowBroad('autumn', BK.STYLE.blocky), BK.lowBroad(BK.STYLE.blocky ? 'green' : 'blossom', BK.STYLE.blocky)],
+    broadLo: [BK.lowBroad('green', BK.STYLE.blocky), BK.lowBroad('lime', BK.STYLE.blocky), BK.lowBroad('green', BK.STYLE.blocky), BK.lowBroad('autumn', BK.STYLE.blocky), BK.lowBroad('blossom', BK.STYLE.blocky)],
     wrack: [L.wrack(1).geometry, L.wrack(2).geometry], drift: [L.driftwood(1).geometry, L.driftwood(2).geometry], shell: [L.shells(1).geometry, L.shells(2).geometry],
   };
   return KIT;
@@ -78,8 +78,9 @@ export function dressTile(T, t, opts = {}) {
   const cu = TYPES[ty]?.custom, K0 = kit();
   if (cu) for (const pr of cu.plants || []) {
     if (!K0[pr.id]) continue;
-    const n = Math.round(Math.max(0, Math.min(1, pr.density ?? 0.5)) * 14 * tf), tall = !!K0[pr.id].shadow;
-    for (let i = 0; i < n; i++) { const [x, z] = inHex(0.08); if (riverD(x, z) < 0.3) continue; const s = 0.8 + R() * 0.45; if (plant(pr.id, 0, { x, y: H(x, z) - 0.02, z, s, ry: R() * 6.28, tilt: 0.04 }, (tall ? 0.12 : 0.06) * s) && tall) out.perches.push({ x, y: H(x, z), z, h: 0.8 * s }); }
+    // v：指定哪个变体（阔叶树的绿、嫩绿、秋叶、樱花）；没指定的松树、灌木、石头等随机变体。s：种下时的大小（石头本身很大，要缩小）
+    const n = Math.round(Math.max(0, Math.min(1, pr.density ?? 0.5)) * 14 * tf), tall = !!K0[pr.id].shadow, nv = K0[pr.id].length, rv = pr.v == null && ['con', 'bush', 'rock', 'palm', 'reed'].includes(pr.id);
+    for (let i = 0; i < n; i++) { const [x, z] = inHex(0.08); if (riverD(x, z) < 0.3) continue; const s = (0.8 + R() * 0.45) * (+pr.s || 1), v = rv ? Math.floor(R() * nv) : Math.min(nv - 1, pr.v ?? 0); if (plant(pr.id, v, { x, y: H(x, z) - 0.02, z, s, ry: R() * 6.28, tilt: 0.04 }, (tall ? 0.12 : 0.06) * s) && tall) out.perches.push({ x, y: H(x, z), z, h: 0.8 * s }); }
   }
   const cuGrass = cu?.grassColor ? new THREE.Color(cu.grassColor) : null, cuFlowers = (cu?.flowerColors || []).map((h) => new THREE.Color(h)).map((c) => [c.r, c.g, c.b]);
   if (t.center) taken.push([t.x, t.z, 0.55]);

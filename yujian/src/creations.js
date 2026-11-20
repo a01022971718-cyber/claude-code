@@ -12,7 +12,7 @@ const hex = (c) => '#' + c.getHexString();
 
 /** 把一份 s.custom 登记进游戏（重复调用会先撤掉上一次登记的） */
 export function registerAll(custom = {}) {
-  for (const k of Object.keys(ITEMS)) ITEMS[k] = ITEMS[k].filter((it) => !it.ai);
+  for (const k of Object.keys(ITEMS)) ITEMS[k] = ITEMS[k].filter((it) => !it.ai && !it.myBiome);
   for (const id of CUSTOM.biomes.keys()) delete TYPES[id];
   CUSTOM.biomes.clear(); CUSTOM.plants.clear(); CUSTOM.creatures.clear();
   const K = kit(), voxel = STYLE.blocky;
@@ -27,7 +27,8 @@ export function registerAll(custom = {}) {
     const c = (b.colors || []).map((x, i) => col(x, ['#7fae4a', '#5f8f3a', '#a8c860'][i]).getHex());
     while (c.length < 3) c.push(c[0] ?? 0x7fae4a);
     TYPES[b.id] = { h: Math.max(0.36, Math.min(0.5, +b.height || 0.45)), c, surf: [1, Math.min(0.6, +b.roughness || 0) * 0.5, 0], custom: b };
-    ITEMS.land.push({ id: b.id, name: '✦' + b.name, g: (+b.height || 0.45) < 0.4 ? '水边' : (+b.roughness || 0) > 0.6 ? '山石' : '草木', tile: b.id, sw: hex(col(b.colors?.[0])), ai: true });
+    // 造物台做的生态（mine）进「✦ 我造的」，AI 造岛的进「✦ AI」
+    ITEMS.land.push({ id: b.id, name: '✦' + b.name, g: (+b.height || 0.45) < 0.4 ? '水边' : (+b.roughness || 0) > 0.6 ? '山石' : '草木', tile: b.id, sw: hex(col(b.colors?.[0])), ...(b.mine ? { mine: true, myBiome: true } : { ai: true }) });
   }
   for (const a of custom.creatures || []) {
     CUSTOM.creatures.set(a.id, a);

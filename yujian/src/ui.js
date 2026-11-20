@@ -185,7 +185,7 @@ export class UI {
     else body = `
       <div class="rowb"><button class="btn ghost" id="setBench">性能测试</button><button class="btn ghost" id="setExport">查看埋点数据</button>${app.canvasMode ? '' : '<button class="btn ghost danger" id="setReset">重新开始</button>'}</div>
       ${app.debug ? `<div class="dbg"><b>调试</b><button data-d="give">+10 资源</button><button data-d="skip">快进 4 小时</button><button data-d="day">进入下一天</button><button data-d="coupon">+2 卡券</button></div>` : ''}
-      <p class="ver">屿见 v0.26 · 存档只保存在这台设备的浏览器里</p>`;
+      <p class="ver">屿见 v0.27 · 存档只保存在这台设备的浏览器里</p>`;
     const tabs = [['basic', '基础'], ['gfx', '画面'], ['cam', '镜头'], ['ai', 'AI'], ['other', '其他']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('');
     const sh = this.modal(`<header><h2>设置</h2><button class="x" data-close>关闭</button></header><nav class="stabs">${tabs}</nav><div class="set">${body}</div>`, tab === 'gfx' || tab === 'cam' ? 'wide gfxsheet' : '');
     sh.addEventListener('click', (e) => e.stopPropagation());

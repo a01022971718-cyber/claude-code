@@ -157,7 +157,7 @@ export function voxelTree(seed = 1, kind = 'green') {
   let y = 0;
   for (let i = 0; i < 8; i++) { const w = 0.052 - i * 0.003, h = 0.062; T.push(rbox(w, h, w, lean * i * 0.6 + (R() - 0.5) * 0.006, y + h / 2, lean * i * 0.3 + (R() - 0.5) * 0.006, BARK[i % 3].clone().multiplyScalar(0.88 + R() * 0.18), { seg: 1, r: 0.12, ao: i ? 0.04 : 0.25 })); y += h * 0.97; }
   T.push(rbox(0.022, 0.022, 0.12, lean * 3, 0.38, 0.055, BARK[1], { seg: 1, r: 0.2, ao: 0.05, rx: -0.55 }));
-  const pal = kind === 'autumn' ? [0xd88a2e, 0xc8702a, 0xe0a040, 0xb85a28].map(col) : kind === 'lime' ? [0x7fb04a, 0x8fbe52, 0x6a9e40].map(col) : LEAF;
+  const pal = kind === 'autumn' ? [0xd88a2e, 0xc8702a, 0xe0a040, 0xb85a28].map(col) : kind === 'lime' ? [0x7fb04a, 0x8fbe52, 0x6a9e40].map(col) : kind === 'blossom' ? [0xe9a3bc, 0xf2b8cc, 0xd88aa8, 0xf6c8d8, 0xe094b0].map(col) : LEAF;
   voxelBlob(R, lean * 4, 0.6, 0, 0.28, 0.2, 0.27, 0.062, C, { fruit: kind === 'green' ? 0.05 : 0, pal });
   voxelBlob(R, lean * 4 + 0.16, 0.5, 0.08, 0.15, 0.12, 0.15, 0.062, C, { pal });
   voxelBlob(R, lean * 4 - 0.12, 0.72, -0.06, 0.16, 0.12, 0.15, 0.062, C, { pal });

@@ -7,7 +7,7 @@ import { kit } from '../hq/dressing.js';
 export const MAKES = new Map();
 export const MINE_GROUP = '✦ 我造的';
 export function registerMakes() {
-  for (const k of Object.keys(ITEMS)) ITEMS[k] = ITEMS[k].filter((it) => !it.mine);
+  for (const k of Object.keys(ITEMS)) ITEMS[k] = ITEMS[k].filter((it) => !(it.mine && it.make));   // 只撤造物（造物台做的生态由 registerAll 管）
   MAKES.clear();
   for (const m of loadMakes()) {
     MAKES.set(m.id, m);
