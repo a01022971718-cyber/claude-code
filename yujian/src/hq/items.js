@@ -13,6 +13,7 @@ import { partGeo, animatePart, HEX_UNIT } from '../make/model.js';
 
 // 我的造物：每个造物的部件几何只生成一次，摆多少个都共用（还会被统一合批）
 const MAKE_GEO = new Map();
+let RING = null;
 function makeGeos(mk) { const k = mk.id + ':' + JSON.stringify(mk).length; let g = MAKE_GEO.get(k); if (!g) { g = mk.parts.map((p) => { const x = partGeo(p); if (x) x.userData.shared = true; return x; }); MAKE_GEO.set(k, g); } return g; }
 
 /** 浮标：红白相间的小圆柱（样张同款） */
@@ -38,7 +39,7 @@ export class ItemLayer {
     this.group = new THREE.Group(); view.scene.add(this.group);
     this.plantGroup = null; this.items = new Map(); this.objs = new Map(); this.anim = [];
     this.fauna = null; this.pendingFloat = [];
-    this.makeRoot = new THREE.Group(); view.scene.add(this.makeRoot); this.makes = [];
+    this.makeRoot = new THREE.Group(); view.scene.add(this.makeRoot); this.makes = []; this.fx = [];
   }
   _fauna() {
     const v = this.view;
@@ -99,6 +100,21 @@ export class ItemLayer {
     const R = () => Math.random();
     this.makes.push({ id: it.id, holder, parts, mk, mobile: mk.use === 'creature' && mk.behavior !== 'still', home: [it.x, it.z], tx: it.x, tz: it.z, yaw: it.ry || 0, wait: R() * 3, ph: R() * 6, alt: 0.25 + R() * 0.3, hop: 0 });
     return true;
+  }
+  /** 手感反馈：放下的东西弹一下（从小到大略过头再回来），地面泛起一圈光环；擦除时是一圈暖红色的环 */
+  feedback(x, z, kind = 'place', id = null) {
+    const y = this.view.terrain.heightAt(x, z) ?? 0.02, d = id != null && findItem(this.items.get(id)?.k), r = Math.max(0.08, (d?.r ?? 0.1) * 1.2);
+    const ring = new THREE.Mesh(RING ||= new THREE.RingGeometry(0.72, 1, 40).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: kind === 'erase' ? 0xffb090 : 0xfff6dc, transparent: true, opacity: 0.6, depthWrite: false }));
+    ring.position.set(x, y + 0.006, z); ring.renderOrder = 5; this.group.add(ring); this.fx.push({ m: ring, t: 0, T: 0.45, r });
+    const g = id != null && this.objs.get(id); if (g && kind === 'place') { const s0 = g.scale.x; g.scale.setScalar(s0 * 0.4); this.fx.push({ g, t: 0, T: 0.32, s0 }); }
+  }
+  _updFx(dt) {
+    for (let i = this.fx.length - 1; i >= 0; i--) {
+      const f = this.fx[i]; f.t += dt; const u = Math.min(1, f.t / f.T);
+      if (f.m) { f.m.scale.setScalar(f.r * (0.5 + u * 1.2)); f.m.material.opacity = 0.6 * (1 - u) * (1 - u); }
+      else { const e = 1 - (1 - u) ** 3; f.g.scale.setScalar(f.s0 * (0.4 + 0.6 * e + Math.sin(u * Math.PI) * 0.12)); }
+      if (u >= 1) { if (f.m) { this.group.remove(f.m); f.m.material.dispose(); } else f.g.scale.setScalar(f.s0); this.fx.splice(i, 1); }
+    }
   }
   _makeOk(mk, x, z) { const T = this.view.terrain, land = T.heightAt(x, z) != null; if (mk.behavior === 'swim') return !land && T.landDist(x, z) < 2.5; if (mk.behavior === 'fly' || mk.behavior === 'float') return true; return land && !(T.riverD && T.riverD(x, z) < 0.12); }
   _updMakes(dt, t) {
@@ -191,6 +207,7 @@ export class ItemLayer {
   update(dt, t) {
     const v = this.view;
     if (this.makes.length) this._updMakes(dt, t);
+    if (this.fx.length) this._updFx(dt);
     if (this.plantList?.length && (this._plT = (this._plT || 0) + dt) > 0.4) { this._plT = 0; this._layoutPlants(); }
     if (v.marine && this.pendingFloat.length) { for (const g of this.pendingFloat) v.marine.addFloater(g, { draft: g.children[0].geometry === BUOY ? 0.03 : 0.005, stiff: g.children[0].geometry === BUOY ? 14 : 9 }); this.pendingFloat = []; }
     for (const a of this.anim) {

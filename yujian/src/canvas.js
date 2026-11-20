@@ -211,6 +211,7 @@ export class CanvasMode {
     if (cur) removedItems.push(...(this.view.items?.prune() || []));
     this.undo.push({ a: 'tile', q, r, prev: cur ? cur[2] : null, items: removedItems });
     this.app.rig.bounds = this.bounds();
+    navigator.vibrate?.(10);   // 手感：放地块轻震一下（地块本身有升起动画）
     audio.sfx('place');
     if (found) this.discovered(found, q, r);
     this.save();
@@ -239,6 +240,7 @@ export class CanvasMode {
     if (def.prop === 'lighthouse' || def.prop === 'windmill' || def.prop === 'bellTower') it.s = 1;
     if (!this.view.items.add(it)) { app.ui.toast(def.note || (def.animal ? `${def.name}在这里待不住，换块草地试试` : '这里放不下')); return; }
     this.s.items.push(it); this.undo.push({ a: 'item+', id: it.id });
+    this.view.items.feedback?.(it.x, it.z, 'place', it.id); navigator.vibrate?.(8);   // 手感：弹一下 + 光环 + 轻震
     audio.sfx(def.animal ? 'companion' : 'preview'); this.save();
   }
   /** 屏幕上离点击位置最近的物件（点到树冠、风车顶也算点中） */
@@ -252,7 +254,7 @@ export class CanvasMode {
   }
   erase(p, cx, cy) {
     const it = (cx != null && this._screenHit(cx, cy)) || this.view.items.hit(p.x, p.z, 0.05);
-    if (it) { this.view.items.remove(it.id); this.s.items = this.s.items.filter((x) => x.id !== it.id); this.undo.push({ a: 'item-', it }); audio.sfx('harvestWood'); this.save(); return; }
+    if (it) { this.view.items.feedback?.(it.x, it.z, 'erase'); navigator.vibrate?.(14); this.view.items.remove(it.id); this.s.items = this.s.items.filter((x) => x.id !== it.id); this.undo.push({ a: 'item-', it }); audio.sfx('harvestWood'); this.save(); return; }
     const [q, r] = fromWorld(p.x, p.z), cur = this.tileAt(q, r);
     if (!cur || !p.land) return;
     if (this.s.tiles.length <= 1) { this.app.ui.toast('至少留一块地'); return; }

@@ -7,8 +7,8 @@ android {
     applicationId 'com.yujian.island'
     minSdk 24          // Android 7.0 起（WebView 可单独更新，支持 WebGL2）
     targetSdk 35
-    versionCode 23
-    versionName '0.23'
+    versionCode 24
+    versionName '0.24'
   }
   // 测试用签名：密钥在 keystore/ 里，方便每次打的包都能覆盖安装。正式上架要换成自己的签名，且不要提交进仓库
   signingConfigs {

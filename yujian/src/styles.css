@@ -246,7 +246,8 @@ body { background: var(--haze); color: var(--ink); font-family: var(--font); fon
   .c-strip { right: var(--sr); bottom: calc(var(--sb) + 84px); }
   .c-cat { transform: translateX(0); }
   .chud.building .c-cat { transform: translateX(calc((var(--i) + 1) * -54px)); }
-  .chud.building.has-strip .c-bl { bottom: calc(var(--sb) + 192px); }
+  /* 竖屏：底部一排是分类，物件栏会盖住下方——撤销 / 擦除挪到左上（菜单按钮下面），随时点得到 */
+  .chud.building .c-bl, .chud.building.has-strip .c-bl { bottom: auto; top: calc(var(--st) + 110px); }
 }
 @media (max-height: 420px) { .c-item { width: 56px; } .c-art { width: 38px; height: 38px; } .c-hex { width: 34px; height: 38px; } }
 

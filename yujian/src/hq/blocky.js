@@ -289,6 +289,57 @@ export function voxelReeds(seed = 1) {
   for (let i = 0; i < 2; i++) P.push(box(0.014, 0.07, 0.003, (i ? -1 : 1) * 0.012, 0.035, 0.004, G[2], { seg: 0, ao: 0.2, rz: (i ? 1 : -1) * 0.45 }));
   const g = merge(P); windAttr(g, 0.18); return g;
 }
+// ================= 体素主题：飞虫、小鸟（翅膀带 wing 权重，沿用飞虫的扇翅着色器；身体沿 z、翅膀沿 x 展开） =================
+/** 把一组方块合成飞虫几何：wing 部件的顶点 wing = 1 */
+function flyer(parts) {
+  const list = parts.map(([w, h, d, x, y, z, c, wing, o = {}]) => { const g = box(w, h, d, x, y, z, c, { seg: 0, ao: 0.05, ...o }); const n = g.attributes.position.count; g.setAttribute('wing', new THREE.BufferAttribute(new Float32Array(n).fill(wing ? 1 : 0), 1)); return g; });
+  return merge(list);
+}
+const BF = { swallowtail: [0xf2d24a, 0x2a2420, 0x3f6fc0], blue: [0x4f8fe0, 0x1d2a44, 0xbfe0ff], monarch: [0xe8862a, 0x2a2018, 0xf7f0e0], white: [0xf4f2ea, 0x6a6a6a, 0xf2d24a] };
+/** 体素蝴蝶：细身子 + 前后两对方翅（主色、深色翅边、一点斑色） */
+export function voxelButterfly(seed = 1, kind = 'swallowtail') {
+  const [a, edge, spot] = BF[kind] || BF.swallowtail, P = [[0.006, 0.006, 0.03, 0, 0.01, 0, 0x2a2420, 0]];
+  for (const s of [-1, 1]) {
+    P.push([0.03, 0.002, 0.022, s * 0.018, 0.011, 0.007, a, 1], [0.03, 0.0021, 0.004, s * 0.018, 0.011, 0.019, edge, 1], [0.008, 0.0022, 0.008, s * 0.024, 0.011, 0.006, spot, 1]);
+    P.push([0.022, 0.002, 0.016, s * 0.014, 0.0105, -0.011, a, 1], [0.006, 0.0021, 0.006, s * 0.02, 0.0105, -0.012, spot, 1]);
+  }
+  return flyer(P);
+}
+/** 体素蜜蜂：黄黑条纹的方身子 + 两片半透明白翅 */
+export function voxelBee() {
+  const P = [[0.012, 0.011, 0.007, 0, 0.012, 0.006, 0xf2c23a, 0], [0.0125, 0.0115, 0.004, 0, 0.012, 0.0, 0x2a2420, 0], [0.012, 0.011, 0.006, 0, 0.012, -0.006, 0xf2c23a, 0], [0.008, 0.008, 0.006, 0, 0.013, 0.012, 0x2a2420, 0]];
+  for (const s of [-1, 1]) P.push([0.014, 0.0015, 0.009, s * 0.01, 0.019, 0.002, 0xeef4f8, 1]);
+  return flyer(P);
+}
+/** 体素蜻蜓：细长蓝绿身子 + 两对长窄翅 */
+export function voxelDragonfly() {
+  const P = [[0.005, 0.005, 0.05, 0, 0.01, -0.008, 0x3fa0b8, 0], [0.009, 0.008, 0.009, 0, 0.011, 0.02, 0x2f7a8a, 0]];
+  for (const s of [-1, 1]) P.push([0.038, 0.0015, 0.008, s * 0.022, 0.012, 0.01, 0xdfeff4, 1], [0.034, 0.0015, 0.007, s * 0.02, 0.012, 0.0, 0xdfeff4, 1]);
+  return flyer(P);
+}
+const SB = { robin: [0x8a6a4a, 0xe07a3a], tit: [0x5a8a5a, 0xf2d24a], finch: [0x9a7a5a, 0xd85a4a] };
+/** 体素小鸟：方身子、浅色胸口、方头、小尖嘴、两片翅膀、短尾 */
+export function voxelSongbird(seed = 1, kind = 'robin') {
+  const [body, chest] = SB[kind] || SB.robin, P = [[0.026, 0.022, 0.034, 0, 0.022, 0, body, 0], [0.02, 0.014, 0.02, 0, 0.018, 0.008, chest, 0], [0.02, 0.02, 0.02, 0, 0.037, 0.016, body, 0], [0.006, 0.005, 0.01, 0, 0.035, 0.03, 0xe8b84a, 0], [0.016, 0.004, 0.016, 0, 0.026, -0.022, body, 0]];
+  for (const s of [-1, 1]) P.push([0.026, 0.004, 0.02, s * 0.02, 0.026, 0, body, 1], [0.004, 0.004, 0.003, s * 0.007, 0.04, 0.026, 0x1d1a1a, 0]);
+  return flyer(P);
+}
+
+// ================= 体素主题：小装饰（菜苗、睡莲、树桩、海草堆、浮木、贝壳） =================
+/** 体素睡莲：扁方叶片（缺一角）+ 可选一朵方花 */
+export function voxelLily(seed = 1, flower = false) {
+  const R = rng(seed * 19 + 3), P = [], G = [0x4f8a3a, 0x5f9d40, 0x3f7530].map(col);
+  for (let i = -1; i <= 1; i++) for (let k = -1; k <= 1; k++) { if (i === 1 && k === 1) continue; P.push(box(0.045, 0.006, 0.045, i * 0.045, 0.003, k * 0.045, G[Math.floor(R() * 3)], { seg: 0, ao: 0 })); }
+  if (flower) { P.push(box(0.04, 0.02, 0.04, 0, 0.016, 0, 0xf4b8c8, { seg: 1, r: 0.3, ao: 0.1 }), box(0.016, 0.012, 0.016, 0, 0.03, 0, 0xf2d24a, { seg: 0, ao: 0 })); }
+  return merge(P);
+}
+/** 体素树桩：两节圆角树皮块 + 浅色年轮顶 */
+export function voxelStump() { return merge([rbox(0.064, 0.036, 0.064, 0, 0.018, 0, BARK[0], { seg: 1, r: 0.2, ao: 0.25 }), rbox(0.056, 0.012, 0.056, 0, 0.042, 0, 0xd9a66b, { seg: 0, ao: 0 })]); }
+/** 体素海草堆 / 浮木 / 贝壳（沙滩上的小东西） */
+export function voxelWrack(seed = 1) { const R = rng(seed * 7 + 1), P = []; for (let i = 0; i < 6; i++) P.push(box(0.03 + R() * 0.03, 0.006, 0.012, (R() - 0.5) * 0.08, 0.003, (R() - 0.5) * 0.06, [0x4a5a2a, 0x5a4a2a, 0x3f4f2a][i % 3], { seg: 0, ao: 0, ry: R() * 3 })); return merge(P); }
+export function voxelDrift(seed = 1) { const R = rng(seed * 11 + 5); return merge([rbox(0.16, 0.022, 0.024, 0, 0.011, 0, 0xb8a588, { seg: 1, r: 0.3, ao: 0.2, ry: R() * 3 }), box(0.05, 0.014, 0.014, 0.05, 0.02, 0.02, 0xa8957a, { seg: 0, ao: 0, ry: R() * 3 })]); }
+export function voxelShells(seed = 1) { const R = rng(seed * 13 + 9), P = []; for (let i = 0; i < 4; i++) P.push(box(0.012, 0.007, 0.012, (R() - 0.5) * 0.08, 0.0035, (R() - 0.5) * 0.08, [0xf4e6d8, 0xf0c0a8, 0xe8d4c0, 0xf8f0e4][i], { seg: 1, r: 0.35, ao: 0 })); return merge(P); }
+
 /** 体素椰子树：弯弯的方块树干 + 一圈下垂的方块叶子 */
 export function voxelPalm(seed = 1, s = 1) {
   const R = rng(seed * 29 + 1), T = [], C = [], H = 0.9 * s; let x = 0, y = 0;

@@ -40,6 +40,10 @@ export function kit() {
       rock: [1, 2, 3, 4, 5, 6, 7, 8].map((s) => BK.voxelRock(s, s % 4, s < 7 ? 1 : 0)),
       palm: [BK.voxelPalm(1, 0.95), BK.voxelPalm(2, 1.1)],
       reed: [BK.voxelReeds(1), BK.voxelReeds(2)],
+      crop: [BK.voxelBush(21, 'lime'), BK.voxelBush(22, 'green'), BK.voxelBush(23, 'lime')],
+      lily: [BK.voxelLily(1, false), BK.voxelLily(2, true)],
+      stump: [BK.voxelStump()],
+      wrack: [BK.voxelWrack(1), BK.voxelWrack(2)], drift: [BK.voxelDrift(1), BK.voxelDrift(2)], shell: [BK.voxelShells(1), BK.voxelShells(2)],
     } : {}),
     // 远处用的简化树：每个变体一份（和高精度树一一对应），远近切换由画面按区块决定
     conLo: (() => { const g = BK.lowConifer(BK.STYLE.blocky); return [g, g, g, g, g]; })(),

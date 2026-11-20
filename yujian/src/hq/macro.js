@@ -4,6 +4,16 @@ import * as THREE from 'three';
 import { bladeField } from './vegetation.js';
 import { TYPES } from './terrain.js';
 import { rng } from './noise.js';
+import { STYLE } from './blocky.js';
+
+/** 体素雏菊：方茎 + 白色扁方花瓣 + 黄色方花心（体素主题用） */
+function voxelDaisy() {
+  const parts = [[0.004, 0.1, 0x4f8a34, 0.05], [0.016, 0.006, 0xf6f3ea, 0.1], [0.007, 0.006, 0xf2b81e, 0.105]];
+  const list = parts.map(([w, h, c, y]) => { const g = new THREE.BoxGeometry(w, h, w).toNonIndexed(); g.deleteAttribute('uv'); g.translate(0, y, 0); const cc = new THREE.Color(c), a = new Float32Array(g.attributes.position.count * 3); for (let i = 0; i < a.length; i += 3) a.set([cc.r, cc.g, cc.b], i); g.setAttribute('color', new THREE.BufferAttribute(a, 3)); return g; });
+  const n = list.reduce((s, g) => s + g.attributes.position.count, 0), P = new Float32Array(n * 3), N = new Float32Array(n * 3), C = new Float32Array(n * 3); let o = 0;
+  for (const g of list) { P.set(g.attributes.position.array, o * 3); N.set(g.attributes.normal.array, o * 3); C.set(g.attributes.color.array, o * 3); o += g.attributes.position.count; }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(P, 3)); g.setAttribute('normal', new THREE.BufferAttribute(N, 3)); g.setAttribute('color', new THREE.BufferAttribute(C, 3)); return g;
+}
 
 const GRASSY = new Set(['meadow', 'flowers', 'camp', 'pond', 'stream', 'islet', 'forest', 'mountain']);
 const R0 = 1.9;   // 铺多大一圈（单位）
@@ -28,18 +38,23 @@ export class MacroLayer {
     this.at = null; this.grass = null;
     this.dewMat = new THREE.MeshStandardMaterial({ color: 0xdfeee8, roughness: 0.03, metalness: 0, envMapIntensity: 3, transparent: true, opacity: 0.35 });   // 露珠：几乎透明，只留高光
     this.dew = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 2), this.dewMat, 900); this.dew.count = 0; this.dew.frustumCulled = false; this.group.add(this.dew);
-    this.daisy = new THREE.InstancedMesh(daisyGeometry(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.65, side: THREE.DoubleSide }), 90); this.daisy.count = 0; this.daisy.frustumCulled = false; this.daisy.castShadow = false; this.group.add(this.daisy);
+    this.daisy = new THREE.InstancedMesh(STYLE.blocky ? voxelDaisy() : daisyGeometry(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.65, side: THREE.DoubleSide }), 90); this.daisy.count = 0; this.daisy.frustumCulled = false; this.daisy.castShadow = false; this.group.add(this.daisy);
   }
   update(focus, dist) {
     const on = dist < 4.5; this.group.visible = on;
     if (!on) return;
+    // 重建分帧做：每帧最多算 3 毫秒，算完再一次换上（旧的草一直显示着），镜头移动时不再卡一下
+    if (this.job) { const t0 = performance.now(); let r; do { r = this.job.next(); } while (!r.done && performance.now() - t0 < 3); if (r.done) this.job = null; return; }
     if (this.at && Math.hypot(focus.x - this.at.x, focus.z - this.at.z) < 0.5 && this.ver === this.view.landChanged) return;
-    this.at = focus.clone(); this.ver = this.view.landChanged; this._build(focus.x, focus.z);
+    this.at = focus.clone(); this.ver = this.view.landChanged; this.job = this._build(focus.x, focus.z);
   }
-  _build(cx, cz) {
+  *_build(cx, cz) {
     const T = this.view.terrain, R = rng(((Math.round(cx * 2) * 73856093) ^ (Math.round(cz * 2) * 19349663)) >>> 0), list = [], m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
     let nd = 0, nf = 0;
-    for (let i = 0; i < 11000; i++) {
+    const N = STYLE.blocky ? 5000 : 11000, dewOn = !STYLE.blocky;   // 体素主题：草茎粗、不要露珠
+    const dm = [], fm = [];
+    for (let i = 0; i < N; i++) {
+      if ((i & 511) === 511) yield;
       const a = R() * Math.PI * 2, r = Math.sqrt(R()) * R0, x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r, t = T.tileAt(x, z);
       if (!t || !(GRASSY.has(t.t) || (TYPES[t.t]?.custom?.grass ?? 0) > 0.3)) continue;
       if (T.riverD && T.riverD(x, z) < 0.2) continue;
@@ -49,10 +64,12 @@ export class MacroLayer {
       const h = T.heightIn(t, x, z), c = T._topColor(t, x, z, h), v = 0.95 + R() * 0.3, tall = 0.05 + R() * R() * 0.08;
       list.push({ x, y: h - 0.004, z, h: tall * (t.t === 'forest' ? 0.8 : 1), w: 0.004 + R() * 0.004, lean: R() * 0.45, rot: R() * 6.28, tint: [c.r * v * 1.18, c.g * v * 1.12, c.b * v * 0.9], tint2: [c.r * 0.5, c.g * 0.58, c.b * 0.45] });
       // 露珠：挂在一部分草叶的中上部
-      if (R() < 0.09 && nd < this.dew.instanceMatrix.count) { const f = 0.45 + R() * 0.45, rr = 0.0010 + R() * 0.0011; this.dew.setMatrixAt(nd++, m4.compose(p.set(x + Math.cos(a) * 0.002, h + tall * f, z), q.identity(), s.set(rr, rr * 1.12, rr))); }
+      if (dewOn && R() < 0.09 && nd < this.dew.instanceMatrix.count) { const f = 0.45 + R() * 0.45, rr = 0.0010 + R() * 0.0011; dm.push(m4.compose(p.set(x + Math.cos(a) * 0.002, h + tall * f, z), q.identity(), s.set(rr, rr * 1.12, rr)).clone()); nd++; }
       // 雏菊：零星几朵，比草高一点
-      if (R() < 0.006 && nf < 90) { const k = 0.8 + R() * 0.5; this.daisy.setMatrixAt(nf++, m4.compose(p.set(x, h - 0.003, z), q.setFromAxisAngle(s.set(R() - 0.5, 0, R() - 0.5).normalize(), R() * 0.2), s.set(k, k * (0.9 + R() * 0.3), k))); }
+      if (R() < (STYLE.blocky ? 0.012 : 0.006) && nf < 90) { const k = 0.8 + R() * 0.5; fm.push(m4.compose(p.set(x, h - 0.003, z), q.setFromAxisAngle(s.set(R() - 0.5, 0, R() - 0.5).normalize(), R() * 0.2), s.set(k, k * (0.9 + R() * 0.3), k)).clone()); nf++; }
     }
+    yield;
+    dm.forEach((m, i) => this.dew.setMatrixAt(i, m)); fm.forEach((m, i) => this.daisy.setMatrixAt(i, m));
     if (this.grass) { this.group.remove(this.grass); this.grass.geometry.dispose(); }
     this.grass = bladeField('grass', list); this.grass.name = 'macro-grass'; this.group.add(this.grass);
     this.dew.count = nd; this.dew.instanceMatrix.needsUpdate = true;

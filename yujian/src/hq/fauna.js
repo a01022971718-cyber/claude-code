@@ -7,7 +7,14 @@ import { simplify } from './simplify.js';
 import * as L0 from './models-land.js';
 import * as BK from './blocky.js';
 // 体素主题：陆地动物换成方块造型（蝴蝶、蜜蜂、蜻蜓、林鸟太小，两套主题共用）
-const L = BK.STYLE.blocky ? { ...L0, sheep: BK.sheep, rabbit: BK.rabbit, deer: BK.deer, goat: BK.goat, crab: BK.crab, duck: BK.duck, frog: BK.frog } : L0;
+/** 体素飞虫按原模型的外框大小对齐（翅展一样大，扇翅和停落的位置不变） */
+function fitTo(geo, ref) {
+  const r = (ref.geometry || ref); r.computeBoundingBox(); geo.computeBoundingBox();
+  const a = r.boundingBox, b = geo.boundingBox, k = Math.max(a.max.x - a.min.x, a.max.z - a.min.z) / Math.max(1e-6, b.max.x - b.min.x, b.max.z - b.min.z);
+  geo.scale(k, k, k); geo.computeBoundingBox(); const c = geo.boundingBox; geo.translate((a.min.x + a.max.x - c.min.x - c.max.x) / 2, a.min.y - c.min.y, (a.min.z + a.max.z - c.min.z - c.max.z) / 2); geo.computeBoundingSphere(); return { geometry: geo };
+}
+const L = BK.STYLE.blocky ? { ...L0, sheep: BK.sheep, rabbit: BK.rabbit, deer: BK.deer, goat: BK.goat, crab: BK.crab, duck: BK.duck, frog: BK.frog,
+  butterfly: (s, k) => fitTo(BK.voxelButterfly(s, k), L0.butterfly(s, k)), bee: (s) => fitTo(BK.voxelBee(s), L0.bee(s)), dragonfly: (s) => fitTo(BK.voxelDragonfly(s), L0.dragonfly(s)), songbird: (s, k) => fitTo(BK.voxelSongbird(s, k), L0.songbird(s, k)) } : L0;
 import { GLSL_NOISE } from './noise.js';
 import { U } from './materials.js';
 import { G } from './waves.js';
