@@ -567,7 +567,7 @@ export class HQView {
     if (this.q.ao && !this.chunksDirty) { this.macro ||= new MacroLayer(this); this.macro.update(focus, dist); this.pipe.opts.macro = Math.max(0, Math.min(1, (4.2 - dist) / 2.8)); }   // 特写的微距草地和浅景深（极致、高清档）
     // 动物、海龟、海鸥、村民、岸边的鸟：全岛合批（同一部件一次绘制）
     // 动物和小件：屏幕上高度不到 40 像素（约 0.15 单位高）换简化模型
-    this.batcher.sync([this.faunaRoot, this.marine?.group, this.gulls.group, this.villagers.group, this.wild.group, this.creatures.group], this.camera, (11 + 10 * this.lodK) * (this.q.viewK ?? 1), this.ppuDist(260 / (0.55 + 0.45 * this.lodK)));
+    this.batcher.sync([this.faunaRoot, this.marine?.group, this.gulls.group, this.villagers.group, this.wild.group, this.creatures.group, this.items.makeRoot], this.camera, (11 + 10 * this.lodK) * (this.q.viewK ?? 1), this.ppuDist(260 / (0.55 + 0.45 * this.lodK)));
     // 营火：离镜头最近的那一处冒火苗和炊烟
     let bestF = null, bd = 1e9; for (const f of this.fires.values()) { const d = Math.hypot(f[0] - focus.x, f[2] - focus.z); if (d < bd) { bd = d; bestF = f; } }
     this.fireAt = bestF;

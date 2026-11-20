@@ -184,7 +184,7 @@ export class UI {
     else body = `
       <div class="rowb"><button class="btn ghost" id="setBench">性能测试</button><button class="btn ghost" id="setExport">查看埋点数据</button>${app.canvasMode ? '' : '<button class="btn ghost danger" id="setReset">重新开始</button>'}</div>
       ${app.debug ? `<div class="dbg"><b>调试</b><button data-d="give">+10 资源</button><button data-d="skip">快进 4 小时</button><button data-d="day">进入下一天</button><button data-d="coupon">+2 卡券</button></div>` : ''}
-      <p class="ver">屿见 v0.18 · 存档只保存在这台设备的浏览器里</p>`;
+      <p class="ver">屿见 v0.19 · 存档只保存在这台设备的浏览器里</p>`;
     const tabs = [['basic', '基础'], ['gfx', '画面'], ['cam', '镜头'], ['ai', 'AI'], ['other', '其他']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('');
     const sh = this.modal(`<header><h2>设置</h2><button class="x" data-close>关闭</button></header><nav class="stabs">${tabs}</nav><div class="set">${body}</div>`, tab === 'gfx' || tab === 'cam' ? 'wide gfxsheet' : '');
     sh.addEventListener('click', (e) => e.stopPropagation());
@@ -250,8 +250,8 @@ export class UI {
       <label><span id="aiQ">想要一座什么样的岛？</span><textarea id="aiPrompt" rows="3"></textarea></label>
       <div class="aichips"></div>
       <label class="aichk"><input type="checkbox" id="aiReview" ${(() => { try { return localStorage.getItem('yujian_ai_review') === '0' ? '' : 'checked'; } catch { return 'checked'; } })()}> AI 审图：生成后把对比图给 AI 看，按清单打分并修改（模型要能看图）</label>
-      <div class="rowb"><button class="btn ghost" id="aiSop">造物手册</button><button class="btn" id="aiGo">生成</button></div><p class="note aimsg" id="aiMsg"></p><div id="aiOut" class="aiout"></div>
-      <p class="note">流程：① AI 按造物手册设计配方 → ② 游戏用原有素材的笔法生成模型 → ③ AI 看对比图审图、修改 → ④ 你确认后放进岛里。用的是「设置 → AI」里选的服务商（${app.ai.prov.name}）。</p></div>`);
+      <div class="rowb"><button class="btn ghost" id="aiSop">美术圣经</button><button class="btn" id="aiGo">生成</button></div><p class="note aimsg" id="aiMsg"></p><div id="aiOut" class="aiout"></div>
+      <p class="note">流程：① AI 按美术圣经设计配方 → ② 游戏用原有素材的笔法生成模型 → ③ AI 看对比图审图、修改 → ④ 你确认后放进岛里。用的是「设置 → AI」里选的服务商（${app.ai.prov.name}）。</p></div>`);
     const setMode = (m) => {
       mode = m; sh.querySelectorAll('[data-m]').forEach((b) => b.classList.toggle('on', b.dataset.m === m));
       sh.querySelector('#aiQ').textContent = m === 'new' ? '想要一座什么样的岛？（AI 会创造新的生态、植物和动物）' : m === 'create' ? '想创造什么新东西？（生态、植物、动物，造好后放进这座岛，也会出现在建造栏里）' : '想怎么改现在的岛？';
@@ -271,7 +271,7 @@ export class UI {
       const step = (k, t) => { msg.innerHTML = `<b>${'①②③④'[k]}</b> ${t}`; };
       try {
         const cv = app.canvasMode, ask = mode === 'create' ? `请创造这些新东西，并把它们放进现在这座岛里（新生态铺几块新地块接在岛边上，新植物和新动物摆进去）：${text}` : text;
-        step(0, mode === 'edit' ? 'AI 正在改造这座岛……' : 'AI 正在按造物手册（SOP）设计配方……');
+        step(0, mode === 'edit' ? 'AI 正在改造这座岛……' : 'AI 正在按美术圣经设计配方……');
         const L = await app.ai.island(ask, mode === 'new' ? null : cv.layout(), cv.known());
         const made = () => [...L.biomes.map((x) => '生态「' + x.name + '」'), ...L.plants.map((x) => '植物「' + x.name + '」'), ...L.creatures.map((x) => '动物「' + x.name + '」')];
         let note = '';
@@ -304,7 +304,7 @@ export class UI {
   }
   /** 造物手册：AI 和人共用的美术 SOP */
   openSOP() {
-    const sh = this.modal(`<header><h2>造物手册（SOP）</h2><button class="x" data-close>关闭</button></header>${sopHTML()}`);
+    const sh = this.modal(`<header><h2>体素美术圣经</h2><button class="x" data-close>关闭</button></header>${sopHTML()}`);
     sh.querySelector('[data-close]').onclick = () => this.closeModal();
   }
   /** 镜头设置页 */

@@ -12,6 +12,8 @@ import { audio } from './audio.js';
 import { CAM_ICON } from './camdock.js';
 import { CUSTOM } from './creations.js';
 import { enterBlocks } from './blocks/app.js';
+import { MAKES, MINE_GROUP } from './make/register.js';
+import { mergedGeo, HEX_UNIT } from './make/model.js';
 import { creatureParts } from './hq/forge.js';
 import { STYLE } from './hq/blocky.js';
 import * as THREE from 'three';
@@ -112,11 +114,12 @@ export class CanvasHUD {
     if (id === 'sky') sub = '跟随现实时间时，早晚和你那边同步';
     this.el.head.innerHTML = `<b>${cat.name}</b><span>${sub}</span><button class="c-x" data-a="closeStrip" aria-label="收起">${I.close}</button>`;
     // 小分类：全部 · 各小类 · ✦ AI 造物（只列有东西的）
-    const all = ITEMS[id], gs = [...(GROUPS[id] || []).filter((g) => all.some((it) => it.g === g)), ...(all.some((it) => it.ai) ? [AI_GROUP] : [])];
+    const all = ITEMS[id], gs = [...(all.some((it) => it.mine) ? [MINE_GROUP] : []), ...(GROUPS[id] || []).filter((g) => all.some((it) => it.g === g)), ...(all.some((it) => it.ai) ? [AI_GROUP] : [])];
+    const inG = (it, g) => (g === AI_GROUP ? it.ai : g === MINE_GROUP ? it.mine : it.g === g);
     let cur = this.group[id] || ''; if (cur && !gs.includes(cur)) cur = this.group[id] = '';
     this.el.groups.hidden = gs.length < 2;
-    this.el.groups.innerHTML = [['', '全部'], ...gs.map((g) => [g, g])].map(([g, n]) => `<button class="c-grp ${g === cur ? 'on' : ''}" data-grp="${g}">${n}<i>${g ? all.filter((it) => (g === AI_GROUP ? it.ai : it.g === g)).length : all.length}</i></button>`).join('');
-    const list = cur ? all.filter((it) => (cur === AI_GROUP ? it.ai : it.g === cur)) : all;
+    this.el.groups.innerHTML = [['', '全部'], ...gs.map((g) => [g, g])].map(([g, n]) => `<button class="c-grp ${g === cur ? 'on' : ''}" data-grp="${g}">${n}<i>${g ? all.filter((it) => inG(it, g)).length : all.length}</i></button>`).join('');
+    const list = cur ? all.filter((it) => inG(it, cur)) : all;
     this.el.items.innerHTML = list.map((it) => {
       const locked = it.rare && !cv.unlocked(it.id), on = cv.sel === it.id;
       return `<button class="c-item ${on ? 'on' : ''} ${locked ? 'locked' : ''} ${it.rare ? 'rare' : ''}" data-item="${it.id}">${this._icon(it, locked)}<i>${locked ? '未发现' : it.name}</i></button>`;
@@ -136,7 +139,8 @@ export class CanvasHUD {
     if (this.thumbs.has(it.id)) return this.thumbs.get(it.id);
     let obj = null;
     try {
-      if (it.kit) obj = kit()[it.kit][it.v];
+      if (it.make) { const mk = MAKES.get(it.make), g = mk && mergedGeo(mk); if (g) { g.scale(HEX_UNIT, HEX_UNIT, HEX_UNIT); obj = g; } }
+      else if (it.kit) obj = kit()[it.kit][it.v];
       else if (it.prop && typeof P[it.prop] === 'function') obj = propOf(P[it.prop], 0).geometry;
       else if (it.creature) {   // AI 创造的动物：按配方生成的部件拼起来拍一张
         const sp = CUSTOM.creatures.get(it.creature), P = sp && creatureParts(sp, STYLE.blocky);
@@ -199,7 +203,7 @@ export class CanvasHUD {
         <button class="c-card" data-n="blank"><b>空白小岛</b><span>三块地，从零开始搭</span></button>
         <button class="c-card" data-n="ai"><b>AI 造岛</b><span>用一句话描述，AI 帮你设计一座岛</span></button>
         <button class="c-card" data-n="blocks"><b>方块岛（试玩）</b><span>在方块组成的岛上自由建造：放、拆、吸取、剖切看屋里</span></button>
-        <button class="c-card" data-n="sop"><b>造物手册</b><span>AI 和人共用的美术 SOP：七步做法、色板、比例尺、审图清单</span></button>
+        <button class="c-card" data-n="sop"><b>美术圣经</b><span>以原版体素素材为标准：素体规则、原版拆解、配色方法</span></button>
       </div>
       <p class="note">已发现：${Object.keys(RARE).map((k) => `${RARE[k].name}${cv.unlocked(k) ? ' ✓' : '（未发现）'}`).join('　')}</p>
       <p class="note">自由画布的存档和经营玩法分开保存。想玩资源、目标、地块卡，到设置里打开「经营玩法」。</p>`, 'small');

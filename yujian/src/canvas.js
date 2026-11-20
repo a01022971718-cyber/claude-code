@@ -5,6 +5,7 @@ import { key, toWorld, fromWorld, DIRS } from './hex.js';
 import { findItem, STARTER } from './catalog.js';
 import { CANNED } from './ai.js';
 import { registerAll } from './creations.js';
+import { registerMakes } from './make/register.js';
 import { STYLE } from './hq/blocky.js';
 // AI 造物里引用原有植物时，对应的植被套件
 const BASE_KIT = { pine: 'con', oak: 'broad', sakura: 'broad', maple: 'broad', bush: 'bush', palm: 'palm', reed: 'reed', boulder: 'rock' };
@@ -45,7 +46,7 @@ export class CanvasMode {
   /** 把存档里的 AI 造物登记进游戏（新地块类型、新植物模型、新动物） */
   registerCustom() {
     const c = (this.s.custom ||= { biomes: [], plants: [], creatures: [], seq: 1 });
-    registerAll(c); this.view.creatures?.setSpecs(c.creatures, STYLE.blocky);
+    registerAll(c); registerMakes(); this.view.creatures?.setSpecs(c.creatures, STYLE.blocky);
   }
   /** 以前造过的东西的名字（AI 造岛时可以直接引用） */
   known() { const c = this.s.custom || {}; return { biomes: (c.biomes || []).map((x) => x.name), plants: (c.plants || []).map((x) => x.name), creatures: (c.creatures || []).map((x) => x.name) }; }

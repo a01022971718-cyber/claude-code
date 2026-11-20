@@ -12,6 +12,8 @@ const { chromium } = require('playwright');
   page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
   await page.exposeFunction('__shot', async (name) => { await page.screenshot({ path: out.replace(/\.png$/, '-' + name + '.png'), timeout: 240000 }); });
+  // INIT=脚本文件：页面加载前先执行（比如往本机存储里预置存档）
+  if (process.env.INIT) await page.addInitScript({ path: process.env.INIT });
   await page.goto('file://' + path.resolve(__dirname, '../dist/' + (process.env.PAGE || 'index.html')) + (query ? '?' + query : ''));
   await page.waitForFunction(`window.${process.env.READY || '__game'} && window.${process.env.READY || '__game'}.ready`, null, { timeout: 180000 });
   if (script && fs.existsSync(script)) {

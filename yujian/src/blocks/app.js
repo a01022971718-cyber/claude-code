@@ -10,6 +10,7 @@ import { Atmosphere, presetAt } from '../hq/atmosphere.js';
 import { World, SX, SY, SZ, CS, CX, CY, CZ, SEA } from './world.js';
 import { BLOCKS, CATS, ID } from './defs.js';
 import { meshChunk, blockMaterial } from './mesher.js';
+import { Studio } from '../make/studio.js';
 
 const S = 0.25;                 // 一格方块 = 0.25 个世界单位（和六边形岛的镜头尺度一致）
 const MODE_KEY = 'yujian_mode';
@@ -28,9 +29,9 @@ export class BlockApp {
     this.mat = blockMaterial(); this.matClear = blockMaterial({ transparent: true });
     // 海：一整片水面（岛内低于海平面的地方透过水面看得到海底）
     const sea = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.MeshStandardMaterial({ color: 0x2a86a0, roughness: 0.18, metalness: 0, transparent: true, opacity: 0.86, depthWrite: false, envMapIntensity: 0.35 }));
-    sea.rotation.x = -Math.PI / 2; sea.position.set(SX * S / 2, (SEA - 0.12) * S, SZ * S / 2); sea.renderOrder = 2; this.scene.add(sea);
+    sea.rotation.x = -Math.PI / 2; sea.position.set(SX * S / 2, (SEA - 0.12) * S, SZ * S / 2); sea.renderOrder = 2; this.scene.add(sea); this.sea = sea;
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.MeshStandardMaterial({ color: 0x7a9a8a, roughness: 1 }));
-    floor.rotation.x = -Math.PI / 2; floor.position.y = 0.2 * S; this.scene.add(floor);
+    floor.rotation.x = -Math.PI / 2; floor.position.y = 0.2 * S; this.scene.add(floor); this.floor = floor;
     // 幽灵方块：按下时的落点预览
     this.ghost = new THREE.Group();
     this.ghostBox = new THREE.Mesh(new THREE.BoxGeometry(1.02, 1.02, 1.02), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.32, depthWrite: false }));
@@ -43,7 +44,9 @@ export class BlockApp {
     rig.free = true; rig.maxDist = 70; rig.lookY = SEA * S;
     rig.bounds = { minX: 0, maxX: SX * S, minZ: 0, maxZ: SZ * S };
     rig.heightAt = (x, z) => this.world.top(Math.floor(x / S), Math.floor(z / S)) * S;
-    rig.builder = { active: () => this.tool !== 'look', down: (e) => this._down(e), move: (e) => this._move(e), up: (e, c) => this._up(e, c) };
+    // 拿着笔时单指交给建造（造物台打开时交给造物台）
+    this.studio = new Studio(this);
+    rig.builder = { active: () => (this.studio.on ? !!this.studio.make && this.studio.tool !== 'look' : this.tool !== 'look'), down: (e) => (this.studio.on ? this.studio.down(e) : this._down(e)), move: (e) => (this.studio.on ? this.studio.move(e) : this._move(e)), up: (e, c) => (this.studio.on ? this.studio.up(e, c) : this._up(e, c)) };
     this._buildHUD();
     addEventListener('resize', () => this.resize()); this.resize();
     addEventListener('visibilitychange', () => { if (document.hidden) this.save(); });
@@ -176,7 +179,7 @@ export class BlockApp {
   _buildHUD() {
     const h = this.hud = document.createElement('div'); h.className = 'bhud';
     h.innerHTML = `
-      <div class="b-tl"><button class="b-btn" data-a="menu">屿</button><span class="b-title">方块岛 · 试玩</span></div>
+      <div class="b-tl"><button class="b-btn" data-a="menu">屿</button><span class="b-title">方块岛 · 试玩</span><button class="b-pill b-make" data-a="studio">造物台</button></div>
       <div class="b-tools">${TOOLS.map(([k, n]) => `<button class="b-pill ${k === this.tool ? 'on' : ''}" data-tool="${k}">${n}</button>`).join('')}
         <div class="b-gap"></div><button class="b-pill" data-a="undo">撤销</button><button class="b-pill" data-a="redo">重做</button></div>
       <div class="b-cut"><span>剖切</span><input type="range" min="${SEA - 2}" max="${SY}" value="${SY}" step="1" class="b-cutr" aria-label="剖切高度"><b class="b-cutv">关</b></div>
@@ -191,6 +194,7 @@ export class BlockApp {
       const a = b.dataset.a;
       if (a === 'undo') this.undo(); else if (a === 'redo') this.redo(); else if (a === 'menu') this._menu(true);
       else if (a === 'close') this._menu(false);
+      else if (a === 'studio') { this._menu(false); this.studio.open(); }
       else if (a === 'newNatural' || a === 'newFlat') { if (!confirm('新建一座岛会替换现在这座，确定吗？')) return; a === 'newNatural' ? this.world.genNatural(1 + Math.floor(Math.random() * 999)) : this.world.genFlat(); this.undoStack = []; this.redoStack = []; this._menu(false); this._dirty(); }
       else if (a === 'fps') { this.fps.show = !this.fps.show; h.querySelector('.b-fps').hidden = !this.fps.show; this._menu(false); }
       else if (a === 'back') { this.save().finally(() => { try { localStorage.setItem(MODE_KEY, 'island'); } catch { /* */ } location.reload(); }); }
@@ -210,6 +214,7 @@ export class BlockApp {
   _menu(on) {
     const m = this.hud.querySelector('.b-menu'); m.hidden = !on; if (!on) return;
     m.innerHTML = `<div class="b-card"><header><b>方块岛</b><button class="b-x" data-a="close">关闭</button></header>
+      <button class="b-row" data-a="studio"><b>造物台</b><span>自由造动物、植物、建筑摆件，保存后带回六边形岛</span></button>
       <button class="b-row" data-a="newNatural"><b>新建自然岛</b><span>沙滩、草地、丘陵、岩山和树</span></button>
       <button class="b-row" data-a="newFlat"><b>新建平坦岛</b><span>一整块草地平台，适合纯建造</span></button>
       <button class="b-row" data-a="fps"><b>${this.fps.show ? '隐藏' : '显示'}帧率</b><span>测速用：帧率、最低帧、三角形、绘制次数</span></button>
@@ -221,6 +226,7 @@ export class BlockApp {
   loop(t) {
     const now = performance.now(), dt = Math.min(0.1, (now - this.last) / 1000); this.last = now;
     this.rig.update(dt);
+    if (this.studio.on) this.studio.update(dt, now / 1000);
     if (this.world.dirty.size) this.rebuild(6);
     const f = this.rig.focus; this.atmo.follow(f.x, f.z, Math.min(26, Math.max(6, this.rig.dist * 0.75)));
     const ri = this.renderer.info; ri.autoReset = false; ri.reset();

@@ -7,6 +7,12 @@ import * as P from './props.js';
 import { Fauna } from './fauna.js';
 import { findItem } from '../catalog.js';
 import { LAYER_FX } from './pipeline.js';
+import { MAKES } from '../make/register.js';
+import { partGeo, animatePart, HEX_UNIT } from '../make/model.js';
+
+// 我的造物：每个造物的部件几何只生成一次，摆多少个都共用（还会被统一合批）
+const MAKE_GEO = new Map();
+function makeGeos(mk) { const k = mk.id + ':' + JSON.stringify(mk).length; let g = MAKE_GEO.get(k); if (!g) { g = mk.parts.map((p) => { const x = partGeo(p); if (x) x.userData.shared = true; return x; }); MAKE_GEO.set(k, g); } return g; }
 
 /** 浮标：红白相间的小圆柱（样张同款） */
 let BUOY = null;
@@ -31,6 +37,7 @@ export class ItemLayer {
     this.group = new THREE.Group(); view.scene.add(this.group);
     this.plantGroup = null; this.items = new Map(); this.objs = new Map(); this.anim = [];
     this.fauna = null; this.pendingFloat = [];
+    this.makeRoot = new THREE.Group(); view.scene.add(this.makeRoot); this.makes = [];
   }
   _fauna() {
     const v = this.view;
@@ -50,6 +57,7 @@ export class ItemLayer {
   add(it, batch = false) {
     const def = findItem(it.k); if (!def) return false;
     const v = this.view, y = v.terrain.heightAt(it.x, it.z);
+    if (def.make) return this._addMake(it, def, y);
     if (def.creature) {   // AI 创造的动物
       if (!v.creatures?.spawn(def.creature, it.x, it.z)) return false;
       this.items.set(it.id, it); return true;
@@ -77,6 +85,39 @@ export class ItemLayer {
     if (def.fire) v.fires.set(it.id, [it.x + (pr.anchors.fire?.[0] || 0), y + (pr.anchors.fire?.[1] || 0.02), it.z + (pr.anchors.fire?.[2] || 0)]);
     return true;
   }
+  /** 摆一个“我的造物”：按部件建网格（关节点为原点），会动的部件每帧按动作转动；动物 / 生物按行为在附近活动 */
+  _addMake(it, def, y) {
+    const mk = MAKES.get(def.make); if (!mk) return false;
+    const swim = mk.behavior === 'swim' && mk.use === 'creature';
+    if (swim ? y != null : y == null) return false;
+    const v = this.view, mat = v.mats.clay || v.mats.prop, geos = makeGeos(mk), holder = new THREE.Group(), body = new THREE.Group(), parts = [];
+    body.scale.setScalar(HEX_UNIT * (mk.size || 1) * (it.s || 1)); holder.add(body);
+    mk.parts.forEach((p, i) => { if (!geos[i]) return; const o = new THREE.Group(); o.position.fromArray(p.pivot || [0, 0, 0]); const m = new THREE.Mesh(geos[i], mat); m.castShadow = !swim; m.receiveShadow = true; o.add(m); body.add(o); parts.push({ obj: o, part: p }); });
+    holder.position.set(it.x, swim ? 0 : y - 0.005, it.z); holder.rotation.y = it.ry || 0;
+    this.makeRoot.add(holder); this.objs.set(it.id, holder); this.items.set(it.id, it);
+    const R = () => Math.random();
+    this.makes.push({ id: it.id, holder, parts, mk, mobile: mk.use === 'creature' && mk.behavior !== 'still', home: [it.x, it.z], tx: it.x, tz: it.z, yaw: it.ry || 0, wait: R() * 3, ph: R() * 6, alt: 0.25 + R() * 0.3, hop: 0 });
+    return true;
+  }
+  _makeOk(mk, x, z) { const T = this.view.terrain, land = T.heightAt(x, z) != null; if (mk.behavior === 'swim') return !land && T.landDist(x, z) < 2.5; if (mk.behavior === 'fly' || mk.behavior === 'float') return true; return land && !(T.riverD && T.riverD(x, z) < 0.12); }
+  _updMakes(dt, t) {
+    const T = this.view.terrain, oc = this.view.ocean;
+    for (const c of this.makes) {
+      const { holder: g, mk } = c, p = g.position; let moving = false;
+      if (c.mobile) {
+        c.wait -= dt;
+        if (c.wait < 0) { for (let k = 0; k < 8; k++) { const a = Math.random() * 6.28, r = 0.15 + Math.random() * (mk.behavior === 'fly' ? 1.2 : 0.6), x = c.home[0] + Math.cos(a) * r, z = c.home[1] + Math.sin(a) * r; if (this._makeOk(mk, x, z)) { c.tx = x; c.tz = z; break; } } c.wait = 2 + Math.random() * 5; }
+        const dx = c.tx - p.x, dz = c.tz - p.z, d = Math.hypot(dx, dz), sp = (mk.behavior === 'fly' ? 0.3 : mk.behavior === 'swim' ? 0.1 : 0.06) * Math.max(0.6, mk.size || 1);
+        if (d > 0.02) { moving = true; const k = Math.min(d, sp * dt) / d; p.x += dx * k; p.z += dz * k; let dy = Math.atan2(dx, dz) - c.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); c.yaw += dy * Math.min(1, dt * 4); g.rotation.y = c.yaw; }
+      }
+      const gy = T.heightAt(p.x, p.z);
+      if (mk.behavior === 'swim') p.y = oc ? oc.surfaceAt(p.x, p.z).h - 0.01 : 0;
+      else if (mk.behavior === 'fly') p.y += ((gy ?? 0) + c.alt + Math.sin(t * 1.3 + c.ph) * 0.05 - p.y) * Math.min(1, dt * 2);
+      else if (mk.behavior === 'float') p.y = (gy ?? 0) + 0.12 + Math.sin(t * 1.1 + c.ph) * 0.03;
+      else if (gy != null) p.y = gy - 0.005 + (mk.behavior === 'hop' && moving ? Math.abs(Math.sin(t * 7 + c.ph)) * 0.04 : 0);
+      c.parts.forEach((x, i) => animatePart(x.obj, x.part, t + c.ph, moving || !c.mobile, i));
+    }
+  }
   _beam(g, lamp, id) {
     const mat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
@@ -89,7 +130,7 @@ export class ItemLayer {
     const it = this.items.get(id); if (!it) return null;
     this.items.delete(id);
     const def = findItem(it.k), g = this.objs.get(id);
-    if (g) { this.group.remove(g); this.objs.delete(id); const m = this.view.marine; if (m) m.floaters = m.floaters.filter((f) => f.obj !== g); }
+    if (g) { g.removeFromParent(); this.objs.delete(id); this.makes = this.makes.filter((c) => c.id !== id); const m = this.view.marine; if (m) m.floaters = m.floaters.filter((f) => f.obj !== g); }
     this.anim = this.anim.filter((a) => a.id !== id);
     this.view.fires.delete(id);
     if (def?.kit && !quiet) this._rebuildPlants();
@@ -134,6 +175,7 @@ export class ItemLayer {
   }
   update(dt, t) {
     const v = this.view;
+    if (this.makes.length) this._updMakes(dt, t);
     if (v.marine && this.pendingFloat.length) { for (const g of this.pendingFloat) v.marine.addFloater(g, { draft: g.children[0].geometry === BUOY ? 0.03 : 0.005, stiff: g.children[0].geometry === BUOY ? 14 : 9 }); this.pendingFloat = []; }
     for (const a of this.anim) {
       if (a.name === 'sails') a.m.rotation.z = -t * 0.9;
