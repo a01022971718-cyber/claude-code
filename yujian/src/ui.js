@@ -2,6 +2,7 @@
 import { TILE, RES, RES_NAME, DAILY, QUALITY, gfx } from './config.js';
 import { CAM_ICON } from './camdock.js';
 import { lineup } from './forgeview.js';
+import { registerMakes } from './make/register.js';
 import { sopHTML } from './artsop.js';
 import { aiError, PROVIDERS } from './ai.js';
 import { STYLE, THEME_KEY } from './hq/blocky.js';
@@ -184,7 +185,7 @@ export class UI {
     else body = `
       <div class="rowb"><button class="btn ghost" id="setBench">性能测试</button><button class="btn ghost" id="setExport">查看埋点数据</button>${app.canvasMode ? '' : '<button class="btn ghost danger" id="setReset">重新开始</button>'}</div>
       ${app.debug ? `<div class="dbg"><b>调试</b><button data-d="give">+10 资源</button><button data-d="skip">快进 4 小时</button><button data-d="day">进入下一天</button><button data-d="coupon">+2 卡券</button></div>` : ''}
-      <p class="ver">屿见 v0.21 · 存档只保存在这台设备的浏览器里</p>`;
+      <p class="ver">屿见 v0.22 · 存档只保存在这台设备的浏览器里</p>`;
     const tabs = [['basic', '基础'], ['gfx', '画面'], ['cam', '镜头'], ['ai', 'AI'], ['other', '其他']].map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('');
     const sh = this.modal(`<header><h2>设置</h2><button class="x" data-close>关闭</button></header><nav class="stabs">${tabs}</nav><div class="set">${body}</div>`, tab === 'gfx' || tab === 'cam' ? 'wide gfxsheet' : '');
     sh.addEventListener('click', (e) => e.stopPropagation());
@@ -250,6 +251,7 @@ export class UI {
       <label><span id="aiQ">想要一座什么样的岛？</span><textarea id="aiPrompt" rows="3"></textarea></label>
       <div class="aichips"></div>
       <label class="aichk"><input type="checkbox" id="aiReview" ${(() => { try { return localStorage.getItem('yujian_ai_review') === '0' ? '' : 'checked'; } catch { return 'checked'; } })()}> AI 审图：生成后把对比图给 AI 看，按清单打分并修改（模型要能看图）</label>
+      ${(() => { const c = app.canvasMode?.s.custom || {}, n = (c.plants?.length || 0) + (c.creatures?.length || 0); return n ? `<button class="btn ghost aiup" id="aiUp">把以前 AI 造的 ${n} 个物种按新方法重做</button>` : ''; })()}
       <div class="rowb"><button class="btn ghost" id="aiSop">美术圣经</button><button class="btn" id="aiGo">生成</button></div><p class="note aimsg" id="aiMsg"></p><div id="aiOut" class="aiout"></div>
       <p class="note">流程：① AI 按美术圣经设计配方 → ② 游戏用原有素材的笔法生成模型 → ③ AI 看对比图审图、修改 → ④ 你确认后放进岛里。用的是「设置 → AI」里选的服务商（${app.ai.prov.name}）。</p></div>`);
     const setMode = (m) => {
@@ -263,6 +265,12 @@ export class UI {
     sh.addEventListener('click', (e) => { e.stopPropagation(); const m = e.target.closest('[data-m]'); if (m) setMode(m.dataset.m); const ex = e.target.closest('[data-ex]'); if (ex) sh.querySelector('#aiPrompt').value = ex.dataset.ex; });
     sh.querySelector('[data-close]').onclick = () => this.closeModal();
     sh.querySelector('#aiSop').onclick = () => this.openSOP();
+    const up = sh.querySelector('#aiUp');
+    if (up) up.onclick = async () => {
+      const msg = sh.querySelector('#aiMsg'); up.disabled = true;
+      try { const n = await app.canvasMode.upgradeOld(app.ai, (k, t, name) => { msg.textContent = `重做中（${k} / ${t}）：${name}`; }); msg.textContent = `重做了 ${n} 个物种，岛上的已经换成新的；在建造栏「✦ 我造的」里，也能到造物台继续改。`; up.remove(); }
+      catch (e) { msg.textContent = '重做失败：' + aiError(e); up.disabled = false; }
+    };
     sh.querySelector('#aiGo').onclick = async () => {
       const text = sh.querySelector('#aiPrompt').value.trim(), msg = sh.querySelector('#aiMsg'), btn = sh.querySelector('#aiGo'), out = sh.querySelector('#aiOut');
       if (!text) { msg.textContent = '先写一句描述，或点一个例子'; return; }
@@ -273,17 +281,35 @@ export class UI {
         const cv = app.canvasMode, ask = mode === 'create' ? `请创造这些新东西，并把它们放进现在这座岛里（新生态铺几块新地块接在岛边上，新植物和新动物摆进去）：${text}` : text;
         step(0, mode === 'edit' ? 'AI 正在改造这座岛……' : 'AI 正在按美术圣经设计配方……');
         const L = await app.ai.island(ask, mode === 'new' ? null : cv.layout(), cv.known());
-        const made = () => [...L.biomes.map((x) => '生态「' + x.name + '」'), ...L.plants.map((x) => '植物「' + x.name + '」'), ...L.creatures.map((x) => '动物「' + x.name + '」')];
+        // 新植物、新动物：逐个交给 AI 造物，按造物台的方式（部件 + 大小不同的长方块 + 每部位一组颜色）搭出来
+        L.makes = [];
+        const specs = [...L.plants.map((r) => ['plant', r]), ...L.creatures.map((r) => ['creature', r])];
+        if (specs.length) {
+          const { makeFromRecipe, pool, storeMakes } = await import('./make/aimake.js'); let n = 0;
+          step(1, `AI 正在搭新物种（0 / ${specs.length}）……`);
+          const { out, errs } = await pool(specs, 3, async ([kind, r]) => { const m = await makeFromRecipe(app.ai, r, kind); step(1, `AI 正在搭新物种（${++n} / ${specs.length}）……`); return m; });
+          L.makes = out.filter(Boolean); if (!L.makes.length && errs.length) throw errs[0];
+          storeMakes(L.makes); registerMakes();
+          // 新动物按设定的栖息地和数量住进岛里
+          const land = new Set(L.tiles.map(([q, r]) => q + ',' + r)), NB = [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]];
+          for (const m of L.makes) if (m.use === 'creature') {
+            const hab = m.habitat || 'land', cand = hab === 'sea' || m.behavior === 'swim' ? L.tiles.flatMap(([q, r]) => NB.map(([a, b]) => [q + a, r + b])).filter(([q, r]) => !land.has(q + ',' + r)) : L.tiles.filter((t) => hab === 'land' || t[2] === hab).map(([q, r]) => [q, r]);
+            const pool2 = cand.length ? cand : L.tiles.map(([q, r]) => [q, r]);
+            for (let i = 0; i < Math.min(6, m.count || 3); i++) { const [q, r] = pool2[Math.floor(Math.random() * pool2.length)]; L.items.push({ k: m.name, q, r }); }
+          }
+          L.plants = []; L.creatures = [];
+        }
+        const made = () => [...L.biomes.map((x) => '生态「' + x.name + '」'), ...L.makes.map((x) => (x.use === 'plant' ? '植物「' : '动物「') + x.name + '」')];
         let note = '';
         if (made().length) {
-          step(1, '游戏按配方生成模型，和原有素材并排对比……'); await new Promise((r) => setTimeout(r, 30));
+          step(2, '和原有素材并排对比……'); await new Promise((r) => setTimeout(r, 30));
           const v1 = await lineup(L), cap = (v) => '上排：' + v.labels.join(' · ') + (v.labels2.length ? '<br>下排：' + v.labels2.join(' · ') : '');
           out.innerHTML = `<figure><img src="${v1.url}" alt="新素材对比图"><figcaption>${cap(v1)}</figcaption></figure>`;
           if (review) {
-            step(2, 'AI 正在看图审图（对照原有素材和检查清单）……');
+            step(3, 'AI 正在看图审图（对照原有素材和美术圣经）……');
             try {
               const R = await app.ai.review(v1.url, [...v1.labels.map((x) => '上排·' + x), ...v1.labels2.map((x) => '下排·' + x)], { biomes: L.biomes, plants: L.plants, creatures: L.creatures });
-              Object.assign(L, { biomes: R.biomes, plants: R.plants, creatures: R.creatures });
+              L.biomes = R.biomes;   // 生态按审图意见改；新物种的意见写在下面，不满意可以到造物台里让 AI 再改
               const v2 = await lineup(L); note = `审图 ${R.score}/10：${R.notes}`;
               out.innerHTML = `<figure><img src="${v1.url}" alt="初稿"><figcaption>初稿</figcaption></figure><figure><img src="${v2.url}" alt="按审图意见修改后"><figcaption>按审图意见修改后<br>${cap(v2)}</figcaption></figure>`;
             } catch (e) { note = '审图跳过：' + aiError(e) + '（这个模型可能看不了图）'; }
@@ -297,7 +323,7 @@ export class UI {
         acts.querySelector('#aiOk').onclick = async () => {
           this.closeModal(); app.hud?.setOpen(false);
           const names = made(); cv.adopt(L);
-          await cv.loadLayout(L, mode !== 'new'); this.toast(names.length ? `新创造：${names.join('、')}（建造栏里「✦ AI 造物」）` : `「${L.name}」：${L.note}`);
+          await cv.loadLayout(L, mode !== 'new'); this.toast(names.length ? `新创造：${names.join('、')}（建造栏「✦ 我造的」里；也能在方块岛的造物台里继续改）` : `「${L.name}」：${L.note}`);
         };
       } catch (e) { msg.textContent = '没生成出来：' + aiError(e); btn.disabled = false; }
     };

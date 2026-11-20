@@ -6,6 +6,7 @@ import { kit } from './hq/dressing.js';
 import { plantGeo, creatureParts, col } from './hq/forge.js';
 import * as L0 from './hq/models-land.js';
 import * as BK from './hq/blocky.js';
+import { mergedGeo, HEX_UNIT } from './make/model.js';
 
 const animal = (name) => { const L = BK.STYLE.blocky && BK[name] ? BK : L0, m = L[name](1), g = new THREE.Group(); if (m.parts) for (const p of Object.values(m.parts)) g.add(new THREE.Mesh(p.geometry, thumbMaterial())); else g.add(new THREE.Mesh(m.geometry || m, thumbMaterial())); return g; };
 /** 新生态的样块：一小块六边形地面，按生态的三种地面色斑驳上色，上面一圈草色 */
@@ -31,7 +32,11 @@ export async function lineup(design, voxel = BK.STYLE.blocky) {
   const K = kit(), top = [['原有·阔叶树', new THREE.Mesh(K.broad[0], thumbMaterial())], ['原有·松树', new THREE.Mesh(K.con[1], thumbMaterial())], ['原有·灌木', new THREE.Mesh(K.bush[0], thumbMaterial())]];
   for (const b of design.biomes || []) top.push(['新生态·' + b.name, biomeSample(b)]);
   for (const p of design.plants || []) top.push(['新植物·' + p.name, new THREE.Mesh(plantGeo(p, voxel), thumbMaterial())]);
+  // 用造物台方式搭的新物种：按它在岛上的实际大小渲染
+  const mk = (m) => { const g = mergedGeo(m), k = HEX_UNIT * (m.size || 1); g.scale(k, k, k); return new THREE.Mesh(g, thumbMaterial()); };
+  for (const m of design.makes || []) if (m.use === 'plant') top.push(['新植物·' + m.name, mk(m)]);
   const bot = [['原有·鹿', animal('deer')], ['原有·兔子', animal('rabbit')]];
+  for (const m of design.makes || []) if (m.use !== 'plant') bot.push(['新动物·' + m.name, mk(m)]);
   for (const a of design.creatures || []) { const P = creatureParts(a, voxel), g = new THREE.Group(); g.add(new THREE.Mesh(P.body, thumbMaterial())); for (const l of [...P.legs, ...P.wings]) g.add(new THREE.Mesh(l.geo, thumbMaterial())); bot.push(['新动物·' + a.name, g]); }
   const W = 1280, u1 = row(top, W, 380), u2 = bot.length > 2 ? row(bot, W, 300) : '';
   for (const [n, o] of [...top, ...bot]) if (!n.startsWith('原有')) o.traverse((m) => m.isMesh && m.geometry.dispose());

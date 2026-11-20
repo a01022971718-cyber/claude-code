@@ -39,6 +39,7 @@ export function kit() {
       bush: [BK.voxelBush(1, 'green'), BK.voxelBush(2, 'lime'), BK.voxelBush(3, 'green')],
       rock: [1, 2, 3, 4, 5, 6, 7, 8].map((s) => BK.voxelRock(s, s % 4, s < 7 ? 1 : 0)),
       palm: [BK.voxelPalm(1, 0.95), BK.voxelPalm(2, 1.1)],
+      reed: [BK.voxelReeds(1), BK.voxelReeds(2)],
     } : {}),
     // 远处用的简化树：每个变体一份（和高精度树一一对应），远近切换由画面按区块决定
     conLo: (() => { const g = BK.lowConifer(BK.STYLE.blocky); return [g, g, g, g, g]; })(),

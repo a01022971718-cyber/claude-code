@@ -57,11 +57,28 @@ export class CanvasMode {
     for (const k of ['biomes', 'plants', 'creatures']) for (const x of c[k]) map.set(x.name, x.id);
     const add = (kind, prefix, list) => { for (const x of list) { x.id = map.get(x.name) || prefix + c.seq++; map.set(x.name, x.id); const i = c[kind].findIndex((y) => y.id === x.id); if (i >= 0) c[kind][i] = x; else c[kind].push(x); } };
     add('plants', 'ai_p', L.plants); add('biomes', 'ai_b', L.biomes); add('creatures', 'ai_c', L.creatures);
-    for (const b of c.biomes) b.plants = (b.plants || []).map((p) => ({ name: p.name, density: p.density, id: p.id?.startsWith('ai_') || BASE_KIT[p.id] ? p.id : map.get(p.name) || BASE_KIT[p.name] })).filter((p) => p.id);
+    for (const m of L.makes || []) map.set(m.name, 'mk_' + m.id);   // 用造物台方式搭的新物种
+    for (const b of c.biomes) b.plants = (b.plants || []).map((p) => ({ name: p.name, density: p.density, id: p.id?.startsWith('ai_') || p.id?.startsWith('mk_') || BASE_KIT[p.id] ? p.id : map.get(p.name) || BASE_KIT[p.name] })).filter((p) => p.id);
     for (const a of c.creatures) if (!['land', 'sea'].includes(a.habitat) && !a.habitat.startsWith('ai_b') && !BASE_TILES.includes(a.habitat)) a.habitat = map.get(a.habitat) || 'land';
     L.tiles = L.tiles.map(([q, r, t]) => [q, r, map.get(t) || t]); L.items = L.items.map((it) => ({ ...it, k: map.get(it.k) || it.k }));
     this.save(); this.registerCustom();
     return { biomes: L.biomes.map((x) => x.name), plants: L.plants.map((x) => x.name), creatures: L.creatures.map((x) => x.name) };
+  }
+  /** 以前用旧方法造的 AI 物种，按新方法（造物台格式）重做：岛上摆着的换成新造物，旧的撤掉 */
+  async upgradeOld(ai, onStep) {
+    const c = this.s.custom || {}, list = [...(c.plants || []).map((r) => ['plant', r]), ...(c.creatures || []).map((r) => ['creature', r])];
+    if (!list.length) return 0;
+    const { makeFromRecipe, pool, storeMakes } = await import('./make/aimake.js');
+    let done = 0;
+    const { out, errs } = await pool(list, 3, async ([kind, r]) => { const m = await makeFromRecipe(ai, r, kind); onStep?.(++done, list.length, r.name); return [r.id, m]; });
+    const ok = out.filter(Boolean); if (!ok.length) throw errs[0] || new Error('没有重做成功');
+    storeMakes(ok.map(([, m]) => m));
+    const rep = new Map(ok.map(([old, m]) => [old, 'mk_' + m.id]));
+    for (const it of this.s.items) if (rep.has(it.k)) it.k = rep.get(it.k);
+    for (const b of c.biomes || []) for (const p of b.plants || []) if (rep.has(p.id)) p.id = rep.get(p.id);
+    c.plants = (c.plants || []).filter((r) => !rep.has(r.id)); c.creatures = (c.creatures || []).filter((r) => !rep.has(r.id));
+    this.save(); this.syncAll();
+    return ok.length;
   }
   syncAll() {
     const v = this.view, s = this.s;

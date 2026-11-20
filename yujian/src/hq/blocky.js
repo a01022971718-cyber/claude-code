@@ -125,6 +125,14 @@ export function rabbit(seed = 1) {
 // ---------------- 体素树 ----------------
 const LEAF = [0x4f8a3a, 0x5f9d40, 0x3f7530, 0x6fa846, 0x467f34].map(col), BARK = [0x6b5644, 0x5a4838, 0x75604c].map(col);
 /** 体素树冠：在椭球里按格子放方块（只留表面），叶色深浅交错，加几颗果子 */
+/** 只带指定几个面的方块（顺序 +x -x +y -y +z -z），非索引几何 */
+function faceBox(s, keep) {
+  const src = new THREE.BoxGeometry(s, s, s).toNonIndexed(), P = src.attributes.position, N = src.attributes.normal, UV = src.attributes.uv, pos = [], nor = [], uv = [];
+  for (let f = 0; f < 6; f++) if (keep[f]) for (let v = f * 6; v < f * 6 + 6; v++) { pos.push(P.getX(v), P.getY(v), P.getZ(v)); nor.push(N.getX(v), N.getY(v), N.getZ(v)); uv.push(UV.getX(v), UV.getY(v)); }
+  src.dispose();
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  return g;
+}
 function voxelBlob(R, cx, cy, cz, rx, ry, rz, v, out, { fruit = 0, pal = LEAF, top = 0.12 } = {}) {
   const nx = Math.ceil(rx / v), ny = Math.ceil(ry / v), nz = Math.ceil(rz / v), inside = (i, j, k) => {
     const x = i * v, y = j * v, z = k * v, e = (x / rx) ** 2 + (y / ry) ** 2 + (z / rz) ** 2;
@@ -136,8 +144,10 @@ function voxelBlob(R, cx, cy, cz, rx, ry, rz, v, out, { fruit = 0, pal = LEAF, t
     const isFruit = fruit && R() < fruit && j <= 0;
     const c = isFruit ? col(R() < 0.5 ? 0xd9452e : 0xe8763a) : pal[Math.floor(R() * pal.length)].clone().multiplyScalar(0.92 + (j / ny) * top + R() * 0.06);
     const s = v * (isFruit ? 0.62 : 0.97);
-    const g = new THREE.BoxGeometry(s, s, s).toNonIndexed(); g.deleteAttribute('uv');
-    paint(g, c, { ao: 0.12 }); g.translate(cx + i * v + (isFruit ? 0 : (R() - 0.5) * v * 0.08), cy + j * v, cz + k * v + (isFruit ? v * 0.25 : 0));
+    // 只留露在外面的面：挨着另一块叶子方块的那一面看不见，不画（树冠的三角形少一半左右）
+    const keep = isFruit ? null : [!inside(i + 1, j, k), !inside(i - 1, j, k), !inside(i, j + 1, k), !inside(i, j - 1, k), !inside(i, j, k + 1), !inside(i, j, k - 1)];
+    const g = keep ? faceBox(s, keep) : new THREE.BoxGeometry(s, s, s).toNonIndexed(); g.deleteAttribute('uv');
+    paint(g, c, { ao: 0.12, y0: -s / 2, y1: s / 2 }); g.translate(cx + i * v + (isFruit ? 0 : (R() - 0.5) * v * 0.08), cy + j * v, cz + k * v + (isFruit ? v * 0.25 : 0));
     out.push(g);
   }
 }
@@ -232,6 +242,16 @@ export function frog(seed = 1) {
 }
 // ---- 岩石与山峰 ----
 const ROCK = [0x8a8a8e, 0x9a9ba0, 0x7d7c80, 0xa7a5a0].map(col), MOSS = [0x6f8f3a, 0x7fa043].map(col), SNOW = col(0xf2f4f6);
+/** 网格上的一堆方块 → 只画露在外面的面（挨着别的方块的那面不画）。cells: [{ i, j, k, s, x, y, z, c }]；ground：最底层的底面也不画 */
+function gridCubes(cells, ground = true) {
+  const has = new Set(cells.map((q) => q.i + ',' + q.j + ',' + q.k)), at = (i, j, k) => has.has(i + ',' + j + ',' + k), out = [];
+  for (const q of cells) {
+    const keep = [!at(q.i + 1, q.j, q.k), !at(q.i - 1, q.j, q.k), !at(q.i, q.j + 1, q.k), !(at(q.i, q.j - 1, q.k) || (ground && q.j === 0)), !at(q.i, q.j, q.k + 1), !at(q.i, q.j, q.k - 1)];
+    if (!keep.some(Boolean)) continue;
+    const g = faceBox(q.s, keep); g.deleteAttribute('uv'); paint(g, q.c, { ao: 0.1, y0: -q.s / 2, y1: q.s / 2 }); g.translate(q.x, q.y, q.z); out.push(g);
+  }
+  return out;
+}
 function cube(s, x, y, z, c) { const g = new THREE.BoxGeometry(s, s, s).toNonIndexed(); g.deleteAttribute('uv'); paint(g, c, { ao: 0.1 }); g.translate(x, y, z); return g; }
 /** 体素岩石（和原来的 boulder 同一尺度：宽约 2.4、高约 0.8，摆放时再缩放） */
 export function voxelRock(seed = 1, tone = 0, mossy = 1) {
@@ -239,9 +259,9 @@ export function voxelRock(seed = 1, tone = 0, mossy = 1) {
   for (let i = -3; i <= 3; i++) for (let k = -3; k <= 3; k++) {
     const d = Math.hypot(i * 0.9, k) + (R() - 0.5) * 0.8; if (d > 2.9) continue;
     const hgt = Math.max(1, Math.round((2.2 - d * 0.7) + R() * 0.8));
-    for (let j = 0; j < hgt; j++) { const top = j === hgt - 1, c = top && mossy && R() < 0.5 ? MOSS[Math.floor(R() * 2)] : ROCK[(Math.floor(R() * 4) + tone) % 4]; P.push(cube(v * 0.98, i * v, j * v * 0.8 + v * 0.4, k * v, c.clone().multiplyScalar(0.92 + R() * 0.12))); }
+    for (let j = 0; j < hgt; j++) { const top = j === hgt - 1, c = top && mossy && R() < 0.5 ? MOSS[Math.floor(R() * 2)] : ROCK[(Math.floor(R() * 4) + tone) % 4]; P.push({ i, j, k, s: v * 0.98, x: i * v, y: j * v * 0.8 + v * 0.4, z: k * v, c: c.clone().multiplyScalar(0.92 + R() * 0.12) }); }
   }
-  const g = merge(P); g.scale(1, 0.85, 1); return g;
+  const g = merge(gridCubes(P)); g.scale(1, 0.85, 1); return g;
 }
 /** 体素山峰：一层层收小的岩石环，山腰有草，山顶积雪；顶面是平的，山羊能站 */
 export function voxelPeak(seed = 1, r = 0.7, h = 1.5) {
@@ -252,10 +272,22 @@ export function voxelPeak(seed = 1, r = 0.7, h = 1.5) {
       const d = Math.hypot(i, k) * v, edge = rr + (R() - 0.5) * v * 0.8;
       if (d > edge || (d < edge - v * 1.6 && L < layers - 1)) continue;   // 只留外壳
       const c = f > 0.78 ? SNOW : f < 0.25 && R() < 0.4 ? MOSS[Math.floor(R() * 2)] : ROCK[Math.floor(R() * 4)];
-      P.push(cube(v * 0.99, i * v, L * v + v / 2, k * v, c.clone().multiplyScalar(0.9 + R() * 0.14)));
+      P.push({ i, j: L, k, s: v * 0.99, x: i * v, y: L * v + v / 2, z: k * v, c: c.clone().multiplyScalar(0.9 + R() * 0.14) });
     }
   }
-  return merge(P);
+  return merge(gridCubes(P));
+}
+/** 体素芦苇：几根深浅不同的细长方块茎（略斜）+ 两三个褐色蒲棒头 + 两片斜叶（和原来的芦苇差不多高） */
+export function voxelReeds(seed = 1) {
+  const R = rng(seed * 53 + 7), P = [], G = [0x6d8f3c, 0x7f9a45, 0x5f8f3a, 0x9bad52].map(col);
+  const n = 7 + Math.floor(R() * 3);
+  for (let i = 0; i < n; i++) {
+    const a = R() * 6.28, r = Math.sqrt(R()) * 0.022, x = Math.cos(a) * r, z = Math.sin(a) * r, h = 0.11 + R() * 0.07, tilt = (R() - 0.5) * 0.25;
+    P.push(box(0.0055, h, 0.0055, x, h / 2, z, G[i % 4].clone().multiplyScalar(0.9 + R() * 0.2), { seg: 0, ao: 0.25, rz: tilt, rx: (R() - 0.5) * 0.2 }));
+    if (i % 3 === 0) P.push(box(0.011, 0.028, 0.011, x + Math.sin(-tilt) * h * 0.95, h * 0.97, z, i % 2 ? 0x4b2d1b : 0x6c4529, { seg: 1, r: 0.3, ao: 0, rz: tilt }));
+  }
+  for (let i = 0; i < 2; i++) P.push(box(0.014, 0.07, 0.003, (i ? -1 : 1) * 0.012, 0.035, 0.004, G[2], { seg: 0, ao: 0.2, rz: (i ? 1 : -1) * 0.45 }));
+  const g = merge(P); windAttr(g, 0.18); return g;
 }
 /** 体素椰子树：弯弯的方块树干 + 一圈下垂的方块叶子 */
 export function voxelPalm(seed = 1, s = 1) {

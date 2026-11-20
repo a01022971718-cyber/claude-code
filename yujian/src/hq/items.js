@@ -8,6 +8,7 @@ import { Fauna } from './fauna.js';
 import { findItem } from '../catalog.js';
 import { LAYER_FX } from './pipeline.js';
 import { MAKES } from '../make/register.js';
+import { simplify } from './simplify.js';
 import { partGeo, animatePart, HEX_UNIT } from '../make/model.js';
 
 // 我的造物：每个造物的部件几何只生成一次，摆多少个都共用（还会被统一合批）
@@ -156,16 +157,30 @@ export class ItemLayer {
     this._rebuildPlants();
     return out;
   }
+  /** 玩家摆的植物：和岛上自带的树一样分远近——在屏幕上看得清的用完整模型，远处的换简化模型（按屏幕像素大小判断） */
   _rebuildPlants() {
-    if (this.plantGroup) { this.group.remove(this.plantGroup); this.plantGroup.traverse((o) => { if (o.isInstancedMesh) o.dispose(); }); this.plantGroup = null; }
-    const by = {}, K = kit();
+    const list = [];
     for (const it of this.items.values()) {
       const d = findItem(it.k); if (!d?.kit) continue;
       const y = this.view.terrain.heightAt(it.x, it.z); if (y == null) continue;
-      (by[d.kit] ||= []).push({ v: d.v, x: it.x, y: y - 0.02, z: it.z, s: (d.s || 1) * (it.s || 1), ry: it.ry || 0, tilt: d.kit === 'palm' ? 0.12 : 0.03 });
+      list.push({ k: d.kit, v: d.v, x: it.x, y: y - 0.02, z: it.z, s: (d.s || 1) * (it.s || 1), ry: it.ry || 0, tilt: d.kit === 'palm' ? 0.12 : 0.03 });
     }
+    this.plantList = list; this.plantSig = null; this._layoutPlants(true);
+  }
+  _layoutPlants(force = false) {
+    const list = this.plantList || [], v = this.view, cp = v.camera.position, near = [];
+    for (let i = 0; i < list.length; i++) { const p = list[i], ppu = v.ppu ? v.ppu(Math.hypot(p.x - cp.x, p.y - cp.y, p.z - cp.z)) : 999; near.push(ppu * (p.s || 1) > 70 ? 1 : 0); }
+    const sig = near.join('');
+    if (!force && sig === this.plantSig) return; this.plantSig = sig;
+    if (this.plantGroup) { this.group.remove(this.plantGroup); this.plantGroup.traverse((o) => { if (o.isInstancedMesh) o.dispose(); }); this.plantGroup = null; }
+    const by = {}, K = kit();
+    list.forEach((p, i) => { (by[p.k + (near[i] ? '' : '|lo')] ||= []).push(p); });
     const g = new THREE.Group(), M = this.view.mats;
-    for (const [k, list] of Object.entries(by)) g.add(instanced(K[k], list, k === 'rock' ? M.prop : k === 'bush' ? M.bush : M.tree));
+    for (const [key, items] of Object.entries(by)) {
+      const [k, lo] = key.split('|'), mat = k === 'rock' ? M.prop : k === 'bush' ? M.bush : M.tree;
+      const variants = lo ? (K[k + 'Lo'] || (this._lo ||= {})[k] || (this._lo[k] = K[k].map((geo) => simplify(geo, 7)))) : K[k];
+      g.add(instanced(variants, items, mat));
+    }
     this.plantGroup = g; this.group.add(g);
   }
   /** 物件的占地半径（摆放时避免叠在一起） */
@@ -176,6 +191,7 @@ export class ItemLayer {
   update(dt, t) {
     const v = this.view;
     if (this.makes.length) this._updMakes(dt, t);
+    if (this.plantList?.length && (this._plT = (this._plT || 0) + dt) > 0.4) { this._plT = 0; this._layoutPlants(); }
     if (v.marine && this.pendingFloat.length) { for (const g of this.pendingFloat) v.marine.addFloater(g, { draft: g.children[0].geometry === BUOY ? 0.03 : 0.005, stiff: g.children[0].geometry === BUOY ? 14 : 9 }); this.pendingFloat = []; }
     for (const a of this.anim) {
       if (a.name === 'sails') a.m.rotation.z = -t * 0.9;

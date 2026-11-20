@@ -12,6 +12,7 @@ export class PerfMonitor {
   /** 每帧开始时调用（先把上一帧的绘制统计取出来再清零） */
   begin() {
     const r = this.app.view.renderer; if (!r) return;
+    if (r._passLog) { this.lastPasses = r._passLog.map((k) => k + 'k'); r._passLog = []; }
     this.calls = r.info.render.calls; this.tris = r.info.render.triangles; r.info.reset();
   }
   frame(ms) { if (this.benching) this.benchFrames++; this.buf[this.i] = ms; this.i = (this.i + 1) % this.buf.length; this.n = Math.min(this.n + 1, this.buf.length); if (this.el && (this.i & 15) === 0) this._draw(); }
@@ -30,6 +31,7 @@ export class PerfMonitor {
   }
   /** 镜头绕岛 sec 秒，返回测速结果 */
   async benchmark(sec = 20) {
+    this.passes();   // 开始记录每一遍渲染画了多少
     const app = this.app, rig = app.rig, saved = { x: rig.focus.x, z: rig.focus.z, yaw: rig.target.yaw, pitch: rig.target.pitch, dist: rig.target.dist };
     app.ui.closeModal(); app.ui.hud(false); rig.locked = true; this.benching = true;
     const t0 = performance.now(); this.benchFrames = 0; let maxCalls = 0, maxTris = 0;
@@ -48,11 +50,31 @@ export class PerfMonitor {
     rig.focus.set(saved.x, 0, saved.z); rig.setView(saved); rig.locked = false; this.benching = false; app.ui.hud(true);
     const s = app.game.s.settings, v = app.view;
     return {
-      版本: 'v0.21', 画面: v.kind === 'hq' ? '高画质' : '低多边形', 档位: s.quality, 自定义: JSON.stringify(s.gfx || {}), 模式: app.canvasMode ? '自由画布' : '经营',
+      版本: 'v0.22', 画面: v.kind === 'hq' ? '高画质' : '低多边形', 档位: s.quality, 自定义: JSON.stringify(s.gfx || {}), 模式: app.canvasMode ? '自由画布' : '经营',
       平均帧率: +st.fps.toFixed(1), 低帧1: +st.low1.toFixed(1), 帧时间中位: +st.ms50.toFixed(1), 帧时间95: +st.ms95.toFixed(1), 帧时间99: +st.ms99.toFixed(1),
       绘制调用峰值: maxCalls, 三角面峰值: maxTris, 帧率上限: app.fpsCap(false), 分辨率系数: v.resScale ?? 1, 细节系数: +(v.lodK ?? 1).toFixed(2), 加载毫秒: app.loadMs ?? 0, 地块: v.terrain?.tiles?.length ?? 0, 区块: v.chunks?.size ?? 0,
+      渲染遍数: this.passes(), 三角面明细: this.breakdown(),
       ...this.device(),
     };
+  }
+  /** 场景里看得见的网格按类别统计三角形（实例按数量乘上去；不考虑视野剔除，用来找“谁最占面”） */
+  breakdown() {
+    const sc = this.app.view.scene, by = {};
+    if (!sc) return {};
+    sc.traverse((o) => {
+      if (!o.isMesh || !o.geometry) return; for (let p = o; p; p = p.parent) if (!p.visible) return;
+      const g = o.geometry; let k = (g.index ? g.index.count : g.attributes.position?.count || 0) / 3;
+      if (o.isInstancedMesh) k *= o.count; if (g.instanceCount != null && isFinite(g.instanceCount)) k *= g.instanceCount; if (!k) return;
+      const n = (o.name || o.parent?.name || o.parent?.parent?.name || (o.isInstancedMesh ? '实例' : '网格')).replace(/[-_:]?\d+$/, '');
+      by[n] = (by[n] || 0) + k;
+    });
+    return Object.fromEntries(Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([n, k]) => [n, Math.round(k / 1000) + 'k']));
+  }
+  /** 一帧里调用了几次 render、各画了多少三角形（主画面、反射、后期等各算一遍） */
+  passes() {
+    const r = this.app.view.renderer; if (!r) return [];
+    if (!r._passLog) { const orig = r.render.bind(r); r._passLog = []; r.render = (sc, cam) => { const t0 = r.info.render.triangles; orig(sc, cam); r._passLog.push(Math.round((r.info.render.triangles - t0) / 1000)); }; }
+    return this.lastPasses || [];
   }
   /** 设置里的“显示帧率” */
   setOverlay(on) { if (on && !this.el) this._overlay(); else if (!on && this.el) { this.el.remove(); this.el = null; } }
