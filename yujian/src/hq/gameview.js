@@ -317,7 +317,7 @@ export class HQView {
       // 只有树投影：灌木、石头、菜苗、芦苇、睡莲的影子几乎看不见，却要再画一遍
       if (!SHADOW_KITS.has(name) && !K[name]?.shadow) g.traverse((o) => { o.castShadow = false; });
       // 树的远近分级（LOD）：同一批树再做一份几十个三角面的简化版，远处的区块显示简化版、不投影
-      if (K[name + 'Lo']) { g.name = 'tree-hi'; const lo = instanced(K[name + 'Lo'], items, mat); lo.name = 'tree-lo'; lo.visible = false; lo.traverse((o) => { o.castShadow = false; }); grp.add(lo); }
+      if (K[name + 'Lo']) { const t = name === 'bush' ? 'bush' : 'tree'; g.name = t + '-hi'; const lo = instanced(K[name + 'Lo'], items, mat); lo.name = t + '-lo'; lo.visible = false; lo.traverse((o) => { o.castShadow = false; }); grp.add(lo); }
     }
     for (const [b, list] of Object.entries(blades)) if (list.length) { const m = bladeField(b, list, { cull: true }); m.geometry.userData.owned = true; grp.add(m); }
     const peaks = [];
@@ -404,7 +404,7 @@ export class HQView {
     for (const [, k, i, j] of need) {
       if (now() - t0 > budget) break;
       const old = this.seabed.get(k);
-      const mesh = this.terrain.buildSeabed(this.mats.terrain, SB / 2, SB_SEG, (i + 0.5) * SB, (j + 0.5) * SB);
+      const mesh = this.terrain.buildSeabedAdaptive(this.mats.terrain, (i + 0.5) * SB, (j + 0.5) * SB, SB);   // 近岸细、深海粗
       this.root.add(mesh);
       if (old) { this.root.remove(old.mesh); old.mesh.geometry.dispose(); }
       this.seabed.set(k, { mesh }); this.sbDirty.delete(k);
@@ -511,6 +511,9 @@ export class HQView {
       // 树：完整树冠的一个三角形边长约 0.05，小于 4 像素就换简化树
       const treeNear = ppu * detail > 80;
       if (ch.treeNear !== treeNear) { ch.treeNear = treeNear; for (const o of ch.group.children) { if (o.name === 'tree-hi') o.visible = treeNear; else if (o.name === 'tree-lo') o.visible = !treeNear; } }
+      // 灌木：小方块边长 0.03，小于 4 像素（大方块远景版边长 0.05，约 7 像素）就换远景版
+      const bushNear = ppu * detail > 140;
+      if (ch.bushNear !== bushNear) { ch.bushNear = bushNear; for (const o of ch.group.children) { if (o.name === 'bush-hi') o.visible = bushNear; else if (o.name === 'bush-lo') o.visible = !bushNear; } }
       // 地面：细地面一个三角形边长约 0.032，小于 4 像素就换粗地面（粗地面边长约 0.1）
       const landNear = ppu * detail > 125;
       if (ch.landNear !== landNear) { ch.landNear = landNear; for (const o of ch.group.children) { if (o.name === 'land-hi') o.visible = landNear || !ch.group.children.some((c) => c.name === 'land-lo'); else if (o.name === 'land-lo') o.visible = !landNear; } }
@@ -553,7 +556,10 @@ export class HQView {
     if (this.terrain.tiles.length) {
       if (!this.marine) this._makeMarine();
       else if (this.landChanged && this.landChanged !== this.marineAt && now() - this.landChanged > 1500 && !this.rising.length) { this.marineAt = this.landChanged; this._rebuildMarine(); }
+      this.marine.lodCam = { pos: this.camera.position, fishD: this.ppuDist(20 / 0.12) };   // 鱼长约 0.12：不到 20 像素换远景版
       this.marine.update(dt, t);
+      // 珊瑚、海带只画镜头附近的：镜头挪了 0.8 个单位、拉远拉近了一成，或者过了半秒，重新挑一次
+      { const hk = this._habK || (this._habK = { x: 1e9, z: 0, d: 0, t: 0 }); if (Math.hypot(focus.x - hk.x, focus.z - hk.z) > 0.8 || Math.abs(dist - hk.d) > hk.d * 0.1 || now() - hk.t > 500) { Object.assign(hk, { x: focus.x, z: focus.z, d: dist, t: now() }); this.marine.cullHabitat(focus.x, focus.z, THREE.MathUtils.clamp(dist * 1.2 + 5, 7, 24) * (this.q.viewK ?? 1), this.camera.position, this.ppuDist(22 / 0.12)); } }   // 珊瑚约 0.12 大：不到 22 像素换减面版
     }
     // 镜头相关
     this.atmo.follow(focus.x, focus.z, THREE.MathUtils.clamp(dist * 0.62, 8, 26));

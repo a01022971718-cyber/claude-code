@@ -185,9 +185,10 @@ export function voxelConifer(seed = 1) {
   return g;
 }
 /** 体素灌木 */
-export function voxelBush(seed = 1, kind = 'green') {
+/** v：方块大小（远景版用大一点的方块：形状、配色不变，面数少一大半） */
+export function voxelBush(seed = 1, kind = 'green', v = 0.03) {
   const R = rng(seed * 13 + 9), C = [], pal = kind === 'lime' ? [0x7fb04a, 0x8fbe52, 0x6a9e40].map(col) : LEAF;
-  voxelBlob(R, 0, 0.06, 0, 0.1, 0.07, 0.1, 0.03, C, { pal });
+  voxelBlob(R, 0, 0.06, 0, 0.1, 0.07, 0.1, v, C, { pal });
   const g = merge(C); windAttr(g, 0.3); return g;
 }
 

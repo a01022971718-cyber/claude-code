@@ -2,7 +2,7 @@
 // 物理：鱼群用群体算法（分离/对齐/聚拢 + 避开岸、海底和海面 + 躲避海豚）；海豚跃出水面走抛物线；水母靠伞盖收缩产生推力、水的阻力减速；
 // 漂浮物按海面波浪做浮力和摇摆；海带/海草按波浪在水下的轨道运动摆动；入水处溅起水花（受重力）并荡开涟漪。
 import * as THREE from 'three';
-import { simplify } from './simplify.js';
+import { simplify, triCount } from './simplify.js';
 import { STYLE } from './blocky.js';
 import * as M from './models-marine.js';
 import { GLSL_NOISE } from './noise.js';
@@ -85,11 +85,15 @@ const memo = (k, make) => { let r = MEMO.get(k); if (!r) MEMO.set(k, r = make())
 function swarm(geo, mat, n) {
   // 海里的鱼、水母、珊瑚只有几厘米大，又隔着一层海水：用减面后的模型（原模型每只约 3000 个三角形）
   const src = geoOf(geo), g = (src.userData.vox ? src : simplify(src, STYLE.blocky ? 5 : 7)).clone();   // 体素模型本来就省，不再减面
-  for (const a of ['bend', 'sway', 'rim', 'tent']) if (!g.attributes[a]) g.setAttribute(a, new THREE.BufferAttribute(new Float32Array(g.attributes.position.count), 1));
+  const pad = (x) => { for (const a of ['bend', 'sway', 'rim', 'tent']) if (!x.attributes[a]) x.setAttribute(a, new THREE.BufferAttribute(new Float32Array(x.attributes.position.count), 1)); return x; };
+  pad(g);
+  // 远景版（体素模型）：在屏幕上只有十几个像素时换成顶点聚类减面版（保留摆尾、摇摆等动画属性），面数少一大半
+  let lo = null; if (src.userData.vox) { const lg = simplify(src, 5); if (lg !== src && triCount(lg) < triCount(src) * 0.6) lo = pad(lg.clone()); }
   const anim = new Float32Array(n * 4);
   g.setAttribute('iAnim', new THREE.InstancedBufferAttribute(anim, 4));
   const mesh = new THREE.InstancedMesh(g, mat, n);
   mesh.castShadow = false; mesh.receiveShadow = true; mesh.frustumCulled = false;
+  mesh.userData.hiGeo = g; if (lo) { lo.setAttribute('iAnim', g.attributes.iAnim); mesh.userData.loGeo = lo; }   // 鱼群：远近整群换模型（共用同一份实例数据）
   return { mesh, anim };
 }
 
@@ -293,6 +297,13 @@ export class Marine {
       if (it.tint) mesh.setColorAt(i, new THREE.Color(...it.tint));
     });
     mesh.castShadow = castShadow; fitBounds(mesh, 0.3); this.habitat.add(mesh);   // 珊瑚、海带：按实例位置算包围球，画面外整组不画
+    // 远景版：另一份实例网格，cullHabitat 按离镜头远近把实例分给近处（完整版）和远处（减面版）
+    if (mesh.userData.loGeo) {
+      const lg = mesh.userData.loGeo.clone(); lg.setAttribute('iAnim', new THREE.InstancedBufferAttribute(new Float32Array(items.length * 4), 4));
+      const lo = new THREE.InstancedMesh(lg, mat, items.length); lo.count = 0; lo.castShadow = false; lo.receiveShadow = true; lo.frustumCulled = false; lo.userData.isLo = true;
+      if (mesh.instanceColor) lo.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(items.length * 3), 3);
+      mesh.userData.lo = lo; this.habitat.add(lo);
+    }
     return mesh;
   }
   _reef() {
@@ -336,6 +347,34 @@ export class Marine {
     // 海草床（海龟的食物）
     this.seagrassSpots = sp.grass;
     this.counts = { corals: Object.values(corals).flat(2).length, kelp: kelpItems.flat().length };
+  }
+  /** 珊瑚、海带按离镜头焦点的距离挑着画：maxD 以内的才画（隔着海水，再远的看不清），范围边上的慢慢缩小隐去，不会一下子冒出来或消失 */
+  cullHabitat(cx, cz, maxD, cam = null, loD = Infinity) {
+    const fade = maxD * 0.75, m4 = new THREE.Matrix4(), sc = new THREE.Matrix4();
+    for (const mesh of this.habitat.children) {
+      if (!mesh.isInstancedMesh || mesh.userData.isLo) continue;
+      const u = mesh.userData, ia = mesh.geometry.attributes.iAnim;
+      if (!u.src) u.src = { m: mesh.instanceMatrix.array.slice(), c: mesh.instanceColor?.array.slice(), a: ia?.array.slice(), n: mesh.count };
+      const S = u.src, sel = [];
+      for (let i = 0; i < S.n; i++) { const d = Math.hypot(S.m[i * 16 + 12] - cx, S.m[i * 16 + 14] - cz); if (d < maxD) sel.push([d, i]); }
+      sel.sort((a, b) => a[0] - b[0]);
+      // 离镜头近的给完整版，远的给减面版（在屏幕上只有十几个像素）
+      const lo = mesh.userData.lo, put = (tgt, list) => {
+        const M = tgt.instanceMatrix.array, C = tgt.instanceColor?.array, A = tgt.geometry.attributes.iAnim?.array;
+        list.forEach(([d, i], k) => {
+          if (d > fade) { const s = Math.max(0.001, 1 - (d - fade) / (maxD - fade)); m4.fromArray(S.m, i * 16); m4.multiply(sc.makeScale(s, s, s)); m4.toArray(M, k * 16); }
+          else M.set(S.m.subarray(i * 16, i * 16 + 16), k * 16);
+          if (C && S.c) C.set(S.c.subarray(i * 3, i * 3 + 3), k * 3);
+          if (A && S.a) A.set(S.a.subarray(i * 4, i * 4 + 4), k * 4);
+        });
+        tgt.count = list.length; tgt.instanceMatrix.needsUpdate = true; if (C) tgt.instanceColor.needsUpdate = true; if (A) tgt.geometry.attributes.iAnim.needsUpdate = true;
+        tgt.computeBoundingSphere(); if (tgt.boundingSphere) tgt.boundingSphere.radius += 0.3; tgt.frustumCulled = true;
+      };
+      const near = [], far = [];
+      for (const it of sel) { const i = it[1], dc = cam ? Math.hypot(S.m[i * 16 + 12] - cam.x, S.m[i * 16 + 13] - cam.y, S.m[i * 16 + 14] - cam.z) : 0; (lo && dc > loD ? far : near).push(it); }
+      put(mesh, near); if (lo) put(lo, far);
+    }
+    this.habitatShown = this.habitat.children.reduce((s, m) => s + (m.count || 0), 0);
   }
   seagrassBlades() {
     const R = this.R, out = [];
@@ -427,7 +466,12 @@ export class Marine {
 
   update(dt, t) {
     this.predators = this.dolphins.list.map((d) => ({ x: d.x, y: d.y, z: d.z }));
-    for (const s of this.schools) { const b = s.mesh.boundingSphere; throttle(s, !b || inView(b.center.x, b.center.y, b.center.z, b.radius), dt, (d) => s.update(d, t)); }   // 画面外的鱼群降频
+    for (const s of this.schools) {
+      const b = s.mesh.boundingSphere, u = s.mesh.userData;
+      throttle(s, !b || inView(b.center.x, b.center.y, b.center.z, b.radius), dt, (d) => s.update(d, t));   // 画面外的鱼群降频
+      // 整群离镜头远（一条鱼在屏幕上不到 20 个像素）就换减面版
+      if (u.loGeo && this.lodCam && b) { const far = this.lodCam.pos.distanceTo(b.center) - b.radius * 0.6 > this.lodCam.fishD; s.mesh.geometry = far ? u.loGeo : u.hiGeo; }
+    }
     this._updTurtles(dt, t); this._updDolphins(dt, t); this._updWhale(dt, t); this._updJellies(dt, t); this._updFloaters(dt, t);
     this.splash.update(dt);
   }

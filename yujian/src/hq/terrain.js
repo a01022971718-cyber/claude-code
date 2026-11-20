@@ -4,6 +4,7 @@ import { toWorld, fromWorld, key, DIRS, CORNERS } from '../hex.js';
 import { makeNoise } from './noise.js';
 import { LandField } from './landfield.js';
 
+const SB_COL = { sand: new THREE.Color(0xcdb88e), mid: new THREE.Color(0x7f8c6e), deep: new THREE.Color(0x3b5560), rock: new THREE.Color(0x7a7468), wet: new THREE.Color(0x6f6a52), bar: new THREE.Color(0xcfbd93), weed: new THREE.Color(0x55613a) };
 const NZ = makeNoise(20261115);
 const SUB_HI = 18;                      // 每个三角扇区的细分数（近处）；远处用 SUB_LO（1/9 的三角形，顶点是近处版本的子集，接缝对得上）
 export const SUB_LO = 6;
@@ -462,6 +463,36 @@ export class Terrain {
     const w = 0.4 + (NZ.fbm2(x * 0.45 - 3, z * 0.45 + 8, 2) * 0.5 + 0.5) * 1.2, k = 1 - ss(dl, w * 0.55, w);
     if (k > 0) { const shelf = -0.2 + NZ.fbm2(x * 1.3 + 11, z * 1.3, 3) * 0.22 + NZ.n2(x * 5, z * 5) * 0.03; y = y + (Math.max(y, shelf) - y) * k; }
     return y;
+  }
+  /** 海底颜色（按离岸距离和高度：近岸沙、往外泥、深处蓝灰；近水面的台地有湿沙和海藻礁石） */
+  _seabedColor(x, z, dl, y) {
+    const sand = SB_COL.sand, c = sand.clone().lerp(SB_COL.mid, THREE.MathUtils.smoothstep(dl, 1.2, 5)).lerp(SB_COL.deep, THREE.MathUtils.smoothstep(dl, 5, 16));
+    if (y > -0.3) { const r = NZ.fbm2(x * 2.3 - 4, z * 2.3 + 1, 3); c.lerp(r > 0.12 ? SB_COL.wet : SB_COL.bar, THREE.MathUtils.smoothstep(y, -0.3, -0.05) * 0.7); if (r > 0.25) c.lerp(SB_COL.weed, 0.35); }
+    c.lerp(SB_COL.rock, THREE.MathUtils.clamp(NZ.fbm2(x * 0.8 + 50, z * 0.8, 3) * 2 - 0.4, 0, 0.6) * (1 - THREE.MathUtils.smoothstep(dl, 3, 8)));
+    return c;
+  }
+  /** 游戏里的海底区块：按 8×8 的小块分细粗——离岸近的小块细（每格 0.5），远的粗（每格 2，那里在几个单位深的水下，只有平缓的大起伏）。
+   *  法线按高度函数直接算（小块交界处光照连续，没有接缝线），每个小块四周有一圈向下的裙边，挡住粗细交界处的缝 */
+  buildSeabedAdaptive(material, cx, cz, size = 32) {
+    const sub = 8, n = Math.round(size / sub), pos = [], nor = [], col = [], srf = [], idx = [];
+    const H = (x, z) => this.seabedAt(x, z);
+    for (let a = 0; a < n; a++) for (let b = 0; b < n; b++) {
+      const x0 = cx - size / 2 + a * sub, z0 = cz - size / 2 + b * sub, fine = this.landDist(x0 + sub / 2, z0 + sub / 2) < sub * 0.75 + 7, seg = fine ? 16 : 4, st = sub / seg, e = Math.min(0.25, st / 2), base = pos.length / 3;
+      const vtx = (x, z, dy = 0) => { const y = H(x, z), dl = this.landDist(x, z), c = this._seabedColor(x, z, dl, y), nx = H(x - e, z) - H(x + e, z), nz = H(x, z - e) - H(x, z + e), l = Math.hypot(nx, 2 * e, nz); pos.push(x, y + dy, z); nor.push(nx / l, 2 * e / l, nz / l); col.push(c.r, c.g, c.b); srf.push(0, 0.3, 1); return pos.length / 3 - 1; };
+      for (let j = 0; j <= seg; j++) for (let i = 0; i <= seg; i++) vtx(x0 + i * st, z0 + j * st);
+      const at = (i, j) => base + j * (seg + 1) + i;
+      for (let j = 0; j < seg; j++) for (let i = 0; i < seg; i++) { const p0 = at(i, j), p1 = at(i + 1, j), p2 = at(i, j + 1), p3 = at(i + 1, j + 1); idx.push(p0, p2, p1, p1, p2, p3); }
+      // 裙边：沿四条边各往下挂一条（两面都画）
+      const ring = []; for (let i = 0; i < seg; i++) ring.push([i, 0]); for (let j = 0; j < seg; j++) ring.push([seg, j]); for (let i = seg; i > 0; i--) ring.push([i, seg]); for (let j = seg; j > 0; j--) ring.push([0, j]);
+      const down = ring.map(([i, j]) => { const k = vtx(x0 + i * st, z0 + j * st, -0.4); return k; });
+      for (let k = 0; k < ring.length; k++) { const a0 = at(...ring[k]), a1 = at(...ring[(k + 1) % ring.length]), d0 = down[k], d1 = down[(k + 1) % ring.length]; idx.push(a0, a1, d1, a0, d1, d0, a0, d1, a1, a0, d0, d1); }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setAttribute('surf', new THREE.Float32BufferAttribute(srf, 3)); g.setIndex(idx);
+    g.computeBoundingSphere();
+    const m = new THREE.Mesh(g, material); m.receiveShadow = true; m.name = 'seabed';
+    return m;
   }
   /** 海底网格（样张：一整块；游戏：按区块，传入中心） */
   buildSeabed(material, radius = 60, seg = 240, cx = 0, cz = 0) {

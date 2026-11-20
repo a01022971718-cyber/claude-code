@@ -8,6 +8,7 @@ import * as P from './props.js';
 import * as L from './models-land.js';
 import * as BK from './blocky.js';
 import { TYPES } from './terrain.js';
+import { simplify } from './simplify.js';
 
 const NZ = makeNoise(9);
 const INR = Math.sqrt(3) / 2;
@@ -48,8 +49,11 @@ export function kit() {
     // 远处用的简化树：每个变体一份（和高精度树一一对应），远近切换由画面按区块决定
     conLo: (() => { const g = BK.lowConifer(BK.STYLE.blocky); return [g, g, g, g, g]; })(),
     broadLo: [BK.lowBroad('green', BK.STYLE.blocky), BK.lowBroad('lime', BK.STYLE.blocky), BK.lowBroad('green', BK.STYLE.blocky), BK.lowBroad('autumn', BK.STYLE.blocky), BK.lowBroad('blossom', BK.STYLE.blocky)],
+    // 灌木远景版（离得稍远、灌木在屏幕上只有十几个像素时用）：体素主题是同形状的大方块版，经典主题是减面版
+    bushLo: BK.STYLE.blocky ? [BK.voxelBush(1, 'green', 0.05), BK.voxelBush(2, 'lime', 0.05), BK.voxelBush(3, 'green', 0.05)] : null,
     wrack: [L.wrack(1).geometry, L.wrack(2).geometry], drift: [L.driftwood(1).geometry, L.driftwood(2).geometry], shell: [L.shells(1).geometry, L.shells(2).geometry],
   };
+  if (!KIT.bushLo) KIT.bushLo = KIT.bush.map((g) => simplify(g, 8));
   return KIT;
 }
 

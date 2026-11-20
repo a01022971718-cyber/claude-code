@@ -61,20 +61,23 @@ export function makeShoreField(terrain, size = 384, span = 72, cx = 0, cz = 0, o
   return { texture: t, span, data, size, cx, cz };
 }
 
-/** 径向网格：中心密、远处稀，一直铺到地平线 */
-function radialGrid(rings = 230, segs = 300, r0 = 0.25, grow = 1.034) {
-  const pos = [], idx = [];
-  pos.push(0, 0, 0);
-  let r = r0;
-  for (let i = 0; i < rings; i++) {
-    for (let j = 0; j < segs; j++) { const a = j / segs * Math.PI * 2; pos.push(Math.cos(a) * r, 0, Math.sin(a) * r); }
-    r *= grow; if (r > 900) break;
-  }
-  const nr = (pos.length / 3 - 1) / segs;
-  for (let j = 0; j < segs; j++) idx.push(0, 1 + (j + 1) % segs, 1 + j);
-  for (let i = 0; i < nr - 1; i++) for (let j = 0; j < segs; j++) {
-    const a = 1 + i * segs + j, b = 1 + i * segs + (j + 1) % segs, c = a + segs, d = b + segs;
-    idx.push(a, b, c, b, d, c);
+/** 径向网格：中心密、远处稀，一直铺到地平线。
+ *  每圈的段数按“角向间距 ≈ 径向间距”来定（各向同性）：中心 3 个单位内每格约 0.1（最短的浪 1.6 个单位，够细），往外每圈间距按 3.4% 增长、段数 185；
+ *  原来每圈固定 300 段，角向比径向细好几倍，中心一个单位内就有上万个顶点（还常被岛压在下面）。顶点数少一半，看起来一样。
+ *  相邻两圈段数不同时按角度“拉链式”缝合，不留缝 */
+function radialGrid() {
+  const radii = []; let r = 0.1; while (r < 3) { radii.push(r); r += 0.1; } while (r < 900 && radii.length < 420) { radii.push(r); r *= 1.034; }
+  const segsAt = (rr) => Math.max(8, Math.min(185, Math.round((2 * Math.PI * rr) / Math.max(0.1, rr * 0.034))));
+  const pos = [0, 0, 0], idx = [], starts = [], ns = [];
+  for (const rr of radii) { const n = segsAt(rr); starts.push(pos.length / 3); ns.push(n); for (let j = 0; j < n; j++) { const a = (j / n) * Math.PI * 2; pos.push(Math.cos(a) * rr, 0, Math.sin(a) * rr); } }
+  for (let j = 0; j < ns[0]; j++) idx.push(0, starts[0] + (j + 1) % ns[0], starts[0] + j);
+  for (let k = 0; k < radii.length - 1; k++) {
+    const sa = starts[k], na = ns[k], sb = starts[k + 1], nb = ns[k + 1], A = (i) => sa + (i % na), B = (j) => sb + (j % nb);
+    let i = 0, j = 0;
+    while (i < na || j < nb) {
+      if (j >= nb || (i < na && (i + 1) / na <= (j + 1) / nb)) { idx.push(A(i), A(i + 1), B(j)); i++; }
+      else { idx.push(A(i), B(j + 1), B(j)); j++; }
+    }
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
