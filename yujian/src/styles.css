@@ -370,3 +370,37 @@ body { background: var(--haze); color: var(--ink); font-family: var(--font); fon
 .pal .sw i { position: absolute; left: 0; right: 0; bottom: -1px; font-size: 9px; font-style: normal; text-align: center; color: #fff; text-shadow: 0 0 2px #000, 0 0 2px #000; }
 .aiform label.aichk { display: flex; flex-direction: row; text-align: left; font-weight: 400; }
 .aiform label.aichk input { width: auto; flex: none; }
+
+/* ---- 方块岛 ---- */
+.bhud { position: absolute; inset: 0; pointer-events: none; font-size: 13px; color: #fffaf0; }
+.bhud button, .bhud input, .b-bar, .b-menu { pointer-events: auto; }
+.b-tl { position: absolute; left: max(14px, env(safe-area-inset-left)); top: max(12px, env(safe-area-inset-top)); display: flex; align-items: center; gap: 10px; }
+.b-btn { width: 40px; height: 40px; border-radius: 50%; background: rgba(23,49,59,.72); color: #f7e7b8; font-weight: 700; font-size: 16px; backdrop-filter: blur(6px); }
+.b-title { font-weight: 700; text-shadow: 0 1px 3px rgba(0,0,0,.45); }
+.b-tools { position: absolute; left: max(14px, env(safe-area-inset-left)); top: 64px; bottom: 112px; display: flex; flex-direction: column; gap: 6px; }
+.b-gap { flex: 1; }
+.b-pill { min-width: 60px; padding: 7px 10px; border-radius: 999px; background: rgba(23,49,59,.7); color: #fffaf0; backdrop-filter: blur(6px); border: 1.5px solid transparent; }
+.b-pill.on { background: #f7e7b8; color: #17313b !important; font-weight: 700; }
+.b-pill:disabled { opacity: .4; }
+.b-cut { position: absolute; right: max(14px, env(safe-area-inset-right)); top: 64px; bottom: 112px; width: 54px; display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: auto; background: rgba(23,49,59,.55); border-radius: 16px; padding: 8px 0; backdrop-filter: blur(6px); }
+.b-cut input { writing-mode: vertical-lr; direction: rtl; flex: 1; width: 28px; accent-color: #f7e7b8; }
+.b-cut b { font-size: 11px; color: #f7e7b8; white-space: nowrap; }
+.b-bar { position: absolute; left: 90px; right: 84px; bottom: max(10px, env(safe-area-inset-bottom)); background: rgba(23,49,59,.78); border-radius: 16px; padding: 6px 8px 8px; backdrop-filter: blur(8px); }
+.b-cats { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+.b-cats::-webkit-scrollbar, .b-items::-webkit-scrollbar { display: none; }
+.b-cat { flex: none; padding: 3px 10px; border-radius: 999px; background: rgba(255,255,255,.08); color: rgba(255,250,240,.8); font-size: 12px; }
+.b-cat.on { background: #f7e7b8; color: #17313b !important; font-weight: 700; }
+.b-items { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.b-item { flex: none; width: 54px; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 3px 0; border-radius: 10px; border: 1.5px solid transparent; background: rgba(255,255,255,.05); color: #fffaf0; }
+.b-item img { width: 34px; height: 34px; }
+.b-item i { font-style: normal; font-size: 10px; white-space: nowrap; opacity: .9; }
+.b-item.on { border-color: #f7e7b8; background: rgba(247,231,184,.18); }
+.b-hint { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: rgba(23,49,59,.82); padding: 7px 14px; border-radius: 999px; white-space: nowrap; }
+.b-fps { position: absolute; left: 50%; top: 52px; transform: translateX(-50%); background: rgba(0,0,0,.55); padding: 4px 10px; border-radius: 8px; font: 11px/1.4 ui-monospace, monospace; white-space: nowrap; }
+.b-menu { position: absolute; inset: 0; background: rgba(10,20,25,.45); display: flex; align-items: center; justify-content: center; }
+.b-card { width: min(420px, 92vw); max-height: 88vh; overflow: auto; background: #fffaf0; color: #17313b; border-radius: 18px; padding: 14px; }
+.b-card header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 16px; }
+.b-x { padding: 4px 12px; border-radius: 999px; background: #efe6d2; color: #17313b; }
+.b-row { display: flex; flex-direction: column; align-items: flex-start; width: 100%; text-align: left; padding: 10px 12px; margin: 6px 0; border-radius: 12px; background: #f3ead8; color: #17313b; }
+.b-row span { font-size: 12px; opacity: .7; }
+.b-note { font-size: 12px; opacity: .7; margin: 8px 2px 0; line-height: 1.5; }

@@ -21,6 +21,7 @@ import { toWorld, fromWorld, key } from './hex.js';
 import { PAL } from './palette.js';
 import { FX } from './fx.js';
 import { Sky } from './sky.js';
+import { BlockApp, wantBlocks } from './blocks/app.js';
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -487,5 +488,5 @@ class App {
   }
 }
 
-function start() { try { window.__game = new App(); } catch (e) { console.error(e); const d = document.createElement('p'); d.style.cssText = 'position:absolute;inset:auto 16px 16px;color:#17313b;background:#fffaf0;padding:12px;border-radius:12px'; d.textContent = '游戏启动失败：' + (e.message || e) + '。请换一个支持 WebGL 的浏览器再试。'; document.getElementById('app').appendChild(d); } }
+function start() { try { window.__game = wantBlocks() ? new BlockApp() : new App(); } catch (e) { console.error(e); const d = document.createElement('p'); d.style.cssText = 'position:absolute;inset:auto 16px 16px;color:#17313b;background:#fffaf0;padding:12px;border-radius:12px'; d.textContent = '游戏启动失败：' + (e.message || e) + '。请换一个支持 WebGL 的浏览器再试。'; document.getElementById('app').appendChild(d); } }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();

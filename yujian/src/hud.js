@@ -11,6 +11,7 @@ import * as L from './hq/models-land.js';
 import { audio } from './audio.js';
 import { CAM_ICON } from './camdock.js';
 import { CUSTOM } from './creations.js';
+import { enterBlocks } from './blocks/app.js';
 import { creatureParts } from './hq/forge.js';
 import { STYLE } from './hq/blocky.js';
 import * as THREE from 'three';
@@ -197,6 +198,7 @@ export class CanvasHUD {
         <button class="c-card" data-n="starter"><b>样张岛</b><span>从高画质样张那座完整的岛开始</span></button>
         <button class="c-card" data-n="blank"><b>空白小岛</b><span>三块地，从零开始搭</span></button>
         <button class="c-card" data-n="ai"><b>AI 造岛</b><span>用一句话描述，AI 帮你设计一座岛</span></button>
+        <button class="c-card" data-n="blocks"><b>方块岛（试玩）</b><span>在方块组成的岛上自由建造：放、拆、吸取、剖切看屋里</span></button>
         <button class="c-card" data-n="sop"><b>造物手册</b><span>AI 和人共用的美术 SOP：七步做法、色板、比例尺、审图清单</span></button>
       </div>
       <p class="note">已发现：${Object.keys(RARE).map((k) => `${RARE[k].name}${cv.unlocked(k) ? ' ✓' : '（未发现）'}`).join('　')}</p>
@@ -207,6 +209,7 @@ export class CanvasHUD {
       const b = e.target.closest('[data-n]'); if (!b) return;
       if (b.dataset.n === 'ai') return ui.openAIIsland();
       if (b.dataset.n === 'sop') return ui.openSOP();
+      if (b.dataset.n === 'blocks') return enterBlocks();
       if (!(await ui.confirm('换一座新岛会清空现在这座岛，确定吗？', '换新岛'))) return;
       cv.newWorld(b.dataset.n); this.setOpen(false); ui.toast(b.dataset.n === 'starter' ? '回到了样张岛' : '一座新的小岛');
     });

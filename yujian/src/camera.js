@@ -37,6 +37,8 @@ export class CameraRig {
     this.autoTilt = true; this.fovKey = 'std'; this.sens = 1; this.portrait = false;
     this.orbit = 0;                 // 自动环绕（弧度/秒）；任何操作都会让它停下
     this.bounds = { minX: -20, maxX: 20, minZ: -20, maxZ: 20 };
+    // builder（可选）：建造笔接管单指 / 左键拖动。{ active(e) → 是否接管, down(e), move(e), up(e, cancel) }；双指照常转视角、缩放、平移
+    this.builder = null;
     this.locked = false; this.onTap = null; this.onMove = null; this.onDoubleTap = null; this.onFov = null;
     this.vel = new THREE.Vector2(); this.yawVel = 0; this.fly = null;
     this._ptrs = new Map(); this._drag = null; this._ray = new THREE.Raycaster(); this._v = new THREE.Vector3();
@@ -180,11 +182,13 @@ export class CameraRig {
     this.dom.setPointerCapture?.(e.pointerId);
     this._ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
     this.onInput?.(); this.orbit = 0;
-    const orbit = this.free && (e.button === 2 || e.button === 1 || e.shiftKey);
+    const orbit = this.free && (e.button === 2 || (e.button === 1 && !this.builder) || e.shiftKey);
+    if (this._ptrs.size === 1 && !orbit && e.button !== 1 && this.builder?.active(e)) { this._drag = { builder: true, x0: e.clientX, y0: e.clientY, t0: performance.now(), moved: false, px: e.clientX, py: e.clientY, slop: 8 }; this.builder.down(e); this.vel.set(0, 0); this.yawVel = 0; this.fly = null; return; }
     if (this._ptrs.size === 1) {
       this._drag = { x0: e.clientX, y0: e.clientY, t0: performance.now(), moved: false, orbit, px: e.clientX, py: e.clientY, slop: e.pointerType === 'mouse' ? 6 : 10 };
       this._trail = [];
     } else if (this._ptrs.size === 2) {
+      if (this._drag?.builder) { this.builder.up(null, true); this._drag = null; }   // 第二根手指落下：取消这一笔，改成双指操作镜头
       const [a, b] = [...this._ptrs.values()];
       this._g2 = { a0: { x: a.x, y: a.y }, b0: { x: b.x, y: b.y }, pinch: Math.hypot(a.x - b.x, a.y - b.y), ang: Math.atan2(b.y - a.y, b.x - a.x), midX: (a.x + b.x) / 2, midY: (a.y + b.y) / 2, mode: this.free ? null : 'pinch', twist: 0, twisting: false };
       if (this._drag) this._drag.moved = true;
@@ -198,6 +202,7 @@ export class CameraRig {
     if (this.locked) return;
     if (this._ptrs.size === 2 && this._g2) { this._two(); return; }
     const dr = this._drag; if (!dr) return;
+    if (dr.builder) { this.builder.move(e); return; }
     if (!dr.moved && Math.hypot(e.clientX - dr.x0, e.clientY - dr.y0) > dr.slop) { dr.moved = true; dr.px = e.clientX; dr.py = e.clientY; }
     if (!dr.moved) return;
     if (dr.orbit) { const dy = -(e.clientX - dr.px) * 0.006 * this.sens; this.rotate(dy, (e.clientY - dr.py) * 0.005 * this.sens); this.yawVel = dy * 60; this._rotT = performance.now(); dr.px = e.clientX; dr.py = e.clientY; return; }
@@ -247,6 +252,7 @@ export class CameraRig {
     const had = this._ptrs.delete(e.pointerId);
     if (!had) return;
     const dr = this._drag, now = performance.now();
+    if (dr?.builder) { this._drag = null; this.builder.up(e, cancel); return; }
     if (this._ptrs.size === 0) {
       this._drag = null; this._g2 = null;
       if (now - (this._rotT || 0) > 60) this.yawVel = 0;   // 停住再松手：不继续转
