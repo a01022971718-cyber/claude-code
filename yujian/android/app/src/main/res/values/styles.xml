@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- 全屏、无标题栏；启动时的底色和游戏加载页一致，不闪白 -->
+  <style name="YujianTheme" parent="@android:style/Theme.Material.NoActionBar.Fullscreen">
+    <item name="android:windowBackground">@color/bg</item>
+    <item name="android:statusBarColor">@android:color/transparent</item>
+    <item name="android:navigationBarColor">@android:color/transparent</item>
+  </style>
+  <color name="bg">#0E2A33</color>
+</resources>

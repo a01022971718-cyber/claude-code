@@ -1,0 +1,8 @@
+// 屿见 Android 壳：一个全屏 WebView，加载打包好的单文件游戏（dist/index.html）
+pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+dependencyResolutionManagement {
+  repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+  repositories { google(); mavenCentral() }
+}
+rootProject.name = 'yujian'
+include ':app'
